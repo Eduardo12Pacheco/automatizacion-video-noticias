@@ -1,0 +1,4 @@
+# DeepSpeech oficial solo tiene wheels hasta Python 3.10.
+deepspeech==0.9.3; python_version < "3.11"
+# En Python 3.11+ (incluye 3.13), usar backend deepspeech-compatible-vosk
+# mediante scripts/transcribe-audio.py --backend=auto (o --backend=deepspeech).

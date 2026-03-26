@@ -1,0 +1,133 @@
+{
+  "phrases": [
+    {
+      "id": 1,
+      "phrase": "La Selección Colombia y la Selección Croata se preparan para protagonizar un amistoso internacional que genera gran expectativa",
+      "keywords": [
+        "seleccion",
+        "colombia",
+        "seleccion",
+        "croata",
+        "preparan",
+        "protagonizar",
+        "amistoso",
+        "internacional",
+        "genera",
+        "gran",
+        "expectativa"
+      ],
+      "image": "abrazo-entre-colombianos.png"
+    },
+    {
+      "id": 2,
+      "phrase": "y enciende el debate en la prensa deportiva.",
+      "keywords": [
+        "enciende",
+        "debate",
+        "prensa",
+        "deportiva"
+      ],
+      "image": "colombiano-celebrando.png"
+    },
+    {
+      "id": 3,
+      "phrase": "El duelo se disputará este jueves 26 de marzo en el Camping World Stadium, en la ciudad de Orlando,",
+      "keywords": [
+        "duelo",
+        "disputara",
+        "este",
+        "jueves",
+        "marzo",
+        "camping",
+        "world",
+        "stadium",
+        "ciudad",
+        "orlando"
+      ],
+      "image": "james-regateando.jpg"
+    },
+    {
+      "id": 4,
+      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.\r\n\r\nEn la previa del encuentro,",
+      "keywords": [
+        "como",
+        "parte",
+        "camino",
+        "preparacion",
+        "rumbo",
+        "copa",
+        "mundial",
+        "fifa",
+        "2026",
+        "previa",
+        "encuentro"
+      ],
+      "image": "james-colombiano-pateando.png"
+    },
+    {
+      "id": 5,
+      "phrase": "importantes medios de comunicación de México y Argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave",
+      "keywords": [
+        "importantes",
+        "medios",
+        "comunicacion",
+        "mexico",
+        "argentina",
+        "analizaron",
+        "presente",
+        "ambas",
+        "selecciones",
+        "coincidieron",
+        "punto",
+        "clave"
+      ],
+      "image": "colombiano-gol-pateando.png"
+    },
+    {
+      "id": 6,
+      "phrase": "Colombia llega como favorita.",
+      "keywords": [
+        "colombia",
+        "llega",
+        "como",
+        "favorita"
+      ],
+      "image": "abrazo-entre-colombianos.png"
+    },
+    {
+      "id": 7,
+      "phrase": "La prensa internacional destaca el gran momento futbolístico del extremo Luis Díaz,",
+      "keywords": [
+        "prensa",
+        "internacional",
+        "destaca",
+        "gran",
+        "momento",
+        "futbolistico",
+        "extremo",
+        "luis",
+        "diaz"
+      ],
+      "image": "diaz-cabesazo.png"
+    },
+    {
+      "id": 8,
+      "phrase": "figura determinante en el fútbol europeo, y señala que su nivel marca una diferencia notable frente al conjunto croata.",
+      "keywords": [
+        "figura",
+        "determinante",
+        "futbol",
+        "europeo",
+        "senala",
+        "nivel",
+        "marca",
+        "diferencia",
+        "notable",
+        "frente",
+        "conjunto",
+        "croata"
+      ],
+      "image": "colombiano-celebrando.png"
+    }
+  ]
+}

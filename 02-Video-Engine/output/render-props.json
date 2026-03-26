@@ -1,0 +1,53 @@
+{
+  "audioSrc": "generated/audio.mp3",
+  "segments": [
+    {
+      "image": "generated/images/abrazo-entre-colombianos.png",
+      "phrase": "La Selección Colombia y la Selección Croata se preparan para protagonizar un amistoso internacional que genera gran expectativa",
+      "startTime": 1.29,
+      "endTime": 20.16
+    },
+    {
+      "image": "generated/images/colombiano-celebrando.png",
+      "phrase": "y enciende el debate en la prensa deportiva.",
+      "startTime": 20.16,
+      "endTime": 25.44
+    },
+    {
+      "image": "generated/images/james-regateando.jpg",
+      "phrase": "El duelo se disputará este jueves 26 de marzo en el Camping World Stadium, en la ciudad de Orlando,",
+      "startTime": 25.44,
+      "endTime": 45.18
+    },
+    {
+      "image": "generated/images/james-colombiano-pateando.png",
+      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.\r\n\r\nEn la previa del encuentro,",
+      "startTime": 45.18,
+      "endTime": 46.47
+    },
+    {
+      "image": "generated/images/colombiano-gol-pateando.png",
+      "phrase": "importantes medios de comunicación de México y Argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave",
+      "startTime": 46.47,
+      "endTime": 46.67
+    },
+    {
+      "image": "generated/images/abrazo-entre-colombianos.png",
+      "phrase": "Colombia llega como favorita.",
+      "startTime": 46.67,
+      "endTime": 46.87
+    },
+    {
+      "image": "generated/images/diaz-cabesazo.png",
+      "phrase": "La prensa internacional destaca el gran momento futbolístico del extremo Luis Díaz,",
+      "startTime": 46.87,
+      "endTime": 47.07
+    },
+    {
+      "image": "generated/images/colombiano-celebrando.png",
+      "phrase": "figura determinante en el fútbol europeo, y señala que su nivel marca una diferencia notable frente al conjunto croata.",
+      "startTime": 47.07,
+      "endTime": 47.27
+    }
+  ]
+}

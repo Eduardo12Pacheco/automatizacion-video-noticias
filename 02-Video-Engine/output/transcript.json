@@ -1,0 +1,1424 @@
+{
+  "backend": "deepspeech-compatible-vosk",
+  "requestedBackend": "auto",
+  "notes": [
+    "Backend auto selecciono deepspeech-compatible-vosk (DeepSpeech oficial no soportado o no instalado en Python actual)."
+  ],
+  "segments": [
+    {
+      "id": 1,
+      "text": "la selección colombia en la selección croata se preparan para protagonizar un amistoso internacional que genera gran expectativa y enciende el debate en la prensa deportiva el duelo se disputará este jueves veintiséis de marzo en el camping lester un en la ciudad de orlando como parte del camino de prep",
+      "start": 1.29,
+      "end": 20.16,
+      "words": [
+        {
+          "word": "la",
+          "start": 1.29,
+          "end": 1.47,
+          "confidence": 1.0
+        },
+        {
+          "word": "selección",
+          "start": 1.47,
+          "end": 2.04,
+          "confidence": 1.0
+        },
+        {
+          "word": "colombia",
+          "start": 2.04,
+          "end": 2.55,
+          "confidence": 1.0
+        },
+        {
+          "word": "en",
+          "start": 2.55,
+          "end": 2.606,
+          "confidence": 0.530512
+        },
+        {
+          "word": "la",
+          "start": 2.606,
+          "end": 2.7,
+          "confidence": 0.962144
+        },
+        {
+          "word": "selección",
+          "start": 2.702,
+          "end": 3.24,
+          "confidence": 1.0
+        },
+        {
+          "word": "croata",
+          "start": 3.24,
+          "end": 3.75,
+          "confidence": 1.0
+        },
+        {
+          "word": "se",
+          "start": 3.75,
+          "end": 3.93,
+          "confidence": 1.0
+        },
+        {
+          "word": "preparan",
+          "start": 3.93,
+          "end": 4.5,
+          "confidence": 1.0
+        },
+        {
+          "word": "para",
+          "start": 4.5,
+          "end": 4.71,
+          "confidence": 1.0
+        },
+        {
+          "word": "protagonizar",
+          "start": 4.71,
+          "end": 5.49,
+          "confidence": 1.0
+        },
+        {
+          "word": "un",
+          "start": 5.55,
+          "end": 5.73,
+          "confidence": 0.810848
+        },
+        {
+          "word": "amistoso",
+          "start": 5.747,
+          "end": 6.33,
+          "confidence": 0.778636
+        },
+        {
+          "word": "internacional",
+          "start": 6.33,
+          "end": 7.08,
+          "confidence": 1.0
+        },
+        {
+          "word": "que",
+          "start": 7.08,
+          "end": 7.23,
+          "confidence": 1.0
+        },
+        {
+          "word": "genera",
+          "start": 7.23,
+          "end": 7.71,
+          "confidence": 0.919865
+        },
+        {
+          "word": "gran",
+          "start": 7.74,
+          "end": 8.069,
+          "confidence": 0.638754
+        },
+        {
+          "word": "expectativa",
+          "start": 8.104,
+          "end": 8.97,
+          "confidence": 0.920669
+        },
+        {
+          "word": "y",
+          "start": 9.36,
+          "end": 9.48,
+          "confidence": 1.0
+        },
+        {
+          "word": "enciende",
+          "start": 9.48,
+          "end": 10.32,
+          "confidence": 0.790501
+        },
+        {
+          "word": "el",
+          "start": 10.32,
+          "end": 10.38,
+          "confidence": 1.0
+        },
+        {
+          "word": "debate",
+          "start": 10.38,
+          "end": 10.89,
+          "confidence": 0.975455
+        },
+        {
+          "word": "en",
+          "start": 10.89,
+          "end": 10.958,
+          "confidence": 0.966256
+        },
+        {
+          "word": "la",
+          "start": 10.958,
+          "end": 11.04,
+          "confidence": 0.533804
+        },
+        {
+          "word": "prensa",
+          "start": 11.054,
+          "end": 11.43,
+          "confidence": 1.0
+        },
+        {
+          "word": "deportiva",
+          "start": 11.43,
+          "end": 12.24,
+          "confidence": 1.0
+        },
+        {
+          "word": "el",
+          "start": 12.48,
+          "end": 12.66,
+          "confidence": 1.0
+        },
+        {
+          "word": "duelo",
+          "start": 12.66,
+          "end": 12.93,
+          "confidence": 0.858865
+        },
+        {
+          "word": "se",
+          "start": 12.93,
+          "end": 13.075,
+          "confidence": 0.497921
+        },
+        {
+          "word": "disputará",
+          "start": 13.08,
+          "end": 13.62,
+          "confidence": 1.0
+        },
+        {
+          "word": "este",
+          "start": 13.62,
+          "end": 13.77,
+          "confidence": 1.0
+        },
+        {
+          "word": "jueves",
+          "start": 13.77,
+          "end": 14.13,
+          "confidence": 1.0
+        },
+        {
+          "word": "veintiséis",
+          "start": 14.13,
+          "end": 14.76,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 14.76,
+          "end": 14.85,
+          "confidence": 1.0
+        },
+        {
+          "word": "marzo",
+          "start": 14.85,
+          "end": 15.3,
+          "confidence": 1.0
+        },
+        {
+          "word": "en",
+          "start": 15.36,
+          "end": 15.57,
+          "confidence": 1.0
+        },
+        {
+          "word": "el",
+          "start": 15.57,
+          "end": 15.72,
+          "confidence": 1.0
+        },
+        {
+          "word": "camping",
+          "start": 15.72,
+          "end": 16.266,
+          "confidence": 0.908708
+        },
+        {
+          "word": "lester",
+          "start": 16.44,
+          "end": 16.89,
+          "confidence": 0.263937
+        },
+        {
+          "word": "un",
+          "start": 16.984,
+          "end": 17.1,
+          "confidence": 0.302184
+        },
+        {
+          "word": "en",
+          "start": 17.19,
+          "end": 17.31,
+          "confidence": 1.0
+        },
+        {
+          "word": "la",
+          "start": 17.31,
+          "end": 17.4,
+          "confidence": 0.977638
+        },
+        {
+          "word": "ciudad",
+          "start": 17.4,
+          "end": 17.76,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 17.76,
+          "end": 17.85,
+          "confidence": 1.0
+        },
+        {
+          "word": "orlando",
+          "start": 17.85,
+          "end": 18.36,
+          "confidence": 1.0
+        },
+        {
+          "word": "como",
+          "start": 18.42,
+          "end": 18.72,
+          "confidence": 1.0
+        },
+        {
+          "word": "parte",
+          "start": 18.72,
+          "end": 19.14,
+          "confidence": 1.0
+        },
+        {
+          "word": "del",
+          "start": 19.14,
+          "end": 19.29,
+          "confidence": 1.0
+        },
+        {
+          "word": "camino",
+          "start": 19.29,
+          "end": 19.8,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 19.8,
+          "end": 19.95,
+          "confidence": 0.993163
+        },
+        {
+          "word": "prep",
+          "start": 19.95,
+          "end": 20.16,
+          "confidence": 0.408879
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "oración rumbo a la copa mundial de la fifa dos mil veintiséis",
+      "start": 20.16,
+      "end": 23.91,
+      "words": [
+        {
+          "word": "oración",
+          "start": 20.16,
+          "end": 20.67,
+          "confidence": 0.922841
+        },
+        {
+          "word": "rumbo",
+          "start": 20.67,
+          "end": 21.0,
+          "confidence": 1.0
+        },
+        {
+          "word": "a",
+          "start": 21.0,
+          "end": 21.03,
+          "confidence": 0.875374
+        },
+        {
+          "word": "la",
+          "start": 21.033,
+          "end": 21.18,
+          "confidence": 1.0
+        },
+        {
+          "word": "copa",
+          "start": 21.18,
+          "end": 21.51,
+          "confidence": 1.0
+        },
+        {
+          "word": "mundial",
+          "start": 21.51,
+          "end": 21.96,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 21.96,
+          "end": 22.08,
+          "confidence": 1.0
+        },
+        {
+          "word": "la",
+          "start": 22.08,
+          "end": 22.2,
+          "confidence": 1.0
+        },
+        {
+          "word": "fifa",
+          "start": 22.2,
+          "end": 22.62,
+          "confidence": 1.0
+        },
+        {
+          "word": "dos",
+          "start": 22.68,
+          "end": 22.86,
+          "confidence": 1.0
+        },
+        {
+          "word": "mil",
+          "start": 22.86,
+          "end": 23.07,
+          "confidence": 1.0
+        },
+        {
+          "word": "veintiséis",
+          "start": 23.07,
+          "end": 23.91,
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "en la previa del encuentro importantes medios de comunicación de méxico y argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave colombia llega como favorita la prensa internacional destaca el gran momento futbolístico del extremo luis días figura determinante en el fútbol europeo",
+      "start": 25.44,
+      "end": 44.88,
+      "words": [
+        {
+          "word": "en",
+          "start": 25.44,
+          "end": 25.62,
+          "confidence": 0.923227
+        },
+        {
+          "word": "la",
+          "start": 25.62,
+          "end": 25.68,
+          "confidence": 0.418049
+        },
+        {
+          "word": "previa",
+          "start": 25.697,
+          "end": 26.04,
+          "confidence": 1.0
+        },
+        {
+          "word": "del",
+          "start": 26.04,
+          "end": 26.22,
+          "confidence": 1.0
+        },
+        {
+          "word": "encuentro",
+          "start": 26.22,
+          "end": 26.82,
+          "confidence": 1.0
+        },
+        {
+          "word": "importantes",
+          "start": 26.88,
+          "end": 27.54,
+          "confidence": 1.0
+        },
+        {
+          "word": "medios",
+          "start": 27.54,
+          "end": 27.93,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 27.93,
+          "end": 28.02,
+          "confidence": 1.0
+        },
+        {
+          "word": "comunicación",
+          "start": 28.02,
+          "end": 28.8,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 28.8,
+          "end": 28.92,
+          "confidence": 1.0
+        },
+        {
+          "word": "méxico",
+          "start": 28.92,
+          "end": 29.43,
+          "confidence": 1.0
+        },
+        {
+          "word": "y",
+          "start": 29.43,
+          "end": 29.49,
+          "confidence": 1.0
+        },
+        {
+          "word": "argentina",
+          "start": 29.49,
+          "end": 30.18,
+          "confidence": 1.0
+        },
+        {
+          "word": "analizaron",
+          "start": 30.24,
+          "end": 30.9,
+          "confidence": 1.0
+        },
+        {
+          "word": "el",
+          "start": 30.9,
+          "end": 31.02,
+          "confidence": 1.0
+        },
+        {
+          "word": "presente",
+          "start": 31.02,
+          "end": 31.53,
+          "confidence": 1.0
+        },
+        {
+          "word": "de",
+          "start": 31.53,
+          "end": 31.74,
+          "confidence": 1.0
+        },
+        {
+          "word": "ambas",
+          "start": 31.8,
+          "end": 32.13,
+          "confidence": 1.0
+        },
+        {
+          "word": "selecciones",
+          "start": 32.13,
+          "end": 32.82,
+          "confidence": 1.0
+        },
+        {
+          "word": "y",
+          "start": 32.91,
+          "end": 33.0,
+          "confidence": 1.0
+        },
+        {
+          "word": "coincidieron",
+          "start": 33.0,
+          "end": 33.66,
+          "confidence": 1.0
+        },
+        {
+          "word": "en",
+          "start": 33.66,
+          "end": 33.78,
+          "confidence": 1.0
+        },
+        {
+          "word": "un",
+          "start": 33.78,
+          "end": 33.93,
+          "confidence": 1.0
+        },
+        {
+          "word": "punto",
+          "start": 33.93,
+          "end": 34.29,
+          "confidence": 1.0
+        },
+        {
+          "word": "clave",
+          "start": 34.29,
+          "end": 34.83,
+          "confidence": 1.0
+        },
+        {
+          "word": "colombia",
+          "start": 34.95,
+          "end": 35.76,
+          "confidence": 1.0
+        },
+        {
+          "word": "llega",
+          "start": 35.765,
+          "end": 36.21,
+          "confidence": 0.929234
+        },
+        {
+          "word": "como",
+          "start": 36.21,
+          "end": 36.48,
+          "confidence": 0.960892
+        },
+        {
+          "word": "favorita",
+          "start": 36.48,
+          "end": 37.29,
+          "confidence": 1.0
+        },
+        {
+          "word": "la",
+          "start": 37.62,
+          "end": 37.77,
+          "confidence": 1.0
+        },
+        {
+          "word": "prensa",
+          "start": 37.77,
+          "end": 38.07,
+          "confidence": 1.0
+        },
+        {
+          "word": "internacional",
+          "start": 38.07,
+          "end": 38.76,
+          "confidence": 1.0
+        },
+        {
+          "word": "destaca",
+          "start": 38.76,
+          "end": 39.21,
+          "confidence": 1.0
+        },
+        {
+          "word": "el",
+          "start": 39.27,
+          "end": 39.45,
+          "confidence": 1.0
+        },
+        {
+          "word": "gran",
+          "start": 39.45,
+          "end": 39.78,
+          "confidence": 1.0
+        },
+        {
+          "word": "momento",
+          "start": 39.78,
+          "end": 40.23,
+          "confidence": 1.0
+        },
+        {
+          "word": "futbolístico",
+          "start": 40.23,
+          "end": 41.04,
+          "confidence": 1.0
+        },
+        {
+          "word": "del",
+          "start": 41.04,
+          "end": 41.22,
+          "confidence": 1.0
+        },
+        {
+          "word": "extremo",
+          "start": 41.22,
+          "end": 41.7,
+          "confidence": 1.0
+        },
+        {
+          "word": "luis",
+          "start": 41.7,
+          "end": 41.91,
+          "confidence": 0.952504
+        },
+        {
+          "word": "días",
+          "start": 41.91,
+          "end": 42.39,
+          "confidence": 0.821729
+        },
+        {
+          "word": "figura",
+          "start": 42.45,
+          "end": 42.9,
+          "confidence": 0.969252
+        },
+        {
+          "word": "determinante",
+          "start": 42.901,
+          "end": 43.68,
+          "confidence": 1.0
+        },
+        {
+          "word": "en",
+          "start": 43.68,
+          "end": 43.74,
+          "confidence": 1.0
+        },
+        {
+          "word": "el",
+          "start": 43.74,
+          "end": 43.89,
+          "confidence": 1.0
+        },
+        {
+          "word": "fútbol",
+          "start": 43.89,
+          "end": 44.28,
+          "confidence": 0.80489
+        },
+        {
+          "word": "europeo",
+          "start": 44.28,
+          "end": 44.88,
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "y señaló que su nivel",
+      "start": 45.18,
+      "end": 46.47,
+      "words": [
+        {
+          "word": "y",
+          "start": 45.18,
+          "end": 45.27,
+          "confidence": 0.973289
+        },
+        {
+          "word": "señaló",
+          "start": 45.27,
+          "end": 45.69,
+          "confidence": 0.501384
+        },
+        {
+          "word": "que",
+          "start": 45.743,
+          "end": 45.899,
+          "confidence": 1.0
+        },
+        {
+          "word": "su",
+          "start": 45.9,
+          "end": 46.02,
+          "confidence": 1.0
+        },
+        {
+          "word": "nivel",
+          "start": 46.02,
+          "end": 46.47,
+          "confidence": 1.0
+        }
+      ]
+    }
+  ],
+  "words": [
+    {
+      "word": "la",
+      "start": 1.29,
+      "end": 1.47,
+      "confidence": 1.0
+    },
+    {
+      "word": "selección",
+      "start": 1.47,
+      "end": 2.04,
+      "confidence": 1.0
+    },
+    {
+      "word": "colombia",
+      "start": 2.04,
+      "end": 2.55,
+      "confidence": 1.0
+    },
+    {
+      "word": "en",
+      "start": 2.55,
+      "end": 2.606,
+      "confidence": 0.530512
+    },
+    {
+      "word": "la",
+      "start": 2.606,
+      "end": 2.7,
+      "confidence": 0.962144
+    },
+    {
+      "word": "selección",
+      "start": 2.702,
+      "end": 3.24,
+      "confidence": 1.0
+    },
+    {
+      "word": "croata",
+      "start": 3.24,
+      "end": 3.75,
+      "confidence": 1.0
+    },
+    {
+      "word": "se",
+      "start": 3.75,
+      "end": 3.93,
+      "confidence": 1.0
+    },
+    {
+      "word": "preparan",
+      "start": 3.93,
+      "end": 4.5,
+      "confidence": 1.0
+    },
+    {
+      "word": "para",
+      "start": 4.5,
+      "end": 4.71,
+      "confidence": 1.0
+    },
+    {
+      "word": "protagonizar",
+      "start": 4.71,
+      "end": 5.49,
+      "confidence": 1.0
+    },
+    {
+      "word": "un",
+      "start": 5.55,
+      "end": 5.73,
+      "confidence": 0.810848
+    },
+    {
+      "word": "amistoso",
+      "start": 5.747,
+      "end": 6.33,
+      "confidence": 0.778636
+    },
+    {
+      "word": "internacional",
+      "start": 6.33,
+      "end": 7.08,
+      "confidence": 1.0
+    },
+    {
+      "word": "que",
+      "start": 7.08,
+      "end": 7.23,
+      "confidence": 1.0
+    },
+    {
+      "word": "genera",
+      "start": 7.23,
+      "end": 7.71,
+      "confidence": 0.919865
+    },
+    {
+      "word": "gran",
+      "start": 7.74,
+      "end": 8.069,
+      "confidence": 0.638754
+    },
+    {
+      "word": "expectativa",
+      "start": 8.104,
+      "end": 8.97,
+      "confidence": 0.920669
+    },
+    {
+      "word": "y",
+      "start": 9.36,
+      "end": 9.48,
+      "confidence": 1.0
+    },
+    {
+      "word": "enciende",
+      "start": 9.48,
+      "end": 10.32,
+      "confidence": 0.790501
+    },
+    {
+      "word": "el",
+      "start": 10.32,
+      "end": 10.38,
+      "confidence": 1.0
+    },
+    {
+      "word": "debate",
+      "start": 10.38,
+      "end": 10.89,
+      "confidence": 0.975455
+    },
+    {
+      "word": "en",
+      "start": 10.89,
+      "end": 10.958,
+      "confidence": 0.966256
+    },
+    {
+      "word": "la",
+      "start": 10.958,
+      "end": 11.04,
+      "confidence": 0.533804
+    },
+    {
+      "word": "prensa",
+      "start": 11.054,
+      "end": 11.43,
+      "confidence": 1.0
+    },
+    {
+      "word": "deportiva",
+      "start": 11.43,
+      "end": 12.24,
+      "confidence": 1.0
+    },
+    {
+      "word": "el",
+      "start": 12.48,
+      "end": 12.66,
+      "confidence": 1.0
+    },
+    {
+      "word": "duelo",
+      "start": 12.66,
+      "end": 12.93,
+      "confidence": 0.858865
+    },
+    {
+      "word": "se",
+      "start": 12.93,
+      "end": 13.075,
+      "confidence": 0.497921
+    },
+    {
+      "word": "disputará",
+      "start": 13.08,
+      "end": 13.62,
+      "confidence": 1.0
+    },
+    {
+      "word": "este",
+      "start": 13.62,
+      "end": 13.77,
+      "confidence": 1.0
+    },
+    {
+      "word": "jueves",
+      "start": 13.77,
+      "end": 14.13,
+      "confidence": 1.0
+    },
+    {
+      "word": "veintiséis",
+      "start": 14.13,
+      "end": 14.76,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 14.76,
+      "end": 14.85,
+      "confidence": 1.0
+    },
+    {
+      "word": "marzo",
+      "start": 14.85,
+      "end": 15.3,
+      "confidence": 1.0
+    },
+    {
+      "word": "en",
+      "start": 15.36,
+      "end": 15.57,
+      "confidence": 1.0
+    },
+    {
+      "word": "el",
+      "start": 15.57,
+      "end": 15.72,
+      "confidence": 1.0
+    },
+    {
+      "word": "camping",
+      "start": 15.72,
+      "end": 16.266,
+      "confidence": 0.908708
+    },
+    {
+      "word": "lester",
+      "start": 16.44,
+      "end": 16.89,
+      "confidence": 0.263937
+    },
+    {
+      "word": "un",
+      "start": 16.984,
+      "end": 17.1,
+      "confidence": 0.302184
+    },
+    {
+      "word": "en",
+      "start": 17.19,
+      "end": 17.31,
+      "confidence": 1.0
+    },
+    {
+      "word": "la",
+      "start": 17.31,
+      "end": 17.4,
+      "confidence": 0.977638
+    },
+    {
+      "word": "ciudad",
+      "start": 17.4,
+      "end": 17.76,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 17.76,
+      "end": 17.85,
+      "confidence": 1.0
+    },
+    {
+      "word": "orlando",
+      "start": 17.85,
+      "end": 18.36,
+      "confidence": 1.0
+    },
+    {
+      "word": "como",
+      "start": 18.42,
+      "end": 18.72,
+      "confidence": 1.0
+    },
+    {
+      "word": "parte",
+      "start": 18.72,
+      "end": 19.14,
+      "confidence": 1.0
+    },
+    {
+      "word": "del",
+      "start": 19.14,
+      "end": 19.29,
+      "confidence": 1.0
+    },
+    {
+      "word": "camino",
+      "start": 19.29,
+      "end": 19.8,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 19.8,
+      "end": 19.95,
+      "confidence": 0.993163
+    },
+    {
+      "word": "prep",
+      "start": 19.95,
+      "end": 20.16,
+      "confidence": 0.408879
+    },
+    {
+      "word": "oración",
+      "start": 20.16,
+      "end": 20.67,
+      "confidence": 0.922841
+    },
+    {
+      "word": "rumbo",
+      "start": 20.67,
+      "end": 21.0,
+      "confidence": 1.0
+    },
+    {
+      "word": "a",
+      "start": 21.0,
+      "end": 21.03,
+      "confidence": 0.875374
+    },
+    {
+      "word": "la",
+      "start": 21.033,
+      "end": 21.18,
+      "confidence": 1.0
+    },
+    {
+      "word": "copa",
+      "start": 21.18,
+      "end": 21.51,
+      "confidence": 1.0
+    },
+    {
+      "word": "mundial",
+      "start": 21.51,
+      "end": 21.96,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 21.96,
+      "end": 22.08,
+      "confidence": 1.0
+    },
+    {
+      "word": "la",
+      "start": 22.08,
+      "end": 22.2,
+      "confidence": 1.0
+    },
+    {
+      "word": "fifa",
+      "start": 22.2,
+      "end": 22.62,
+      "confidence": 1.0
+    },
+    {
+      "word": "dos",
+      "start": 22.68,
+      "end": 22.86,
+      "confidence": 1.0
+    },
+    {
+      "word": "mil",
+      "start": 22.86,
+      "end": 23.07,
+      "confidence": 1.0
+    },
+    {
+      "word": "veintiséis",
+      "start": 23.07,
+      "end": 23.91,
+      "confidence": 1.0
+    },
+    {
+      "word": "en",
+      "start": 25.44,
+      "end": 25.62,
+      "confidence": 0.923227
+    },
+    {
+      "word": "la",
+      "start": 25.62,
+      "end": 25.68,
+      "confidence": 0.418049
+    },
+    {
+      "word": "previa",
+      "start": 25.697,
+      "end": 26.04,
+      "confidence": 1.0
+    },
+    {
+      "word": "del",
+      "start": 26.04,
+      "end": 26.22,
+      "confidence": 1.0
+    },
+    {
+      "word": "encuentro",
+      "start": 26.22,
+      "end": 26.82,
+      "confidence": 1.0
+    },
+    {
+      "word": "importantes",
+      "start": 26.88,
+      "end": 27.54,
+      "confidence": 1.0
+    },
+    {
+      "word": "medios",
+      "start": 27.54,
+      "end": 27.93,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 27.93,
+      "end": 28.02,
+      "confidence": 1.0
+    },
+    {
+      "word": "comunicación",
+      "start": 28.02,
+      "end": 28.8,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 28.8,
+      "end": 28.92,
+      "confidence": 1.0
+    },
+    {
+      "word": "méxico",
+      "start": 28.92,
+      "end": 29.43,
+      "confidence": 1.0
+    },
+    {
+      "word": "y",
+      "start": 29.43,
+      "end": 29.49,
+      "confidence": 1.0
+    },
+    {
+      "word": "argentina",
+      "start": 29.49,
+      "end": 30.18,
+      "confidence": 1.0
+    },
+    {
+      "word": "analizaron",
+      "start": 30.24,
+      "end": 30.9,
+      "confidence": 1.0
+    },
+    {
+      "word": "el",
+      "start": 30.9,
+      "end": 31.02,
+      "confidence": 1.0
+    },
+    {
+      "word": "presente",
+      "start": 31.02,
+      "end": 31.53,
+      "confidence": 1.0
+    },
+    {
+      "word": "de",
+      "start": 31.53,
+      "end": 31.74,
+      "confidence": 1.0
+    },
+    {
+      "word": "ambas",
+      "start": 31.8,
+      "end": 32.13,
+      "confidence": 1.0
+    },
+    {
+      "word": "selecciones",
+      "start": 32.13,
+      "end": 32.82,
+      "confidence": 1.0
+    },
+    {
+      "word": "y",
+      "start": 32.91,
+      "end": 33.0,
+      "confidence": 1.0
+    },
+    {
+      "word": "coincidieron",
+      "start": 33.0,
+      "end": 33.66,
+      "confidence": 1.0
+    },
+    {
+      "word": "en",
+      "start": 33.66,
+      "end": 33.78,
+      "confidence": 1.0
+    },
+    {
+      "word": "un",
+      "start": 33.78,
+      "end": 33.93,
+      "confidence": 1.0
+    },
+    {
+      "word": "punto",
+      "start": 33.93,
+      "end": 34.29,
+      "confidence": 1.0
+    },
+    {
+      "word": "clave",
+      "start": 34.29,
+      "end": 34.83,
+      "confidence": 1.0
+    },
+    {
+      "word": "colombia",
+      "start": 34.95,
+      "end": 35.76,
+      "confidence": 1.0
+    },
+    {
+      "word": "llega",
+      "start": 35.765,
+      "end": 36.21,
+      "confidence": 0.929234
+    },
+    {
+      "word": "como",
+      "start": 36.21,
+      "end": 36.48,
+      "confidence": 0.960892
+    },
+    {
+      "word": "favorita",
+      "start": 36.48,
+      "end": 37.29,
+      "confidence": 1.0
+    },
+    {
+      "word": "la",
+      "start": 37.62,
+      "end": 37.77,
+      "confidence": 1.0
+    },
+    {
+      "word": "prensa",
+      "start": 37.77,
+      "end": 38.07,
+      "confidence": 1.0
+    },
+    {
+      "word": "internacional",
+      "start": 38.07,
+      "end": 38.76,
+      "confidence": 1.0
+    },
+    {
+      "word": "destaca",
+      "start": 38.76,
+      "end": 39.21,
+      "confidence": 1.0
+    },
+    {
+      "word": "el",
+      "start": 39.27,
+      "end": 39.45,
+      "confidence": 1.0
+    },
+    {
+      "word": "gran",
+      "start": 39.45,
+      "end": 39.78,
+      "confidence": 1.0
+    },
+    {
+      "word": "momento",
+      "start": 39.78,
+      "end": 40.23,
+      "confidence": 1.0
+    },
+    {
+      "word": "futbolístico",
+      "start": 40.23,
+      "end": 41.04,
+      "confidence": 1.0
+    },
+    {
+      "word": "del",
+      "start": 41.04,
+      "end": 41.22,
+      "confidence": 1.0
+    },
+    {
+      "word": "extremo",
+      "start": 41.22,
+      "end": 41.7,
+      "confidence": 1.0
+    },
+    {
+      "word": "luis",
+      "start": 41.7,
+      "end": 41.91,
+      "confidence": 0.952504
+    },
+    {
+      "word": "días",
+      "start": 41.91,
+      "end": 42.39,
+      "confidence": 0.821729
+    },
+    {
+      "word": "figura",
+      "start": 42.45,
+      "end": 42.9,
+      "confidence": 0.969252
+    },
+    {
+      "word": "determinante",
+      "start": 42.901,
+      "end": 43.68,
+      "confidence": 1.0
+    },
+    {
+      "word": "en",
+      "start": 43.68,
+      "end": 43.74,
+      "confidence": 1.0
+    },
+    {
+      "word": "el",
+      "start": 43.74,
+      "end": 43.89,
+      "confidence": 1.0
+    },
+    {
+      "word": "fútbol",
+      "start": 43.89,
+      "end": 44.28,
+      "confidence": 0.80489
+    },
+    {
+      "word": "europeo",
+      "start": 44.28,
+      "end": 44.88,
+      "confidence": 1.0
+    },
+    {
+      "word": "y",
+      "start": 45.18,
+      "end": 45.27,
+      "confidence": 0.973289
+    },
+    {
+      "word": "señaló",
+      "start": 45.27,
+      "end": 45.69,
+      "confidence": 0.501384
+    },
+    {
+      "word": "que",
+      "start": 45.743,
+      "end": 45.899,
+      "confidence": 1.0
+    },
+    {
+      "word": "su",
+      "start": 45.9,
+      "end": 46.02,
+      "confidence": 1.0
+    },
+    {
+      "word": "nivel",
+      "start": 46.02,
+      "end": 46.47,
+      "confidence": 1.0
+    }
+  ],
+  "totalDurationSeconds": 46.47
+}

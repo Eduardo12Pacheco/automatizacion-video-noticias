@@ -1,0 +1,80 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { alignPhrasesToTranscript } = require("../scripts/lib/phrase-alignment");
+
+test("alignPhrasesToTranscript usa timestamps reales de palabras", () => {
+  const phrases = [
+    { id: 1, phrase: "hola mundo", image: "a.jpg" },
+    { id: 2, phrase: "adios planeta", image: "b.jpg" },
+  ];
+
+  const transcript = {
+    totalDurationSeconds: 2.5,
+    words: [
+      { word: "hola", start: 0.1, end: 0.4 },
+      { word: "mundo", start: 0.45, end: 0.8 },
+      { word: "adios", start: 1.2, end: 1.5 },
+      { word: "planeta", start: 1.6, end: 2.2 },
+    ],
+    segments: [
+      { id: 1, text: "hola mundo", start: 0.1, end: 0.8 },
+      { id: 2, text: "adios planeta", start: 1.2, end: 2.2 },
+    ],
+  };
+
+  const result = alignPhrasesToTranscript(phrases, transcript);
+  assert.equal(result.totalDurationSeconds, 2.5);
+  assert.equal(result.phrases[0].startTime, 0.1);
+  assert.equal(result.phrases[0].endTime, 0.8);
+  assert.equal(result.phrases[0].alignment.source, "word-match");
+  assert.equal(result.phrases[1].startTime, 1.2);
+  assert.equal(result.phrases[1].endTime, 2.2);
+  assert.equal(result.phrases[1].alignment.source, "word-match");
+});
+
+test("alignPhrasesToTranscript cae a segmentos reales sin prorrateo", () => {
+  const phrases = [
+    { id: 1, phrase: "frase que no matchea", image: "a.jpg" },
+    { id: 2, phrase: "otra frase imposible", image: "b.jpg" },
+  ];
+
+  const transcript = {
+    words: [],
+    totalDurationSeconds: 6,
+    segments: [
+      { id: 1, text: "texto uno", start: 0.2, end: 2.4 },
+      { id: 2, text: "texto dos", start: 3.1, end: 5.8 },
+    ],
+  };
+
+  const result = alignPhrasesToTranscript(phrases, transcript);
+  assert.equal(result.phrases[0].startTime, 0.2);
+  assert.equal(result.phrases[0].endTime, 2.4);
+  assert.equal(result.phrases[0].alignment.source, "segment-fallback");
+  assert.equal(result.phrases[1].startTime, 3.1);
+  assert.equal(result.phrases[1].endTime, 5.8);
+  assert.equal(result.phrases[1].alignment.source, "segment-fallback");
+});
+
+test("alignPhrasesToTranscript garantiza duracion positiva en tail fallback", () => {
+  const phrases = [
+    { id: 1, phrase: "uno", image: "a.jpg" },
+    { id: 2, phrase: "dos", image: "b.jpg" },
+    { id: 3, phrase: "tres", image: "c.jpg" },
+  ];
+
+  const transcript = {
+    totalDurationSeconds: 1,
+    words: [{ word: "uno", start: 0.1, end: 0.4 }],
+    segments: [{ id: 1, text: "uno", start: 0.1, end: 0.4 }],
+  };
+
+  const result = alignPhrasesToTranscript(phrases, transcript);
+
+  assert.equal(result.phrases[0].alignment.source, "word-match");
+  assert.equal(result.phrases[1].alignment.source, "timeline-tail-fallback");
+  assert.equal(result.phrases[2].alignment.source, "timeline-tail-fallback");
+  assert.ok(result.phrases[1].endTime > result.phrases[1].startTime);
+  assert.ok(result.phrases[2].endTime > result.phrases[2].startTime);
+  assert.ok(result.totalDurationSeconds > transcript.totalDurationSeconds);
+});
