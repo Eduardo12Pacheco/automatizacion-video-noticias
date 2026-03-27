@@ -1,53 +1,59 @@
 {
-  "totalDurationSeconds": 47.27,
+  "totalDurationSeconds": 51.64,
   "frames": [
     {
       "image": "abrazo-entre-colombianos.png",
       "phrase": "La Selección Colombia y la Selección Croata se preparan para protagonizar un amistoso internacional que genera gran expectativa",
-      "startTime": 1.29,
+      "startTime": 1.26,
       "endTime": 20.16
     },
     {
-      "image": "colombiano-celebrando.png",
+      "image": "diaz-molesto.png",
       "phrase": "y enciende el debate en la prensa deportiva.",
       "startTime": 20.16,
-      "endTime": 25.44
+      "endTime": 25.41
     },
     {
-      "image": "james-regateando.jpg",
+      "image": "celebracion-suarez.png",
       "phrase": "El duelo se disputará este jueves 26 de marzo en el Camping World Stadium, en la ciudad de Orlando,",
-      "startTime": 25.44,
-      "endTime": 45.18
+      "startTime": 25.41,
+      "endTime": 45.15
     },
     {
-      "image": "james-colombiano-pateando.png",
-      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.\r\n\r\nEn la previa del encuentro,",
-      "startTime": 45.18,
-      "endTime": 46.47
+      "image": "pase-james.jpg",
+      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.",
+      "startTime": 45.15,
+      "endTime": 50.64
+    },
+    {
+      "image": "pase-james.png",
+      "phrase": "En la previa del encuentro,",
+      "startTime": 50.64,
+      "endTime": 50.84
     },
     {
       "image": "colombiano-gol-pateando.png",
       "phrase": "importantes medios de comunicación de México y Argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave",
-      "startTime": 46.47,
-      "endTime": 46.67
+      "startTime": 50.84,
+      "endTime": 51.04
     },
     {
       "image": "abrazo-entre-colombianos.png",
       "phrase": "Colombia llega como favorita.",
-      "startTime": 46.67,
-      "endTime": 46.87
+      "startTime": 51.04,
+      "endTime": 51.24
     },
     {
       "image": "diaz-cabesazo.png",
       "phrase": "La prensa internacional destaca el gran momento futbolístico del extremo Luis Díaz,",
-      "startTime": 46.87,
-      "endTime": 47.07
+      "startTime": 51.24,
+      "endTime": 51.44
     },
     {
-      "image": "colombiano-celebrando.png",
+      "image": "abrazo-entre-colombianos.png",
       "phrase": "figura determinante en el fútbol europeo, y señala que su nivel marca una diferencia notable frente al conjunto croata.",
-      "startTime": 47.07,
-      "endTime": 47.27
+      "startTime": 51.44,
+      "endTime": 51.64
     }
   ]
 }

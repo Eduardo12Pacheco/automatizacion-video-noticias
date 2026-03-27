@@ -27,7 +27,7 @@
         "prensa",
         "deportiva"
       ],
-      "image": "colombiano-celebrando.png"
+      "image": "diaz-molesto.png"
     },
     {
       "id": 3,
@@ -44,11 +44,11 @@
         "ciudad",
         "orlando"
       ],
-      "image": "james-regateando.jpg"
+      "image": "celebracion-suarez.png"
     },
     {
       "id": 4,
-      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.\r\n\r\nEn la previa del encuentro,",
+      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.",
       "keywords": [
         "como",
         "parte",
@@ -58,14 +58,21 @@
         "copa",
         "mundial",
         "fifa",
-        "2026",
-        "previa",
-        "encuentro"
+        "2026"
       ],
-      "image": "james-colombiano-pateando.png"
+      "image": "pase-james.jpg"
     },
     {
       "id": 5,
+      "phrase": "En la previa del encuentro,",
+      "keywords": [
+        "previa",
+        "encuentro"
+      ],
+      "image": "pase-james.png"
+    },
+    {
+      "id": 6,
       "phrase": "importantes medios de comunicación de México y Argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave",
       "keywords": [
         "importantes",
@@ -84,7 +91,7 @@
       "image": "colombiano-gol-pateando.png"
     },
     {
-      "id": 6,
+      "id": 7,
       "phrase": "Colombia llega como favorita.",
       "keywords": [
         "colombia",
@@ -95,7 +102,7 @@
       "image": "abrazo-entre-colombianos.png"
     },
     {
-      "id": 7,
+      "id": 8,
       "phrase": "La prensa internacional destaca el gran momento futbolístico del extremo Luis Díaz,",
       "keywords": [
         "prensa",
@@ -111,7 +118,7 @@
       "image": "diaz-cabesazo.png"
     },
     {
-      "id": 8,
+      "id": 9,
       "phrase": "figura determinante en el fútbol europeo, y señala que su nivel marca una diferencia notable frente al conjunto croata.",
       "keywords": [
         "figura",
@@ -127,7 +134,7 @@
         "conjunto",
         "croata"
       ],
-      "image": "colombiano-celebrando.png"
+      "image": "abrazo-entre-colombianos.png"
     }
   ]
 }

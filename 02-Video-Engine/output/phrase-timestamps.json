@@ -1,5 +1,5 @@
 {
-  "totalDurationSeconds": 47.27,
+  "totalDurationSeconds": 51.64,
   "transcriptBackend": "deepspeech-compatible-vosk",
   "phrases": [
     {
@@ -19,7 +19,7 @@
         "expectativa"
       ],
       "image": "abrazo-entre-colombianos.png",
-      "startTime": 1.29,
+      "startTime": 1.26,
       "endTime": 20.16,
       "alignment": {
         "source": "segment-fallback",
@@ -36,7 +36,7 @@
         "prensa",
         "deportiva"
       ],
-      "image": "colombiano-celebrando.png",
+      "image": "diaz-molesto.png",
       "startTime": 20.16,
       "endTime": 23.91,
       "alignment": {
@@ -60,9 +60,9 @@
         "ciudad",
         "orlando"
       ],
-      "image": "james-regateando.jpg",
-      "startTime": 25.44,
-      "endTime": 44.88,
+      "image": "celebracion-suarez.png",
+      "startTime": 25.41,
+      "endTime": 44.85,
       "alignment": {
         "source": "segment-fallback",
         "matchedWords": 0,
@@ -71,7 +71,7 @@
     },
     {
       "id": 4,
-      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.\r\n\r\nEn la previa del encuentro,",
+      "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.",
       "keywords": [
         "como",
         "parte",
@@ -81,21 +81,35 @@
         "copa",
         "mundial",
         "fifa",
-        "2026",
-        "previa",
-        "encuentro"
+        "2026"
       ],
-      "image": "james-colombiano-pateando.png",
-      "startTime": 45.18,
-      "endTime": 46.47,
+      "image": "pase-james.jpg",
+      "startTime": 45.15,
+      "endTime": 50.64,
       "alignment": {
         "source": "segment-fallback",
         "matchedWords": 0,
-        "totalWords": 20
+        "totalWords": 15
       }
     },
     {
       "id": 5,
+      "phrase": "En la previa del encuentro,",
+      "keywords": [
+        "previa",
+        "encuentro"
+      ],
+      "image": "pase-james.png",
+      "startTime": 50.64,
+      "endTime": 50.84,
+      "alignment": {
+        "source": "timeline-tail-fallback",
+        "matchedWords": 0,
+        "totalWords": 5
+      }
+    },
+    {
+      "id": 6,
       "phrase": "importantes medios de comunicación de México y Argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave",
       "keywords": [
         "importantes",
@@ -112,8 +126,8 @@
         "clave"
       ],
       "image": "colombiano-gol-pateando.png",
-      "startTime": 46.47,
-      "endTime": 46.67,
+      "startTime": 50.84,
+      "endTime": 51.04,
       "alignment": {
         "source": "timeline-tail-fallback",
         "matchedWords": 0,
@@ -121,7 +135,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "phrase": "Colombia llega como favorita.",
       "keywords": [
         "colombia",
@@ -130,8 +144,8 @@
         "favorita"
       ],
       "image": "abrazo-entre-colombianos.png",
-      "startTime": 46.67,
-      "endTime": 46.87,
+      "startTime": 51.04,
+      "endTime": 51.24,
       "alignment": {
         "source": "timeline-tail-fallback",
         "matchedWords": 0,
@@ -139,7 +153,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "phrase": "La prensa internacional destaca el gran momento futbolístico del extremo Luis Díaz,",
       "keywords": [
         "prensa",
@@ -153,8 +167,8 @@
         "diaz"
       ],
       "image": "diaz-cabesazo.png",
-      "startTime": 46.87,
-      "endTime": 47.07,
+      "startTime": 51.24,
+      "endTime": 51.44,
       "alignment": {
         "source": "timeline-tail-fallback",
         "matchedWords": 0,
@@ -162,7 +176,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "phrase": "figura determinante en el fútbol europeo, y señala que su nivel marca una diferencia notable frente al conjunto croata.",
       "keywords": [
         "figura",
@@ -178,9 +192,9 @@
         "conjunto",
         "croata"
       ],
-      "image": "colombiano-celebrando.png",
-      "startTime": 47.07,
-      "endTime": 47.27,
+      "image": "abrazo-entre-colombianos.png",
+      "startTime": 51.44,
+      "endTime": 51.64,
       "alignment": {
         "source": "timeline-tail-fallback",
         "matchedWords": 0,
