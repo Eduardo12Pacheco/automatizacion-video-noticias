@@ -1,4 +1,8 @@
-# RemotionEditor
+<p align="center">
+  <img src="./Image-Proyect-RemotionEditor.png" alt="RemotionEditor" />
+</p>
+
+<h1 align="center">RemotionEditor</h1>
 
 Pipeline automático para generar videos en Remotion a partir de:
 
