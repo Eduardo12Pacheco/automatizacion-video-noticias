@@ -36,7 +36,7 @@
         "prensa",
         "deportiva"
       ],
-      "image": "diaz-cabesazo.png",
+      "image": "colombiano-gol-pateando.png",
       "startTime": 8.82,
       "endTime": 12.02,
       "alignment": {
@@ -60,9 +60,9 @@
         "ciudad",
         "orlando"
       ],
-      "image": "diaz-cabesazo.png",
+      "image": "colombiano-defendiendo.png",
       "startTime": 12.46,
-      "endTime": 18.16,
+      "endTime": 18.18,
       "alignment": {
         "source": "word-match",
         "matchedWords": 19,
@@ -83,8 +83,8 @@
         "fifa",
         "2026"
       ],
-      "image": "colombiano-defendiendo.png",
-      "startTime": 18.16,
+      "image": "pase-james.png",
+      "startTime": 18.18,
       "endTime": 23.5,
       "alignment": {
         "source": "word-match",
@@ -99,7 +99,7 @@
         "previa",
         "encuentro"
       ],
-      "image": "pase-james.jpg",
+      "image": "colombiano-gol-pateando.png",
       "startTime": 24.84,
       "endTime": 26.74,
       "alignment": {
@@ -125,7 +125,7 @@
         "punto",
         "clave"
       ],
-      "image": "james-colombiano-con-balon.png",
+      "image": "james-regateando.jpg",
       "startTime": 26.9,
       "endTime": 32.08,
       "alignment": {
@@ -144,7 +144,7 @@
         "favorita"
       ],
       "image": "abrazo-entre-colombianos.png",
-      "startTime": 34.94,
+      "startTime": 35,
       "endTime": 37.08,
       "alignment": {
         "source": "word-match",
@@ -192,7 +192,7 @@
         "conjunto",
         "croata"
       ],
-      "image": "pase-james.jpg",
+      "image": "pase-james.png",
       "startTime": 42.54,
       "endTime": 50.38,
       "alignment": {

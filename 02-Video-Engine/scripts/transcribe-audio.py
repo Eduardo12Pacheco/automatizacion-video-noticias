@@ -257,7 +257,7 @@ def main() -> int:
   audio_path = (
     positional_args[0]
     if len(positional_args) > 0
-    else os.path.join(project_root, "audio", "audio.wav")
+    else os.path.join(project_root, "audio", "audio-16khz.wav")
   )
   model_path = (
     positional_args[1]
@@ -271,7 +271,10 @@ def main() -> int:
   )
 
   if not os.path.exists(audio_path):
-    raise FileNotFoundError(f"No existe el audio en: {audio_path}")
+    raise FileNotFoundError(
+      "No existe el audio para STT. Esperado por defecto: "
+      f"{os.path.join(project_root, 'audio', 'audio-16khz.wav')}"
+    )
 
   os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

@@ -55,13 +55,22 @@ const normalizedFrames = timelineFrames.map((segment) => {
 });
 
 const supportedAudioExt = [".wav", ".mp3", ".m4a", ".aac"];
-const audioFile = fs.existsSync(audioDir)
-  ? fs
-      .readdirSync(audioDir)
-      .find((file) =>
-        supportedAudioExt.includes(path.extname(file).toLowerCase()),
-      )
-  : undefined;
+let audioFile;
+if (fs.existsSync(audioDir)) {
+  const files = fs.readdirSync(audioDir);
+  const preferredRenderAudio = "audio-48khz.wav";
+  const fallbackRenderAudio = "audio-16khz.wav";
+
+  if (files.includes(preferredRenderAudio)) {
+    audioFile = preferredRenderAudio;
+  } else if (files.includes(fallbackRenderAudio)) {
+    audioFile = fallbackRenderAudio;
+  } else {
+    audioFile = files.find((file) =>
+      supportedAudioExt.includes(path.extname(file).toLowerCase()),
+    );
+  }
+}
 
 let audioRelativePath;
 if (audioFile) {
@@ -73,6 +82,10 @@ if (audioFile) {
   fs.mkdirSync(publicGeneratedDir, { recursive: true });
   fs.copyFileSync(sourceAudio, destinationAudio);
   audioRelativePath = `generated/${path.basename(destinationAudio)}`;
+} else {
+  throw new Error(
+    "No se encontro audio para render. Esperado: audio/audio-48khz.wav (o fallback audio/audio-16khz.wav).",
+  );
 }
 
 const props = {
