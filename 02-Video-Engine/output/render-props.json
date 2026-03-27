@@ -4,23 +4,23 @@
     {
       "image": "generated/images/abrazo-entre-colombianos.png",
       "phrase": "La Selección Colombia y la Selección Croata se preparan para protagonizar un amistoso internacional que genera gran expectativa",
-      "startTime": 1.26,
+      "startTime": 0,
       "endTime": 20.16
     },
     {
-      "image": "generated/images/diaz-molesto.png",
+      "image": "generated/images/colombiano-celebrando.png",
       "phrase": "y enciende el debate en la prensa deportiva.",
       "startTime": 20.16,
       "endTime": 25.41
     },
     {
-      "image": "generated/images/celebracion-suarez.png",
+      "image": "generated/images/james-balon-regateando.jpg",
       "phrase": "El duelo se disputará este jueves 26 de marzo en el Camping World Stadium, en la ciudad de Orlando,",
       "startTime": 25.41,
       "endTime": 45.15
     },
     {
-      "image": "generated/images/pase-james.jpg",
+      "image": "generated/images/james-balon-colombiano.png",
       "phrase": "como parte del camino de preparación rumbo a la Copa Mundial de la FIFA 2026.",
       "startTime": 45.15,
       "endTime": 50.64
@@ -32,7 +32,7 @@
       "endTime": 50.84
     },
     {
-      "image": "generated/images/colombiano-gol-pateando.png",
+      "image": "generated/images/colombiano-defendiendo.png",
       "phrase": "importantes medios de comunicación de México y Argentina analizaron el presente de ambas selecciones y coincidieron en un punto clave",
       "startTime": 50.84,
       "endTime": 51.04
@@ -50,7 +50,7 @@
       "endTime": 51.44
     },
     {
-      "image": "generated/images/abrazo-entre-colombianos.png",
+      "image": "generated/images/diaz-cabesazo.png",
       "phrase": "figura determinante en el fútbol europeo, y señala que su nivel marca una diferencia notable frente al conjunto croata.",
       "startTime": 51.44,
       "endTime": 51.64

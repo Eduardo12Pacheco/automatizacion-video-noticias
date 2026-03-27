@@ -233,6 +233,16 @@ function alignPhrasesToTranscript(phrases, transcript) {
     };
   });
 
+  if (aligned.length > 0) {
+    const first = aligned[0];
+    first.startTime = 0;
+    if (first.endTime <= first.startTime) {
+      first.endTime = toRoundedTimestamp(
+        first.startTime + minimumDurationSeconds,
+      );
+    }
+  }
+
   return {
     phrases: aligned,
     totalDurationSeconds: toRoundedTimestamp(

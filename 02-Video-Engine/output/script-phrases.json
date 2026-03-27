@@ -27,7 +27,7 @@
         "prensa",
         "deportiva"
       ],
-      "image": "diaz-molesto.png"
+      "image": "colombiano-celebrando.png"
     },
     {
       "id": 3,
@@ -44,7 +44,7 @@
         "ciudad",
         "orlando"
       ],
-      "image": "celebracion-suarez.png"
+      "image": "james-balon-regateando.jpg"
     },
     {
       "id": 4,
@@ -60,7 +60,7 @@
         "fifa",
         "2026"
       ],
-      "image": "pase-james.jpg"
+      "image": "james-balon-colombiano.png"
     },
     {
       "id": 5,
@@ -88,7 +88,7 @@
         "punto",
         "clave"
       ],
-      "image": "colombiano-gol-pateando.png"
+      "image": "colombiano-defendiendo.png"
     },
     {
       "id": 7,
@@ -134,7 +134,7 @@
         "conjunto",
         "croata"
       ],
-      "image": "abrazo-entre-colombianos.png"
+      "image": "diaz-cabesazo.png"
     }
   ]
 }

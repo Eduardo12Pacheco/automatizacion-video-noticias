@@ -19,7 +19,7 @@
         "expectativa"
       ],
       "image": "abrazo-entre-colombianos.png",
-      "startTime": 1.26,
+      "startTime": 0,
       "endTime": 20.16,
       "alignment": {
         "source": "segment-fallback",
@@ -36,7 +36,7 @@
         "prensa",
         "deportiva"
       ],
-      "image": "diaz-molesto.png",
+      "image": "colombiano-celebrando.png",
       "startTime": 20.16,
       "endTime": 23.91,
       "alignment": {
@@ -60,7 +60,7 @@
         "ciudad",
         "orlando"
       ],
-      "image": "celebracion-suarez.png",
+      "image": "james-balon-regateando.jpg",
       "startTime": 25.41,
       "endTime": 44.85,
       "alignment": {
@@ -83,7 +83,7 @@
         "fifa",
         "2026"
       ],
-      "image": "pase-james.jpg",
+      "image": "james-balon-colombiano.png",
       "startTime": 45.15,
       "endTime": 50.64,
       "alignment": {
@@ -125,7 +125,7 @@
         "punto",
         "clave"
       ],
-      "image": "colombiano-gol-pateando.png",
+      "image": "colombiano-defendiendo.png",
       "startTime": 50.84,
       "endTime": 51.04,
       "alignment": {
@@ -192,7 +192,7 @@
         "conjunto",
         "croata"
       ],
-      "image": "abrazo-entre-colombianos.png",
+      "image": "diaz-cabesazo.png",
       "startTime": 51.44,
       "endTime": 51.64,
       "alignment": {

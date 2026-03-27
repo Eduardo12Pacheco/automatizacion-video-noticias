@@ -24,7 +24,7 @@ test("alignPhrasesToTranscript usa timestamps reales de palabras", () => {
 
   const result = alignPhrasesToTranscript(phrases, transcript);
   assert.equal(result.totalDurationSeconds, 2.5);
-  assert.equal(result.phrases[0].startTime, 0.1);
+  assert.equal(result.phrases[0].startTime, 0);
   assert.equal(result.phrases[0].endTime, 0.8);
   assert.equal(result.phrases[0].alignment.source, "word-match");
   assert.equal(result.phrases[1].startTime, 1.2);
@@ -48,7 +48,7 @@ test("alignPhrasesToTranscript cae a segmentos reales sin prorrateo", () => {
   };
 
   const result = alignPhrasesToTranscript(phrases, transcript);
-  assert.equal(result.phrases[0].startTime, 0.2);
+  assert.equal(result.phrases[0].startTime, 0);
   assert.equal(result.phrases[0].endTime, 2.4);
   assert.equal(result.phrases[0].alignment.source, "segment-fallback");
   assert.equal(result.phrases[1].startTime, 3.1);
@@ -77,4 +77,29 @@ test("alignPhrasesToTranscript garantiza duracion positiva en tail fallback", ()
   assert.ok(result.phrases[1].endTime > result.phrases[1].startTime);
   assert.ok(result.phrases[2].endTime > result.phrases[2].startTime);
   assert.ok(result.totalDurationSeconds > transcript.totalDurationSeconds);
+});
+
+test("alignPhrasesToTranscript fuerza que la primera imagen arranque en 0.00", () => {
+  const phrases = [
+    { id: 1, phrase: "hola mundo", image: "a.jpg" },
+    { id: 2, phrase: "adios planeta", image: "b.jpg" },
+  ];
+
+  const transcript = {
+    totalDurationSeconds: 4,
+    words: [
+      { word: "hola", start: 1.29, end: 1.5 },
+      { word: "mundo", start: 1.55, end: 1.9 },
+      { word: "adios", start: 2.5, end: 2.9 },
+      { word: "planeta", start: 3.0, end: 3.6 },
+    ],
+    segments: [
+      { id: 1, text: "hola mundo", start: 1.29, end: 1.9 },
+      { id: 2, text: "adios planeta", start: 2.5, end: 3.6 },
+    ],
+  };
+
+  const result = alignPhrasesToTranscript(phrases, transcript);
+  assert.equal(result.phrases[0].startTime, 0);
+  assert.ok(result.phrases[0].endTime > 0);
 });
