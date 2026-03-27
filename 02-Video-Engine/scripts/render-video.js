@@ -12,6 +12,47 @@ const publicGeneratedDir = path.join(projectRoot, "public", "generated");
 const publicImagesDir = path.join(publicGeneratedDir, "images");
 const outputVideoPath = path.join(projectRoot, "output", "video-final.mp4");
 
+function parseWavDurationSeconds(audioPath) {
+  const buffer = fs.readFileSync(audioPath);
+
+  if (buffer.length < 44) {
+    throw new Error(`WAV invalido o truncado: ${audioPath}`);
+  }
+
+  const riff = buffer.toString("ascii", 0, 4);
+  const wave = buffer.toString("ascii", 8, 12);
+  if (riff !== "RIFF" || wave !== "WAVE") {
+    throw new Error(`El archivo no es WAV valido: ${audioPath}`);
+  }
+
+  let offset = 12;
+  let byteRate = null;
+  let dataSize = null;
+
+  while (offset + 8 <= buffer.length) {
+    const chunkId = buffer.toString("ascii", offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const chunkDataStart = offset + 8;
+
+    if (chunkId === "fmt " && chunkSize >= 16) {
+      byteRate = buffer.readUInt32LE(chunkDataStart + 8);
+    }
+
+    if (chunkId === "data") {
+      dataSize = chunkSize;
+      break;
+    }
+
+    offset = chunkDataStart + chunkSize + (chunkSize % 2);
+  }
+
+  if (!byteRate || !dataSize) {
+    throw new Error(`No se pudo leer metadata WAV: ${audioPath}`);
+  }
+
+  return Number((dataSize / byteRate).toFixed(6));
+}
+
 if (!fs.existsSync(timelinePath)) {
   throw new Error(
     "No existe output/timeline.json. Ejecuta generate:timeline primero.",
@@ -73,6 +114,7 @@ if (fs.existsSync(audioDir)) {
 }
 
 let audioRelativePath;
+let selectedAudioDurationSeconds;
 if (audioFile) {
   const sourceAudio = path.join(audioDir, audioFile);
   const destinationAudio = path.join(
@@ -82,10 +124,24 @@ if (audioFile) {
   fs.mkdirSync(publicGeneratedDir, { recursive: true });
   fs.copyFileSync(sourceAudio, destinationAudio);
   audioRelativePath = `generated/${path.basename(destinationAudio)}`;
+
+  if (path.extname(audioFile).toLowerCase() === ".wav") {
+    selectedAudioDurationSeconds = parseWavDurationSeconds(sourceAudio);
+  }
 } else {
   throw new Error(
     "No se encontro audio para render. Esperado: audio/audio-48khz.wav (o fallback audio/audio-16khz.wav).",
   );
+}
+
+if (
+  normalizedFrames.length > 0 &&
+  typeof selectedAudioDurationSeconds === "number"
+) {
+  const lastFrame = normalizedFrames[normalizedFrames.length - 1];
+  if (selectedAudioDurationSeconds > Number(lastFrame.endTime || 0)) {
+    lastFrame.endTime = selectedAudioDurationSeconds;
+  }
 }
 
 const props = {
