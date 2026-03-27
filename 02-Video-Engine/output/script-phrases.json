@@ -27,7 +27,7 @@
         "prensa",
         "deportiva"
       ],
-      "image": "colombiano-celebrando.png"
+      "image": "diaz-cabesazo.png"
     },
     {
       "id": 3,
@@ -44,7 +44,7 @@
         "ciudad",
         "orlando"
       ],
-      "image": "james-balon-regateando.jpg"
+      "image": "diaz-cabesazo.png"
     },
     {
       "id": 4,
@@ -60,7 +60,7 @@
         "fifa",
         "2026"
       ],
-      "image": "james-balon-colombiano.png"
+      "image": "colombiano-defendiendo.png"
     },
     {
       "id": 5,
@@ -69,7 +69,7 @@
         "previa",
         "encuentro"
       ],
-      "image": "pase-james.png"
+      "image": "pase-james.jpg"
     },
     {
       "id": 6,
@@ -88,7 +88,7 @@
         "punto",
         "clave"
       ],
-      "image": "colombiano-defendiendo.png"
+      "image": "james-colombiano-con-balon.png"
     },
     {
       "id": 7,
@@ -134,7 +134,7 @@
         "conjunto",
         "croata"
       ],
-      "image": "diaz-cabesazo.png"
+      "image": "pase-james.jpg"
     }
   ]
 }
