@@ -1,0 +1,40 @@
+segmenter:
+  min_words_per_segment: 35
+  max_words_per_segment: 70
+  hard_max_words_per_segment: 90
+
+pauses_ms:
+  comma: 120
+  semicolon: 180
+  colon: 180
+  period: 260
+  question: 300
+  exclamation: 300
+  paragraph_break: 600
+  default: 220
+
+assembler:
+  crossfade_ms: 30
+  trim_silence:
+    enabled: true
+    threshold: 0.005
+    min_silence_ms: 180
+    trim_leading: true
+    trim_trailing: true
+
+generation:
+  model_name: Qwen/Qwen3-TTS-12Hz-0.6B-Base
+  language: Spanish
+  use_flash_attention: true
+  dtype: bfloat16
+  # Parámetros opcionales. Si quedan null, Qwen usa defaults del checkpoint.
+  max_new_tokens: 2048
+  do_sample: null
+  top_k: null
+  top_p: null
+  temperature: null
+  repetition_penalty: null
+  subtalker_dosample: null
+  subtalker_top_k: null
+  subtalker_top_p: null
+  subtalker_temperature: null

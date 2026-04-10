@@ -1,0 +1,7 @@
+.venv-qwen/
+__pycache__/
+*.pyc
+output/
+segments/
+*.wav
+*.report.json
