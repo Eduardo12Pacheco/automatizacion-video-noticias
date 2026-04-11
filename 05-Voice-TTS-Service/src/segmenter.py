@@ -149,7 +149,8 @@ def detect_pause_ms(text: str, *, is_paragraph_end: bool, pauses: dict) -> int:
 
 
 def segment_text(raw_text: str, cfg: SegmenterConfig, pauses: dict) -> List[Segment]:
-    paragraphs = [p.strip() for p in raw_text.split("\n\n") if p.strip()]
+    normalized_text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", normalized_text) if p.strip()]
 
     segments: List[Segment] = []
     idx = 0

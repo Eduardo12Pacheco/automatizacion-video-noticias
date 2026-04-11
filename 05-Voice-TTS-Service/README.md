@@ -24,7 +24,7 @@ Este proyecto mantiene lo acordado:
 pip install -r requirements.txt
 ```
 
-> Si FlashAttention no instala en tu entorno, podés correr sin flash-attn.
+> Esta configuración está en modo estricto para 1.7B: si activás FlashAttention y no está disponible, la ejecución falla (sin fallback automático).
 
 ## Uso
 
@@ -38,13 +38,14 @@ python src/main.py --input input/mi-guion.txt --ref-audio refs/voz.wav --ref-tex
 
 Salida:
 
-- Audio final: `output/run-YYYYMMDD-HHMMSS.wav`
-- Reporte: `output/run-YYYYMMDD-HHMMSS.report.json`
-- Segmentos intermedios: `segments/run-YYYYMMDD-HHMMSS/*.wav`
+- Audio final: `output/<model-tag>/run-YYYYMMDD-HHMMSS.wav`
+- Reporte: `output/<model-tag>/run-YYYYMMDD-HHMMSS.report.json`
+- Segmentos intermedios: `segments/<model-tag>/run-YYYYMMDD-HHMMSS/*.wav`
 
 ## Notas
 
-- Modelo inicial: `Qwen/Qwen3-TTS-12Hz-0.6B-Base`.
+- Modelo por defecto: `Qwen/Qwen3-TTS-12Hz-1.7B-Base`.
 - Idioma objetivo por defecto: `Spanish`.
 - La duración total final es libre (no se fuerza tiempo).
 - El sample rate final queda exactamente como lo devuelve Qwen.
+- El reporte incluye benchmark básico: tiempo total, carga de modelo+referencia y síntesis por segmento.

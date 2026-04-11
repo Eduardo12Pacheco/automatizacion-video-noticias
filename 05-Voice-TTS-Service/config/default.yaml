@@ -23,9 +23,9 @@ assembler:
     trim_trailing: true
 
 generation:
-  model_name: Qwen/Qwen3-TTS-12Hz-0.6B-Base
+  model_name: Qwen/Qwen3-TTS-12Hz-1.7B-Base
   language: Spanish
-  use_flash_attention: true
+  use_flash_attention: false
   dtype: bfloat16
   # Parámetros opcionales. Si quedan null, Qwen usa defaults del checkpoint.
   max_new_tokens: 2048

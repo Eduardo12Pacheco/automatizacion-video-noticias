@@ -38,26 +38,14 @@ class QwenCloneEngine:
         use_flash = bool(generation_cfg.get("use_flash_attention", True))
         attn_impl = "flash_attention_2" if use_flash and str(device).startswith("cuda") else None
 
-        model_name = str(generation_cfg.get("model_name", "Qwen/Qwen3-TTS-12Hz-0.6B-Base"))
+        model_name = str(generation_cfg.get("model_name", "Qwen/Qwen3-TTS-12Hz-1.7B-Base"))
 
-        try:
-            self.model = Qwen3TTSModel.from_pretrained(
-                model_name,
-                device_map=device,
-                dtype=dtype,
-                attn_implementation=attn_impl,
-            )
-        except ImportError as exc:
-            if attn_impl == "flash_attention_2" and "flash_attn" in str(exc).lower():
-                print("[WARN] flash-attn no está instalado. Reintentando con atención estándar en GPU...")
-                self.model = Qwen3TTSModel.from_pretrained(
-                    model_name,
-                    device_map=device,
-                    dtype=dtype,
-                    attn_implementation=None,
-                )
-            else:
-                raise
+        self.model = Qwen3TTSModel.from_pretrained(
+            model_name,
+            device_map=device,
+            dtype=dtype,
+            attn_implementation=attn_impl,
+        )
 
         self.model_name = model_name
         self.language = str(generation_cfg.get("language", "Spanish"))

@@ -4,6 +4,8 @@ import argparse
 from datetime import datetime
 import json
 from pathlib import Path
+import re
+import time
 
 import numpy as np
 import soundfile as sf
@@ -65,7 +67,21 @@ def analyze_segment_audio(path: Path, threshold: float = 0.005) -> dict:
     }
 
 
+def model_output_tag(model_name: str) -> str:
+    model_name = (model_name or "").strip()
+    if not model_name:
+        return "unknown-model"
+
+    m = re.search(r"(\d+(?:\.\d+)?)B", model_name, flags=re.IGNORECASE)
+    if m:
+        return f"{m.group(1)}B".replace(".", "_")
+
+    safe = re.sub(r"[^a-zA-Z0-9._-]+", "-", model_name).strip("-")
+    return safe or "model"
+
+
 def main() -> None:
+    t0 = time.perf_counter()
     args = parse_args()
 
     input_path = Path(args.input)
@@ -99,21 +115,36 @@ def main() -> None:
 
     segments = segment_text(raw_text, seg_cfg, pauses_cfg)
 
+    t_model_load_start = time.perf_counter()
     engine = QwenCloneEngine(generation_cfg=generation_cfg, device=args.device)
     engine.prepare_reference(reference_audio_path=ref_audio_path, reference_text=reference_text)
+    t_model_load_end = time.perf_counter()
 
-    segment_folder = Path(args.segments_dir) / run_id
+    model_name = generation_cfg.get("model_name", "Qwen/Qwen3-TTS-12Hz-1.7B-Base")
+    model_tag = model_output_tag(str(model_name))
+
+    segment_folder = Path(args.segments_dir) / model_tag / run_id
     segment_paths = []
     segment_analysis = []
+    segment_benchmark = []
     sample_rate_last = None
 
     for segment in segments:
         seg_file = segment_folder / f"seg_{segment.index:03d}.wav"
+        t_seg_start = time.perf_counter()
         sample_rate_last = engine.synthesize_to_file(segment, seg_file)
+        t_seg_end = time.perf_counter()
         segment_paths.append(seg_file)
         segment_analysis.append(analyze_segment_audio(seg_file))
+        segment_benchmark.append(
+            {
+                "index": segment.index,
+                "synthesis_seconds": round(t_seg_end - t_seg_start, 3),
+                "word_count": segment.word_count,
+            }
+        )
 
-    output_dir = Path(args.output_dir)
+    output_dir = Path(args.output_dir) / model_tag
     output_file = output_dir / f"{run_id}.wav"
     assembled_file, assembled_sr = assemble_segments(
         segments=segments,
@@ -124,6 +155,8 @@ def main() -> None:
     )
 
     warnings = [a for a in segment_analysis if a["warning_high_silence"]]
+    t1 = time.perf_counter()
+    total_synth_seconds = sum(s["synthesis_seconds"] for s in segment_benchmark)
 
     report = {
         "run_id": run_id,
@@ -133,10 +166,17 @@ def main() -> None:
         "output": str(assembled_file),
         "sample_rate": int(assembled_sr),
         "sample_rate_native_model": int(sample_rate_last or assembled_sr),
-        "model": generation_cfg.get("model_name", "Qwen/Qwen3-TTS-12Hz-0.6B-Base"),
+        "model": model_name,
+        "model_output_tag": model_tag,
         "language": generation_cfg.get("language", "Spanish"),
         "segments": [s.to_dict() for s in segments],
         "segment_audio_analysis": segment_analysis,
+        "benchmark": {
+            "total_pipeline_seconds": round(t1 - t0, 3),
+            "model_load_and_reference_seconds": round(t_model_load_end - t_model_load_start, 3),
+            "total_synthesis_seconds": round(total_synth_seconds, 3),
+            "segment_synthesis": segment_benchmark,
+        },
         "warnings": {
             "high_silence_segments": len(warnings),
             "high_silence_segment_paths": [w["path"] for w in warnings],
