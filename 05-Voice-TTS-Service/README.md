@@ -36,6 +36,14 @@ pip install -r requirements.txt
 python src/main.py --input input/mi-guion.txt --ref-audio refs/voz.wav --ref-text refs/voz.txt
 ```
 
+Para elegir preset en CLI:
+
+```bash
+python src/main.py --input input/mi-guion.txt --ref-audio refs/voz.wav --ref-text refs/voz.txt --preset balanced_default
+```
+
+Si no pasás `--preset`, el sistema usa `generation.preset` del YAML.
+
 Salida:
 
 - Audio final: `output/<model-tag>/run-YYYYMMDD-HHMMSS.wav`
@@ -49,3 +57,9 @@ Salida:
 - La duración total final es libre (no se fuerza tiempo).
 - El sample rate final queda exactamente como lo devuelve Qwen.
 - El reporte incluye benchmark básico: tiempo total, carga de modelo+referencia y síntesis por segmento.
+
+## Presets disponibles
+
+- `fidelity_strict`: más similitud y estabilidad, menos variación.
+- `balanced_default`: equilibrio entre clonación y naturalidad (recomendado para iniciar).
+- `expressive_plus`: más vida/entonación, con mayor riesgo de desviación.

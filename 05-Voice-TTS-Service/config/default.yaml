@@ -27,6 +27,7 @@ generation:
   language: Spanish
   use_flash_attention: false
   dtype: bfloat16
+  preset: balanced_default
   # Parámetros opcionales. Si quedan null, Qwen usa defaults del checkpoint.
   max_new_tokens: 2048
   do_sample: null
@@ -38,3 +39,40 @@ generation:
   subtalker_top_k: null
   subtalker_top_p: null
   subtalker_temperature: null
+
+presets:
+  fidelity_strict:
+    do_sample: true
+    top_k: 35
+    top_p: 0.88
+    temperature: 0.72
+    repetition_penalty: 1.08
+    subtalker_dosample: true
+    subtalker_top_k: 35
+    subtalker_top_p: 0.90
+    subtalker_temperature: 0.75
+    max_new_tokens: 2048
+
+  balanced_default:
+    do_sample: true
+    top_k: 50
+    top_p: 0.94
+    temperature: 0.82
+    repetition_penalty: 1.06
+    subtalker_dosample: true
+    subtalker_top_k: 50
+    subtalker_top_p: 0.95
+    subtalker_temperature: 0.84
+    max_new_tokens: 2048
+
+  expressive_plus:
+    do_sample: true
+    top_k: 65
+    top_p: 0.98
+    temperature: 0.94
+    repetition_penalty: 1.04
+    subtalker_dosample: true
+    subtalker_top_k: 65
+    subtalker_top_p: 0.98
+    subtalker_temperature: 0.96
+    max_new_tokens: 2048

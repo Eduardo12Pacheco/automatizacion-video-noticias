@@ -26,6 +26,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", default="output", help="Carpeta para audio final y reporte")
     parser.add_argument("--run-id", default=None, help="ID de ejecución opcional")
     parser.add_argument("--device", default=None, help="Device opcional: cuda:0|cpu|mps")
+    parser.add_argument(
+        "--preset",
+        default=None,
+        help="Preset de generación (fidelity_strict|balanced_default|expressive_plus). Si se omite, usa generation.preset del YAML.",
+    )
     return parser.parse_args()
 
 
@@ -80,6 +85,25 @@ def model_output_tag(model_name: str) -> str:
     return safe or "model"
 
 
+def resolve_generation_with_preset(cfg: dict, cli_preset: str | None) -> tuple[dict, str | None, dict]:
+    generation_cfg = dict(cfg.get("generation", {}) or {})
+    presets = dict(cfg.get("presets", {}) or {})
+
+    selected_preset = (cli_preset or generation_cfg.get("preset") or "").strip() or None
+    if selected_preset is None:
+        return generation_cfg, None, {}
+
+    if selected_preset not in presets:
+        available = ", ".join(sorted(presets.keys())) or "(none)"
+        raise ValueError(f"Preset inválido: '{selected_preset}'. Disponibles: {available}")
+
+    preset_values = dict(presets.get(selected_preset, {}) or {})
+    merged = dict(generation_cfg)
+    merged.update(preset_values)
+    merged["preset"] = selected_preset
+    return merged, selected_preset, preset_values
+
+
 def main() -> None:
     t0 = time.perf_counter()
     args = parse_args()
@@ -110,7 +134,7 @@ def main() -> None:
 
     seg_cfg = SegmenterConfig(**cfg.get("segmenter", {}))
     pauses_cfg = cfg.get("pauses_ms", {})
-    generation_cfg = cfg.get("generation", {})
+    generation_cfg, preset_used, preset_values = resolve_generation_with_preset(cfg, args.preset)
     assembler_cfg = cfg.get("assembler", {})
 
     segments = segment_text(raw_text, seg_cfg, pauses_cfg)
@@ -169,6 +193,8 @@ def main() -> None:
         "model": model_name,
         "model_output_tag": model_tag,
         "language": generation_cfg.get("language", "Spanish"),
+        "preset_used": preset_used,
+        "preset_values": preset_values,
         "segments": [s.to_dict() for s in segments],
         "segment_audio_analysis": segment_analysis,
         "benchmark": {
@@ -192,6 +218,8 @@ def main() -> None:
     print(f"OK - reporte: {report_path}")
     print(f"OK - segmentos: {len(segments)}")
     print(f"OK - sample rate nativo: {assembled_sr}")
+    if preset_used:
+        print(f"OK - preset usado: {preset_used}")
 
 
 if __name__ == "__main__":
