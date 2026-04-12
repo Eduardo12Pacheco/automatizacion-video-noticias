@@ -76,3 +76,27 @@ presets:
     subtalker_top_p: 0.98
     subtalker_temperature: 0.96
     max_new_tokens: 2048
+
+  projected_balanced:
+    do_sample: true
+    top_k: 58
+    top_p: 0.96
+    temperature: 0.88
+    repetition_penalty: 1.05
+    subtalker_dosample: true
+    subtalker_top_k: 58
+    subtalker_top_p: 0.97
+    subtalker_temperature: 0.90
+    max_new_tokens: 2048
+
+  energetic_controlled:
+    do_sample: true
+    top_k: 70
+    top_p: 0.99
+    temperature: 0.98
+    repetition_penalty: 1.04
+    subtalker_dosample: true
+    subtalker_top_k: 75
+    subtalker_top_p: 0.99
+    subtalker_temperature: 1.00
+    max_new_tokens: 2048

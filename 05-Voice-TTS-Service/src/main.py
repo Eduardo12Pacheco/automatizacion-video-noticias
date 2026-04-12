@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--preset",
         default=None,
-        help="Preset de generación (fidelity_strict|balanced_default|expressive_plus). Si se omite, usa generation.preset del YAML.",
+        help="Preset de generación (fidelity_strict|balanced_default|projected_balanced|expressive_plus|energetic_controlled). Si se omite, usa generation.preset del YAML.",
     )
     return parser.parse_args()
 

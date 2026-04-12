@@ -62,4 +62,6 @@ Salida:
 
 - `fidelity_strict`: más similitud y estabilidad, menos variación.
 - `balanced_default`: equilibrio entre clonación y naturalidad (recomendado para iniciar).
+- `projected_balanced`: punto medio entre balanced y expressive, con mayor proyección sin pasarse.
 - `expressive_plus`: más vida/entonación, con mayor riesgo de desviación.
+- `energetic_controlled`: empuja energía/énfasis ("alzar la voz") con riesgo moderado de desviación.
