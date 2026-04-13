@@ -1,8 +1,8 @@
 segmenter:
   mode: sentence_first
-  min_words_per_segment: 35
-  max_words_per_segment: 70
-  hard_max_words_per_segment: 90
+  min_words_per_segment: 20
+  max_words_per_segment: 40
+  hard_max_words_per_segment: 50
 
 pauses_ms:
   comma: 120
