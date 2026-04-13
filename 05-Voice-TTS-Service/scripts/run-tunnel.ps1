@@ -1,14 +1,43 @@
 $ErrorActionPreference = 'Stop'
 
+. "$PSScriptRoot/load-env.ps1"
+
+$configFile = if ($env:TTS_TUNNEL_CONFIG_FILE) {
+  $env:TTS_TUNNEL_CONFIG_FILE
+}
+else {
+  '<WORKSPACE>/.cloudflared/config.yml'
+}
+
+$originCert = if ($env:TTS_TUNNEL_ORIGIN_CERT) {
+  $env:TTS_TUNNEL_ORIGIN_CERT
+}
+else {
+  $null
+}
+
+if (-not (Test-Path $configFile)) {
+  throw "No encontré config.yml del túnel: $configFile"
+}
+
+$args = @('--config', $configFile)
+if ($originCert) {
+  if (-not (Test-Path $originCert)) {
+    throw "No encontré cert.pem del túnel: $originCert"
+  }
+  $args += @('--origincert', $originCert)
+}
+$args += @('tunnel', 'run')
+
 $cloudflaredCmd = Get-Command cloudflared -ErrorAction SilentlyContinue
 if ($cloudflaredCmd) {
-  cloudflared tunnel run voice-lab-tunnel
+  & cloudflared @args
   exit 0
 }
 
 $fallback = "<WORKSPACE>/AppData/Local/Microsoft/WinGet/Packages/Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe/cloudflared.exe"
 if (Test-Path $fallback) {
-  & $fallback tunnel run voice-lab-tunnel
+  & $fallback @args
   exit 0
 }
 

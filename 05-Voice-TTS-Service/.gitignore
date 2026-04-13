@@ -7,3 +7,6 @@ segments/
 *.report.json
 .env.local
 runtime-logs/
+*.db
+*.sqlite
+*.sqlite3
