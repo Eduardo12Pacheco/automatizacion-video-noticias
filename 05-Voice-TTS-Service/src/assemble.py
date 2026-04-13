@@ -74,6 +74,9 @@ def assemble_segments(
     segment_audio_paths: List[Path],
     output_path: Path,
     crossfade_ms: int,
+    output_gain_db: float = 0.0,
+    peak_protection: bool = True,
+    peak_target: float = 0.99,
     trim_cfg: dict | None = None,
 ) -> tuple[Path, int]:
     if len(segments) != len(segment_audio_paths):
@@ -106,6 +109,16 @@ def assemble_segments(
 
         final_audio = _apply_crossfade(final_audio, audio, sample_rate, crossfade_ms)
         final_audio = np.concatenate([final_audio, _silence(segment.pause_after_ms, sample_rate)])
+
+    if output_gain_db != 0.0 and final_audio.size > 0:
+        gain = float(10 ** (output_gain_db / 20.0))
+        final_audio = final_audio * gain
+
+    if peak_protection and final_audio.size > 0:
+        peak = float(np.max(np.abs(final_audio)))
+        peak_target = float(max(0.01, min(1.0, peak_target)))
+        if peak > peak_target:
+            final_audio = final_audio * (peak_target / peak)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     sf.write(str(output_path), final_audio, sample_rate)

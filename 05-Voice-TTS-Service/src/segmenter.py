@@ -25,6 +25,7 @@ class Segment:
 
 @dataclass
 class SegmenterConfig:
+    mode: str = "paragraph_first"
     min_words_per_segment: int = 35
     max_words_per_segment: int = 70
     hard_max_words_per_segment: int = 90
@@ -128,6 +129,14 @@ def _segment_paragraph(paragraph: str, cfg: SegmenterConfig) -> List[str]:
     return chunks
 
 
+def _segment_sentence_first(paragraph: str, cfg: SegmenterConfig) -> List[str]:
+    sentences = _split_into_sentences(paragraph)
+    chunks: List[str] = []
+    for sentence in sentences:
+        chunks.extend(_split_oversized_sentence(sentence, cfg.hard_max_words_per_segment))
+    return [c.strip() for c in chunks if c.strip()]
+
+
 def detect_pause_ms(text: str, *, is_paragraph_end: bool, pauses: dict) -> int:
     if is_paragraph_end:
         return int(pauses.get("paragraph_break", 600))
@@ -156,7 +165,11 @@ def segment_text(raw_text: str, cfg: SegmenterConfig, pauses: dict) -> List[Segm
     idx = 0
 
     for p_idx, paragraph in enumerate(paragraphs):
-        chunks = _segment_paragraph(paragraph, cfg)
+        mode = (cfg.mode or "paragraph_first").strip().lower()
+        if mode == "sentence_first":
+            chunks = _segment_sentence_first(paragraph, cfg)
+        else:
+            chunks = _segment_paragraph(paragraph, cfg)
         for c_idx, chunk in enumerate(chunks):
             idx += 1
             is_paragraph_end = c_idx == len(chunks) - 1

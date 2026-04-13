@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--preset",
         default=None,
-        help="Preset de generación (fidelity_strict|balanced_default|projected_balanced|expressive_plus|energetic_controlled). Si se omite, usa generation.preset del YAML.",
+        help="Preset de generación (balanced_default|golazo_emotivo|golazo_informativo). Si se omite, usa generation.preset del YAML.",
     )
     return parser.parse_args()
 
@@ -175,6 +175,9 @@ def main() -> None:
         segment_audio_paths=segment_paths,
         output_path=output_file,
         crossfade_ms=int(assembler_cfg.get("crossfade_ms", 30)),
+        output_gain_db=float(assembler_cfg.get("output_gain_db", 0.0)),
+        peak_protection=bool(assembler_cfg.get("peak_protection", True)),
+        peak_target=float(assembler_cfg.get("peak_target", 0.99)),
         trim_cfg=assembler_cfg.get("trim_silence", {}),
     )
 
@@ -202,6 +205,11 @@ def main() -> None:
             "model_load_and_reference_seconds": round(t_model_load_end - t_model_load_start, 3),
             "total_synthesis_seconds": round(total_synth_seconds, 3),
             "segment_synthesis": segment_benchmark,
+        },
+        "audio_output": {
+            "output_gain_db": float(assembler_cfg.get("output_gain_db", 0.0)),
+            "peak_protection": bool(assembler_cfg.get("peak_protection", True)),
+            "peak_target": float(assembler_cfg.get("peak_target", 0.99)),
         },
         "warnings": {
             "high_silence_segments": len(warnings),
