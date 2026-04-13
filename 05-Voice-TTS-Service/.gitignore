@@ -5,3 +5,5 @@ output/
 segments/
 *.wav
 *.report.json
+.env.local
+runtime-logs/
