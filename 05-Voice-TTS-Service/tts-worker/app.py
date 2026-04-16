@@ -93,6 +93,7 @@ def get_job(job_id: str) -> JobDetailResponse:
 
     progress = {
         "stage": row.get("progress_stage") or row["status"],
+        "percent": int(row.get("progress_percent") or 0),
         "position": runner.queue_position(job_id),
     }
 

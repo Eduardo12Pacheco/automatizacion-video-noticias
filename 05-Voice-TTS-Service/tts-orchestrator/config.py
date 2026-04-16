@@ -27,6 +27,8 @@ class OrchestratorConfig:
     poll_timeout_sec: int
     rate_limit_per_min: int
     queue_max_hint: int
+    stream_poll_interval_sec: int
+    stream_heartbeat_sec: int
     allowed_origins: list[str]
 
 
@@ -48,5 +50,7 @@ def load_config() -> OrchestratorConfig:
         poll_timeout_sec=_env_int("TTS_ORCH_POLL_TIMEOUT_SEC", 30),
         rate_limit_per_min=_env_int("TTS_ORCH_RATE_LIMIT_PER_MIN", 10),
         queue_max_hint=_env_int("TTS_ORCH_QUEUE_MAX_HINT", 20),
+        stream_poll_interval_sec=max(1, _env_int("TTS_ORCH_STREAM_POLL_INTERVAL_SEC", 2)),
+        stream_heartbeat_sec=max(5, _env_int("TTS_ORCH_STREAM_HEARTBEAT_SEC", 15)),
         allowed_origins=allowed_origins,
     )

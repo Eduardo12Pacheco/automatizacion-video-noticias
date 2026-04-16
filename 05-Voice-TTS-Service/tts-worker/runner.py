@@ -4,6 +4,7 @@ import json
 import queue
 import subprocess
 import threading
+import re
 from pathlib import Path
 
 from config import WorkerConfig
@@ -84,16 +85,16 @@ class JobRunner:
         if self.cfg.device:
             cmd.extend(["--device", self.cfg.device])
 
+        result = None
+        stdout_buffer: list[str] = []
+
+        def stream_progress(line: str) -> None:
+            stdout_buffer.append(line)
+            self._update_progress_from_log_line(job_id, line)
+
         try:
-            self.db.set_progress(job_id, "synthesizing")
-            result = subprocess.run(
-                cmd,
-                cwd=self.cfg.project_root,
-                capture_output=True,
-                text=True,
-                timeout=self.cfg.job_timeout_sec,
-                check=False,
-            )
+            self.db.set_progress(job_id, "loading_model", 10)
+            result = self._run_with_live_progress(cmd, stream_progress)
         except subprocess.TimeoutExpired:
             self.db.set_error(job_id, "WORKER_TIMEOUT", "El job superó el timeout máximo.")
             return
@@ -101,10 +102,16 @@ class JobRunner:
             self.db.set_error(job_id, "INTERNAL_ERROR", f"Error ejecutando TTS: {exc}")
             return
 
+        if result is None:
+            self.db.set_error(job_id, "INTERNAL_ERROR", "No se pudo ejecutar el proceso de síntesis.")
+            return
+
         if result.returncode != 0:
             error_message = (result.stderr or result.stdout or "Error desconocido")[-2000:]
             self.db.set_error(job_id, "TTS_FAILED", error_message)
             return
+
+        self._apply_progress_from_stdout(job_id, "\n".join(stdout_buffer) or result.stdout)
 
         report_path = self._find_report(job_id)
         if report_path is None:
@@ -131,6 +138,105 @@ class JobRunner:
             return
 
         self.db.set_done(job_id, str(output_wav), str(report_path.resolve()))
+
+    def _apply_progress_from_stdout(self, job_id: str, stdout: str | None) -> None:
+        if not stdout:
+            return
+
+        total_segments = None
+        done_segments = 0
+        for line in stdout.splitlines():
+            l = line.strip().lower()
+            if l.startswith("ok - segmentos:"):
+                m = re.search(r"(\d+)", l)
+                if m:
+                    total_segments = max(1, int(m.group(1)))
+            elif "synth segment" in l:
+                done_segments += 1
+
+        if total_segments and done_segments:
+            ratio = min(1.0, done_segments / total_segments)
+            percent = 20 + int(ratio * 75)
+            self.db.set_progress(job_id, "synthesizing", percent)
+        elif total_segments:
+            self.db.set_progress(job_id, "synthesizing", 55)
+
+    def _update_progress_from_log_line(self, job_id: str, line: str) -> None:
+        lower = (line or "").strip().lower()
+        if not lower:
+            return
+
+        if lower.startswith("progress|"):
+            parts = {}
+            for token in lower.split("|")[1:]:
+                if "=" not in token:
+                    continue
+                k, v = token.split("=", 1)
+                parts[k.strip()] = v.strip()
+            stage = parts.get("stage") or "running"
+            raw_percent = parts.get("percent")
+            if raw_percent and raw_percent.isdigit():
+                self.db.set_progress(job_id, stage, int(raw_percent))
+            else:
+                self.db.set_progress(job_id, stage)
+            return
+
+        if "loading" in lower and "model" in lower:
+            self.db.set_progress(job_id, "loading_model", 12)
+            return
+
+        if "prepare" in lower and "reference" in lower:
+            self.db.set_progress(job_id, "preparing_reference", 20)
+            return
+
+        if "synth" in lower or "segment" in lower:
+            current = self.db.get_job(job_id) or {}
+            previous = int(current.get("progress_percent") or 25)
+            next_value = max(previous, min(95, previous + 3))
+            self.db.set_progress(job_id, "synthesizing", next_value)
+
+    def _run_with_live_progress(self, cmd: list[str], on_stdout_line) -> subprocess.CompletedProcess:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=self.cfg.project_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+        )
+
+        stderr_lines: list[str] = []
+
+        def read_stderr() -> None:
+            if proc.stderr is None:
+                return
+            for line in proc.stderr:
+                stderr_lines.append(line)
+
+        stderr_thread = threading.Thread(target=read_stderr, daemon=True)
+        stderr_thread.start()
+
+        stdout_lines: list[str] = []
+        if proc.stdout is not None:
+            for line in proc.stdout:
+                stdout_lines.append(line)
+                on_stdout_line(line)
+
+        try:
+            proc.wait(timeout=self.cfg.job_timeout_sec)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            raise
+        finally:
+            stderr_thread.join(timeout=2)
+
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=proc.returncode,
+            stdout="".join(stdout_lines),
+            stderr="".join(stderr_lines),
+        )
 
     def _find_report(self, job_id: str) -> Path | None:
         matches = list(self.cfg.output_dir.glob(f"**/{job_id}.report.json"))

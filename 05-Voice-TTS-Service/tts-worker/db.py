@@ -40,6 +40,7 @@ class JobsDB:
                   error_code TEXT,
                   error_message TEXT,
                   progress_stage TEXT,
+                  progress_percent INTEGER,
                   output_wav_path TEXT,
                   output_report_path TEXT
                 )
@@ -51,6 +52,8 @@ class JobsDB:
             }
             if "voice_profile" not in columns:
                 con.execute("ALTER TABLE jobs ADD COLUMN voice_profile TEXT")
+            if "progress_percent" not in columns:
+                con.execute("ALTER TABLE jobs ADD COLUMN progress_percent INTEGER")
             con.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at ON jobs(status, created_at)")
             con.execute(
                 "CREATE INDEX IF NOT EXISTS idx_jobs_requested_by_created_at ON jobs(requested_by, created_at)"
@@ -84,8 +87,8 @@ class JobsDB:
             con.execute(
                 """
                 INSERT INTO jobs (
-                  job_id, status, voice_profile, text_sha256, text_length, requested_by, created_at, progress_stage
-                ) VALUES (?, 'queued', ?, ?, ?, ?, ?, 'queued')
+                  job_id, status, voice_profile, text_sha256, text_length, requested_by, created_at, progress_stage, progress_percent
+                ) VALUES (?, 'queued', ?, ?, ?, ?, ?, 'queued', 0)
                 """,
                 (job_id, voice_profile, text_hash, len(text), requested_by, now),
             )
@@ -94,14 +97,21 @@ class JobsDB:
     def set_running(self, job_id: str) -> None:
         with self._lock, self._connect() as con:
             con.execute(
-                "UPDATE jobs SET status='running', started_at=?, progress_stage='running' WHERE job_id=?",
+                "UPDATE jobs SET status='running', started_at=?, progress_stage='running', progress_percent=5 WHERE job_id=?",
                 (utc_now(), job_id),
             )
             con.commit()
 
-    def set_progress(self, job_id: str, stage: str) -> None:
+    def set_progress(self, job_id: str, stage: str, percent: int | None = None) -> None:
+        if percent is None:
+            sql = "UPDATE jobs SET progress_stage=? WHERE job_id=?"
+            params = (stage, job_id)
+        else:
+            bounded = max(0, min(100, int(percent)))
+            sql = "UPDATE jobs SET progress_stage=?, progress_percent=? WHERE job_id=?"
+            params = (stage, bounded, job_id)
         with self._lock, self._connect() as con:
-            con.execute("UPDATE jobs SET progress_stage=? WHERE job_id=?", (stage, job_id))
+            con.execute(sql, params)
             con.commit()
 
     def set_done(self, job_id: str, output_wav_path: str, output_report_path: str) -> None:
@@ -112,6 +122,7 @@ class JobsDB:
                 SET status='done',
                     finished_at=?,
                     progress_stage='done',
+                    progress_percent=100,
                     output_wav_path=?,
                     output_report_path=?,
                     error_code=NULL,
@@ -130,6 +141,7 @@ class JobsDB:
                 SET status='error',
                     finished_at=?,
                     progress_stage='error',
+                    progress_percent=CASE WHEN progress_percent IS NULL THEN 0 ELSE progress_percent END,
                     error_code=?,
                     error_message=?
                 WHERE job_id=?

@@ -139,8 +139,10 @@ def main() -> None:
 
     segments = segment_text(raw_text, seg_cfg, pauses_cfg)
 
+    print("PROGRESS|stage=loading_model|percent=10", flush=True)
     t_model_load_start = time.perf_counter()
     engine = QwenCloneEngine(generation_cfg=generation_cfg, device=args.device)
+    print("PROGRESS|stage=preparing_reference|percent=20", flush=True)
     engine.prepare_reference(reference_audio_path=ref_audio_path, reference_text=reference_text)
     t_model_load_end = time.perf_counter()
 
@@ -153,7 +155,10 @@ def main() -> None:
     segment_benchmark = []
     sample_rate_last = None
 
+    total_segments = max(1, len(segments))
     for segment in segments:
+        synth_percent = 20 + int((segment.index / total_segments) * 75)
+        print(f"PROGRESS|stage=synthesizing|percent={min(95, synth_percent)}|segment={segment.index}/{total_segments}", flush=True)
         seg_file = segment_folder / f"seg_{segment.index:03d}.wav"
         t_seg_start = time.perf_counter()
         sample_rate_last = engine.synthesize_to_file(segment, seg_file)
