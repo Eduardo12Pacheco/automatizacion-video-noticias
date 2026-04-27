@@ -24,6 +24,12 @@ Este proyecto mantiene lo acordado:
 pip install -r requirements.txt
 ```
 
+En Windows, Qwen3-TTS también necesita el binario de **SoX** disponible para normalizar la referencia de voz:
+
+```powershell
+winget install --id ChrisBagwell.SoX -e
+```
+
 > Esta configuración está en modo estricto para 1.7B: si activás FlashAttention y no está disponible, la ejecución falla (sin fallback automático).
 
 ## Uso

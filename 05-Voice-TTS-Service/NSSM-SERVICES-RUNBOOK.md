@@ -52,14 +52,20 @@ src/main.py + Qwen3-TTS (RTX local)
 winget install NSSM.NSSM
 ```
 
-3. Cloudflared instalado y túnel creado.
-4. Archivos existentes:
+3. SoX instalado para que Qwen3-TTS pueda normalizar la referencia de voz:
+
+```powershell
+winget install --id ChrisBagwell.SoX -e
+```
+
+4. Cloudflared instalado y túnel creado.
+5. Archivos existentes:
 
 - `<WORKSPACE>/.cloudflared/cert.pem`
 - `<WORKSPACE>/.cloudflared/1bf44f10-4a6a-4039-a63c-14c8e92b2638.json`
 - `<WORKSPACE>/.cloudflared/config.yml`
 
-5. Variables locales en `.env.local` (token interno, api key, basic auth, python del venv CUDA, etc.).
+6. Variables locales en `.env.local` (token interno, api key, basic auth, python del venv CUDA, etc.).
 
 ---
 

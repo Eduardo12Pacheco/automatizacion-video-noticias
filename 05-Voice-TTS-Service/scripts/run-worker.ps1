@@ -2,6 +2,42 @@ $ErrorActionPreference = 'Stop'
 
 . "$PSScriptRoot/load-env.ps1"
 
+function Add-SoxToPath {
+  $existing = Get-Command sox -ErrorAction SilentlyContinue
+  if ($existing) {
+    return
+  }
+
+  $projectRoot = Split-Path -Parent $PSScriptRoot
+  $n8nRoot = Split-Path -Parent $projectRoot
+  $desktopRoot = Split-Path -Parent $n8nRoot
+  $userProfile = Split-Path -Parent $desktopRoot
+
+  $candidateRoots = @(
+    (Join-Path $userProfile 'AppData\Local\Microsoft\WinGet\Packages'),
+    (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'),
+    $env:ProgramFiles,
+    ${env:ProgramFiles(x86)}
+  ) | Where-Object { $_ -and (Test-Path $_) }
+
+  foreach ($root in $candidateRoots) {
+    $sox = Get-ChildItem -Path $root -Filter sox.exe -Recurse -ErrorAction SilentlyContinue |
+      Sort-Object FullName -Descending |
+      Select-Object -First 1
+
+    if ($sox) {
+      $env:PATH = "$($sox.DirectoryName);$env:PATH"
+      return
+    }
+  }
+}
+
+Add-SoxToPath
+
+if (-not (Get-Command sox -ErrorAction SilentlyContinue)) {
+  throw "No encuentro sox.exe. Instalá SoX con: winget install --id ChrisBagwell.SoX -e"
+}
+
 if (-not $env:TTS_WORKER_INTERNAL_TOKEN) {
   throw "Falta TTS_WORKER_INTERNAL_TOKEN en .env.local"
 }
