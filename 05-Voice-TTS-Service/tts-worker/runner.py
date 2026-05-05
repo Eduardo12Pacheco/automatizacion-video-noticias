@@ -107,7 +107,13 @@ class JobRunner:
             return
 
         if result.returncode != 0:
-            error_message = (result.stderr or result.stdout or "Error desconocido")[-2000:]
+            failure_stage = self._infer_failure_stage(stdout_buffer)
+            error_message = self._build_subprocess_error_message(
+                returncode=result.returncode,
+                failure_stage=failure_stage,
+                stdout_text=result.stdout,
+                stderr_text=result.stderr,
+            )
             self.db.set_error(job_id, "TTS_FAILED", error_message)
             return
 
@@ -237,6 +243,50 @@ class JobRunner:
             stdout="".join(stdout_lines),
             stderr="".join(stderr_lines),
         )
+
+    def _infer_failure_stage(self, stdout_lines: list[str]) -> str:
+        last_stage = "unknown"
+        for raw_line in stdout_lines:
+            line = (raw_line or "").strip().lower()
+            if not line.startswith("progress|"):
+                continue
+            for token in line.split("|")[1:]:
+                if "=" not in token:
+                    continue
+                key, value = token.split("=", 1)
+                if key.strip() == "stage":
+                    stage_value = value.strip() or "unknown"
+                    last_stage = stage_value
+        return f"{last_stage}_failed"
+
+    def _build_subprocess_error_message(
+        self,
+        returncode: int,
+        failure_stage: str,
+        stdout_text: str | None,
+        stderr_text: str | None,
+    ) -> str:
+        stdout_tail = self._tail_lines(stdout_text, 20)
+        stderr_tail = self._tail_lines(stderr_text, 20)
+
+        parts = [
+            f"Subprocess failed at stage={failure_stage} with returncode={returncode}",
+            "--- stdout (last 20 lines) ---",
+            stdout_tail or "(empty)",
+            "--- stderr (last 20 lines) ---",
+            stderr_tail or "(empty)",
+        ]
+
+        message = "\n".join(parts)
+        if len(message) <= 2000:
+            return message
+        return message[-2000:]
+
+    def _tail_lines(self, text: str | None, max_lines: int) -> str:
+        if not text:
+            return ""
+        lines = text.splitlines()
+        return "\n".join(lines[-max_lines:])
 
     def _find_report(self, job_id: str) -> Path | None:
         matches = list(self.cfg.output_dir.glob(f"**/{job_id}.report.json"))

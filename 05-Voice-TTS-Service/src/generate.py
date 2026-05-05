@@ -22,10 +22,38 @@ class QwenCloneEngine:
         if device is None:
             if torch.cuda.is_available():
                 device = "cuda:0"
-            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-                device = "mps"
             else:
-                device = "cpu"
+                raise RuntimeError(
+                    "TTS requiere CUDA (GPU) pero no se detecto ninguna GPU disponible. "
+                    "Verifica que los drivers NVIDIA esten instalados y que la GPU no este ocupada."
+                )
+
+        selected_device = str(device)
+        cuda_available = bool(torch.cuda.is_available())
+        cuda_device_count = int(torch.cuda.device_count()) if cuda_available else 0
+        cuda_probe_error = None
+
+        if selected_device.startswith("cuda"):
+            try:
+                if not cuda_available:
+                    raise RuntimeError("torch.cuda.is_available() devolvio False")
+                if cuda_device_count <= 0:
+                    raise RuntimeError("torch.cuda.device_count() devolvio 0")
+                torch.zeros(1).to(selected_device)
+            except Exception as exc:
+                cuda_probe_error = f"{type(exc).__name__}: {exc}"
+                raise RuntimeError(
+                    "CUDA es obligatoria para TTS pero no esta operativa. "
+                    f"Dispositivo solicitado: {selected_device}. "
+                    f"Error: {cuda_probe_error}. "
+                    "Verifica drivers NVIDIA, CUDA toolkit y VRAM disponible."
+                ) from exc
+
+        print(
+            "[INFO] TTS device resuelto: "
+            f"device={device} requested={selected_device} "
+            f"cuda_available={cuda_available} cuda_device_count={cuda_device_count}"
+        )
 
         dtype_raw = str(generation_cfg.get("dtype", "bfloat16")).lower()
         if dtype_raw in ("bfloat16", "bf16"):
@@ -40,12 +68,21 @@ class QwenCloneEngine:
 
         model_name = str(generation_cfg.get("model_name", "Qwen/Qwen3-TTS-12Hz-1.7B-Base"))
 
-        self.model = Qwen3TTSModel.from_pretrained(
-            model_name,
-            device_map=device,
-            dtype=dtype,
-            attn_implementation=attn_impl,
-        )
+        try:
+            self.model = Qwen3TTSModel.from_pretrained(
+                model_name,
+                device_map=device,
+                dtype=dtype,
+                attn_implementation=attn_impl,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Error cargando Qwen3TTSModel.from_pretrained: "
+                f"model={model_name}, device={device}, dtype={dtype}, "
+                f"cuda_available={torch.cuda.is_available()}, "
+                f"cuda_device_count={torch.cuda.device_count() if torch.cuda.is_available() else 0}, "
+                f"original_error={type(exc).__name__}: {exc}"
+            ) from exc
 
         self.model_name = model_name
         self.language = str(generation_cfg.get("language", "Spanish"))
