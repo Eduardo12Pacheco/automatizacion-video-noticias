@@ -2,6 +2,7 @@ export function defaultSettingsFactory() {
   return {
     baseUrl: 'http://localhost:5678',
     secret: '',
+    supabasePublishableKey: '***REMOVED***',
     ttsBaseUrl: 'http://localhost:8088',
     ttsApiKey: '',
     ttsBasicUser: '',
