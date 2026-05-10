@@ -6,9 +6,10 @@ import {
 } from './composition-contract.js';
 
 export const COMPOSITION_DUST_PREVIEW_URL = './assets/particle-preview.webm';
+export const COMPOSITION_LOCAL_OVERLAY_BASE_URL = 'http://127.0.0.1:3042/api/overlays';
 export const COMPOSITION_DUST_PREVIEW_URLS = {
-  'particle-1': '../02-Video-Engine/assets/overlays/particle-1.mp4',
-  'particle-2': '../02-Video-Engine/assets/overlays/particle-2.mp4',
+  'particle-1': `${COMPOSITION_LOCAL_OVERLAY_BASE_URL}/particle-1.mp4`,
+  'particle-2': `${COMPOSITION_LOCAL_OVERLAY_BASE_URL}/particle-2.mp4`,
 };
 export const COMPOSITION_LOCAL_LOGO_URL = './assets/logo-demo-alpha.webm';
 export const COMPOSITION_LOCAL_GREEN_LOGO_URL = '../02-Video-Engine/assets/overlays/logo-green.mp4';
@@ -28,6 +29,12 @@ export function resolveCompositionDustUrl(project = {}, rows = []) {
   const activeDust = rows.find((row) => row?.dust?.enabled && (row?.dust?.assetId || row?.dust?.type));
   const assetId = activeDust?.dust?.assetId || '';
   return resolveCanonicalPreviewAssetUrl(project, assetId) || COMPOSITION_DUST_PREVIEW_URLS[activeDust?.dust?.type] || COMPOSITION_DUST_PREVIEW_URL;
+}
+
+export function resolveCompositionDustUrlForRow(project = {}, row = {}) {
+  if (!row?.dust?.enabled) return '';
+  const assetId = row?.dust?.assetId || '';
+  return resolveCanonicalPreviewAssetUrl(project, assetId) || COMPOSITION_DUST_PREVIEW_URLS[row?.dust?.type] || '';
 }
 
 export function resolveCompositionLogoUrl(project = {}) {
@@ -56,6 +63,13 @@ export function buildCompositionRows(rows = [], project = {}) {
   const sourceRows = Array.isArray(contract.rows) ? contract.rows : [];
   return sourceRows.map((row, index) => ({
     ...row,
+    dust: row?.dust
+      ? {
+          ...row.dust,
+          src: resolveCompositionDustUrlForRow(project, row),
+          blendMode: row.dust.blendMode || 'screen',
+        }
+      : row?.dust,
     endTime: row.effectiveEndTime,
     image: row.image || resolveRowImageUrlFromContract({ row, rowIndex: index, contract, project, resolveCandidateImageUrl }),
   }));
