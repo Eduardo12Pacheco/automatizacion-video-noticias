@@ -123,7 +123,7 @@ function replaySettingsScenario() {
 
 function replayCompositionAssetsScenario() {
   const dustUrl = resolveCompositionDustUrl({}, [{ dust: { enabled: true, type: 'particle-2' } }]);
-  if (dustUrl !== './assets/particle-preview.webm') return { ok: false, reason: 'particle-2 fallback asset drift' };
+  if (dustUrl !== '../02-Video-Engine/assets/overlays/particle-2.mp4') return { ok: false, reason: 'particle-2 asset drift' };
 
   const missingLogoUrl = resolveCompositionLogoUrl({
     editor_state: {
@@ -132,7 +132,7 @@ function replayCompositionAssetsScenario() {
       },
     },
   });
-  if (missingLogoUrl !== '') return { ok: false, reason: 'missing logo fallback drift' };
+  if (missingLogoUrl !== './assets/logo-demo-alpha.webm') return { ok: false, reason: 'local logo fallback drift' };
 
   return { ok: true };
 }
