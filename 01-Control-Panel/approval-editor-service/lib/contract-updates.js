@@ -75,7 +75,12 @@ function applyContractOperations(snapshot, operations = []) {
       }
     } else if (op.type === "setRowVideoSegment") {
       const row = findRow(next, op.rowId);
-      const asset = normalizeAsset(op.asset || { assetId: op.assetId, previewUrl: op.previewUrl, renderPath: op.renderPath }, { type: "video", role: "video" });
+      const assetInput = op.asset && Object.keys(op.asset).length ? op.asset : {
+        assetId: op.assetId || op.sourceVideoAssetId,
+        previewUrl: op.previewUrl || op.sourceVideoSrc,
+        renderPath: op.renderPath || op.sourceVideoSrc,
+      };
+      const asset = normalizeAsset(assetInput, { type: "video", role: "video" });
       next.assets[asset.assetId] = { ...asset, type: "video", role: "video" };
       next.assets["overlay-layer-01"] = next.assets["overlay-layer-01"] || { assetId: "overlay-layer-01", id: "overlay-layer-01", type: "video", role: "effect", renderPath: "overlays/overlay-layer-01.mp4", previewUrl: "/api/overlays/overlay-layer-01.mp4", status: "ready" };
       next.assets["overlay-layer-02"] = next.assets["overlay-layer-02"] || { assetId: "overlay-layer-02", id: "overlay-layer-02", type: "video", role: "effect", renderPath: "overlays/overlay-layer-02.mp4", previewUrl: "/api/overlays/overlay-layer-02.mp4", status: "ready" };
