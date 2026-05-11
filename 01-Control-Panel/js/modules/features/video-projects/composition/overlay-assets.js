@@ -2,8 +2,8 @@ export const COMPOSITION_LOCAL_OVERLAY_BASE_URL = 'http://127.0.0.1:3042/api/ove
 export const COMPOSITION_STATIC_ASSET_BASE_URL = './assets';
 
 export const VIDEO_SEGMENT_EFFECT_ASSETS = [
-  { assetId: 'overlay-layer-01', fileName: 'overlay-layer-01.mp4', blendMode: 'screen' },
-  { assetId: 'overlay-layer-02', fileName: 'overlay-layer-02.mp4', blendMode: 'multiply' },
+  { assetId: 'overlay-layer-01', fileName: 'overlay-layer-01.webm', blendMode: 'screen' },
+  { assetId: 'overlay-layer-02', fileName: 'overlay-layer-02.webm', blendMode: 'multiply' },
 ];
 
 export function resolveLocalOverlayAssetUrl(fileName = '') {

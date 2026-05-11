@@ -115,8 +115,8 @@ test('Selector modal uses real effect videos and exposes a play toggle for the p
 
   assert.match(html, /data-action="toggle-video-selector-preview"/);
   assert.match(html, /data-video-selector-preview-toggle/);
-  assert.match(html, /<video[^>]+src="\.\/assets\/overlay-layer-02\.mp4"[^>]+data-layer="overlay-layer-02"/);
-  assert.match(html, /<video[^>]+src="\.\/assets\/overlay-layer-01\.mp4"[^>]+data-layer="overlay-layer-01"/);
+  assert.match(html, /<video[^>]+src="\.\/assets\/overlay-layer-02\.webm"[^>]+data-layer="overlay-layer-02"/);
+  assert.match(html, /<video[^>]+src="\.\/assets\/overlay-layer-01\.webm"[^>]+data-layer="overlay-layer-01"/);
   assert.ok(html.indexOf('data-layer="overlay-layer-02"') < html.indexOf('data-layer="overlay-layer-01"'));
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-01\s*\{[^}]*mix-blend-mode:\s*screen;/s);
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-02\s*\{[^}]*mix-blend-mode:\s*multiply;/s);
@@ -207,9 +207,9 @@ test('Approval editor service accepts client video segment aliases', () => {
   assert.equal(next.rows[0].media.sourceVideoAssetId, 'video-asset-1');
   assert.equal(next.assets['video-asset-1'].previewUrl, '/videos/source.mp4');
   assert.equal(next.assets['overlay-layer-01'].renderPath, 'overlays/overlay-layer-01.mp4');
-  assert.equal(next.assets['overlay-layer-01'].previewUrl, './assets/overlay-layer-01.mp4');
+  assert.equal(next.assets['overlay-layer-01'].previewUrl, './assets/overlay-layer-01.webm');
   assert.equal(next.assets['overlay-layer-02'].renderPath, 'overlays/overlay-layer-02.mp4');
-  assert.equal(next.assets['overlay-layer-02'].previewUrl, './assets/overlay-layer-02.mp4');
+  assert.equal(next.assets['overlay-layer-02'].previewUrl, './assets/overlay-layer-02.webm');
 });
 
 test('Local approval fallback video row wins over stale canonical image row in main composition preview', () => {
@@ -245,8 +245,8 @@ test('Local approval fallback video row wins over stale canonical image row in m
 
   assert.equal(compositionRows[0].media.kind, 'video-segment');
   assert.equal(compositionRows[0].media.sourceVideoSrc, '/videos/source.mp4');
-  assert.equal(compositionRows[0].media.effect1Src, './assets/overlay-layer-01.mp4');
-  assert.equal(compositionRows[0].media.effect2Src, './assets/overlay-layer-02.mp4');
+  assert.equal(compositionRows[0].media.effect1Src, './assets/overlay-layer-01.webm');
+  assert.equal(compositionRows[0].media.effect2Src, './assets/overlay-layer-02.webm');
 });
 
 test('Video segment preview layer plan always includes concrete effect video sources', () => {
@@ -261,9 +261,9 @@ test('Video segment preview layer plan always includes concrete effect video sou
   });
 
   assert.deepEqual(plan.layers.map((layer) => layer.name), ['background-video', 'color-overlay', 'overlay-layer-02', 'overlay-layer-01', 'foreground-video']);
-  assert.equal(plan.layers[2].src, './assets/overlay-layer-02.mp4');
+  assert.equal(plan.layers[2].src, './assets/overlay-layer-02.webm');
   assert.equal(plan.layers[2].mixBlendMode, 'multiply');
-  assert.equal(plan.layers[3].src, './assets/overlay-layer-01.mp4');
+  assert.equal(plan.layers[3].src, './assets/overlay-layer-01.webm');
   assert.equal(plan.layers[3].mixBlendMode, 'screen');
 });
 

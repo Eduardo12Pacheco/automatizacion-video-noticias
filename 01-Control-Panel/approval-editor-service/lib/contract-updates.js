@@ -82,8 +82,8 @@ function applyContractOperations(snapshot, operations = []) {
       };
       const asset = normalizeAsset(assetInput, { type: "video", role: "video" });
       next.assets[asset.assetId] = { ...asset, type: "video", role: "video" };
-      next.assets["overlay-layer-01"] = next.assets["overlay-layer-01"] || { assetId: "overlay-layer-01", id: "overlay-layer-01", type: "video", role: "effect", renderPath: "overlays/overlay-layer-01.mp4", previewUrl: "./assets/overlay-layer-01.mp4", status: "ready" };
-      next.assets["overlay-layer-02"] = next.assets["overlay-layer-02"] || { assetId: "overlay-layer-02", id: "overlay-layer-02", type: "video", role: "effect", renderPath: "overlays/overlay-layer-02.mp4", previewUrl: "./assets/overlay-layer-02.mp4", status: "ready" };
+      next.assets["overlay-layer-01"] = next.assets["overlay-layer-01"] || { assetId: "overlay-layer-01", id: "overlay-layer-01", type: "video", role: "effect", renderPath: "overlays/overlay-layer-01.mp4", previewUrl: "./assets/overlay-layer-01.webm", status: "ready" };
+      next.assets["overlay-layer-02"] = next.assets["overlay-layer-02"] || { assetId: "overlay-layer-02", id: "overlay-layer-02", type: "video", role: "effect", renderPath: "overlays/overlay-layer-02.mp4", previewUrl: "./assets/overlay-layer-02.webm", status: "ready" };
       row.media = {
         ...normalizeVideoSegmentOperation(row, op),
         sourceVideoAssetId: asset.assetId,
