@@ -14,10 +14,10 @@ import {
   resolveRowImageUrlFromContract,
 } from './composition-contract.js';
 
-export const COMPOSITION_DUST_PREVIEW_URL = './assets/particle-preview.webm';
+export const COMPOSITION_DUST_PREVIEW_URL = './assets/particle-1.webm';
 export const COMPOSITION_DUST_PREVIEW_URLS = {
-  'particle-1': `${COMPOSITION_LOCAL_OVERLAY_BASE_URL}/particle-1.mp4`,
-  'particle-2': `${COMPOSITION_LOCAL_OVERLAY_BASE_URL}/particle-2.mp4`,
+  'particle-1': './assets/particle-1.webm',
+  'particle-2': './assets/particle-2.webm',
 };
 export const COMPOSITION_LOCAL_LOGO_URL = './assets/logo-demo-alpha.webm';
 export const COMPOSITION_LOCAL_GREEN_LOGO_URL = '../02-Video-Engine/assets/overlays/logo-green.mp4';
