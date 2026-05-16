@@ -2,6 +2,37 @@ node_modules
 dist
 .DS_Store
 .env
+.atl
 
 # Ignore the output video from Git but not videos you import into src/.
 out
+
+# Generated render/pipeline output.
+public/generated/
+output/*.json
+output/*.mp4
+
+# Heavy local render assets. They are required at runtime but are not versioned
+# in this repository. See README.md for the expected local asset layout.
+assets/overlays/*
+!assets/overlays/.gitkeep
+
+# Local approval/runtime workspaces. These are mutable local state, not source.
+projects/
+projects/**/public/generated/
+projects/**/output/
+projects/**/audio/
+projects/**/imagenes/
+projects/**/guion/
+projects/**/composition-contract.json
+
+# Local caches.
+__pycache__/
+*.pyc
+
+# Legacy/demo resources moved to resources/legacy-pipeline/ and are not ignored.
+# Keep ignoring runtime public/generated/ because renders may recreate it.
+# Revisit later if Vosk should become a local download/cache instead of archived data.
+# models/
+
+.opencode/package-lock.json
