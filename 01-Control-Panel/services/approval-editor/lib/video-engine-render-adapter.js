@@ -4,6 +4,31 @@ const { spawn } = require("child_process");
 const { createEditorProject, stableId } = require("../../../../02-Video-Engine/scripts/lib/editor-project");
 const { normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("../../../../03-Contracts-Core/approval-contract-pipeline");
 
+const AUTHORITATIVE_DUST_ASSETS = {
+  "particle-1": {
+    assetId: "particle-1",
+    id: "particle-1",
+    type: "dust",
+    role: "dust",
+    source: { kind: "local", bridge: "approval-panel" },
+    publicUrl: "./assets/particle-1.webm",
+    previewUrl: "./assets/particle-1.webm",
+    renderPath: "overlays/particle-1.mp4",
+    status: "ready",
+  },
+  "particle-2": {
+    assetId: "particle-2",
+    id: "particle-2",
+    type: "dust",
+    role: "dust",
+    source: { kind: "local", bridge: "approval-panel" },
+    publicUrl: "./assets/particle-2.webm",
+    previewUrl: "./assets/particle-2.webm",
+    renderPath: "overlays/particle-2.mp4",
+    status: "ready",
+  },
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -210,6 +235,7 @@ async function persistSnapshotForVideoEngine({ projectsRoot, projectId, snapshot
     ...(snapshot || {}),
     assets: {
       ...(snapshot?.assets || {}),
+      ...AUTHORITATIVE_DUST_ASSETS,
       ...authoritativeBrandAssets,
     },
     globalLayers: {
