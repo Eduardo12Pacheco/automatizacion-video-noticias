@@ -330,9 +330,6 @@ const NEWSPAPER_LABEL_FONT_SIZE = 18;
 const NEWSPAPER_LABEL_LINE_HEIGHT = 1.12;
 const NEWSPAPER_LABEL_TOP = 40;
 const NEWSPAPER_LABEL_RIGHT = 40;
-const NEWSPAPER_LABEL_BACKGROUND = "rgba(255,255,255,0.9)";
-const NEWSPAPER_LABEL_PADDING = "6px 8px 5px";
-const NEWSPAPER_LABEL_BORDER_RADIUS = 2;
 const NEWSPAPER_FONT_FACE_CSS = `@font-face {
   font-family: ${NEWSPAPER_LOCAL_FONT_FAMILY};
   src: url("${NEWSPAPER_LOCAL_FONT_URL}") format("woff2");
@@ -395,9 +392,9 @@ const NewspaperScene = ({
           right: NEWSPAPER_LABEL_RIGHT,
           top: NEWSPAPER_LABEL_TOP,
           color: "#000",
-          background: NEWSPAPER_LABEL_BACKGROUND,
-          padding: NEWSPAPER_LABEL_PADDING,
-          borderRadius: NEWSPAPER_LABEL_BORDER_RADIUS,
+          background: "transparent",
+          padding: 0,
+          borderRadius: 0,
           fontFamily: NEWSPAPER_LABEL_FONT_FAMILY,
           fontSize: NEWSPAPER_LABEL_FONT_SIZE,
           fontWeight: 900,

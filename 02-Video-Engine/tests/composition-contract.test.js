@@ -732,13 +732,12 @@ test("Remotion composition source contains newspaper visual mode parity branch",
   assert.match(source, /lineHeight: NEWSPAPER_LABEL_LINE_HEIGHT/);
   assert.match(source, /const NEWSPAPER_LABEL_TOP = 40/);
   assert.match(source, /const NEWSPAPER_LABEL_RIGHT = 40/);
-  assert.match(source, /const NEWSPAPER_LABEL_BACKGROUND = "rgba\(255,255,255,0\.9\)"/);
-  assert.match(source, /const NEWSPAPER_LABEL_PADDING = "6px 8px 5px"/);
   assert.match(source, /left: "auto"/);
   assert.match(source, /right: NEWSPAPER_LABEL_RIGHT/);
   assert.match(source, /top: NEWSPAPER_LABEL_TOP/);
-  assert.match(source, /background: NEWSPAPER_LABEL_BACKGROUND/);
-  assert.match(source, /padding: NEWSPAPER_LABEL_PADDING/);
+  assert.match(source, /background: "transparent"/);
+  assert.match(source, /padding: 0/);
+  assert.match(source, /borderRadius: 0/);
   assert.match(source, /transform: "none"/);
   assert.match(source, /textAlign: "center"/);
   assert.match(source, /RECREACIÓN/);
