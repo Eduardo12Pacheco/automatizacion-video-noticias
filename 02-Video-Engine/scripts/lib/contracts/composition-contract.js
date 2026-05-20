@@ -123,6 +123,18 @@ function resolveVideoSegmentMedia(segment, assets, index, options) {
   };
 }
 
+function resolveMediaMode(value) {
+  return String(value || "").trim().toLowerCase() === "newspaper" ? "newspaper" : "image";
+}
+
+function resolveImageMotionForMode(segment) {
+  const mediaMode = resolveMediaMode(segment?.mediaMode);
+  if (mediaMode === "newspaper" && !segment?.motion && !segment?.motionPresetId) {
+    return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
+  }
+  return segment?.motion || segment?.motionPresetId || "slow-zoom-in";
+}
+
 function adaptCompositionContractToRenderProps({ contract, manifest, options = {} }) {
   const safeContract = contract || {};
   const assets = normalizeAssets(safeContract, manifest);
@@ -146,10 +158,11 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       image,
       ...imageDimensions,
       ...(media ? { media } : {}),
+      mediaMode: resolveMediaMode(segment?.mediaMode),
       startTime: Number(segment?.startTime || 0),
       endTime,
       effectiveEndTime: Number.isFinite(Number(segment?.effectiveEndTime)) ? Number(segment.effectiveEndTime) : undefined,
-      motion: segment?.motion || segment?.motionPresetId || "slow-zoom-in",
+      motion: resolveImageMotionForMode(segment),
       dust: segment?.dust || { enabled: true },
       logo: segment?.logo || { enabled: true },
       filter: segment?.filter || { enabled: true, mode: "cover" },

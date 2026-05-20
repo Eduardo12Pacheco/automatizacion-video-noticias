@@ -89,6 +89,7 @@ test("approval editor service updates immutable snapshots and rejects stale upda
       body: JSON.stringify({
         baseSnapshotHash: hashA,
         operations: [
+          { type: "setRowMediaMode", rowId: "row-2", mediaMode: "newspaper", media: { kind: "image" } },
           { type: "setRowImage", rowId: "row-2", asset: { assetId: "custom-asset", previewUrl: "https://cdn.test/custom.webp", renderPath: "https://cdn.test/custom.webp" } },
           { type: "setRowMotion", rowId: "row-2", motionPresetId: "Zoom-125", motion: { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear" } },
           { type: "setRowDust", rowId: "row-2", enabled: true, dustType: "particle-2" },
@@ -103,6 +104,7 @@ test("approval editor service updates immutable snapshots and rejects stale upda
     const hashB = updated.body.data.snapshotHash;
     assert.notEqual(hashB, hashA);
     assert.equal(updated.body.data.snapshot.rows[1].selectedAssetId, "custom-asset");
+    assert.equal(updated.body.data.snapshot.rows[1].mediaMode, "newspaper");
     assert.equal(updated.body.data.snapshot.rows[0].selectedAssetId, created.body.data.snapshot.rows[0].selectedAssetId);
     assert.equal(updated.body.data.snapshot.rows[1].dust.type, "particle-2");
     assert.equal(updated.body.data.snapshot.audio.voice.volume, 0.35);

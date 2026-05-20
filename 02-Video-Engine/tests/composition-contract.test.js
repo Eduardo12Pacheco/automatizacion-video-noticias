@@ -437,6 +437,41 @@ test("adapter preserves image selectedAssetId while mapping explicit video segme
   });
 });
 
+test("adapter preserves newspaper media mode as an image-driven render segment", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-newspaper",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    rows: [{
+      rowId: "row-news",
+      phrase: "Recreación",
+      startTime: 0,
+      endTime: 3,
+      effectiveEndTime: 3,
+      selectedAssetId: "img-1",
+      mediaMode: "newspaper",
+      media: { kind: "image" },
+    }],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.segments[0].mediaMode, "newspaper");
+  assert.equal(props.segments[0].image, "imagenes/uno.jpg");
+  assert.equal(props.segments[0].media.kind, "image");
+  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
+});
+
 test("stable approval snapshot hash ignores video-segment key order", () => {
   const base = {
     contractVersion: "approval-editor-service-v1",
@@ -669,6 +704,19 @@ test("Remotion final image and overlay source keeps preview fidelity rules", () 
   assert.match(source, /data-layer="alpha-logo-frame-sequence"/, "alpha PNG logo frame sequence must render full-frame with real transparency");
   assert.match(source, /logo-\(\?:colombia\|ecuador\)-alpha-frames/, "both country logos must support alpha PNG frame sequences");
   assert.match(source, /logoFrameSequenceSrc\(logo\.src, frame\)/, "alpha logo frame sequence must advance by Remotion frame");
+});
+
+test("Remotion composition source contains newspaper visual mode parity branch", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+
+  assert.match(source, /mediaMode\?: "image" \| "newspaper"/);
+  assert.match(source, /const NewspaperScene = /);
+  assert.match(source, /data-layer="newspaper-background"/);
+  assert.match(source, /filter: "blur\(20px\)"/);
+  assert.match(source, /objectPosition: "center top"/);
+  assert.match(source, /toScale:\s*1\.25/);
+  assert.match(source, /RECREACIÓN/);
+  assert.match(source, /ARTÍSTICA/);
 });
 
 test("Remotion composition source contains deterministic five-layer VideoSegmentScene", () => {

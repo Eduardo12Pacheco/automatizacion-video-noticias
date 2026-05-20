@@ -138,6 +138,7 @@ const renderSegmentSchema = timelineFrameSchema.extend({
   transition: z.string().optional(),
   sfx: z.string().nullable().optional(),
   caption: z.string().optional(),
+  mediaMode: z.enum(["image", "newspaper"]).default("image").optional(),
   media: rowMediaSchema.optional(),
 });
 

@@ -51,6 +51,7 @@ type TimelineSegment = {
   filter?: { enabled?: boolean };
   transition?: string;
   caption?: string;
+  mediaMode?: "image" | "newspaper";
   media?: { kind: "image" } | VideoSegmentMedia;
 };
 
@@ -136,6 +137,9 @@ const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
   // Unknown values fallback to slow-zoom-in.
   return { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
 };
+
+const NEWSPAPER_LABEL_LINES = ["RECREACIÓN", "ARTÍSTICA"];
+const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
 
 const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFrom: number }) => {
   if (!layer?.src) {
@@ -318,6 +322,73 @@ const VideoSegmentScene = ({
   );
 };
 
+const NewspaperScene = ({
+  segment,
+  frame,
+  durationInFrames,
+}: {
+  segment: TimelineSegment;
+  frame: number;
+  durationInFrames: number;
+}) => {
+  const motionRange = segment.motion ? resolveMotionRange(segment.motion) : NEWSPAPER_MOTION;
+  const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill>
+      <Img
+        data-layer="newspaper-background"
+        src={staticFile(segment.image)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center top",
+          filter: "blur(20px)",
+          transform: "scale(1.08)",
+        }}
+      />
+      <Img
+        data-layer="newspaper-foreground"
+        src={staticFile(segment.image)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          objectPosition: "center top",
+          transform: `scale(${scale})`,
+          transformOrigin: "center top",
+        }}
+      />
+      <div
+        data-layer="newspaper-artistic-label"
+        style={{
+          position: "absolute",
+          right: 72,
+          top: 58,
+          color: "#000",
+          fontFamily: "VERSA, Inter, Arial, sans-serif",
+          fontSize: 54,
+          fontWeight: 900,
+          lineHeight: 0.92,
+          textAlign: "right",
+          letterSpacing: "0.02em",
+          whiteSpace: "pre-line",
+        }}
+      >
+        {NEWSPAPER_LABEL_LINES.join("\n")}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 const SegmentScene = ({
   segment,
   fps,
@@ -339,6 +410,14 @@ const SegmentScene = ({
     1,
     Math.round((segment.endTime - segment.startTime) * fps),
   );
+  if (segment.mediaMode === "newspaper") {
+    return (
+      <AbsoluteFill>
+        <NewspaperScene segment={segment} frame={frame} durationInFrames={durationInFrames} />
+        {segment.logo?.enabled !== false ? <LogoOverlay logo={logo} startFrom={0} /> : null}
+      </AbsoluteFill>
+    );
+  }
   const motionRange = resolveMotionRange(segment.motion);
   const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
     extrapolateLeft: "clamp",
