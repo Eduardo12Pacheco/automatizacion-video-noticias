@@ -63,6 +63,8 @@ type WhipTransitionEvent = {
   id: string;
   startFrame: number;
   cutFrame: number;
+  sfxStartTime?: number;
+  sfxStartFrame?: number;
   durationInFrames: number;
   previousImage: string;
   nextImage: string;
@@ -650,7 +652,7 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
       {whipTransitions.filter((transition): transition is WhipTransitionEvent & { sfx: "whip"; sfxSrc: string } => transition.sfx === "whip" && Boolean(transition.sfxSrc)).map((transition) => (
         <Sequence
           key={`${transition.id}:sfx`}
-          from={transition.cutFrame}
+          from={transition.sfxStartFrame ?? transition.startFrame}
           durationInFrames={transition.durationInFrames}
         >
           <Audio src={staticFile(transition.sfxSrc)} volume={0.85} />

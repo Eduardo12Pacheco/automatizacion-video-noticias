@@ -29,6 +29,8 @@ const whipRenderEventSchema = z.object({
   durationSeconds: numericSecondsSchema,
   startFrame: z.number().int().nonnegative(),
   cutFrame: z.number().int().nonnegative(),
+  sfxStartTime: numericSecondsSchema,
+  sfxStartFrame: z.number().int().nonnegative(),
   durationInFrames: z.number().int().positive(),
   previousImage: z.string().min(1),
   nextImage: z.string().min(1),

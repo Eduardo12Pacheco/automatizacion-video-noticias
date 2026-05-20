@@ -164,6 +164,8 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
       durationSeconds: 0.5,
       startFrame: 38,
       cutFrame: 45,
+      sfxStartTime: 1.25,
+      sfxStartFrame: 38,
       durationInFrames: 15,
       previousImage: "imagenes/uno.jpg",
       nextImage: "imagenes/dos.jpg",
@@ -784,6 +786,8 @@ test("Remotion composition renders Whip overlay and independent SFX sequences fr
   assert.match(source, /whipTransitions\.map\(\(transition\) => \(/);
   assert.match(source, /<WhipOverlay transition=\{transition\} \/>/);
   assert.match(source, /whipTransitions\.filter\(\(transition\): transition is WhipTransitionEvent & \{ sfx: "whip"; sfxSrc: string \} => transition\.sfx === "whip" && Boolean\(transition\.sfxSrc\)\)/);
+  assert.match(source, /from=\{transition\.sfxStartFrame \?\? transition\.startFrame\}/);
+  assert.doesNotMatch(source, /from=\{transition\.cutFrame\}/);
   assert.match(source, /<Audio src=\{staticFile\(transition\.sfxSrc\)\}/);
 });
 

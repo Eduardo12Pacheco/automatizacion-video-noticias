@@ -182,6 +182,8 @@ function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC 
       durationSeconds,
       startFrame: Math.round(startTime * frameRate),
       cutFrame: Math.round(cutTime * frameRate),
+      sfxStartTime: startTime,
+      sfxStartFrame: Math.round(startTime * frameRate),
       durationInFrames: Math.max(1, Math.round(durationSeconds * frameRate)),
       previousImage,
       nextImage,
