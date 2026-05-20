@@ -723,9 +723,11 @@ test("Remotion composition source contains newspaper visual mode parity branch",
   assert.match(source, /const NEWSPAPER_LABEL_FONT_FAMILY = "\\\"Versa Versa\\\", Versa, VERSA, Inter, Arial, sans-serif"/);
   assert.match(source, /staticFile\("fonts\/versa\/Demo-Display\.woff2"\)/);
   assert.match(source, /@font-face[\s\S]*font-family: \$\{NEWSPAPER_LOCAL_FONT_FAMILY\}[\s\S]*font-display: block/);
-  assert.match(source, /const NEWSPAPER_LABEL_FONT_SIZE = 48/);
+  assert.match(source, /const NEWSPAPER_LABEL_FONT_SIZE = 24/);
+  assert.match(source, /const NEWSPAPER_LABEL_LINE_HEIGHT = 1\.12/);
   assert.match(source, /fontFamily: NEWSPAPER_LABEL_FONT_FAMILY/);
   assert.match(source, /fontSize: NEWSPAPER_LABEL_FONT_SIZE/);
+  assert.match(source, /lineHeight: NEWSPAPER_LABEL_LINE_HEIGHT/);
   assert.match(source, /const NEWSPAPER_LABEL_TOP = 58/);
   assert.match(source, /const NEWSPAPER_LABEL_RIGHT = 58/);
   assert.match(source, /left: "auto"/);

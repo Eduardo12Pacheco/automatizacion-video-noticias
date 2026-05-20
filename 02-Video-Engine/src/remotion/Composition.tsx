@@ -326,7 +326,8 @@ const VideoSegmentScene = ({
 const NEWSPAPER_LOCAL_FONT_FAMILY = "Versa Versa";
 const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/versa/Demo-Display.woff2");
 const NEWSPAPER_LABEL_FONT_FAMILY = "\"Versa Versa\", Versa, VERSA, Inter, Arial, sans-serif";
-const NEWSPAPER_LABEL_FONT_SIZE = 48;
+const NEWSPAPER_LABEL_FONT_SIZE = 24;
+const NEWSPAPER_LABEL_LINE_HEIGHT = 1.12;
 const NEWSPAPER_LABEL_TOP = 58;
 const NEWSPAPER_LABEL_RIGHT = 58;
 const NEWSPAPER_FONT_FACE_CSS = `@font-face {
@@ -394,7 +395,7 @@ const NewspaperScene = ({
           fontFamily: NEWSPAPER_LABEL_FONT_FAMILY,
           fontSize: NEWSPAPER_LABEL_FONT_SIZE,
           fontWeight: 900,
-          lineHeight: 0.92,
+          lineHeight: NEWSPAPER_LABEL_LINE_HEIGHT,
           textAlign: "center",
           letterSpacing: "0.02em",
           transform: "none",
