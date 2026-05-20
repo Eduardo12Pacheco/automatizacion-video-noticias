@@ -29,3 +29,13 @@ test("parseGuionSegments devuelve segmentos no vacios con indice original", () =
     { blockIndex: 2, phrase: "cierre" },
   ]);
 });
+
+test("parseGuionSegments marca solo el bloque saliente separado por salto de parrafo", () => {
+  const result = parseGuionSegments("intro|cuerpo\r\n\r\n|cierre");
+
+  assert.deepEqual(result, [
+    { blockIndex: 1, phrase: "intro" },
+    { blockIndex: 2, phrase: "cuerpo", paragraphBoundaryAfter: true },
+    { blockIndex: 3, phrase: "cierre" },
+  ]);
+});

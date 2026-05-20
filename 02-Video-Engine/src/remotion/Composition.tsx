@@ -59,6 +59,17 @@ type TimelineSegment = {
   media?: { kind: "image" } | VideoSegmentMedia;
 };
 
+type WhipTransitionEvent = {
+  id: string;
+  startFrame: number;
+  cutFrame: number;
+  durationInFrames: number;
+  previousImage: string;
+  nextImage: string;
+  sfx?: "whip" | null;
+  sfxSrc?: string | null;
+};
+
 export type AutomaticVideoProps = {
   audioSrc?: string;
   audio?: {
@@ -81,6 +92,7 @@ export type AutomaticVideoProps = {
     dust?: OverlayVideoLayer;
   };
   outro?: { enabled?: boolean; src?: string; durationSeconds?: number; label?: string };
+  whipTransitions?: WhipTransitionEvent[];
   lastRenderedSnapshotHash?: string;
   compositionDurationSeconds?: number;
 };
@@ -174,6 +186,67 @@ const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFro
         muted
         startFrom={startFrom}
         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+const WhipOverlay = ({ transition }: { transition: WhipTransitionEvent }) => {
+  const frame = useCurrentFrame();
+  const progress = interpolate(frame, [0, transition.durationInFrames], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const previousTranslate = interpolate(progress, [0, 1], [0, 110], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const nextTranslate = interpolate(progress, [0, 1], [-24, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const previousBlur = interpolate(progress, [0, 0.5, 1], [0, 18, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const nextBlur = interpolate(progress, [0, 0.5, 1], [0, 12.96, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const nextScale = interpolate(progress, [0, 1], [1, 1.02], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <Img
+        data-layer="whip-previous-image"
+        src={staticFile(transition.previousImage)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: `translate3d(${previousTranslate}%, 0, 0) scale(1.035)`,
+          filter: `blur(${previousBlur}px) contrast(1.08) saturate(0.95)`,
+          opacity: 1 - progress * 0.18,
+        }}
+      />
+      <Img
+        data-layer="whip-next-image"
+        src={staticFile(transition.nextImage)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: `translate3d(${nextTranslate}%, 0, 0) scale(${nextScale})`,
+          filter: `blur(${nextBlur}px) contrast(1.04) saturate(0.96)`,
+          opacity: 0.72 + progress * 0.28,
+        }}
       />
     </AbsoluteFill>
   );
@@ -516,7 +589,7 @@ const SegmentScene = ({
   );
 };
 
-export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, overlays, outro, compositionDurationSeconds }: AutomaticVideoProps) => {
+export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, overlays, outro, whipTransitions = [], compositionDurationSeconds }: AutomaticVideoProps) => {
   if (segments.length === 0) {
     return <AbsoluteFill style={{ backgroundColor: "#101828" }} />;
   }
@@ -565,6 +638,24 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
           </Sequence>
         );
       })}
+      {whipTransitions.map((transition) => (
+        <Sequence
+          key={`${transition.id}:overlay`}
+          from={transition.startFrame}
+          durationInFrames={transition.durationInFrames}
+        >
+          <WhipOverlay transition={transition} />
+        </Sequence>
+      ))}
+      {whipTransitions.filter((transition): transition is WhipTransitionEvent & { sfx: "whip"; sfxSrc: string } => transition.sfx === "whip" && Boolean(transition.sfxSrc)).map((transition) => (
+        <Sequence
+          key={`${transition.id}:sfx`}
+          from={transition.cutFrame}
+          durationInFrames={transition.durationInFrames}
+        >
+          <Audio src={staticFile(transition.sfxSrc)} volume={0.85} />
+        </Sequence>
+      ))}
       {outro?.enabled !== false ? (
         <Sequence from={outroStartFrame} durationInFrames={outroFrames}>
           {outro?.src ? (

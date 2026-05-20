@@ -1,6 +1,8 @@
 const { renderPropsV2Schema } = require("./schemas");
 
 const FINAL_OUTRO_GAP_SECONDS = 2;
+const WHIP_TRANSITION_DURATION_SECONDS = 0.5;
+const WHIP_SFX_SRC = "sfx/whoosh-demo.wav";
 
 function createAdapterError(message, details = {}) {
   const error = new Error(message);
@@ -137,6 +139,60 @@ function resolveImageMotionForMode(segment) {
   return segment?.motion || segment?.motionPresetId || "slow-zoom-in";
 }
 
+function resolveSegmentRowId(segment = {}, index = 0) {
+  return String(segment?.rowId || segment?.id || `row-${index + 1}`);
+}
+
+function isActiveWhipBoundary(segment = {}, nextSegment = null) {
+  if (!segment || !nextSegment) return false;
+  if (segment.paragraphBoundaryAfter !== true) return false;
+  if (String(segment.transition || "").trim().toLowerCase() !== "whip") return false;
+  const expectedNextRowId = String(segment.nextRowId || "");
+  if (expectedNextRowId && expectedNextRowId !== String(nextSegment.rowId || nextSegment.id || "")) return false;
+  return true;
+}
+
+function resolveWhipDurationSeconds(segment = {}) {
+  const duration = Number(segment?.transitionConfig?.durationSeconds);
+  return Number.isFinite(duration) && duration > 0 ? duration : WHIP_TRANSITION_DURATION_SECONDS;
+}
+
+function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC } = {}) {
+  const rows = Array.isArray(segments) ? segments : [];
+  const frameRate = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
+  const events = [];
+  for (let index = 0; index < rows.length - 1; index += 1) {
+    const segment = rows[index] || {};
+    const nextSegment = rows[index + 1] || null;
+    if (!isActiveWhipBoundary(segment, nextSegment)) continue;
+    const previousImage = String(segment.image || "");
+    const nextImage = String(nextSegment?.image || "");
+    if (!previousImage || !nextImage) continue;
+    const rowId = resolveSegmentRowId(segment, index);
+    const nextRowId = resolveSegmentRowId(nextSegment, index + 1);
+    const cutTime = Number(Number(nextSegment.startTime ?? segment.endTime ?? segment.effectiveEndTime ?? 0).toFixed(6));
+    const durationSeconds = Number(resolveWhipDurationSeconds(segment).toFixed(6));
+    const startTime = Number(Math.max(0, cutTime - durationSeconds / 2).toFixed(6));
+    events.push({
+      id: `${rowId}->${nextRowId}:whip:${cutTime}`,
+      rowId,
+      nextRowId,
+      cutTime,
+      startTime,
+      durationSeconds,
+      startFrame: Math.round(startTime * frameRate),
+      cutFrame: Math.round(cutTime * frameRate),
+      durationInFrames: Math.max(1, Math.round(durationSeconds * frameRate)),
+      previousImage,
+      nextImage,
+      direction: "left-to-right",
+      sfx: segment.sfx === "whip" || segment.sfx?.type === "whip" ? "whip" : null,
+      sfxSrc: segment.sfx === "whip" || segment.sfx?.type === "whip" ? sfxSrc : null,
+    });
+  }
+  return events;
+}
+
 function adaptCompositionContractToRenderProps({ contract, manifest, options = {} }) {
   const safeContract = contract || {};
   const assets = normalizeAssets(safeContract, manifest);
@@ -154,7 +210,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
     const endTime = Number.isFinite(Number(segment?.effectiveEndTime)) ? Number(segment.effectiveEndTime) : Number(segment?.endTime);
     const media = resolveVideoSegmentMedia(segment, assets, index, options);
     return {
-      rowId: String(segment?.rowId || segment?.id || `row-${index + 1}`),
+      rowId: resolveSegmentRowId(segment, index),
       id: index + 1,
       phrase: String(segment?.phrase || segment?.text || "").trim() || `Segmento ${index + 1}`,
       image,
@@ -164,11 +220,14 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       startTime: Number(segment?.startTime || 0),
       endTime,
       effectiveEndTime: Number.isFinite(Number(segment?.effectiveEndTime)) ? Number(segment.effectiveEndTime) : undefined,
+      ...(segment?.paragraphBoundaryAfter === true ? { paragraphBoundaryAfter: true } : {}),
+      ...(segment?.nextRowId ? { nextRowId: String(segment.nextRowId) } : {}),
       motion: resolveImageMotionForMode(segment),
       dust: segment?.dust || { enabled: true },
       logo: segment?.logo || { enabled: true },
       filter: segment?.filter || { enabled: true, mode: "cover" },
       transition: segment?.transition || "none",
+      ...(segment?.transitionConfig ? { transitionConfig: segment.transitionConfig } : {}),
       sfx: segment?.sfx || null,
       caption: segment?.caption || "",
     };
@@ -184,6 +243,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
   const baseCompositionDurationSeconds = Math.max(latestSegmentEnd, Number.isFinite(explicitDuration) ? explicitDuration : 0);
   const compositionDurationSeconds = Number((baseCompositionDurationSeconds + FINAL_OUTRO_GAP_SECONDS).toFixed(6));
   const renderSegments = extendFinalSegmentToDuration(segments, compositionDurationSeconds);
+  const whipTransitions = buildWhipRenderEvents(segments, { fps });
 
   const logoAssetId = safeContract?.globalLayers?.logoAssetId;
   const globalLogo = safeContract?.globalLayers?.logo || {};
@@ -225,6 +285,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       },
     },
     segments: renderSegments,
+    whipTransitions,
     globalLayers: safeContract?.globalLayers || {},
     logo: {
       src: logoSrc,
@@ -251,6 +312,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
 
 module.exports = {
   adaptCompositionContractToRenderProps,
+  buildWhipRenderEvents,
   resolveAssetPath,
   isSafeRenderAssetPath,
 };

@@ -14,6 +14,29 @@ const imageMotionObjectSchema = z.object({
 
 const imageMotionSchema = z.union([z.string(), imageMotionObjectSchema]);
 
+const whipTransitionConfigSchema = z.object({
+  type: z.literal("whip").default("whip"),
+  durationSeconds: numericSecondsSchema.default(0.5),
+  direction: z.literal("left-to-right").default("left-to-right"),
+});
+
+const whipRenderEventSchema = z.object({
+  id: z.string().min(1),
+  rowId: z.string().min(1),
+  nextRowId: z.string().min(1),
+  cutTime: numericSecondsSchema,
+  startTime: numericSecondsSchema,
+  durationSeconds: numericSecondsSchema,
+  startFrame: z.number().int().nonnegative(),
+  cutFrame: z.number().int().nonnegative(),
+  durationInFrames: z.number().int().positive(),
+  previousImage: z.string().min(1),
+  nextImage: z.string().min(1),
+  direction: z.literal("left-to-right"),
+  sfx: z.literal("whip").nullable().default(null),
+  sfxSrc: z.string().min(1).nullable().default(null),
+});
+
 const videoSegmentMediaSchema = z.object({
   kind: z.literal("video-segment"),
   sourceVideoAssetId: z.string().min(1).optional(),
@@ -143,11 +166,14 @@ const renderSegmentSchema = timelineFrameSchema.extend({
   imageHeight: z.number().finite().positive().optional(),
   imageStrategy: z.string().optional(),
   rowId: z.string().optional(),
+  paragraphBoundaryAfter: z.boolean().optional(),
+  nextRowId: z.string().nullable().optional(),
   motion: imageMotionSchema.optional(),
   dust: z.object({ enabled: z.boolean().default(true), type: z.string().optional(), assetId: z.string().nullable().optional(), opacity: z.number().finite().optional(), blendMode: z.string().optional() }).optional(),
   logo: z.object({ enabled: z.boolean().default(true), source: z.string().optional(), assetId: z.string().nullable().optional() }).optional(),
   filter: z.object({ enabled: z.boolean().default(true) }).optional(),
   transition: z.string().optional(),
+  transitionConfig: whipTransitionConfigSchema.optional(),
   sfx: z.string().nullable().optional(),
   caption: z.string().optional(),
   mediaMode: z.enum(["image", "newspaper"]).default("image").optional(),
@@ -432,6 +458,7 @@ const renderPropsV2Schema = z.object({
     }),
   }),
   segments: z.array(renderSegmentSchema),
+  whipTransitions: z.array(whipRenderEventSchema).default([]),
   globalLayers: z.record(z.string(), z.unknown()).default({}),
   logo: z.object({ src: z.string().nullable(), enabled: z.boolean().default(true), placeholder: z.boolean().default(true), label: z.string().default("LOGO") }).optional(),
   overlays: z
@@ -487,6 +514,8 @@ module.exports = {
   renderPropsV2Schema,
   renderPropsSchema,
   rowMediaSchema,
+  whipRenderEventSchema,
+  whipTransitionConfigSchema,
   scriptPhraseSchema,
   scriptPhrasesSchema,
   timelineDiagnosticsSchema,

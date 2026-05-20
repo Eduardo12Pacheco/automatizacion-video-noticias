@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { adaptCompositionContractToRenderProps } = require("../scripts/lib/composition-contract");
+const { adaptCompositionContractToRenderProps, buildWhipRenderEvents } = require("../scripts/lib/composition-contract");
 const { computeApprovalSnapshotHash } = require("../../03-Contracts-Core/approval-contract-pipeline");
 
 function loadCompositionMotionResolver() {
@@ -101,6 +101,86 @@ test("adapter maps contract + manifest to renderPropsV2 shape", () => {
   assert.equal(props.segments[0].image, "generated/images/uno.jpg");
   assert.equal(props.logo.src, "generated/logo.png");
   assert.equal(props.outro.enabled, true);
+});
+
+test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX events without changing duration", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-whip-active",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 3,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "img-2": { assetId: "img-2", renderPath: "imagenes/dos.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    rows: [
+      {
+        rowId: "row-1",
+        phrase: "Hola",
+        startTime: 0,
+        endTime: 1.5,
+        effectiveEndTime: 1.5,
+        selectedAssetId: "img-1",
+        paragraphBoundaryAfter: true,
+        nextRowId: "row-2",
+        transition: "whip",
+        transitionConfig: { type: "whip", durationSeconds: 0.5, direction: "left-to-right" },
+        sfx: "whip",
+        media: { kind: "image" },
+      },
+      {
+        rowId: "row-2",
+        phrase: "Mundo",
+        startTime: 1.5,
+        endTime: 3,
+        effectiveEndTime: 3,
+        selectedAssetId: "img-2",
+        media: { kind: "image" },
+      },
+    ],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.compositionDurationSeconds, 5);
+  assert.deepEqual(
+    props.segments.map((segment) => [segment.rowId, segment.startTime, segment.endTime]),
+    [["row-1", 0, 1.5], ["row-2", 1.5, 5]],
+  );
+  assert.deepEqual(props.whipTransitions, [
+    {
+      id: "row-1->row-2:whip:1.5",
+      rowId: "row-1",
+      nextRowId: "row-2",
+      cutTime: 1.5,
+      startTime: 1.25,
+      durationSeconds: 0.5,
+      startFrame: 38,
+      cutFrame: 45,
+      durationInFrames: 15,
+      previousImage: "imagenes/uno.jpg",
+      nextImage: "imagenes/dos.jpg",
+      direction: "left-to-right",
+      sfx: "whip",
+      sfxSrc: "sfx/whoosh-demo.wav",
+    },
+  ]);
+});
+
+test("adapter leaves eligible inactive Whip metadata inert", () => {
+  const rows = [
+    { rowId: "row-1", startTime: 0, endTime: 1, paragraphBoundaryAfter: true, nextRowId: "row-2", transition: "none", sfx: "whip", image: "one.jpg" },
+    { rowId: "row-2", startTime: 1, endTime: 2, image: "two.jpg" },
+  ];
+
+  assert.deepEqual(buildWhipRenderEvents(rows, { fps: 30 }), []);
 });
 
 test("adapter throws useful error when referenced asset is missing", () => {
@@ -689,6 +769,22 @@ test("Remotion country outro video keeps embedded audio while music spans final 
   assert.match(effectLayerOneSource?.[1] || "", /\bmuted\b/, "effect layer 01 must remain muted");
   assert.match(effectLayerTwoSource?.[1] || "", /\bmuted\b/, "effect layer 02 must remain muted");
   assert.match(foregroundVideoSource || "", /\bmuted\b/, "foreground segment video must remain muted");
+});
+
+test("Remotion composition renders Whip overlay and independent SFX sequences from render props", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const assetPath = path.join(__dirname, "../public/sfx/whoosh-demo.wav");
+
+  assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/whoosh-demo.wav");
+  assert.match(source, /type WhipTransitionEvent = \{/);
+  assert.match(source, /const WhipOverlay = /);
+  assert.match(source, /data-layer="whip-previous-image"/);
+  assert.match(source, /data-layer="whip-next-image"/);
+  assert.match(source, /filter: `blur\(\$\{previousBlur\}px\)/);
+  assert.match(source, /whipTransitions\.map\(\(transition\) => \(/);
+  assert.match(source, /<WhipOverlay transition=\{transition\} \/>/);
+  assert.match(source, /whipTransitions\.filter\(\(transition\): transition is WhipTransitionEvent & \{ sfx: "whip"; sfxSrc: string \} => transition\.sfx === "whip" && Boolean\(transition\.sfxSrc\)\)/);
+  assert.match(source, /<Audio src=\{staticFile\(transition\.sfxSrc\)\}/);
 });
 
 test("Remotion final image and overlay source keeps preview fidelity rules", () => {

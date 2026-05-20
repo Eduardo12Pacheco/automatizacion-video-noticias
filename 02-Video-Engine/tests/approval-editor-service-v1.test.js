@@ -79,6 +79,89 @@ test("approval editor service health is browser-safe and prepare returns canonic
   });
 });
 
+test("approval editor service preserves paragraph eligibility from raw guion_piped", async () => {
+  await withService(async (baseUrl) => {
+    const created = await api(baseUrl, "/api/projects/create-from-approval", {
+      method: "POST",
+      body: JSON.stringify({
+        ...basePayload(),
+        segments: undefined,
+        guion_piped: "Intro|Cuerpo\n\n|Cierre",
+        selected_images: ["https://cdn.test/image-1.jpg", "https://cdn.test/image-2.jpg", "https://cdn.test/image-3.jpg"],
+      }),
+    });
+
+    assert.equal(created.status, 201);
+    assert.equal(created.body.data.snapshot.rows[0].paragraphBoundaryAfter, undefined);
+    assert.equal(created.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
+    assert.equal(created.body.data.snapshot.rows[1].nextRowId, "row-3");
+    assert.equal(created.body.data.snapshot.rows[1].transition, "none");
+    assert.equal(created.body.data.snapshot.rows[1].sfx, null);
+    assert.equal(created.body.data.snapshot.rows[2].paragraphBoundaryAfter, undefined);
+  });
+});
+
+test("approval editor service enables and disables Whip only for eligible paragraph boundaries", async () => {
+  await withService(async (baseUrl) => {
+    const created = await api(baseUrl, "/api/projects/create-from-approval", {
+      method: "POST",
+      body: JSON.stringify({
+        ...basePayload(),
+        segments: undefined,
+        guion_piped: "Intro|Cuerpo\n\n|Cierre",
+        selected_images: ["https://cdn.test/image-1.jpg", "https://cdn.test/image-2.jpg", "https://cdn.test/image-3.jpg"],
+      }),
+    });
+    const projectId = created.body.data.projectId;
+    const hashA = created.body.data.snapshotHash;
+
+    const enabled = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        baseSnapshotHash: hashA,
+        operations: [{ type: "setBoundaryTransition", rowId: "row-2", nextRowId: "row-3", transition: "whip", direction: "left-to-right" }],
+      }),
+    });
+
+    assert.equal(enabled.status, 200);
+    const hashB = enabled.body.data.snapshotHash;
+    assert.notEqual(hashB, hashA);
+    assert.equal(enabled.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
+    assert.equal(enabled.body.data.snapshot.rows[1].nextRowId, "row-3");
+    assert.equal(enabled.body.data.snapshot.rows[1].transition, "whip");
+    assert.deepEqual(enabled.body.data.snapshot.rows[1].transitionConfig, { type: "whip", durationSeconds: 0.5, direction: "left-to-right" });
+    assert.deepEqual(enabled.body.data.snapshot.rows[1].sfx, { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" });
+    assert.equal(enabled.body.data.snapshot.rows[1].mediaMode, created.body.data.snapshot.rows[1].mediaMode);
+    assert.equal(enabled.body.data.snapshot.rows[1].selectedAssetId, created.body.data.snapshot.rows[1].selectedAssetId);
+    assert.equal(enabled.body.data.snapshot.rows[0].transition, "none");
+
+    const disabled = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        baseSnapshotHash: hashB,
+        operations: [{ type: "setBoundaryTransition", rowId: "row-2", nextRowId: "row-3", transition: "none" }],
+      }),
+    });
+
+    assert.equal(disabled.status, 200);
+    assert.notEqual(disabled.body.data.snapshotHash, hashB);
+    assert.equal(disabled.body.data.snapshot.rows[1].transition, "none");
+    assert.equal(disabled.body.data.snapshot.rows[1].transitionConfig, undefined);
+    assert.equal(disabled.body.data.snapshot.rows[1].sfx, null);
+
+    const rejected = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        baseSnapshotHash: disabled.body.data.snapshotHash,
+        operations: [{ type: "setBoundaryTransition", rowId: "row-1", nextRowId: "row-2", transition: "whip" }],
+      }),
+    });
+
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.body.error.code, "invalid_boundary_transition");
+  });
+});
+
 test("approval editor service updates immutable snapshots and rejects stale update/render hashes", async () => {
   await withService(async (baseUrl, renderCalls) => {
     const created = await api(baseUrl, "/api/projects/create-from-approval", { method: "POST", body: JSON.stringify(basePayload()) });

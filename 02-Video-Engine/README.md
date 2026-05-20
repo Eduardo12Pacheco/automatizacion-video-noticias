@@ -8,7 +8,7 @@ Video Engine es el motor de render final en Remotion. Su trabajo es simple y esp
 
 Este proyecto ya no es el editor. No decide imágenes, no calcula el guion, no hace preview de usuario y no es el lugar para mover audio manualmente. Todo eso vive antes, principalmente en `01-Control-Panel` y `03-Contracts-Core`.
 
-## Flujo oficial
+## Official render-only flow
 
 ```txt
 01-Control-Panel
@@ -21,7 +21,7 @@ Este proyecto ya no es el editor. No decide imágenes, no calcula el guion, no h
 Comando oficial desde esta carpeta:
 
 ```powershell
-node scripts/render-video.js --project-root="projects/<id>" --profile=final
+node scripts/render-video.js --project-root=projects/<id> --profile=final
 ```
 
 Resultado esperado:
@@ -93,6 +93,13 @@ Ejemplos de cosas eliminadas:
 
 Lo importante: después de borrar eso, el render oficial siguió funcionando y generó MP4 correctamente.
 
+## Deletion boundary for legacy cleanup
+
+| Estado | Rutas |
+|---|---|
+| Deleted in this work unit | Pipeline manual viejo: `setup`, `process`, `generate timeline`, `fix timeline`, `verify sync`, modelo Vosk trackeado y outputs históricos. |
+| Deferred, still present | `scripts/transcribe-audio.py`, wrappers bajo `scripts/lib/`, servicio local legacy y `assets/overlays/`. |
+
 ## Qué todavía NO se borra
 
 | Ruta | Por qué se queda |
@@ -125,6 +132,7 @@ node scripts/render-video.js --project-root="projects/<id>" --profile=final
 - No meter búsqueda/selección de imágenes acá.
 - No borrar `assets/overlays/` sin validar render final.
 - No borrar `scripts/transcribe-audio.py` hasta migrar el caller de Control Panel.
+- Do not run builds, heavy Remotion renders, model/CUDA/audio generation, or visual exports for this cleanup check.
 
 ## Estado actual probado
 
