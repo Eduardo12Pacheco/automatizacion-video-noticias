@@ -5,8 +5,9 @@ const os = require("node:os");
 const path = require("node:path");
 
 const { createApprovalEditorService } = require("../../01-Control-Panel/services/approval-editor/server");
-const { createVideoEngineRenderAdapter } = require("../../01-Control-Panel/services/approval-editor/lib/video-engine-render-adapter");
+const { createVideoEngineRenderAdapter, buildMinimalRenderScaffold } = require("../../01-Control-Panel/services/approval-editor/lib/video-engine-render-adapter");
 const { adaptCompositionContractToRenderProps } = require("../scripts/lib/composition-contract");
+const { editorProjectSchema } = require("../scripts/lib/schemas");
 
 function basePayload() {
   return {
@@ -282,7 +283,8 @@ test("approval editor owns non-render prep imports and writes only a minimal ren
   assert.equal(scaffold.title, "Approval V1");
   assert.equal(scaffold.rows.length, 2);
   assert.equal(scaffold.rows[0].phrase, "Linea 1");
-  assert.deepEqual(scaffold.assets, []);
+  assert.equal(scaffold.assets.some((asset) => asset.id === "image-1" && asset.type === "image"), true);
+  assert.equal(scaffold.assets.some((asset) => asset.id === "brand-logo-demo-co" && asset.type === "logo"), true);
   assert.equal(scaffold.preview.status, "ready");
 });
 
@@ -351,6 +353,40 @@ test("video engine render adapter localizes remote render assets before final re
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "generated", "audio", "music-1.mp3"), "utf8"), "music mp3");
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "generated", "images", "image-1.webp"), "utf8"), "image one");
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "generated", "images", "image-2.jpg"), "utf8"), "image two");
+});
+
+test("video engine scaffold keeps selected image and Ecuador brand asset references valid", () => {
+  const snapshot = {
+    ...baseCanonicalSnapshot(),
+    brandChannel: "golazo-ecuador",
+    globalLayers: {
+      logoAssetId: "brand-logo-ecuador",
+      outroAssetId: "brand-outro-ecuador",
+      logo: { enabled: true, assetId: "brand-logo-ecuador" },
+      outro: { enabled: true, assetId: "brand-outro-ecuador" },
+    },
+    rows: [
+      { id: "row-1", phrase: "Linea URL", startTime: 0, endTime: 1.2, selectedAssetId: "https://cdn.test/custom/row-1.png", motion: "slow-zoom-in", dust: { enabled: false }, logo: { enabled: true } },
+      { id: "row-2", phrase: "Linea generated", startTime: 1.2, endTime: 2.8, selectedAssetId: "image-https-cdn-test-generated-row-2-png", motion: "slow-zoom-in", dust: { enabled: false }, logo: { enabled: true }, candidates: [
+        { id: "candidate-row-2", assetId: "image-https-cdn-test-generated-row-2-png", publicPath: "https://cdn.test/generated/row-2.png", source: { kind: "approval-editor-service" } },
+      ] },
+    ],
+    assets: {},
+  };
+
+  const scaffold = buildMinimalRenderScaffold({ projectId: "draft-ecuador", title: "Draft Ecuador", snapshot });
+  const parsed = editorProjectSchema.parse(scaffold);
+
+  assert.equal(parsed.globalLayers.logoAssetId, "brand-logo-ecuador");
+  assert.equal(parsed.globalLayers.outroAssetId, "brand-outro-ecuador");
+  assert.deepEqual(parsed.rows.map((row) => row.selectedAssetId), [
+    "https://cdn.test/custom/row-1.png",
+    "image-https-cdn-test-generated-row-2-png",
+  ]);
+  assert.equal(parsed.assets.some((asset) => asset.id === "brand-logo-ecuador" && asset.type === "logo"), true);
+  assert.equal(parsed.assets.some((asset) => asset.id === "brand-outro-ecuador" && asset.type === "outro"), true);
+  assert.equal(parsed.assets.some((asset) => asset.id === "https://cdn.test/custom/row-1.png" && asset.type === "image"), true);
+  assert.equal(parsed.assets.some((asset) => asset.id === "image-https-cdn-test-generated-row-2-png" && asset.publicPath === "https://cdn.test/generated/row-2.png"), true);
 });
 
 test("approval editor service can use configured video engine adapter and still rejects missing output", async () => {
