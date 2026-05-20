@@ -1,5 +1,7 @@
 const { renderPropsV2Schema } = require("./schemas");
 
+const FINAL_OUTRO_GAP_SECONDS = 2;
+
 function createAdapterError(message, details = {}) {
   const error = new Error(message);
   error.code = "invalid_composition_contract";
@@ -179,7 +181,8 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       ?? safeContract?.audio?.durationSeconds
       ?? latestSegmentEnd,
   );
-  const compositionDurationSeconds = Number((Math.max(latestSegmentEnd, Number.isFinite(explicitDuration) ? explicitDuration : 0)).toFixed(6));
+  const baseCompositionDurationSeconds = Math.max(latestSegmentEnd, Number.isFinite(explicitDuration) ? explicitDuration : 0);
+  const compositionDurationSeconds = Number((baseCompositionDurationSeconds + FINAL_OUTRO_GAP_SECONDS).toFixed(6));
   const renderSegments = extendFinalSegmentToDuration(segments, compositionDurationSeconds);
 
   const logoAssetId = safeContract?.globalLayers?.logoAssetId;

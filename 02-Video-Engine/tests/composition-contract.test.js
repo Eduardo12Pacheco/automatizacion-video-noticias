@@ -120,7 +120,7 @@ test("adapter uses effectiveEndTime for segment render end", () => {
 
   const props = adaptCompositionContractToRenderProps({ contract, manifest });
 
-  assert.equal(props.segments[0].endTime, 1.75);
+  assert.equal(props.segments[0].endTime, 3.75);
 });
 
 test("adapter maps mute controls to zero volume semantics", () => {
@@ -183,8 +183,8 @@ test("adapter preserves final render fidelity contract for audio sync, alpha log
     assert.equal(props.audio.voice.volume, 0.82);
     assert.equal(props.audio.music.volume, 0.18);
     assert.equal(props.audio.music.fadeOutSeconds, 1.1);
-    assert.equal(props.compositionDurationSeconds, 7.25);
-    assert.equal(props.segments[0].endTime, 7.25);
+    assert.equal(props.compositionDurationSeconds, 9.25);
+    assert.equal(props.segments[0].endTime, 9.25);
     assert.deepEqual(props.segments[0].motion, snapshot.rows[0].motion);
     assert.equal(props.logo.src, logoRenderPath);
     assert.equal(props.logo.enabled, true);
@@ -281,7 +281,7 @@ test("adapter maps channel logo and outro render assets from safe overlay paths"
   assert.equal(props.outro.enabled, true);
   assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
   assert.equal(props.outro.durationSeconds, 3.5);
-  assert.equal(props.compositionDurationSeconds, 6);
+  assert.equal(props.compositionDurationSeconds, 8);
 });
 
 test("adapter prefers channel outro asset duration over stale contract duration", () => {
@@ -307,7 +307,7 @@ test("adapter prefers channel outro asset duration over stale contract duration"
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.compositionDurationSeconds, 50.26);
+  assert.equal(props.compositionDurationSeconds, 52.26);
   assert.equal(props.outro.durationSeconds, 30.16);
   assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
 });
@@ -426,8 +426,8 @@ test("adapter preserves image selectedAssetId while mapping explicit video segme
     kind: "video-segment",
     sourceVideoSrc: "videos/source.mp4",
     sourceInSeconds: 4,
-    durationSeconds: 2.5,
-    sourceOutSeconds: 6.5,
+    durationSeconds: 4.5,
+    sourceOutSeconds: 8.5,
     overlayColor: "#3835AF",
     overlayOpacity: 0.3,
     effect1Src: "overlays/overlay-layer-01.mp4",
@@ -561,10 +561,10 @@ test("adapter maps video-segment render props with gapless timeline through full
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.compositionDurationSeconds, 5.25);
+  assert.equal(props.compositionDurationSeconds, 7.25);
   assert.deepEqual(
     props.segments.map((segment) => [segment.startTime, segment.endTime]),
-    [[0, 2.25], [2.25, 5.25]],
+    [[0, 2.25], [2.25, 7.25]],
   );
   assert.equal(props.segments[1].endTime, props.compositionDurationSeconds);
   assert.deepEqual(props.segments[0].media, {
@@ -611,8 +611,8 @@ test("adapter keeps composition duration aligned when audio is longer than visua
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.segments[0].endTime, 6);
-  assert.equal(props.compositionDurationSeconds, 6);
+  assert.equal(props.segments[0].endTime, 8);
+  assert.equal(props.compositionDurationSeconds, 8);
 });
 
 test("adapter uses actual channel outro asset duration and starts it after official audio duration", () => {
@@ -638,8 +638,8 @@ test("adapter uses actual channel outro asset duration and starts it after offic
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.compositionDurationSeconds, 10);
-  assert.equal(props.segments[0].endTime, 10);
+  assert.equal(props.compositionDurationSeconds, 12);
+  assert.equal(props.segments[0].endTime, 12);
   assert.equal(props.outro.durationSeconds, 30.16);
   assert.match(source, /outroStartFrame = Math\.max\(0, Math\.round\(compositionEnd \* fps\)\)/);
 });
@@ -667,7 +667,7 @@ test("adapter and metadata include full audio duration plus deterministic channe
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.compositionDurationSeconds, 6);
+  assert.equal(props.compositionDurationSeconds, 8);
   assert.equal(props.outro.src, "overlays/final-demo-ec.mp4");
   assert.equal(props.outro.durationSeconds, 4);
   assert.match(rootSource, /compositionDurationSeconds \+ outroSeconds/);
