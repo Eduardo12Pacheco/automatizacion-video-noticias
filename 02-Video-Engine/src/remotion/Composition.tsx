@@ -327,6 +327,8 @@ const NEWSPAPER_LOCAL_FONT_FAMILY = "Versa Versa";
 const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/versa/Demo-Display.woff2");
 const NEWSPAPER_LABEL_FONT_FAMILY = "\"Versa Versa\", Versa, VERSA, Inter, Arial, sans-serif";
 const NEWSPAPER_LABEL_FONT_SIZE = 48;
+const NEWSPAPER_LABEL_TOP = 58;
+const NEWSPAPER_LABEL_RIGHT = 58;
 const NEWSPAPER_FONT_FACE_CSS = `@font-face {
   font-family: ${NEWSPAPER_LOCAL_FONT_FAMILY};
   src: url("${NEWSPAPER_LOCAL_FONT_URL}") format("woff2");
@@ -385,8 +387,9 @@ const NewspaperScene = ({
         data-layer="newspaper-artistic-label"
         style={{
           position: "absolute",
-          left: "50%",
-          top: 58,
+          left: "auto",
+          right: NEWSPAPER_LABEL_RIGHT,
+          top: NEWSPAPER_LABEL_TOP,
           color: "#000",
           fontFamily: NEWSPAPER_LABEL_FONT_FAMILY,
           fontSize: NEWSPAPER_LABEL_FONT_SIZE,
@@ -394,7 +397,7 @@ const NewspaperScene = ({
           lineHeight: 0.92,
           textAlign: "center",
           letterSpacing: "0.02em",
-          transform: "translateX(-50%)",
+          transform: "none",
           whiteSpace: "pre-line",
         }}
       >
