@@ -15,6 +15,7 @@ const {
   deriveRenderPropsFromEditorProject,
   validateEditorProject,
 } = require("../scripts/lib/editor-project");
+const { readJsonSchema } = require("../scripts/lib/json-contracts");
 const { secondsToDurationFrames, secondsToFrame, frameToSeconds } = require("../scripts/lib/timeline-utils");
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -133,6 +134,71 @@ test("deriveRenderPropsFromEditorProject produces render props v2 from same edit
   assert.match(parsed.logo.src || "", /generated\/(overlays\/logo-demo-alpha\.webm|logo-placeholder\.png)$/);
   assert.equal(parsed.overlays.dust?.blendMode, "screen");
   assert.equal(parsed.outro.enabled, true);
+});
+
+test("editor project contract accepts explicit image motion objects and maps them to render props", () => {
+  const projectRoot = makeProject();
+  const editorProject = createEditorProject(projectRoot, { projectId: "p-motion-object", title: "P Motion", seedMedia: true });
+  const explicitMotion = {
+    fromScale: 1,
+    toScale: 1.1,
+    fromX: 0,
+    fromY: 0,
+    toX: 0,
+    toY: 0,
+    easing: "linear",
+  };
+  editorProject.rows[0].mediaMode = "newspaper";
+  editorProject.rows[0].motion = explicitMotion;
+
+  const parsedProject = editorProjectSchema.parse(editorProject);
+  const props = deriveRenderPropsFromEditorProject(projectRoot, parsedProject);
+
+  assert.deepEqual(parsedProject.rows[0].motion, explicitMotion);
+  assert.deepEqual(props.segments[0].motion, explicitMotion);
+  assert.equal(props.segments[0].mediaMode, "newspaper");
+});
+
+test("persisted editor-project JSON with object motion validates before final render status update", () => {
+  const projectRoot = makeProject();
+  const editorProject = createEditorProject(projectRoot, { projectId: "p-persisted-motion", title: "P Persisted Motion", seedMedia: true });
+  const explicitMotion = {
+    fromScale: 1.02,
+    toScale: 1.16,
+    fromX: -8,
+    fromY: 3,
+    toX: 8,
+    toY: -3,
+    easing: "linear",
+  };
+  editorProject.rows[0].mediaMode = "newspaper";
+  editorProject.rows[0].motion = explicitMotion;
+  writeEditorProject(projectRoot, editorProject);
+
+  const persisted = readJsonSchema(path.join(projectRoot, "editor-project.json"), editorProjectSchema);
+
+  assert.deepEqual(persisted.rows[0].motion, explicitMotion);
+  assert.equal(persisted.rows[0].mediaMode, "newspaper");
+});
+
+test("motion object schemas stay explicit and reject malformed fields", () => {
+  const projectRoot = makeProject();
+  const editorProject = createEditorProject(projectRoot, { projectId: "p-bad-motion", title: "P Bad Motion", seedMedia: true });
+  editorProject.rows[0].motion = { fromScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
+
+  assert.throws(
+    () => editorProjectSchema.parse(editorProject),
+    /toScale/i,
+  );
+  assert.throws(
+    () => renderPropsV2Schema.parse({
+      schemaVersion: 2,
+      fps: 30,
+      audio: { voiceSrc: "voice.wav", musicSrc: "music.wav", music: {} },
+      segments: [{ phrase: "Hola", image: "image.jpg", startTime: 0, endTime: 1, motion: { bogus: true } }],
+    }),
+    /fromScale|toScale/i,
+  );
 });
 
 test("no selected images blocks preview and lists affected rows", () => {
