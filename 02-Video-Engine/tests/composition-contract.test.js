@@ -727,6 +727,9 @@ test("Remotion composition source contains newspaper visual mode parity branch",
   assert.match(source, /delayRender\("Loading Versa Versa newspaper font"\)/);
   assert.match(source, /new FontFace\(\s*NEWSPAPER_LOCAL_FONT_FAMILY/);
   assert.match(source, /document\.fonts\.load\(`900 \$\{NEWSPAPER_LABEL_FONT_SIZE\}px "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"`\)/);
+  const renderScriptSource = fs.readFileSync(path.join(__dirname, "../scripts/render/render-video.js"), "utf8");
+  assert.match(renderScriptSource, /const projectFontsDir = path\.join\(publicDir, "fonts", "versa"\)/);
+  assert.match(renderScriptSource, /fs\.copyFileSync\(repoVersaFontPath, projectVersaFontPath\)/);
   const previewFrameMathSource = fs.readFileSync(path.join(__dirname, "../../01-Control-Panel/js/modules/features/video-projects/composition/renderer/frame-math.js"), "utf8");
   assert.match(previewFrameMathSource, /const NEWSPAPER_LABEL_FONT_SIZE = 18/, "preview keeps the 1280px editor label size while Remotion scales the label for the 1920px final output");
   assert.match(source, /const NEWSPAPER_LABEL_LINE_HEIGHT = 1\.12/);

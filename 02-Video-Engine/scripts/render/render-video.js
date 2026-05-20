@@ -30,6 +30,9 @@ const audioDir = path.join(projectRoot, "audio");
 const publicGeneratedDir = path.join(projectRoot, "public", "generated");
 const publicImagesDir = path.join(publicGeneratedDir, "images");
 const publicDir = path.join(projectRoot, "public");
+const projectFontsDir = path.join(publicDir, "fonts", "versa");
+const repoVersaFontPath = path.join(remotionProjectRoot, "public", "fonts", "versa", "Demo-Display.woff2");
+const projectVersaFontPath = path.join(projectFontsDir, "Demo-Display.woff2");
 const outputVideoPath = path.join(projectRoot, "output", renderProfile === "preview" ? "video-preview.mp4" : "video-final.mp4");
 const diagnosticsPath = path.join(projectRoot, "output", "diagnostics.json");
 const persistedCompositionContractPath = path.join(projectRoot, "composition-contract.json");
@@ -109,7 +112,16 @@ function finalizeRenderSuccess() {
   console.log(`Video exportado en: ${outputVideoPath}`);
 }
 
+function ensureRenderFontAssets() {
+  if (!fs.existsSync(repoVersaFontPath)) {
+    throw new Error(`Missing Versa Versa font asset at: ${repoVersaFontPath}`);
+  }
+  fs.mkdirSync(projectFontsDir, { recursive: true });
+  fs.copyFileSync(repoVersaFontPath, projectVersaFontPath);
+}
+
 function renderWithProps(renderPropsPath) {
+  ensureRenderFontAssets();
   const remotionCliPath = path.join(
     remotionProjectRoot,
     "node_modules",
