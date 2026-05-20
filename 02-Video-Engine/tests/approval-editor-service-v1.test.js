@@ -101,6 +101,31 @@ test("approval editor service preserves paragraph eligibility from raw guion_pip
   });
 });
 
+test("approval editor service merges raw guion paragraph metadata onto supplied segments", async () => {
+  await withService(async (baseUrl) => {
+    const created = await api(baseUrl, "/api/projects/create-from-approval", {
+      method: "POST",
+      body: JSON.stringify({
+        ...basePayload(),
+        segments: [
+          { id: "custom-1", phrase: "Intro", startTime: 0, endTime: 1 },
+          { id: "custom-2", phrase: "Cuerpo", startTime: 1, endTime: 2 },
+          { id: "custom-3", phrase: "Cierre", startTime: 2, endTime: 3 },
+        ],
+        guion_piped: "Intro|Cuerpo\n\n|Cierre",
+        selected_images: ["https://cdn.test/image-1.jpg", "https://cdn.test/image-2.jpg", "https://cdn.test/image-3.jpg"],
+      }),
+    });
+
+    assert.equal(created.status, 201);
+    assert.equal(created.body.data.snapshot.rows[0].paragraphBoundaryAfter, undefined);
+    assert.equal(created.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
+    assert.equal(created.body.data.snapshot.rows[1].nextRowId, "custom-3");
+    assert.equal(created.body.data.snapshot.rows[1].transition, "none");
+    assert.equal(created.body.data.snapshot.rows[1].sfx, null);
+  });
+});
+
 test("approval editor service enables and disables Whip only for eligible paragraph boundaries", async () => {
   await withService(async (baseUrl) => {
     const created = await api(baseUrl, "/api/projects/create-from-approval", {
