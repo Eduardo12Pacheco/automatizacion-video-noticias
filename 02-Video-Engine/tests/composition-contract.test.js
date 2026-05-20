@@ -469,7 +469,7 @@ test("adapter preserves newspaper media mode as an image-driven render segment",
   assert.equal(props.segments[0].mediaMode, "newspaper");
   assert.equal(props.segments[0].image, "imagenes/uno.jpg");
   assert.equal(props.segments[0].media.kind, "image");
-  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
+  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
 });
 
 test("stable approval snapshot hash ignores video-segment key order", () => {
@@ -708,13 +708,27 @@ test("Remotion final image and overlay source keeps preview fidelity rules", () 
 
 test("Remotion composition source contains newspaper visual mode parity branch", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const localFontPath = path.join(__dirname, "../public/fonts/versa/Demo-Display.woff2");
 
+  assert.ok(fs.existsSync(localFontPath), "Remotion render must ship the local Versa Versa WOFF2 font asset");
   assert.match(source, /mediaMode\?: "image" \| "newspaper"/);
   assert.match(source, /const NewspaperScene = /);
   assert.match(source, /data-layer="newspaper-background"/);
-  assert.match(source, /filter: "blur\(20px\)"/);
-  assert.match(source, /objectPosition: "center top"/);
-  assert.match(source, /toScale:\s*1\.25/);
+  assert.match(source, /const NEWSPAPER_BACKGROUND_BLUR = 15/);
+  assert.match(source, /filter: `blur\(\$\{NEWSPAPER_BACKGROUND_BLUR\}px\)`/);
+  assert.match(source, /data-layer="newspaper-background"[\s\S]*objectFit: "cover",[\s\S]*objectPosition: "center top"/);
+  assert.match(source, /data-layer="newspaper-foreground"[\s\S]*objectFit: "contain",[\s\S]*objectPosition: "center center"/);
+  assert.match(source, /data-layer="newspaper-foreground"[\s\S]*transformOrigin: "center center"/);
+  assert.match(source, /toScale:\s*1\.1/);
+  assert.match(source, /const NEWSPAPER_LABEL_FONT_FAMILY = "\\\"Versa Versa\\\", Versa, VERSA, Inter, Arial, sans-serif"/);
+  assert.match(source, /staticFile\("fonts\/versa\/Demo-Display\.woff2"\)/);
+  assert.match(source, /@font-face[\s\S]*font-family: \$\{NEWSPAPER_LOCAL_FONT_FAMILY\}[\s\S]*font-display: block/);
+  assert.match(source, /const NEWSPAPER_LABEL_FONT_SIZE = 48/);
+  assert.match(source, /fontFamily: NEWSPAPER_LABEL_FONT_FAMILY/);
+  assert.match(source, /fontSize: NEWSPAPER_LABEL_FONT_SIZE/);
+  assert.match(source, /left: "50%"/);
+  assert.match(source, /transform: "translateX\(-50%\)"/);
+  assert.match(source, /textAlign: "center"/);
   assert.match(source, /RECREACIÓN/);
   assert.match(source, /ARTÍSTICA/);
 });

@@ -139,7 +139,8 @@ const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
 };
 
 const NEWSPAPER_LABEL_LINES = ["RECREACIÓN", "ARTÍSTICA"];
-const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+const NEWSPAPER_BACKGROUND_BLUR = 15;
 
 const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFrom: number }) => {
   if (!layer?.src) {
@@ -322,6 +323,18 @@ const VideoSegmentScene = ({
   );
 };
 
+const NEWSPAPER_LOCAL_FONT_FAMILY = "Versa Versa";
+const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/versa/Demo-Display.woff2");
+const NEWSPAPER_LABEL_FONT_FAMILY = "\"Versa Versa\", Versa, VERSA, Inter, Arial, sans-serif";
+const NEWSPAPER_LABEL_FONT_SIZE = 48;
+const NEWSPAPER_FONT_FACE_CSS = `@font-face {
+  font-family: ${NEWSPAPER_LOCAL_FONT_FAMILY};
+  src: url("${NEWSPAPER_LOCAL_FONT_URL}") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+}`;
+
 const NewspaperScene = ({
   segment,
   frame,
@@ -339,6 +352,7 @@ const NewspaperScene = ({
 
   return (
     <AbsoluteFill>
+      <style>{NEWSPAPER_FONT_FACE_CSS}</style>
       <Img
         data-layer="newspaper-background"
         src={staticFile(segment.image)}
@@ -349,7 +363,7 @@ const NewspaperScene = ({
           height: "100%",
           objectFit: "cover",
           objectPosition: "center top",
-          filter: "blur(20px)",
+          filter: `blur(${NEWSPAPER_BACKGROUND_BLUR}px)`,
           transform: "scale(1.08)",
         }}
       />
@@ -362,24 +376,25 @@ const NewspaperScene = ({
           width: "100%",
           height: "100%",
           objectFit: "contain",
-          objectPosition: "center top",
+          objectPosition: "center center",
           transform: `scale(${scale})`,
-          transformOrigin: "center top",
+          transformOrigin: "center center",
         }}
       />
       <div
         data-layer="newspaper-artistic-label"
         style={{
           position: "absolute",
-          right: 72,
+          left: "50%",
           top: 58,
           color: "#000",
-          fontFamily: "VERSA, Inter, Arial, sans-serif",
-          fontSize: 54,
+          fontFamily: NEWSPAPER_LABEL_FONT_FAMILY,
+          fontSize: NEWSPAPER_LABEL_FONT_SIZE,
           fontWeight: 900,
           lineHeight: 0.92,
-          textAlign: "right",
+          textAlign: "center",
           letterSpacing: "0.02em",
+          transform: "translateX(-50%)",
           whiteSpace: "pre-line",
         }}
       >

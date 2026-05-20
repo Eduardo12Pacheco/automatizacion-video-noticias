@@ -130,7 +130,7 @@ function resolveMediaMode(value) {
 function resolveImageMotionForMode(segment) {
   const mediaMode = resolveMediaMode(segment?.mediaMode);
   if (mediaMode === "newspaper" && !segment?.motion && !segment?.motionPresetId) {
-    return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
+    return { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
   }
   return segment?.motion || segment?.motionPresetId || "slow-zoom-in";
 }
