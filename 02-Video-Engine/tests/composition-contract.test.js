@@ -131,7 +131,7 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
         nextRowId: "row-2",
         transition: "whip",
         transitionConfig: { type: "whip", durationSeconds: 0.5, direction: "left-to-right" },
-        sfx: "whip",
+        sfx: { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" },
         media: { kind: "image" },
       },
       {
@@ -154,6 +154,7 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
     props.segments.map((segment) => [segment.rowId, segment.startTime, segment.endTime]),
     [["row-1", 0, 1.5], ["row-2", 1.5, 5]],
   );
+  assert.equal(props.segments[0].sfx, "whip");
   assert.deepEqual(props.whipTransitions, [
     {
       id: "row-1->row-2:whip:1.5",

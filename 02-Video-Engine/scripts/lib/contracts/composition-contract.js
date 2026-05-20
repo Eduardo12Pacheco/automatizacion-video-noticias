@@ -157,6 +157,11 @@ function resolveWhipDurationSeconds(segment = {}) {
   return Number.isFinite(duration) && duration > 0 ? duration : WHIP_TRANSITION_DURATION_SECONDS;
 }
 
+function resolveSegmentSfx(segment = {}) {
+  if (segment?.sfx === "whip" || segment?.sfx?.type === "whip") return "whip";
+  return null;
+}
+
 function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC } = {}) {
   const rows = Array.isArray(segments) ? segments : [];
   const frameRate = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
@@ -188,8 +193,8 @@ function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC 
       previousImage,
       nextImage,
       direction: "left-to-right",
-      sfx: segment.sfx === "whip" || segment.sfx?.type === "whip" ? "whip" : null,
-      sfxSrc: segment.sfx === "whip" || segment.sfx?.type === "whip" ? sfxSrc : null,
+      sfx: resolveSegmentSfx(segment),
+      sfxSrc: resolveSegmentSfx(segment) === "whip" ? sfxSrc : null,
     });
   }
   return events;
@@ -230,7 +235,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       filter: segment?.filter || { enabled: true, mode: "cover" },
       transition: segment?.transition || "none",
       ...(segment?.transitionConfig ? { transitionConfig: segment.transitionConfig } : {}),
-      sfx: segment?.sfx || null,
+      sfx: resolveSegmentSfx(segment),
       caption: segment?.caption || "",
     };
   });
