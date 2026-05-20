@@ -33,6 +33,8 @@ const publicDir = path.join(projectRoot, "public");
 const outputVideoPath = path.join(projectRoot, "output", renderProfile === "preview" ? "video-preview.mp4" : "video-final.mp4");
 const diagnosticsPath = path.join(projectRoot, "output", "diagnostics.json");
 const persistedCompositionContractPath = path.join(projectRoot, "composition-contract.json");
+const remotionHardwareAcceleration = process.env.REMOTION_HARDWARE_ACCELERATION || "if-possible";
+const remotionGl = process.env.REMOTION_GL || "angle";
 
 function readPersistedCompositionContract() {
   if (!fs.existsSync(persistedCompositionContractPath)) {
@@ -133,6 +135,8 @@ function renderWithProps(renderPropsPath) {
     renderProfile === "preview" ? "--height=720" : "--height=1080",
     `--public-dir=${publicDir}`,
     `--props=${renderPropsPath}`,
+    `--hardware-acceleration=${remotionHardwareAcceleration}`,
+    `--gl=${remotionGl}`,
   ];
 
   if (process.env.REMOTION_EDITOR_MOCK_RENDER_SUCCESS === "1") {
