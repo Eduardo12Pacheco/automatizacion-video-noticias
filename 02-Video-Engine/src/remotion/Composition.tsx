@@ -4,10 +4,14 @@ import {
   Img,
   OffthreadVideo,
   Sequence,
+  cancelRender,
+  continueRender,
+  delayRender,
   interpolate,
   staticFile,
   useCurrentFrame,
 } from "remotion";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { resolveCoverPanLayer } from "./cover-pan-layer";
 
@@ -326,7 +330,7 @@ const VideoSegmentScene = ({
 const NEWSPAPER_LOCAL_FONT_FAMILY = "Versa Versa";
 const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/versa/Demo-Display.woff2");
 const NEWSPAPER_LABEL_FONT_FAMILY = "\"Versa Versa\", Versa, VERSA, Inter, Arial, sans-serif";
-const NEWSPAPER_LABEL_FONT_SIZE = 34;
+const NEWSPAPER_LABEL_FONT_SIZE = 40;
 const NEWSPAPER_LABEL_LINE_HEIGHT = 1.12;
 const NEWSPAPER_LABEL_TOP = 40;
 const NEWSPAPER_LABEL_RIGHT = 40;
@@ -338,6 +342,32 @@ const NEWSPAPER_FONT_FACE_CSS = `@font-face {
   font-display: block;
 }`;
 
+const useNewspaperFont = () => {
+  const [fontHandle] = useState(() => delayRender("Loading Versa Versa newspaper font"));
+
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof FontFace === "undefined") {
+      continueRender(fontHandle);
+      return;
+    }
+
+    const font = new FontFace(
+      NEWSPAPER_LOCAL_FONT_FAMILY,
+      `url("${NEWSPAPER_LOCAL_FONT_URL}") format("woff2")`,
+      { style: "normal", weight: "900" },
+    );
+
+    font
+      .load()
+      .then((loadedFont) => {
+        document.fonts.add(loadedFont);
+        return document.fonts.load(`900 ${NEWSPAPER_LABEL_FONT_SIZE}px "${NEWSPAPER_LOCAL_FONT_FAMILY}"`);
+      })
+      .then(() => continueRender(fontHandle))
+      .catch((error) => cancelRender(error));
+  }, [fontHandle]);
+};
+
 const NewspaperScene = ({
   segment,
   frame,
@@ -347,6 +377,7 @@ const NewspaperScene = ({
   frame: number;
   durationInFrames: number;
 }) => {
+  useNewspaperFont();
   const motionRange = segment.motion ? resolveMotionRange(segment.motion) : NEWSPAPER_MOTION;
   const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
     extrapolateLeft: "clamp",
