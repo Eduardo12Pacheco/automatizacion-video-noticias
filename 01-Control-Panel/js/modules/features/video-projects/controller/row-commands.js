@@ -9,7 +9,7 @@ function hasOwnPatchValue(patch, key) {
 }
 
 const WHIP_TRANSITION_CONFIG = { type: 'whip', durationSeconds: 0.5, direction: 'left-to-right' };
-const WHIP_SFX = { type: 'whip', assetId: 'whip', src: 'sfx/whoosh-demo.wav' };
+const WHIP_SFX = { type: 'whip', assetId: 'whip', src: 'sfx/sound-demo.wav' };
 
 function resolveBoundaryTransitionPatch(value) {
   const transition = value === 'whip' ? 'whip' : 'none';
