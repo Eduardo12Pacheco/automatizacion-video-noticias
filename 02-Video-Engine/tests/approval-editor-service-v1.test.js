@@ -155,7 +155,7 @@ test("approval editor service enables and disables Whip only for eligible paragr
     assert.equal(enabled.body.data.snapshot.rows[1].nextRowId, "row-3");
     assert.equal(enabled.body.data.snapshot.rows[1].transition, "whip");
     assert.deepEqual(enabled.body.data.snapshot.rows[1].transitionConfig, { type: "whip", durationSeconds: 0.5, direction: "left-to-right" });
-    assert.deepEqual(enabled.body.data.snapshot.rows[1].sfx, { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" });
+    assert.deepEqual(enabled.body.data.snapshot.rows[1].sfx, { type: "whip", assetId: "whip", src: "sfx/sound-demo.wav" });
     assert.equal(enabled.body.data.snapshot.rows[1].mediaMode, created.body.data.snapshot.rows[1].mediaMode);
     assert.equal(enabled.body.data.snapshot.rows[1].selectedAssetId, created.body.data.snapshot.rows[1].selectedAssetId);
     assert.equal(enabled.body.data.snapshot.rows[0].transition, "none");

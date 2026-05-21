@@ -131,7 +131,7 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
         nextRowId: "row-2",
         transition: "whip",
         transitionConfig: { type: "whip", durationSeconds: 0.5, direction: "left-to-right" },
-        sfx: { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" },
+        sfx: { type: "whip", assetId: "whip", src: "sfx/sound-demo.wav" },
         media: { kind: "image" },
       },
       {
@@ -172,7 +172,7 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
       nextImage: "imagenes/dos.jpg",
       direction: "left-to-right",
       sfx: "whip",
-      sfxSrc: "sfx/whoosh-demo.wav",
+      sfxSrc: "sfx/sound-demo.wav",
     },
   ]);
 });
@@ -776,9 +776,9 @@ test("Remotion country outro video keeps embedded audio while music spans final 
 
 test("Remotion composition renders Whip overlay and independent SFX sequences from render props", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const assetPath = path.join(__dirname, "../public/sfx/whoosh-demo.wav");
+  const assetPath = path.join(__dirname, "../public/sfx/sound-demo.wav");
 
-  assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/whoosh-demo.wav");
+  assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/sound-demo.wav");
   assert.match(source, /type WhipTransitionEvent = \{/);
   assert.match(source, /const WhipOverlay = /);
   assert.match(source, /data-layer="whip-previous-image"/);

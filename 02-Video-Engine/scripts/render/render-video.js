@@ -33,8 +33,10 @@ const publicDir = path.join(projectRoot, "public");
 const projectFontsDir = path.join(publicDir, "fonts", "versa");
 const repoVersaFontPath = path.join(remotionProjectRoot, "public", "fonts", "versa", "Demo-Display.woff2");
 const projectVersaFontPath = path.join(projectFontsDir, "Demo-Display.woff2");
-const repoWhipSfxPath = path.join(remotionProjectRoot, "public", "sfx", "whoosh-demo.wav");
-const projectWhipSfxPath = path.join(publicDir, "sfx", "whoosh-demo.wav");
+const renderSfxAssets = [
+  { name: "sound-demo.wav", required: true },
+  { name: "whoosh-demo.wav", required: false },
+];
 const outputVideoPath = path.join(projectRoot, "output", renderProfile === "preview" ? "video-preview.mp4" : "video-final.mp4");
 const diagnosticsPath = path.join(projectRoot, "output", "diagnostics.json");
 const persistedCompositionContractPath = path.join(projectRoot, "composition-contract.json");
@@ -123,11 +125,16 @@ function ensureRenderFontAssets() {
 }
 
 function ensureRenderSfxAssets() {
-  if (!fs.existsSync(repoWhipSfxPath)) {
-    throw new Error(`Missing Whip SFX asset at: ${repoWhipSfxPath}`);
+  const projectSfxDir = path.join(publicDir, "sfx");
+  fs.mkdirSync(projectSfxDir, { recursive: true });
+  for (const asset of renderSfxAssets) {
+    const source = path.join(remotionProjectRoot, "public", "sfx", asset.name);
+    if (!fs.existsSync(source)) {
+      if (asset.required) throw new Error(`Missing Whip SFX asset at: ${source}`);
+      continue;
+    }
+    fs.copyFileSync(source, path.join(projectSfxDir, asset.name));
   }
-  fs.mkdirSync(path.dirname(projectWhipSfxPath), { recursive: true });
-  fs.copyFileSync(repoWhipSfxPath, projectWhipSfxPath);
 }
 
 function renderWithProps(renderPropsPath) {

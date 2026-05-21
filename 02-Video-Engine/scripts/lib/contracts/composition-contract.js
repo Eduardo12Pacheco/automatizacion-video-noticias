@@ -2,7 +2,7 @@ const { renderPropsV2Schema } = require("./schemas");
 
 const FINAL_OUTRO_GAP_SECONDS = 2;
 const WHIP_TRANSITION_DURATION_SECONDS = 0.5;
-const WHIP_SFX_SRC = "sfx/whoosh-demo.wav";
+const WHIP_SFX_SRC = "sfx/sound-demo.wav";
 
 function createAdapterError(message, details = {}) {
   const error = new Error(message);
@@ -162,6 +162,12 @@ function resolveSegmentSfx(segment = {}) {
   return null;
 }
 
+function resolveSegmentSfxSrc(segment = {}, fallbackSrc = WHIP_SFX_SRC) {
+  if (resolveSegmentSfx(segment) !== "whip") return null;
+  const configuredSrc = typeof segment?.sfx?.src === "string" ? segment.sfx.src.trim() : "";
+  return configuredSrc && isSafeRenderAssetPath(configuredSrc) ? configuredSrc : fallbackSrc;
+}
+
 function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC } = {}) {
   const rows = Array.isArray(segments) ? segments : [];
   const frameRate = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
@@ -194,7 +200,7 @@ function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC 
       nextImage,
       direction: "left-to-right",
       sfx: resolveSegmentSfx(segment),
-      sfxSrc: resolveSegmentSfx(segment) === "whip" ? sfxSrc : null,
+      sfxSrc: resolveSegmentSfxSrc(segment, sfxSrc),
     });
   }
   return events;
