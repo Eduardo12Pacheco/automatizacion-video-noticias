@@ -100,6 +100,18 @@ test("editor contracts default dust OFF and enforce voice/music/image gates", ()
   assert.match(blocked.gates.blocking.join(";"), /stale:music|music/);
 });
 
+test("editor contracts accept object-shaped Whip SFX metadata", () => {
+  const projectRoot = makeProject();
+  const editorProject = createEditorProject(projectRoot, { projectId: "p1-whip", title: "P1 Whip", seedMedia: true });
+  editorProject.rows[0].transition = "whip";
+  editorProject.rows[0].sfx = { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" };
+
+  const parsed = editorProjectSchema.parse(editorProject);
+
+  assert.deepEqual(parsed.rows[0].sfx, { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" });
+  assert.equal(validateEditorProject(projectRoot, parsed).gates.ok, true);
+});
+
 test("selected video asset is valid contract shape but hard-fails MVP render use", () => {
   const projectRoot = makeProject();
   const editorProject = createEditorProject(projectRoot, { projectId: "p2", title: "P2", seedMedia: true });

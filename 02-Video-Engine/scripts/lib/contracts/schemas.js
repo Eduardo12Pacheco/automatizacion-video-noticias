@@ -20,6 +20,15 @@ const whipTransitionConfigSchema = z.object({
   direction: z.literal("left-to-right").default("left-to-right"),
 });
 
+const rowSfxSchema = z.union([
+  z.string(),
+  z.object({
+    type: z.literal("whip"),
+    assetId: z.string().min(1).optional(),
+    src: z.string().min(1).optional(),
+  }).passthrough(),
+]).nullable();
+
 const whipRenderEventSchema = z.object({
   id: z.string().min(1),
   rowId: z.string().min(1),
@@ -247,7 +256,7 @@ const editorRowSchema = z
     logo: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
     filter: z.object({ enabled: z.boolean().default(true), mode: z.string().default("cover") }).default({ enabled: true, mode: "cover" }),
     transition: z.string().default("none"),
-    sfx: z.string().nullable().default(null),
+    sfx: rowSfxSchema.default(null),
     caption: z.string().default(""),
     lockedPhrase: z.boolean().default(true),
     warnings: z.array(z.string()).default([]),
