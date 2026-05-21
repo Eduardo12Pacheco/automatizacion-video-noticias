@@ -33,6 +33,8 @@ const publicDir = path.join(projectRoot, "public");
 const projectFontsDir = path.join(publicDir, "fonts", "versa");
 const repoVersaFontPath = path.join(remotionProjectRoot, "public", "fonts", "versa", "Demo-Display.woff2");
 const projectVersaFontPath = path.join(projectFontsDir, "Demo-Display.woff2");
+const repoWhipSfxPath = path.join(remotionProjectRoot, "public", "sfx", "whoosh-demo.wav");
+const projectWhipSfxPath = path.join(publicDir, "sfx", "whoosh-demo.wav");
 const outputVideoPath = path.join(projectRoot, "output", renderProfile === "preview" ? "video-preview.mp4" : "video-final.mp4");
 const diagnosticsPath = path.join(projectRoot, "output", "diagnostics.json");
 const persistedCompositionContractPath = path.join(projectRoot, "composition-contract.json");
@@ -120,8 +122,17 @@ function ensureRenderFontAssets() {
   fs.copyFileSync(repoVersaFontPath, projectVersaFontPath);
 }
 
+function ensureRenderSfxAssets() {
+  if (!fs.existsSync(repoWhipSfxPath)) {
+    throw new Error(`Missing Whip SFX asset at: ${repoWhipSfxPath}`);
+  }
+  fs.mkdirSync(path.dirname(projectWhipSfxPath), { recursive: true });
+  fs.copyFileSync(repoWhipSfxPath, projectWhipSfxPath);
+}
+
 function renderWithProps(renderPropsPath) {
   ensureRenderFontAssets();
+  ensureRenderSfxAssets();
   const remotionCliPath = path.join(
     remotionProjectRoot,
     "node_modules",

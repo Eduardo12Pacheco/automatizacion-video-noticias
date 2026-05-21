@@ -305,7 +305,8 @@ test("render dry-run prefers persisted composition contract over legacy editor r
         music: { volume: 0.15, muted: false, loop: true, fadeInSeconds: 0.5, fadeOutSeconds: 1 },
       },
       segments: [
-        { rowId: "row-1", phrase: "Intro", startTime: 0, endTime: 1.5, effectiveEndTime: 1.5, selectedAssetId: "img-asset", motion: "slow-zoom-in", dust: { enabled: true }, logo: { enabled: true }, filter: { enabled: true, mode: "cover" }, transition: "none" },
+        { rowId: "row-1", phrase: "Intro", startTime: 0, endTime: 1.5, effectiveEndTime: 1.5, selectedAssetId: "img-asset", paragraphBoundaryAfter: true, nextRowId: "row-2", motion: "slow-zoom-in", dust: { enabled: true }, logo: { enabled: true }, filter: { enabled: true, mode: "cover" }, transition: "whip", transitionConfig: { type: "whip", durationSeconds: 0.5, direction: "left-to-right" }, sfx: { type: "whip", assetId: "whip", src: "sfx/whoosh-demo.wav" } },
+        { rowId: "row-2", phrase: "Outro", startTime: 1.5, endTime: 3, effectiveEndTime: 3, selectedAssetId: "img-asset", motion: "slow-zoom-in", dust: { enabled: true }, logo: { enabled: true }, filter: { enabled: true, mode: "cover" }, transition: "none" },
       ],
       globalLayers: {},
     },
@@ -329,6 +330,8 @@ test("render dry-run prefers persisted composition contract over legacy editor r
   const props = JSON.parse(fs.readFileSync(path.join(projectRoot, "output", "render-props.json"), "utf8"));
   assert.equal(props.audio.voiceSrc, "generated/audio-48khz.wav");
   assert.equal(props.segments[0].image, "generated/images/intro.jpg");
+  assert.equal(props.whipTransitions[0].sfxSrc, "sfx/whoosh-demo.wav");
+  assert.equal(fs.existsSync(path.join(projectRoot, "public", "sfx", "whoosh-demo.wav")), true);
 });
 
 test("timing helpers keep deterministic frame math", () => {
