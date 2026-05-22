@@ -74,6 +74,8 @@ test("approval editor service health is browser-safe and prepare returns canonic
     assert.equal(created.status, 201);
     assert.equal(created.body.data.snapshot.contractVersion, "approval-editor-service-v1");
     assert.equal(created.body.data.snapshot.rows.length, 2);
+    assert.equal(created.body.data.snapshot.rows[0].motionPresetId, "Zoom 125");
+    assert.equal(created.body.data.snapshot.rows[0].motionTransform.toScale, 1.25);
     assert.equal(created.body.data.snapshotHash, created.body.data.snapshot.snapshotHash);
     assert.equal(created.body.data.previewAssets.assets[created.body.data.snapshot.rows[0].selectedAssetId].type, "image");
   });

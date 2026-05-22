@@ -161,13 +161,13 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
       rowId: "row-1",
       nextRowId: "row-2",
       cutTime: 1.5,
-      startTime: 1.25,
-      durationSeconds: 0.5,
-      startFrame: 38,
+      startTime: 1.285,
+      durationSeconds: 0.43,
+      startFrame: 39,
       cutFrame: 45,
-      sfxStartTime: 1.25,
-      sfxStartFrame: 38,
-      durationInFrames: 15,
+      sfxStartTime: 1.285,
+      sfxStartFrame: 39,
+      durationInFrames: 13,
       previousImage: "imagenes/uno.jpg",
       nextImage: "imagenes/dos.jpg",
       direction: "left-to-right",
@@ -184,6 +184,26 @@ test("adapter leaves eligible inactive Whip metadata inert", () => {
   ];
 
   assert.deepEqual(buildWhipRenderEvents(rows, { fps: 30 }), []);
+});
+
+test("adapter clamps Whip render duration to the preview-effective 0.43s window", () => {
+  const events = buildWhipRenderEvents([
+    {
+      rowId: "row-1",
+      startTime: 0,
+      endTime: 1.5,
+      paragraphBoundaryAfter: true,
+      nextRowId: "row-2",
+      transition: "whip",
+      transitionConfig: { type: "whip", durationSeconds: 0.8, direction: "left-to-right" },
+      image: "one.jpg",
+    },
+    { rowId: "row-2", startTime: 1.5, endTime: 3, image: "two.jpg" },
+  ], { fps: 30 });
+
+  assert.equal(events[0].durationSeconds, 0.43);
+  assert.equal(events[0].startTime, 1.285);
+  assert.equal(events[0].durationInFrames, 13);
 });
 
 test("adapter throws useful error when referenced asset is missing", () => {
@@ -552,7 +572,7 @@ test("adapter preserves newspaper media mode as an image-driven render segment",
   assert.equal(props.segments[0].mediaMode, "newspaper");
   assert.equal(props.segments[0].image, "imagenes/uno.jpg");
   assert.equal(props.segments[0].media.kind, "image");
-  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
+  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
 });
 
 test("stable approval snapshot hash ignores video-segment key order", () => {
@@ -781,9 +801,19 @@ test("Remotion composition renders Whip overlay and independent SFX sequences fr
   assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/sound-demo.wav");
   assert.match(source, /type WhipTransitionEvent = \{/);
   assert.match(source, /const WhipOverlay = /);
-  assert.match(source, /data-layer="whip-previous-image"/);
-  assert.match(source, /data-layer="whip-next-image"/);
-  assert.match(source, /filter: `blur\(\$\{previousBlur\}px\)/);
+  assert.match(source, /const WHIP_TRANSITION_DURATION_SECONDS = 0\.43/);
+  assert.match(source, /const WHIP_SMEAR_SAMPLE_COUNT = 7/);
+  assert.match(source, /const easeInOutCubic = /);
+  assert.match(source, /Math\.sin\(progress \* Math\.PI\)/);
+  assert.match(source, /eased \* 120/);
+  assert.match(source, /-35 \+ eased \* 35/);
+  assert.match(source, /intensity \* 10/);
+  assert.match(source, /buildWhipSmearSamples/);
+  assert.match(source, /data-layer="whip-previous"/);
+  assert.match(source, /data-layer="whip-next"/);
+  assert.doesNotMatch(source, /data-layer="whip-previous-image"/);
+  assert.doesNotMatch(source, /data-layer="whip-next-image"/);
+  assert.match(source, /filter: `blur\(\$\{blur\}px\)/);
   assert.match(source, /whipTransitions\.map\(\(transition\) => \(/);
   assert.match(source, /<WhipOverlay transition=\{transition\} \/>/);
   assert.match(source, /whipTransitions\.filter\(\(transition\): transition is WhipTransitionEvent & \{ sfx: "whip"; sfxSrc: string \} => transition\.sfx === "whip" && Boolean\(transition\.sfxSrc\)\)/);

@@ -102,6 +102,8 @@ export type AutomaticVideoProps = {
 const Fps = 30;
 const VIEWPORT_WIDTH = 1920;
 const VIEWPORT_HEIGHT = 1080;
+const WHIP_TRANSITION_DURATION_SECONDS = 0.43;
+const WHIP_SMEAR_SAMPLE_COUNT = 7;
 
 const getFadedMusicVolume = ({
   frame,
@@ -146,18 +148,18 @@ const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
   const normalized = (motion || "").toString().trim().toLowerCase();
 
   if (normalized === "still" || normalized === "none") return { fromScale: 1, toScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-  if (normalized === "slow-zoom") return { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+  if (normalized === "slow-zoom") return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
   if (normalized === "slow-zoom-out") return { fromScale: 1.08, toScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-  if (normalized === "slow-zoom-in") return { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+  if (normalized === "slow-zoom-in") return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
   if (normalized === "pan-left") return { fromScale: 1.1, toScale: 1.1, fromX: 72, fromY: 0, toX: -72, toY: 0 };
   if (normalized === "pan-right") return { fromScale: 1.1, toScale: 1.1, fromX: -72, fromY: 0, toX: 72, toY: 0 };
 
   // Unknown values fallback to slow-zoom-in.
-  return { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+  return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
 };
 
 const NEWSPAPER_LABEL_LINES = ["RECREACIÓN", "ARTÍSTICA"];
-const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
 const NEWSPAPER_BACKGROUND_BLUR = 15;
 
 const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFrom: number }) => {
@@ -193,63 +195,135 @@ const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFro
   );
 };
 
+const easeInOutCubic = (value: number) => {
+  const clamped = Math.max(0, Math.min(1, value));
+  return clamped < 0.5 ? 4 * clamped * clamped * clamped : 1 - Math.pow(-2 * clamped + 2, 3) / 2;
+};
+
+const buildWhipSmearSamples = ({
+  src,
+  smear,
+  opacity,
+  blur,
+  scale,
+  contrast,
+}: {
+  src: string;
+  smear: number;
+  opacity: number;
+  blur: number;
+  scale: number;
+  contrast: number;
+}) => {
+  const center = (WHIP_SMEAR_SAMPLE_COUNT - 1) / 2;
+  return Array.from({ length: WHIP_SMEAR_SAMPLE_COUNT }, (_, index) => {
+    const ratio = (index - center) / center;
+    const offset = Number((ratio * smear).toFixed(3));
+    const sampleOpacity = Number((opacity * (0.18 + (1 - Math.abs(ratio)) * 0.22)).toFixed(3));
+    return {
+      src,
+      transform: `translate3d(${offset}%, 0, 0) scale(${scale})`,
+      filter: `blur(${blur}px) contrast(${contrast}) saturate(0.96)`,
+      opacity: sampleOpacity,
+    };
+  });
+};
+
 const WhipOverlay = ({ transition }: { transition: WhipTransitionEvent }) => {
   const frame = useCurrentFrame();
-  const progress = interpolate(frame, [0, transition.durationInFrames], [0, 1], {
+  const durationInFrames = Math.max(1, transition.durationInFrames || Math.round(WHIP_TRANSITION_DURATION_SECONDS * Fps));
+  const progress = interpolate(frame, [0, durationInFrames], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const previousTranslate = interpolate(progress, [0, 1], [0, 110], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
+  const eased = easeInOutCubic(progress);
+  const intensity = Math.sin(progress * Math.PI);
+  const previousTranslate = Number((eased * 120).toFixed(3));
+  const nextTranslate = Number((-35 + eased * 35).toFixed(3));
+  const smear = Number((intensity * 16).toFixed(3));
+  const blur = Number((intensity * 10).toFixed(3));
+  const previousOpacity = Number((1 - progress * 0.22).toFixed(3));
+  const nextOpacity = Number((0.58 + progress * 0.42).toFixed(3));
+  const previousScale = Number((1.035 + intensity * 0.018).toFixed(4));
+  const nextScale = Number((1.015 + intensity * 0.012).toFixed(4));
+  const previousSamples = buildWhipSmearSamples({
+    src: transition.previousImage,
+    smear,
+    opacity: intensity,
+    blur,
+    scale: previousScale,
+    contrast: 1.08,
   });
-  const nextTranslate = interpolate(progress, [0, 1], [-24, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const previousBlur = interpolate(progress, [0, 0.5, 1], [0, 18, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const nextBlur = interpolate(progress, [0, 0.5, 1], [0, 12.96, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const nextScale = interpolate(progress, [0, 1], [1, 1.02], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
+  const nextBlur = Number((blur * 0.86).toFixed(3));
+  const nextSamples = buildWhipSmearSamples({
+    src: transition.nextImage,
+    smear: Number((smear * 0.82).toFixed(3)),
+    opacity: intensity,
+    blur: nextBlur,
+    scale: nextScale,
+    contrast: 1.05,
   });
 
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
-      <Img
-        data-layer="whip-previous-image"
-        src={staticFile(transition.previousImage)}
+      <AbsoluteFill
+        data-layer="whip-previous"
         style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          transform: `translate3d(${previousTranslate}%, 0, 0) scale(1.035)`,
-          filter: `blur(${previousBlur}px) contrast(1.08) saturate(0.95)`,
-          opacity: 1 - progress * 0.18,
+          transform: `translate3d(${previousTranslate}%, 0, 0) scale(${previousScale})`,
+          filter: `blur(${blur}px) contrast(1.08) saturate(0.95)`,
+          opacity: previousOpacity,
+          transformOrigin: "center center",
         }}
-      />
-      <Img
-        data-layer="whip-next-image"
-        src={staticFile(transition.nextImage)}
+      >
+        {previousSamples.map((sample, index) => (
+          <Img
+            key={`previous-smear-${index}`}
+            data-layer="whip-previous-smear"
+            src={staticFile(sample.src)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center center",
+              transform: sample.transform,
+              filter: sample.filter,
+              opacity: sample.opacity,
+              transformOrigin: "center center",
+            }}
+          />
+        ))}
+      </AbsoluteFill>
+      <AbsoluteFill
+        data-layer="whip-next"
         style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
           transform: `translate3d(${nextTranslate}%, 0, 0) scale(${nextScale})`,
-          filter: `blur(${nextBlur}px) contrast(1.04) saturate(0.96)`,
-          opacity: 0.72 + progress * 0.28,
+          filter: `blur(${nextBlur}px) contrast(1.05) saturate(0.96)`,
+          opacity: nextOpacity,
+          transformOrigin: "center center",
         }}
-      />
+      >
+        {nextSamples.map((sample, index) => (
+          <Img
+            key={`next-smear-${index}`}
+            data-layer="whip-next-smear"
+            src={staticFile(sample.src)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center center",
+              transform: sample.transform,
+              filter: sample.filter,
+              opacity: sample.opacity,
+              transformOrigin: "center center",
+            }}
+          />
+        ))}
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

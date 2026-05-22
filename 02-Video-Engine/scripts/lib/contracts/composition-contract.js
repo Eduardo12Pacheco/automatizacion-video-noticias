@@ -1,7 +1,7 @@
 const { renderPropsV2Schema } = require("./schemas");
 
 const FINAL_OUTRO_GAP_SECONDS = 2;
-const WHIP_TRANSITION_DURATION_SECONDS = 0.5;
+const WHIP_TRANSITION_DURATION_SECONDS = 0.43;
 const WHIP_SFX_SRC = "sfx/sound-demo.wav";
 
 function createAdapterError(message, details = {}) {
@@ -134,7 +134,7 @@ function resolveMediaMode(value) {
 function resolveImageMotionForMode(segment) {
   const mediaMode = resolveMediaMode(segment?.mediaMode);
   if (mediaMode === "newspaper" && !segment?.motion && !segment?.motionPresetId) {
-    return { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
+    return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
   }
   return segment?.motion || segment?.motionPresetId || "slow-zoom-in";
 }
@@ -154,7 +154,8 @@ function isActiveWhipBoundary(segment = {}, nextSegment = null) {
 
 function resolveWhipDurationSeconds(segment = {}) {
   const duration = Number(segment?.transitionConfig?.durationSeconds);
-  return Number.isFinite(duration) && duration > 0 ? duration : WHIP_TRANSITION_DURATION_SECONDS;
+  if (!Number.isFinite(duration) || duration <= 0) return WHIP_TRANSITION_DURATION_SECONDS;
+  return Math.min(duration, WHIP_TRANSITION_DURATION_SECONDS);
 }
 
 function resolveSegmentSfx(segment = {}) {

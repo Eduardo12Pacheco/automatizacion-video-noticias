@@ -16,7 +16,7 @@ const imageMotionSchema = z.union([z.string(), imageMotionObjectSchema]);
 
 const whipTransitionConfigSchema = z.object({
   type: z.literal("whip").default("whip"),
-  durationSeconds: numericSecondsSchema.default(0.5),
+  durationSeconds: numericSecondsSchema.default(0.43),
   direction: z.literal("left-to-right").default("left-to-right"),
 });
 
