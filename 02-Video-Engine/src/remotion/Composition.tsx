@@ -61,6 +61,7 @@ type TimelineSegment = {
 
 type WhipTransitionEvent = {
   id: string;
+  type?: "whip" | "overlay-video";
   startFrame: number;
   cutFrame: number;
   sfxStartTime?: number;
@@ -70,6 +71,9 @@ type WhipTransitionEvent = {
   nextImage: string;
   sfx?: "whip" | null;
   sfxSrc?: string | null;
+  src?: string;
+  blendMode?: "screen";
+  audio?: boolean;
 };
 
 export type AutomaticVideoProps = {
@@ -327,6 +331,17 @@ const WhipOverlay = ({ transition }: { transition: WhipTransitionEvent }) => {
     </AbsoluteFill>
   );
 };
+
+const BoundaryVideoOverlay = ({ transition }: { transition: WhipTransitionEvent }) => (
+  <AbsoluteFill data-layer="boundary-video-transition" style={{ mixBlendMode: transition.blendMode ?? "screen", pointerEvents: "none" }}>
+    <OffthreadVideo
+      data-layer="boundary-video-transition-video"
+      src={staticFile(transition.src || "")}
+      muted
+      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+    />
+  </AbsoluteFill>
+);
 
 const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number }) => {
   const frame = useCurrentFrame();
@@ -720,7 +735,16 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
           from={transition.startFrame}
           durationInFrames={transition.durationInFrames}
         >
-          <WhipOverlay transition={transition} />
+          {transition.type === "overlay-video" ? <BoundaryVideoOverlay transition={transition} /> : <WhipOverlay transition={transition} />}
+        </Sequence>
+      ))}
+      {whipTransitions.filter((transition): transition is WhipTransitionEvent & { type: "overlay-video"; src: string; audio: true } => transition.type === "overlay-video" && transition.audio === true && Boolean(transition.src)).map((transition) => (
+        <Sequence
+          key={`${transition.id}:audio`}
+          from={transition.sfxStartFrame ?? transition.startFrame}
+          durationInFrames={transition.durationInFrames}
+        >
+          <Audio src={staticFile(transition.src)} volume={0.9} />
         </Sequence>
       ))}
       {whipTransitions.filter((transition): transition is WhipTransitionEvent & { sfx: "whip"; sfxSrc: string } => transition.sfx === "whip" && Boolean(transition.sfxSrc)).map((transition) => (

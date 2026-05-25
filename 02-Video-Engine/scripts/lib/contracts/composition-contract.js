@@ -152,6 +152,16 @@ function isActiveWhipBoundary(segment = {}, nextSegment = null) {
   return true;
 }
 
+function isActiveOverlayVideoBoundary(segment = {}, nextSegment = null) {
+  if (!segment || !nextSegment) return false;
+  if (segment.paragraphBoundaryAfter !== true) return false;
+  if (!["transition-1", "transition-2"].includes(String(segment.transition || "").trim().toLowerCase())) return false;
+  if (segment.transitionConfig?.type !== "overlay-video") return false;
+  const expectedNextRowId = String(segment.nextRowId || "");
+  if (expectedNextRowId && expectedNextRowId !== String(nextSegment.rowId || nextSegment.id || "")) return false;
+  return true;
+}
+
 function resolveWhipDurationSeconds(segment = {}) {
   const duration = Number(segment?.transitionConfig?.durationSeconds);
   if (!Number.isFinite(duration) || duration <= 0) return WHIP_TRANSITION_DURATION_SECONDS;
@@ -187,6 +197,7 @@ function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC 
     const startTime = Number(Math.max(0, cutTime - durationSeconds / 2).toFixed(6));
     events.push({
       id: `${rowId}->${nextRowId}:whip:${cutTime}`,
+      type: "whip",
       rowId,
       nextRowId,
       cutTime,
@@ -205,6 +216,60 @@ function buildWhipRenderEvents(segments = [], { fps = 30, sfxSrc = WHIP_SFX_SRC 
     });
   }
   return events;
+}
+
+function resolveOverlayTransitionSrc(segment = {}) {
+  const configuredSrc = String(segment?.transitionConfig?.renderPath || segment?.transitionConfig?.src || "").trim();
+  return configuredSrc && isSafeRenderAssetPath(configuredSrc) ? configuredSrc : null;
+}
+
+function buildOverlayVideoRenderEvents(segments = [], { fps = 30 } = {}) {
+  const rows = Array.isArray(segments) ? segments : [];
+  const frameRate = Number.isFinite(Number(fps)) && Number(fps) > 0 ? Number(fps) : 30;
+  const events = [];
+  for (let index = 0; index < rows.length - 1; index += 1) {
+    const segment = rows[index] || {};
+    const nextSegment = rows[index + 1] || null;
+    if (!isActiveOverlayVideoBoundary(segment, nextSegment)) continue;
+    const src = resolveOverlayTransitionSrc(segment);
+    if (!src) continue;
+    const rowId = resolveSegmentRowId(segment, index);
+    const nextRowId = resolveSegmentRowId(nextSegment, index + 1);
+    const cutTime = Number(Number(nextSegment.startTime ?? segment.endTime ?? segment.effectiveEndTime ?? 0).toFixed(6));
+    const durationSeconds = Number(Number(segment.transitionConfig.durationSeconds).toFixed(6));
+    const startTime = Number(Math.max(0, cutTime - durationSeconds / 2).toFixed(6));
+    events.push({
+      id: `${rowId}->${nextRowId}:${segment.transition}:${cutTime}`,
+      type: "overlay-video",
+      rowId,
+      nextRowId,
+      cutTime,
+      startTime,
+      durationSeconds,
+      startFrame: Math.round(startTime * frameRate),
+      cutFrame: Math.round(cutTime * frameRate),
+      sfxStartTime: startTime,
+      sfxStartFrame: Math.round(startTime * frameRate),
+      durationInFrames: Math.max(1, Math.round(durationSeconds * frameRate)),
+      previousImage: String(segment.image || ""),
+      nextImage: String(nextSegment?.image || ""),
+      direction: "left-to-right",
+      sfx: null,
+      sfxSrc: null,
+      assetId: segment.transitionConfig.assetId,
+      src,
+      blendMode: segment.transitionConfig.blendMode || "screen",
+      audio: segment.transitionConfig.audio === true,
+    });
+  }
+  return events;
+}
+
+function buildBoundaryTransitionRenderEvents(segments = [], options = {}) {
+  return [
+    ...buildWhipRenderEvents(segments, options),
+    ...buildOverlayVideoRenderEvents(segments, options),
+  ].sort((a, b) => a.startFrame - b.startFrame);
 }
 
 function adaptCompositionContractToRenderProps({ contract, manifest, options = {} }) {
@@ -257,7 +322,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
   const baseCompositionDurationSeconds = Math.max(latestSegmentEnd, Number.isFinite(explicitDuration) ? explicitDuration : 0);
   const compositionDurationSeconds = Number((baseCompositionDurationSeconds + FINAL_OUTRO_GAP_SECONDS).toFixed(6));
   const renderSegments = extendFinalSegmentToDuration(segments, compositionDurationSeconds);
-  const whipTransitions = buildWhipRenderEvents(segments, { fps });
+  const whipTransitions = buildBoundaryTransitionRenderEvents(segments, { fps });
 
   const logoAssetId = safeContract?.globalLayers?.logoAssetId;
   const globalLogo = safeContract?.globalLayers?.logo || {};
@@ -326,6 +391,8 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
 
 module.exports = {
   adaptCompositionContractToRenderProps,
+  buildBoundaryTransitionRenderEvents,
+  buildOverlayVideoRenderEvents,
   buildWhipRenderEvents,
   resolveAssetPath,
   isSafeRenderAssetPath,

@@ -20,6 +20,19 @@ const whipTransitionConfigSchema = z.object({
   direction: z.literal("left-to-right").default("left-to-right"),
 });
 
+const overlayVideoTransitionConfigSchema = z.object({
+  type: z.literal("overlay-video"),
+  assetId: z.string().min(1),
+  src: z.string().min(1).optional(),
+  renderPath: z.string().min(1),
+  previewUrl: z.string().min(1).optional(),
+  blendMode: z.literal("screen").default("screen"),
+  durationSeconds: numericSecondsSchema,
+  audio: z.boolean().default(true),
+});
+
+const boundaryTransitionConfigSchema = z.union([whipTransitionConfigSchema, overlayVideoTransitionConfigSchema]);
+
 const rowSfxSchema = z.union([
   z.string(),
   z.object({
@@ -46,6 +59,11 @@ const whipRenderEventSchema = z.object({
   direction: z.literal("left-to-right"),
   sfx: z.literal("whip").nullable().default(null),
   sfxSrc: z.string().min(1).nullable().default(null),
+  type: z.enum(["whip", "overlay-video"]).default("whip"),
+  assetId: z.string().min(1).optional(),
+  src: z.string().min(1).optional(),
+  blendMode: z.literal("screen").optional(),
+  audio: z.boolean().optional(),
 });
 
 const videoSegmentMediaSchema = z.object({
@@ -184,7 +202,7 @@ const renderSegmentSchema = timelineFrameSchema.extend({
   logo: z.object({ enabled: z.boolean().default(true), source: z.string().optional(), assetId: z.string().nullable().optional() }).optional(),
   filter: z.object({ enabled: z.boolean().default(true) }).optional(),
   transition: z.string().optional(),
-  transitionConfig: whipTransitionConfigSchema.optional(),
+  transitionConfig: boundaryTransitionConfigSchema.optional(),
   sfx: z.string().nullable().optional(),
   caption: z.string().optional(),
   mediaMode: z.enum(["image", "newspaper"]).default("image").optional(),
@@ -527,6 +545,7 @@ module.exports = {
   rowMediaSchema,
   whipRenderEventSchema,
   whipTransitionConfigSchema,
+  overlayVideoTransitionConfigSchema,
   scriptPhraseSchema,
   scriptPhrasesSchema,
   timelineDiagnosticsSchema,

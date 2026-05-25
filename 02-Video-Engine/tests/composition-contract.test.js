@@ -158,6 +158,7 @@ test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX
   assert.deepEqual(props.whipTransitions, [
     {
       id: "row-1->row-2:whip:1.5",
+      type: "whip",
       rowId: "row-1",
       nextRowId: "row-2",
       cutTime: 1.5,
@@ -204,6 +205,70 @@ test("adapter clamps Whip render duration to the preview-effective 0.43s window"
   assert.equal(events[0].durationSeconds, 0.43);
   assert.equal(events[0].startTime, 1.285);
   assert.equal(events[0].durationInFrames, 13);
+});
+
+test("adapter maps active Transition boundaries to overlay video render events with audio", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-transition-active",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 3,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "img-2": { assetId: "img-2", renderPath: "imagenes/dos.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    rows: [
+      {
+        rowId: "row-1",
+        phrase: "Hola",
+        startTime: 0,
+        endTime: 1.5,
+        effectiveEndTime: 1.5,
+        selectedAssetId: "img-1",
+        paragraphBoundaryAfter: true,
+        nextRowId: "row-2",
+        transition: "transition-2",
+        transitionConfig: { type: "overlay-video", assetId: "transition-2", src: "./assets/boundary-transitions/TRANSITION 2 NUEVO.mp4", renderPath: "overlays/TRANSITION 2 NUEVO.mp4", previewUrl: "./assets/boundary-transitions/TRANSITION 2 NUEVO.mp4", blendMode: "screen", durationSeconds: 1.4, audio: true },
+        media: { kind: "image" },
+      },
+      { rowId: "row-2", phrase: "Mundo", startTime: 1.5, endTime: 3, effectiveEndTime: 3, selectedAssetId: "img-2", media: { kind: "image" } },
+    ],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.deepEqual(props.whipTransitions, [
+    {
+      id: "row-1->row-2:transition-2:1.5",
+      type: "overlay-video",
+      rowId: "row-1",
+      nextRowId: "row-2",
+      cutTime: 1.5,
+      startTime: 0.8,
+      durationSeconds: 1.4,
+      startFrame: 24,
+      cutFrame: 45,
+      sfxStartTime: 0.8,
+      sfxStartFrame: 24,
+      durationInFrames: 42,
+      previousImage: "imagenes/uno.jpg",
+      nextImage: "imagenes/dos.jpg",
+      direction: "left-to-right",
+      sfx: null,
+      sfxSrc: null,
+      assetId: "transition-2",
+      src: "overlays/TRANSITION 2 NUEVO.mp4",
+      blendMode: "screen",
+      audio: true,
+    },
+  ]);
 });
 
 test("adapter throws useful error when referenced asset is missing", () => {
@@ -801,6 +866,9 @@ test("Remotion composition renders Whip overlay and independent SFX sequences fr
   assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/sound-demo.wav");
   assert.match(source, /type WhipTransitionEvent = \{/);
   assert.match(source, /const WhipOverlay = /);
+  assert.match(source, /const BoundaryVideoOverlay = /);
+  assert.match(source, /data-layer="boundary-video-transition"/);
+  assert.match(source, /data-layer="boundary-video-transition-video"/);
   assert.match(source, /const WHIP_TRANSITION_DURATION_SECONDS = 0\.43/);
   assert.match(source, /const WHIP_SMEAR_SAMPLE_COUNT = 7/);
   assert.match(source, /const easeInOutCubic = /);
@@ -815,7 +883,9 @@ test("Remotion composition renders Whip overlay and independent SFX sequences fr
   assert.doesNotMatch(source, /data-layer="whip-next-image"/);
   assert.match(source, /filter: `blur\(\$\{blur\}px\)/);
   assert.match(source, /whipTransitions\.map\(\(transition\) => \(/);
-  assert.match(source, /<WhipOverlay transition=\{transition\} \/>/);
+  assert.match(source, /transition\.type === "overlay-video" \? <BoundaryVideoOverlay transition=\{transition\} \/> : <WhipOverlay transition=\{transition\} \/>/);
+  assert.match(source, /transition\.type === "overlay-video" && transition\.audio === true && Boolean\(transition\.src\)/);
+  assert.match(source, /<Audio src=\{staticFile\(transition\.src\)\} volume=\{0\.9\} \/>/);
   assert.match(source, /whipTransitions\.filter\(\(transition\): transition is WhipTransitionEvent & \{ sfx: "whip"; sfxSrc: string \} => transition\.sfx === "whip" && Boolean\(transition\.sfxSrc\)\)/);
   assert.match(source, /from=\{transition\.sfxStartFrame \?\? transition\.startFrame\}/);
   assert.doesNotMatch(source, /from=\{transition\.cutFrame\}/);
