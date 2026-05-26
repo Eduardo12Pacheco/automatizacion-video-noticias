@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
 const { assertCanonicalTimeline } = require("../lib/timeline-utils");
 const { readJsonSchema, writeJsonSchema } = require("../lib/json-contracts");
 const { diagnosticsSchema, editorProjectSchema, renderPropsSchema, timelineSchema } = require("../lib/schemas");
@@ -15,6 +14,12 @@ const {
   resolveRenderAudio,
   resolveVisualSegment,
 } = require("../lib/media-utils");
+const {
+  RenderLifecycleError,
+  acquireRenderLock,
+  cleanupOwnedTempArtifacts,
+  runRenderCommand,
+} = require("./render-lifecycle");
 
 const dryRun = process.argv.includes("--dry-run");
 const profileArg = process.argv.find((arg) => arg.startsWith("--profile="));
@@ -42,6 +47,7 @@ const diagnosticsPath = path.join(projectRoot, "output", "diagnostics.json");
 const persistedCompositionContractPath = path.join(projectRoot, "composition-contract.json");
 const remotionHardwareAcceleration = process.env.REMOTION_HARDWARE_ACCELERATION || "if-possible";
 const remotionGl = process.env.REMOTION_GL || "angle";
+const renderTimeoutMs = Number.parseInt(process.env.REMOTION_RENDER_TIMEOUT_MS || "1800000", 10);
 
 function readPersistedCompositionContract() {
   if (!fs.existsSync(persistedCompositionContractPath)) {
@@ -169,12 +175,6 @@ function renderWithProps(renderPropsPath) {
     `--gl=${remotionGl}`,
   ];
 
-  if (process.env.REMOTION_EDITOR_MOCK_RENDER_SUCCESS === "1") {
-    fs.writeFileSync(outputVideoPath, "mock mp4 render placeholder\n");
-    finalizeRenderSuccess();
-    return;
-  }
-
   if (dryRun) {
     console.log(
       `Dry run OK. Comando listo: ${process.execPath} ${renderArgs.join(" ")}`,
@@ -192,33 +192,67 @@ function renderWithProps(renderPropsPath) {
     process.exit(1);
   }
 
-  const result = spawnSync(process.execPath, renderArgs, {
-    cwd: remotionProjectRoot,
-    encoding: "utf8",
-  });
+  let renderLock = null;
+  try {
+    renderLock = acquireRenderLock({ projectRoot });
 
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
+    if (process.env.REMOTION_EDITOR_MOCK_RENDER_SUCCESS === "1") {
+      fs.writeFileSync(outputVideoPath, "mock mp4 render placeholder\n");
+      finalizeRenderSuccess();
+      return;
+    }
 
-  if (result.error) {
-    writeRenderFailureDiagnostics(`Render fallo antes de iniciar Remotion: ${result.error.message}`, {
-      command: `${process.execPath} ${renderArgs.join(" ")}`,
-      stderr: result.error.stack || result.error.message,
+    const result = runRenderCommand({
+      executable: process.execPath,
+      args: renderArgs,
+      cwd: remotionProjectRoot,
+      timeoutMs: renderTimeoutMs,
     });
-    throw result.error;
-  }
 
-  if (result.status !== 0) {
-    writeRenderFailureDiagnostics(`Render fallo con exit code ${result.status || 1}`, {
-      command: `${process.execPath} ${renderArgs.join(" ")}`,
-      exitCode: result.status || 1,
-      stdout: result.stdout,
-      stderr: result.stderr,
-    });
-    process.exit(result.status || 1);
-  }
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
 
-  finalizeRenderSuccess();
+    if (result.code === "RENDER_TIMEOUT") {
+      writeRenderFailureDiagnostics(result.errorMessage, {
+        command: `${process.execPath} ${renderArgs.join(" ")}`,
+        stderr: result.stderr || result.errorMessage,
+      });
+      process.exit(1);
+    }
+
+    if (result.error) {
+      writeRenderFailureDiagnostics(`Render fallo antes de iniciar Remotion: ${result.error.message}`, {
+        command: `${process.execPath} ${renderArgs.join(" ")}`,
+        stderr: result.error.stack || result.error.message,
+      });
+      throw result.error;
+    }
+
+    if (!result.ok) {
+      const exitCode = Number.isInteger(result.exitCode) ? result.exitCode : 1;
+      writeRenderFailureDiagnostics(`Render fallo con exit code ${exitCode}`, {
+        command: `${process.execPath} ${renderArgs.join(" ")}`,
+        exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+      });
+      process.exit(exitCode);
+    }
+
+    finalizeRenderSuccess();
+  } catch (error) {
+    if (error instanceof RenderLifecycleError) {
+      writeRenderFailureDiagnostics(error.message, {
+        command: `${process.execPath} ${renderArgs.join(" ")}`,
+        stderr: error.message,
+      });
+      process.exit(1);
+    }
+    throw error;
+  } finally {
+    if (renderLock) renderLock.release();
+    cleanupOwnedTempArtifacts({ projectRoot, ownedPaths: [path.join(projectRoot, "output", ".render-tmp", "render-props.tmp.json")] });
+  }
 }
 
 const persistedCompositionContract = renderProfile === "final" ? assertFinalCompositionContract() : readPersistedCompositionContract();
