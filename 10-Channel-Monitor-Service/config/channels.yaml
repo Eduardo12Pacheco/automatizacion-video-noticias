@@ -1,0 +1,464 @@
+countries:
+  - code: fr
+    name: France
+    channels:
+      - url: https://www.youtube.com/@lequipe
+        label: L'Équipe
+        enabled: true
+
+  - code: ar
+    name: Argentina
+    channels:
+      - url: https://www.youtube.com/@radiolared
+        label: Radio La Red AM 910
+        enabled: true
+      - url: https://www.youtube.com/@TNTSportsAR
+        label: TNT Sports Argentina
+        enabled: true
+      - url: https://www.youtube.com/@tycsports
+        label: TyC Sports
+        enabled: true
+        algorithm_priority_rank: 9
+      - url: https://www.youtube.com/@ArianaIsasi1
+        label: Ariana Isasi
+        enabled: true
+        algorithm_priority_rank: 32
+      - url: https://www.youtube.com/@lacobraaa
+        label: LA COBRA
+        enabled: true
+        algorithm_priority_rank: 14
+      - url: https://www.youtube.com/@lacobraxtra
+        label: LA COBRA Xtra
+        enabled: true
+        algorithm_priority_rank: 15
+      - url: https://www.youtube.com/@somosazz
+        label: AZZ
+        enabled: true
+      - url: https://www.youtube.com/@DavooXeneizePlusX
+        label: Davoo Xeneize Plus
+        enabled: true
+        algorithm_priority_rank: 12
+      - url: https://www.youtube.com/@DavooXeneizeTwitch
+        label: Davoo Xeneize Twitch
+        enabled: true
+        algorithm_priority_rank: 13
+      - url: https://www.youtube.com/channel/UCDJuA533CrVzpGp7DncUl4w
+        label: Lucas Ugartemendia
+        enabled: true
+        algorithm_priority_rank: 25
+      - url: https://www.youtube.com/@SomoselFutbolDigital
+        label: Somos el Fútbol Digital
+        enabled: true
+      - url: https://www.youtube.com/@Telefe
+        label: Telefe
+        enabled: true
+      - url: https://www.youtube.com/@NSportsGo
+        label: NSports
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 1
+      - url: https://www.youtube.com/@resumeneshoyexpress
+        label: Resumenes hoy express (futbol total)
+        enabled: true
+        algorithm_priority_rank: 2
+      - url: https://www.youtube.com/@JorgeRamosysuBandaOficial
+        label: Jorge Ramos y su Banda
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 3
+      - url: https://www.youtube.com/@SomosComba
+        label: COMBA
+        enabled: true
+      - url: https://www.youtube.com/@OsvaldoGerson10
+        label: Osvaldo Gerson Armiento
+        enabled: true
+      - url: https://www.youtube.com/@picadotvok
+        label: Picado TV
+        enabled: true
+      - url: https://www.youtube.com/@splendidam990
+        label: Splendid AM 990
+        enabled: true
+      - url: https://www.youtube.com/@LibermanMartinOficial
+        label: Liberman Martin
+        enabled: true
+        algorithm_priority_rank: 8
+      - url: https://www.youtube.com/@carrozzaoficial
+        label: Carrozza
+        enabled: true
+        algorithm_priority_rank: 29
+      - url: https://www.youtube.com/@eldoce
+        label: Eldoce
+        enabled: true
+      - url: https://www.youtube.com/@ESPNFans
+        label: ESPN Fans
+        enabled: true
+      - url: https://www.youtube.com/@F%C3%BAtbolanaliticoAR
+        label: Fútbol analítico
+        enabled: true
+      - url: https://www.youtube.com/@diarioole
+        label: Olé
+        enabled: true
+
+  - code: es
+    name: España
+    channels:
+      - url: https://www.youtube.com/@DAZNFutbol
+        label: DAZN Fútbol
+        enabled: true
+      - url: https://www.youtube.com/@DAZNES
+        label: DAZN ES
+        enabled: true
+      - url: https://www.youtube.com/@marca
+        label: MARCA
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: starts_with
+            value: LA PIZARRA DE QUINTANA
+      - url: https://www.youtube.com/@diarioas
+        label: Diario AS
+        enabled: true
+      - url: https://www.youtube.com/@ElChiringuitoTV
+        label: El Chiringuito de Jugones
+        enabled: true
+        algorithm_priority_rank: 4
+      - url: https://www.youtube.com/@ChiringuitoTvInside
+        label: Chiringuito Inside
+        enabled: true
+        algorithm_priority_rank: 5
+      - url: https://www.youtube.com/@mundomaldini
+        label: Mundo Maldini
+        enabled: true
+        algorithm_priority_rank: 11
+      - url: https://www.youtube.com/@TiempodeJuegoCOPE
+        label: Tiempo de Juego COPE
+        enabled: true
+      - url: https://www.youtube.com/@MiguelQuintanaAlarcon
+        label: Pizarritas - Miguel Quintana Alarcón
+        enabled: true
+        algorithm_priority_rank: 16
+      - url: https://www.youtube.com/@2010MisterChip
+        label: MisterChip
+        enabled: true
+
+  - code: co
+    name: Colombia
+    channels:
+      - url: https://www.youtube.com/@CaracolRadioOficial
+        label: Caracol Radio
+        enabled: true
+      - url: https://www.youtube.com/@DeportesRCN
+        label: Deportes RCN
+        enabled: true
+      - url: https://www.youtube.com/@FutbolRCN
+        label: Fútbol RCN
+        enabled: true
+      - url: https://www.youtube.com/@winsportstv
+        label: Win Sports
+        enabled: true
+      - url: https://www.youtube.com/@VelezFutbolCAV
+        label: Carlos Antonio Vélez
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 17
+      - url: https://www.youtube.com/@SVargasOK
+        label: Samuel Vargas
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 10
+      - url: https://www.youtube.com/@LaHinchadaGrita
+        label: LA HINCHADA GRITA
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 6
+      - url: https://www.youtube.com/@FutbolLibre76
+        label: Fútbol Libre
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 7
+      - url: https://www.youtube.com/@bluradioco
+        label: Blu Radio
+        enabled: true
+      - url: https://www.youtube.com/@JorgeBermudezFutbol
+        label: EL PARCHE DEL FUTBOL
+        enabled: true
+        algorithm_priority_rank: 18
+      - url: https://www.youtube.com/@LuisFerPremierTeam
+        label: Luis Fernando Restrepo
+        enabled: true
+      - url: https://www.youtube.com/@AS_Colombia
+        label: AS Colombia
+        enabled: true
+      - url: https://www.youtube.com/@cesaralo
+        label: Cesar Augusto Londoño
+        enabled: true
+      - url: https://www.youtube.com/@JFCadavid
+        label: "Juan Felipe Cadavid: HDJ"
+        enabled: true
+      - url: https://www.youtube.com/@EduardoLuisOficial
+        label: Toxi Stream Radio (Luis Eduardo)
+        enabled: true
+      - url: https://www.youtube.com/@HablaDeportesRadio
+        label: Habla Deportes
+        enabled: true
+      - url: https://www.youtube.com/@revistalaliga
+        label: Revista LA LIGA
+        enabled: true
+
+  - code: pe
+    name: Perú
+    channels:
+      - url: https://www.youtube.com/@OVACIONoficial
+        label: OVACION oficial
+        enabled: true
+      - url: https://www.youtube.com/@DiarioDepor
+        label: Diario Depor
+        enabled: true
+      - url: https://www.youtube.com/@EddieFleischman
+        label: Eddie Fleischman
+        enabled: true
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 26
+      - url: https://www.youtube.com/@LatinaDeportes
+        label: Latina Deportes
+        enabled: true
+      - url: https://www.youtube.com/@exitosape
+        label: Exitosa
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: starts_with
+            value: EXITOSA DEPORTES
+      - url: https://www.youtube.com/@DiarioLiberoOficial
+        label: Líbero
+        enabled: true
+      - url: https://www.youtube.com/@MovistarDeportesPer%C3%BA
+        label: Movistar Deportes Perú
+        enabled: true
+      - url: https://www.youtube.com/@APRESI%C3%93N
+        label: A PRESIÓN
+        enabled: true
+        algorithm_priority_rank: 27
+      - url: https://www.youtube.com/@FrancoLostaunau87
+        label: Franco Lostaunau
+        enabled: true
+      - url: https://www.youtube.com/@Horacon88
+        label: Horacio Zimmermann
+        enabled: true
+      - url: https://www.youtube.com/@RPPNoticias
+        label: RPP Noticias
+        enabled: true
+      - url: https://www.youtube.com/@MauricioyMichael
+        label: DENGANCHE
+        enabled: true
+        algorithm_priority_rank: 28
+      - url: https://www.youtube.com/@VicenteCisnerosOficial
+        label: Vicente Cisneros
+        enabled: true
+      - url: https://www.youtube.com/@L1MAX_
+        label: L1MAX
+        enabled: true
+      - url: https://www.youtube.com/@MrPeetChannel
+        label: Mr Peet
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: starts_with
+            value: MADRUGOL CON MR PEET
+      - url: https://www.youtube.com/@erickygonzalooficial
+        label: Erick y Gonzalo
+        enabled: true
+        algorithm_priority_rank: 30
+      - url: https://www.youtube.com/@linkeados
+        label: Linkeados
+        enabled: true
+      - url: https://www.youtube.com/@deportes-atv
+        label: ATV Deportes
+        enabled: true
+      - url: https://www.youtube.com/@gvplayperu
+        label: GV PLAY
+        enabled: true
+
+  - code: cl
+    name: Chile
+    channels:
+      - url: https://www.youtube.com/@adnradio
+        label: ADN Chile
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: TENORES
+      - url: https://www.youtube.com/@Cooperativafm
+        label: CooperativaFM
+        enabled: true
+      - url: https://www.youtube.com/@TNTSportsCL
+        label: TNT Sports Chile
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: TODOS SOMOS TECNICOS
+        algorithm_priority_rank: 31
+      - url: https://www.youtube.com/@radiolaclave
+        label: Radio La Clave
+        enabled: true
+      - url: https://www.youtube.com/@redgoltv
+        label: RedGol
+        enabled: true
+      - url: https://www.youtube.com/@MegaDeportesCL
+        label: MegaDeportes
+        enabled: true
+      - url: https://www.youtube.com/@circulocentraloficial
+        label: Círculo Central
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: CIRCULO CENTRAL
+      - url: https://www.youtube.com/@TouchTVpro
+        label: Touch TV Producción
+        enabled: true
+      - url: https://www.youtube.com/@radiofuturotv
+        label: Radio Futuro
+        enabled: true
+      - url: https://www.youtube.com/@prensafutbol_
+        label: PrensaFútbol
+        enabled: true
+      - url: https://www.youtube.com/@balong
+        label: Balong – MDTPnet
+        enabled: true
+        algorithm_priority_rank: 33
+      - url: https://www.youtube.com/@RadioPortalesStgo
+        label: Radio Portales de Santiago
+        enabled: true
+      - url: https://www.youtube.com/@PAUTACL
+        label: PAUTA
+        enabled: true
+      - url: https://www.youtube.com/@KingKongMedia_Chile
+        label: King Kong Media
+        enabled: true
+
+  - code: py
+    name: Paraguay
+    channels:
+      - url: https://www.youtube.com/@780am
+        label: Radio Primero de Marzo
+        enabled: true
+      - url: https://www.youtube.com/@ABCParaguay
+        label: ABC TV Paraguay
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: starts_with
+            value: "#CARDINALDEPORTIVO"
+          - content_types: [live, completed]
+            op: contains
+            value: CARDINAL DEPORTIVO
+      - url: https://www.youtube.com/@TigoSportsPY
+        label: Tigo Sports PY
+        enabled: true
+      - url: https://www.youtube.com/@Elverduleroresumenes
+        label: El Verdulero Resúmenes
+        enabled: true
+        algorithm_priority_rank: 34
+      - url: https://www.youtube.com/@pomberopostin_tv
+        label: Pombero Postin
+        enabled: true
+        algorithm_priority_rank: 35
+      - url: https://www.youtube.com/@rockandpop955
+        label: Rock & Pop Paraguay
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: starts_with
+            value: "#LAGRANJUGADA"
+      - url: https://www.youtube.com/@somosvssports
+        label: Vs Sports (directos Once Mas Uno)
+        enabled: true
+
+  - code: mx
+    name: México
+    channels:
+      - url: https://www.youtube.com/@AztecaDeportes
+        label: TV Azteca
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: LA MESA PROTAGONISTA
+        algorithm_priority_rank: 24
+      - url: https://www.youtube.com/@foxdeportes
+        label: Fox Deportes (punto final)
+        enabled: true
+        algorithm_priority_rank: 19
+      - url: https://www.youtube.com/@TUDNMexico
+        label: TUDN México
+        enabled: true
+        algorithm_priority_rank: 20
+      - url: https://www.youtube.com/@ESPNMX
+        label: ESPN MX
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: FUTBOL PICANTE
+        algorithm_priority_rank: 21
+      - url: https://www.youtube.com/@espndeportes
+        label: ESPN Deportes
+        enabled: true
+        algorithm_priority_rank: 22
+      - url: https://www.youtube.com/@TUDNRADIO
+        label: TUDN RADIO
+        enabled: true
+      - url: https://www.youtube.com/@FoxSportsMX
+        label: FOX Sports MX
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: LA ULTIMA PALABRA
+      - url: https://www.youtube.com/@AhoraoNuncaESPN
+        label: Ahora o Nunca ESPN
+        enabled: true
+        algorithm_priority_rank: 23
+      - url: https://www.youtube.com/@clarosports
+        label: Claro Sports
+        enabled: true
+
+  - code: uy
+    name: Uruguay
+    channels:
+      - url: https://www.youtube.com/@lasvocesdelfutboluy/streams
+        label: LAS VOCES DEL FÚTBOL
+        enabled: true
+        important_mode: program_rules
+        important_rules:
+          - content_types: [live, completed]
+            op: contains
+            value: JULIO RIOS

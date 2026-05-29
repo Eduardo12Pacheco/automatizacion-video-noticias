@@ -1,0 +1,55 @@
+# Secrets / local env
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Runtime data
+/runtime/
+/runtime-logs/
+*.sqlite3
+*.sqlite3-*
+*.sqlite3.*
+*.db
+*.db-*
+*.db.*
+*.bak
+*.backup
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+build/
+dist/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local/editor/OS
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+.vscode/
+.idea/
+
+# Local AI/tooling artifacts
+opencode/
+.opencode/
