@@ -1,0 +1,33 @@
+{
+  "name": "known positive Argentina target mention",
+  "target": {
+    "type": "country",
+    "name": "Argentina",
+    "aliases": []
+  },
+  "extra_keywords": [],
+  "segments": [
+    {
+      "id": "s1",
+      "start_ms": 12000,
+      "end_ms": 16000,
+      "text": "La albiceleste presiona alto y recupera la balon."
+    },
+    {
+      "id": "s2",
+      "start_ms": 17000,
+      "end_ms": 22000,
+      "text": "El rival intenta salir por la derecha."
+    }
+  ],
+  "expected_matches": [
+    {
+      "keyword": "albiceleste",
+      "canonical": "Argentina",
+      "segment_id": "s1",
+      "start_ms": 12000,
+      "end_ms": 16000,
+      "text": "La albiceleste presiona alto y recupera la balon."
+    }
+  ]
+}
