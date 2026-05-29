@@ -51,7 +51,6 @@ def create_app(
     store.migrate()
 
     radar_client = radar_client or RadarClient(base_url=settings.radar_url, api_key=settings.radar_api_key)
-    preflight_channel_resolver = channel_resolver
     channel_resolver = channel_resolver or _build_channel_resolver(settings=settings)
     discovery_worker = discovery_worker or _build_discovery_worker(settings=settings, store=store)
     runtime_coordinator = runtime_coordinator or _build_runtime_coordinator(
@@ -64,6 +63,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.runtime_coordinator = runtime_coordinator
+        _sync_channels_for_preflight_or_startup(settings=settings, store=store, channel_resolver=channel_resolver)
         await runtime_coordinator.start()
         try:
             yield
@@ -91,7 +91,7 @@ def create_app(
         return _preflight_response(
             settings=settings,
             store=store,
-            channel_resolver=preflight_channel_resolver,
+            channel_resolver=channel_resolver,
             radar_client=radar_client,
             runtime_coordinator=runtime_coordinator,
         )
@@ -101,7 +101,7 @@ def create_app(
         return _preflight_response(
             settings=settings,
             store=store,
-            channel_resolver=preflight_channel_resolver,
+            channel_resolver=channel_resolver,
             radar_client=radar_client,
             runtime_coordinator=runtime_coordinator,
         )
@@ -456,6 +456,12 @@ def _ai_rescue_degraded_reasons(*, settings: Settings, runtime_enabled: bool) ->
 
 
 def _channel_preflight(
+    *, settings: Settings, store: MonitorStore, channel_resolver: ChannelResolver | None
+) -> dict[str, Any]:
+    return _sync_channels_for_preflight_or_startup(settings=settings, store=store, channel_resolver=channel_resolver)
+
+
+def _sync_channels_for_preflight_or_startup(
     *, settings: Settings, store: MonitorStore, channel_resolver: ChannelResolver | None
 ) -> dict[str, Any]:
     if channel_resolver is None:

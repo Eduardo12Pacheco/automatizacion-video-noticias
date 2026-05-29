@@ -12,7 +12,7 @@ def test_live_endpoint_is_public_and_minimal(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
     store = MonitorStore(settings.db_path)
     store.migrate()
-    client = TestClient(create_app(settings=settings, store=store))
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=StartupFakeChannelResolver()))
 
     response = client.get("/api/monitor/live")
 
@@ -41,6 +41,26 @@ class FakeRuntimeCoordinator:
         return {"status": "ready", "enabled": ["enqueue"], "running": ["enqueue"], "disabled": ["websub", "catchup"]}
 
 
+class InspectingRuntimeCoordinator(FakeRuntimeCoordinator):
+    def __init__(self, store: MonitorStore):
+        super().__init__()
+        self.store = store
+        self.channels_at_start = []
+
+    async def start(self):
+        await super().start()
+        self.channels_at_start = self.store.list_channels()
+
+
+class StartupFakeChannelResolver:
+    def __init__(self):
+        self.calls: list[str] = []
+
+    def resolve_channel(self, source: str) -> ChannelMetadata:
+        self.calls.append(source)
+        return ChannelMetadata(channel_id="UCFakeResolved", title="Resolved", uploads_playlist_id="UUFakeResolved")
+
+
 def test_lifespan_starts_and_stops_injected_runtime_coordinator_once(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
     store = MonitorStore(settings.db_path)
@@ -53,6 +73,38 @@ def test_lifespan_starts_and_stops_injected_runtime_coordinator_once(tmp_path):
     assert response.status_code == 200
     assert runtime.starts == 1
     assert runtime.stops == 1
+
+
+def test_lifespan_syncs_configured_channels_before_runtime_start_with_injected_resolver(tmp_path):
+    channels_path = tmp_path / "channels.yaml"
+    channels_path.write_text(
+        """
+countries:
+  - code: ar
+    name: Argentina
+    channels:
+      - url: https://www.youtube.com/@club/videos
+        label: Club
+        important: true
+        important_mode: full_channel
+        priority_tier: importantes
+        algorithm_priority_rank: 3
+""".strip(),
+        encoding="utf-8",
+    )
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", channels_config_path=channels_path)
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    runtime = InspectingRuntimeCoordinator(store)
+    resolver = StartupFakeChannelResolver()
+
+    with TestClient(create_app(settings=settings, store=store, runtime_coordinator=runtime, channel_resolver=resolver)):
+        pass
+
+    assert resolver.calls == ["https://www.youtube.com/@club/videos"]
+    assert [(channel.youtube_channel_id, channel.important, channel.important_mode, channel.priority_tier, channel.algorithm_priority_rank) for channel in runtime.channels_at_start] == [
+        ("UCFakeResolved", True, "full_channel", "importantes", 3)
+    ]
 
 
 def test_health_requires_api_key_and_redacts_secrets(tmp_path):
@@ -78,7 +130,7 @@ countries:
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
-    client = TestClient(create_app(settings=settings, store=store))
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=StartupFakeChannelResolver()))
 
     unauthorized = client.get("/api/monitor/health")
     authorized = client.get("/api/monitor/health", headers={"x-api-key": "monitor-secret"})
@@ -744,7 +796,7 @@ def test_preflight_reports_websub_subscription_findings_per_channel_without_secr
         channel_id=healthy.id,
         callback_url=settings.callback_url,
         lease_seconds=864000,
-        expires_at="2026-05-30T10:00:00Z",
+        expires_at="2099-05-30T10:00:00Z",
         last_renewed_at="2026-05-20T10:00:00Z",
         status="ready",
     )
@@ -760,7 +812,7 @@ def test_preflight_reports_websub_subscription_findings_per_channel_without_secr
         channel_id=failed.id,
         callback_url=settings.callback_url,
         lease_seconds=864000,
-        expires_at="2026-05-30T10:00:00Z",
+        expires_at="2099-05-30T10:00:00Z",
         last_renewed_at="2026-05-20T10:00:00Z",
         status="failed",
         last_error="hub_503",

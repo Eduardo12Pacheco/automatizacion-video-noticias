@@ -37,7 +37,7 @@ def sync_configured_channels(
     for country in config.countries:
         for channel in country.channels:
             try:
-                metadata = _metadata_for_channel(channel.channel_id, channel.url, resolver)
+                metadata = _metadata_for_channel(channel.channel_id, channel.url, store, resolver)
             except Exception as exc:
                 findings.append(
                     ConfigFinding(
@@ -92,9 +92,14 @@ def channel_sync_report_to_dict(report: ChannelSyncReport) -> dict[str, object]:
     }
 
 
-def _metadata_for_channel(channel_id: str | None, url: str | None, resolver: ChannelResolver) -> ChannelMetadata:
+def _metadata_for_channel(channel_id: str | None, url: str | None, store: MonitorStore, resolver: ChannelResolver) -> ChannelMetadata:
     if channel_id:
-        return ChannelMetadata(channel_id=channel_id, title=channel_id, uploads_playlist_id=None)
+        existing = store.find_channel_by_youtube_id(channel_id)
+        return ChannelMetadata(
+            channel_id=channel_id,
+            title=existing.label if existing else channel_id,
+            uploads_playlist_id=existing.uploads_playlist_id if existing else None,
+        )
     if not url:
         raise ValueError("Channel source is missing")
     return resolver.resolve_channel(url)

@@ -14,6 +14,7 @@ from app.youtube_client import (
     YouTubeTranscriptSubtitleProvider,
     YouTubeDataClient,
     UploadItem,
+    _extract_handle,
     parse_websub_video_ids,
     resolve_caption_language,
     validate_websub_callback,
@@ -161,6 +162,20 @@ def test_youtube_client_resolves_handle_and_video_metadata_with_injected_http():
         published_at="2026-05-19T10:00:00Z",
         live_status="completed",
     )
+
+
+def test_extract_handle_normalizes_handle_paths_without_suffix_query_or_fragment():
+    assert [_extract_handle(source) for source in [
+        "@club",
+        "https://youtube.com/@club/videos",
+        "youtube.com/@club/streams?view=2",
+        "https://www.youtube.com/@club#featured",
+    ]] == ["club", "club", "club", "club"]
+
+
+def test_extract_handle_does_not_invent_handle_for_channel_or_watch_urls():
+    assert _extract_handle("https://www.youtube.com/channel/UCStable") == ""
+    assert _extract_handle("https://www.youtube.com/watch?v=abc123") == ""
 
 
 def test_youtube_client_reports_metadata_unavailable_when_api_returns_no_items():

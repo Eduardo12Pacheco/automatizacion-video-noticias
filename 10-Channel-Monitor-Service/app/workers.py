@@ -507,14 +507,13 @@ class TranscriptSyncWorker:
             status = str(detail.get("status", ""))
             if status == "succeeded":
                 summary = self.radar.get_job_summary(job_id)
-                mention_counts_json = _normalized_mention_counts_json(summary)
+                if _is_important_video(self.store, video_id):
+                    self.store.upsert_important_summary_mentions(video_id=video_id, radar_job_id=job_id, summary=summary)
                 if self.store.list_target_matches(video_id=video_id):
-                    self.store.update_target_matches_for_video(
-                        video_id,
-                        status="transcrito",
+                    self.store.update_target_matches_from_summary(
+                        video_id=video_id,
                         radar_job_id=job_id,
-                        mention_counts_json=mention_counts_json,
-                        last_error=None,
+                        summary=summary,
                     )
                 else:
                     self.store.upsert_important_summary_country_matches(
@@ -937,6 +936,18 @@ def _important_content_type(live_status: str | None) -> str:
 def _important_rule_allows_content_type(rule: Any, content_type: str) -> bool:
     content_types = [str(item).strip().casefold() for item in getattr(rule, "content_types", []) or []]
     return not content_types or content_type in content_types
+
+
+def _is_important_video(store: MonitorStore, video_id: str) -> bool:
+    video = store.get_video(video_id)
+    if video is None:
+        return False
+    if video.important_mode or video.queue_priority_tier == "important" or video.classification_status in {"important", "important_channel"}:
+        return True
+    if video.channel_id is None:
+        return False
+    channel = store.find_channel_by_id(video.channel_id)
+    return bool(channel and channel.important)
 
 
 def _first_queue_priority_tier(target_matches: list[Any]) -> str | None:

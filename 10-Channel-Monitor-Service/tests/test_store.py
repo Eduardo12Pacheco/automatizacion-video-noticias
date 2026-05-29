@@ -4,6 +4,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+from app.settings import ImportantRule
 from app.store import ChannelRecord, MonitorStore, TargetMatchRecord, VideoRecord
 
 
@@ -35,6 +36,7 @@ def test_store_migrates_required_monitor_tables(tmp_path):
         "ai_rescue_evidence",
         "ai_rescue_decisions",
         "ai_rescue_rejections",
+        "important_summary_mentions",
     }
 
 
@@ -560,6 +562,7 @@ def test_store_preflight_reports_ready_after_migration(tmp_path):
         "ai_rescue_evidence",
         "ai_rescue_decisions",
         "ai_rescue_rejections",
+        "important_summary_mentions",
     ]
 
 
@@ -706,7 +709,7 @@ def test_important_audit_backfill_apply_sets_readable_audit_fields_and_skips_ter
 
     assert report == {"candidate_count": 1, "updated_videos": 1, "updated_target_matches": 0, "skipped_protected": 4}
     assert video.important_mode == "full_channel"
-    assert json.loads(video.important_rule_json) == {"type": "important_full_channel", "label": "NSports"}
+    assert json.loads(video.important_rule_json)[0] == {"type": "important_full_channel", "label": "NSports", "source_country": "argentina"}
     assert video.queue_priority_tier == "important"
     assert video.queue_priority_rank == 0
     assert video.classification_version == "important-audit-v1"
@@ -987,6 +990,127 @@ def test_upsert_important_summary_country_matches_creates_real_countries_only(tm
         for match in store.list_target_matches(video_id="important-summary")
     ] == [
         ("mexico", "transcrito", "job-important", "transcript_summary", '[{"label":"México","count":1}]'),
+    ]
+
+
+def test_important_summary_mentions_store_global_counts_sorted_without_synthetic_country_rows(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="argentina", label="NSports", source_url=None, youtube_channel_id="UCImportant", important=True)
+    )
+    store.upsert_video(VideoRecord(video_id="important-global", channel_id=channel.id, lifecycle="enqueued", matched=True, detected_at="2026-05-28T10:00:00Z"))
+
+    store.upsert_important_summary_mentions(
+        video_id="important-global",
+        radar_job_id="job-global",
+        summary={
+            "items": [
+                {"country": "chile", "label": "Chile", "count": 2},
+                {"country": "argentina", "label": "Argentina", "count": 5},
+                {"country": "peru", "label": "Perú", "count": 0},
+            ]
+        },
+    )
+
+    cards = store.list_important_cards(now="2026-05-28T12:00:00Z")
+    with sqlite3.connect(tmp_path / "monitor.sqlite3") as connection:
+        synthetic_rows = connection.execute(
+            "select count(*) from video_target_matches where target_country in ('important', 'importantes')"
+        ).fetchone()[0]
+
+    assert cards[0]["mention_counts_json"] == '[{"label":"Argentina","count":5},{"label":"Chile","count":2}]'
+    assert cards[0]["radar_job_id"] == "job-global"
+    assert synthetic_rows == 0
+
+
+def test_important_audit_backfill_reclassifies_recent_rejected_full_channel_and_program_rule_rows(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    full_channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Carlos Antonio Vélez", source_url=None, youtube_channel_id="UCCarlos", important_mode="full_channel")
+    )
+    program_channel = store.upsert_channel(
+        ChannelRecord(
+            country="peru",
+            label="Mr Peet",
+            source_url=None,
+            youtube_channel_id="UCMrPeet",
+            important_mode="program_rules",
+            important_rules=[ImportantRule(op="contains", value="Madrugol", content_types=["completed"])],
+        )
+    )
+    protected_channel = store.upsert_channel(
+        ChannelRecord(country="argentina", label="Protected", source_url=None, youtube_channel_id="UCProtected", important_mode="full_channel")
+    )
+    store.upsert_video(VideoRecord(video_id="carlos", channel_id=full_channel.id, title="Análisis sin país", lifecycle="ignored_seen", matched=False, live_status="none"))
+    store.upsert_rejected_video(video_id="carlos", source_country="colombia", reason="no_title_match")
+    store.upsert_video(VideoRecord(video_id="madrugol", channel_id=program_channel.id, title="Madrugol con Mr Peet", lifecycle="ignored_seen", matched=False, live_status="none"))
+    store.upsert_rejected_video(video_id="madrugol", source_country="peru", reason="no_title_match")
+    store.upsert_video(VideoRecord(video_id="protected", channel_id=protected_channel.id, title="Protected", lifecycle="enqueued", matched=True))
+    store.record_enqueue_attempt(video_id="protected", status="enqueued", radar_job_id="job-protected")
+
+    dry_run = store.backfill_important_audit(mode="dry-run", classification_version="important-audit-v1")
+    applied = store.backfill_important_audit(mode="apply", classification_version="important-audit-v1")
+
+    assert dry_run == {"candidate_count": 2, "updated_videos": 0, "updated_target_matches": 0, "skipped_protected": 1}
+    assert applied == {"candidate_count": 2, "updated_videos": 2, "updated_target_matches": 0, "skipped_protected": 1}
+    assert [(store.get_video(video_id).lifecycle, store.get_video(video_id).queue_priority_tier, store.get_video(video_id).important_mode) for video_id in ["carlos", "madrugol"]] == [
+        ("enqueue_pending", "important", "full_channel"),
+        ("enqueue_pending", "important", "program_rules"),
+    ]
+    assert json.loads(store.get_video("madrugol").important_rule_json)[0]["value"] == "Madrugol"
+    assert store.get_video("protected").lifecycle == "enqueued"
+
+
+def test_update_target_matches_from_summary_scopes_existing_rows_and_discovers_positive_countries(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="mexico", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
+    )
+    store.upsert_video(
+        VideoRecord(
+            video_id="summary-scoped",
+            channel_id=channel.id,
+            lifecycle="enqueued",
+            matched=True,
+            classification_version="title-country-v1",
+            classified_at="2026-05-20T10:00:00Z",
+            classification_run_id=7,
+        )
+    )
+    store.upsert_target_match(store.make_target_match(video_id="summary-scoped", target_country="ecuador", status="transcribiendo", radar_job_id="job-scoped"))
+    store.upsert_target_match(
+        TargetMatchRecord(
+            video_id="summary-scoped",
+            target_country="colombia",
+            status="transcribiendo",
+            radar_job_id="job-scoped",
+            approval_source="ai_rescue",
+        )
+    )
+
+    store.update_target_matches_from_summary(
+        video_id="summary-scoped",
+        radar_job_id="job-scoped",
+        summary={
+            "items": [
+                {"country": "colombia", "label": "James Rodríguez", "count": 2},
+                {"country": "uruguay", "label": "Uruguay", "count": 1},
+                {"country": "argentina", "label": "Argentina", "count": 0},
+                {"country": "mexico", "label": "México", "count": 4},
+            ]
+        },
+    )
+
+    assert [
+        (match.target_country, match.status, match.radar_job_id, match.approval_source, match.mention_counts_json)
+        for match in store.list_target_matches(video_id="summary-scoped")
+    ] == [
+        ("ecuador", "transcrito", "job-scoped", "title_classifier", "[]"),
+        ("colombia", "transcrito", "job-scoped", "ai_rescue", '[{"label":"James Rodríguez","count":2}]'),
+        ("uruguay", "transcrito", "job-scoped", "transcript_summary", '[{"label":"Uruguay","count":1}]'),
     ]
 
 

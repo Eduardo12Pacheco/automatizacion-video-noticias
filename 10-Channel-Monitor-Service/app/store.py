@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
-from .title_matcher import TARGET_COUNTRY_ORDER, normalize_country
+from .title_matcher import TARGET_COUNTRY_ORDER, match_program_title, normalize_country
 
 
 REQUIRED_TABLES = [
@@ -26,9 +26,11 @@ REQUIRED_TABLES = [
     "ai_rescue_evidence",
     "ai_rescue_decisions",
     "ai_rescue_rejections",
+    "important_summary_mentions",
 ]
 
 PROTECTED_TARGET_STATUSES = {"transcribiendo", "transcrito", "error", "geo_blocked"}
+PROTECTED_BACKFILL_ENQUEUE_STATUSES = {"enqueued", "transcribing", "transcribiendo", "transcrito", "error", "geo_blocked"}
 
 
 @dataclass(frozen=True)
@@ -370,6 +372,13 @@ class MonitorStore:
                     created_at text not null default current_timestamp,
                     updated_at text not null default current_timestamp,
                     unique(video_id, target_country)
+                );
+
+                create table if not exists important_summary_mentions (
+                    video_id text primary key references videos(video_id),
+                    radar_job_id text,
+                    mention_counts_json text not null default '[]',
+                    updated_at text not null default current_timestamp
                 );
 
                 create table if not exists rejected_videos (
@@ -952,6 +961,96 @@ class MonitorStore:
                 (status, radar_job_id, mention_counts_json, last_error, video_id),
             )
 
+    def update_target_matches_from_summary(
+        self,
+        *,
+        video_id: str,
+        radar_job_id: str,
+        summary: dict[str, Any],
+    ) -> list[TargetMatchRecord]:
+        video = self.get_video(video_id)
+        source_country: str | None = None
+        if video and video.channel_id is not None:
+            channel = self.find_channel_by_id(video.channel_id)
+            source_country = channel.country if channel else None
+        items_by_country = _summary_items_by_real_country(summary, exclude_country=source_country)
+        with self._connect() as connection:
+            existing_rows = connection.execute(
+                "select * from video_target_matches where video_id = ? order by id",
+                (video_id,),
+            ).fetchall()
+            existing_countries = {str(row["target_country"]) for row in existing_rows}
+            for row in existing_rows:
+                target_country = str(row["target_country"])
+                connection.execute(
+                    """
+                    update video_target_matches
+                    set status = 'transcrito',
+                        radar_job_id = ?,
+                        mention_counts_json = ?,
+                        last_error = null,
+                        updated_at = current_timestamp
+                    where id = ?
+                    """,
+                    (radar_job_id, items_by_country.get(target_country, "[]"), row["id"]),
+                )
+            for target_country, mention_counts_json in items_by_country.items():
+                if target_country in existing_countries:
+                    continue
+                queue_priority = _target_queue_priority(connection, video_id=video_id, target_country=target_country)
+                connection.execute(
+                    """
+                    insert into video_target_matches(
+                        video_id, target_country, status, radar_job_id, mention_counts_json,
+                        last_error, classification_version, classified_at, classification_run_id, approval_source,
+                        queue_priority_tier, queue_priority_rank
+                    )
+                    values (?, ?, 'transcrito', ?, ?, null, ?, ?, ?, 'transcript_summary', ?, ?)
+                    on conflict(video_id, target_country) do update set
+                        status = excluded.status,
+                        radar_job_id = excluded.radar_job_id,
+                        mention_counts_json = excluded.mention_counts_json,
+                        last_error = null,
+                        classification_version = coalesce(excluded.classification_version, video_target_matches.classification_version),
+                        classified_at = coalesce(excluded.classified_at, video_target_matches.classified_at),
+                        classification_run_id = coalesce(excluded.classification_run_id, video_target_matches.classification_run_id),
+                        approval_source = coalesce(video_target_matches.approval_source, excluded.approval_source),
+                        queue_priority_tier = coalesce(video_target_matches.queue_priority_tier, excluded.queue_priority_tier),
+                        queue_priority_rank = coalesce(video_target_matches.queue_priority_rank, excluded.queue_priority_rank),
+                        updated_at = current_timestamp
+                    """,
+                    (
+                        video_id,
+                        target_country,
+                        radar_job_id,
+                        mention_counts_json,
+                        video.classification_version if video else None,
+                        video.classified_at if video else None,
+                        video.classification_run_id if video else None,
+                        queue_priority["tier"],
+                        queue_priority["rank"],
+                    ),
+                )
+            rows = connection.execute(
+                """
+                select * from video_target_matches
+                where video_id = ?
+                order by
+                    case target_country
+                        when 'ecuador' then 1
+                        when 'colombia' then 2
+                        when 'argentina' then 3
+                        when 'uruguay' then 4
+                        when 'paraguay' then 5
+                        when 'mexico' then 6
+                        else 99
+                    end,
+                    id
+                """,
+                (video_id,),
+            ).fetchall()
+        return [_target_match_from_row(row) for row in rows]
+
     def list_transcribing_video_jobs(self) -> list[dict[str, str]]:
         with self._connect() as connection:
             target_rows = connection.execute(
@@ -1014,6 +1113,22 @@ class MonitorStore:
                 """
             ).fetchone()
         return bool(row["active"])
+
+    def upsert_important_summary_mentions(self, *, video_id: str, radar_job_id: str, summary: dict[str, Any]) -> str:
+        mention_counts_json = _global_summary_mentions_json(summary)
+        with self._connect() as connection:
+            connection.execute(
+                """
+                insert into important_summary_mentions(video_id, radar_job_id, mention_counts_json)
+                values (?, ?, ?)
+                on conflict(video_id) do update set
+                    radar_job_id = excluded.radar_job_id,
+                    mention_counts_json = excluded.mention_counts_json,
+                    updated_at = current_timestamp
+                """,
+                (video_id, radar_job_id, mention_counts_json),
+            )
+        return mention_counts_json
 
     def upsert_important_summary_country_matches(
         self, *, video_id: str, radar_job_id: str, summary: dict[str, Any]
@@ -1560,34 +1675,49 @@ class MonitorStore:
             raise ValueError("mode must be dry-run or apply")
         safe_limit = max(1, min(int(limit), 1000))
         with self._connect() as connection:
+            protected_args = (*tuple(PROTECTED_TARGET_STATUSES), *tuple(PROTECTED_BACKFILL_ENQUEUE_STATUSES))
             protected_rows = connection.execute(
                 f"""
                 select distinct videos.video_id
                 from videos
-                join video_target_matches matches on matches.video_id = videos.video_id
+                left join video_target_matches matches on matches.video_id = videos.video_id
+                left join enqueue_attempts latest
+                  on latest.video_id = videos.video_id
+                 and latest.id = (select max(id) from enqueue_attempts where video_id = videos.video_id)
                 where matches.status in ({','.join('?' for _ in PROTECTED_TARGET_STATUSES)})
                    or matches.radar_job_id is not null
+                   or latest.status in ({','.join('?' for _ in PROTECTED_BACKFILL_ENQUEUE_STATUSES)})
+                   or latest.radar_job_id is not null
                 """,
-                tuple(PROTECTED_TARGET_STATUSES),
+                protected_args,
             ).fetchall()
             skipped_protected = len({str(row["video_id"]) for row in protected_rows})
             candidates = connection.execute(
                 f"""
-                select videos.video_id, channels.label, channels.important_mode
+                select videos.video_id, videos.title, videos.live_status, channels.label, channels.country, channels.important,
+                       channels.important_mode, channels.important_rules_json
                 from videos
                 join channels on channels.id = videos.channel_id
-                where channels.important_mode is not null
+                left join rejected_videos rejected on rejected.video_id = videos.video_id
+                left join enqueue_attempts latest
+                  on latest.video_id = videos.video_id
+                 and latest.id = (select max(id) from enqueue_attempts where video_id = videos.video_id)
+                where (channels.important_mode is not null or channels.important = 1)
+                  and (videos.lifecycle in ('ignored_seen', 'enqueue_pending') or rejected.reason = 'no_title_match')
                   and (videos.important_mode is null or videos.queue_priority_tier is null or videos.classification_version is null)
                   and not exists (
                     select 1 from video_target_matches protected
                     where protected.video_id = videos.video_id
                       and (protected.status in ({','.join('?' for _ in PROTECTED_TARGET_STATUSES)}) or protected.radar_job_id is not null)
                   )
+                  and (latest.status is null or latest.status not in ({','.join('?' for _ in PROTECTED_BACKFILL_ENQUEUE_STATUSES)}))
+                  and latest.radar_job_id is null
                 order by videos.created_at, videos.video_id
                 limit ?
                 """,
-                (*tuple(PROTECTED_TARGET_STATUSES), safe_limit),
+                (*tuple(PROTECTED_TARGET_STATUSES), *tuple(PROTECTED_BACKFILL_ENQUEUE_STATUSES), safe_limit),
             ).fetchall()
+            candidates = [row for row in candidates if _important_backfill_match(row) is not None]
             if mode == "dry-run":
                 return {
                     "candidate_count": len(candidates),
@@ -1597,19 +1727,25 @@ class MonitorStore:
                 }
             updated_videos = 0
             for row in candidates:
-                rule_json = _json_dumps_compact({"type": "important_full_channel", "label": row["label"]})
+                match = _important_backfill_match(row)
+                if match is None:
+                    continue
                 cursor = connection.execute(
                     """
                     update videos
-                    set important_mode = ?,
+                    set lifecycle = 'enqueue_pending',
+                        matched = 1,
+                        important_mode = ?,
                         important_rule_json = coalesce(important_rule_json, ?),
+                        classification_status = 'important',
+                        classification_reason = ?,
                         queue_priority_tier = 'important',
                         queue_priority_rank = 0,
                         classification_version = coalesce(classification_version, ?),
                         updated_at = current_timestamp
                     where video_id = ?
                     """,
-                    (row["important_mode"], rule_json, classification_version, row["video_id"]),
+                    (match["important_mode"], match["rule_json"], match["reason"], classification_version, row["video_id"]),
                 )
                 updated_videos += int(cursor.rowcount)
         return {
@@ -1732,8 +1868,8 @@ class MonitorStore:
                     videos.video_id,
                     'important' as target_country,
                     coalesce(latest.status, videos.lifecycle) as status,
-                    latest.radar_job_id,
-                    '[]' as mention_counts_json,
+                    coalesce(summary.radar_job_id, latest.radar_job_id) as radar_job_id,
+                    coalesce(summary.mention_counts_json, '[]') as mention_counts_json,
                     latest.last_error,
                     videos.classification_version,
                     videos.classification_reason,
@@ -1753,6 +1889,7 @@ class MonitorStore:
                  and latest.id = (
                     select max(id) from enqueue_attempts where video_id = videos.video_id
                  )
+                left join important_summary_mentions summary on summary.video_id = videos.video_id
                 where (
                     channels.important = 1
                     or videos.important_mode is not null
@@ -2705,6 +2842,82 @@ def _summary_items_by_real_country(summary: dict[str, Any], *, exclude_country: 
         for country, items in grouped.items()
         if items
     }
+
+
+def _global_summary_mentions_json(summary: dict[str, Any]) -> str:
+    items: list[dict[str, Any]] = []
+    for raw_item in summary.get("items", []):
+        if not isinstance(raw_item, dict):
+            continue
+        target_country = normalize_country(raw_item.get("country"))
+        if target_country in {"important", "importantes"}:
+            continue
+        try:
+            count = int(raw_item.get("count", 0))
+        except (TypeError, ValueError):
+            count = 0
+        if count <= 0:
+            continue
+        label = str(raw_item.get("label") or raw_item.get("country") or "").strip()
+        if not label:
+            continue
+        item: dict[str, Any] = {"label": label, "count": count}
+        timestamps = raw_item.get("timestamps")
+        if timestamps:
+            item["timestamps"] = timestamps
+        items.append(item)
+    items.sort(key=lambda item: (-int(item["count"]), str(item["label"])))
+    return json.dumps(items, ensure_ascii=False, separators=(",", ":"))
+
+
+def _important_backfill_match(row: sqlite3.Row) -> dict[str, str] | None:
+    mode = str(row["important_mode"] or "").strip()
+    legacy_important = "important" in row.keys() and bool(row["important"])
+    if mode == "full_channel" or (not mode and legacy_important):
+        return {
+            "important_mode": mode or "legacy_important_channel",
+            "reason": "important_full_channel",
+            "rule_json": _json_dumps_compact([{"type": "important_full_channel", "label": row["label"], "source_country": normalize_country(row["country"])}]),
+        }
+    if mode != "program_rules":
+        return None
+    content_type = "live" if str(row["live_status"] or "").strip().casefold() in {"live", "upcoming"} else "completed"
+    for rule in _json_loads_list(row["important_rules_json"]):
+        content_types = [str(item).strip().casefold() for item in _rule_value(rule, "content_types", []) or []]
+        if content_types and content_type not in content_types:
+            continue
+        match = match_program_title(str(row["title"] or ""), _RuleAdapter(rule))
+        if match is None:
+            continue
+        return {
+            "important_mode": "program_rules",
+            "reason": "important_program_rule",
+            "rule_json": _json_dumps_compact([
+                {
+                    "type": "important_program_rule",
+                    "label": row["label"],
+                    "source_country": normalize_country(row["country"]),
+                    "op": match.op,
+                    "value": match.value,
+                    "normalized_value": match.normalized_value,
+                    "normalized_title": match.normalized_title,
+                }
+            ]),
+        }
+    return None
+
+
+class _RuleAdapter:
+    def __init__(self, raw: Any):
+        self.op = _rule_value(raw, "op", "")
+        self.value = _rule_value(raw, "value", "")
+        self.content_types = _rule_value(raw, "content_types", [])
+
+
+def _rule_value(raw: Any, key: str, default: Any) -> Any:
+    if isinstance(raw, dict):
+        return raw.get(key, default)
+    return getattr(raw, key, default)
 
 
 def _target_queue_priority(connection: sqlite3.Connection, *, video_id: str, target_country: str) -> dict[str, Any]:

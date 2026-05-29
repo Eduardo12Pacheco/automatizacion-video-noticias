@@ -1201,18 +1201,26 @@ def test_enqueue_worker_keeps_approved_targets_retryable_when_radar_is_busy(tmp_
     assert store.list_enqueue_attempts("retry-me")[-1].next_attempt_at == "2026-05-20T10:05:00Z"
 
 
-def test_transcript_sync_worker_fans_out_completed_summary_to_all_target_matches_and_filters_zero_counts(tmp_path):
+def test_transcript_sync_worker_scopes_completed_summary_to_each_existing_target_country(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="mexico", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
     )
-    store.upsert_video(VideoRecord(video_id="multi", channel_id=channel.id, title="Ecuador y México", lifecycle="enqueued", matched=True))
+    store.upsert_video(VideoRecord(video_id="multi", channel_id=channel.id, title="Ecuador y Colombia", lifecycle="enqueued", matched=True))
     store.upsert_target_match(store.make_target_match(video_id="multi", target_country="ecuador", status="transcribiendo", radar_job_id="job-1"))
-    store.upsert_target_match(store.make_target_match(video_id="multi", target_country="mexico", status="transcribiendo", radar_job_id="job-1"))
+    store.upsert_target_match(store.make_target_match(video_id="multi", target_country="colombia", status="transcribiendo", radar_job_id="job-1"))
     radar = FakeRadarStatusClient(
         detail_by_job_id={"job-1": {"job_id": "job-1", "status": "succeeded"}},
-        summary_by_job_id={"job-1": {"items": [{"label": "Ecuador", "count": 2}, {"label": "Zero", "count": 0}]}},
+        summary_by_job_id={
+            "job-1": {
+                "items": [
+                    {"country": "colombia", "label": "Colombia", "count": 2},
+                    {"country": "colombia", "label": "James Rodríguez", "count": 1},
+                    {"country": "ecuador", "label": "Gonzalo Plata", "count": 0},
+                ]
+            }
+        },
     )
 
     synced = TranscriptSyncWorker(store=store, radar=radar).sync_once()
@@ -1220,8 +1228,40 @@ def test_transcript_sync_worker_fans_out_completed_summary_to_all_target_matches
     assert synced == ["multi"]
     assert radar.calls == [("detail", "job-1"), ("summary", "job-1")]
     assert [(match.target_country, match.status, match.mention_counts_json) for match in store.list_target_matches(video_id="multi")] == [
-        ("ecuador", "transcrito", '[{"label":"Ecuador","count":2}]'),
-        ("mexico", "transcrito", '[{"label":"Ecuador","count":2}]'),
+        ("ecuador", "transcrito", "[]"),
+        ("colombia", "transcrito", '[{"label":"Colombia","count":2},{"label":"James Rodríguez","count":1}]'),
+    ]
+
+
+def test_transcript_sync_worker_creates_transcript_discovered_country_without_zero_rows(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="mexico", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
+    )
+    store.upsert_video(VideoRecord(video_id="discover", channel_id=channel.id, title="COPA PLATA", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="discover", target_country="ecuador", status="transcribiendo", radar_job_id="job-discover"))
+    radar = FakeRadarStatusClient(
+        detail_by_job_id={"job-discover": {"job_id": "job-discover", "status": "succeeded"}},
+        summary_by_job_id={
+            "job-discover": {
+                "items": [
+                    {"country": "uruguay", "label": "Uruguay", "count": 3},
+                    {"country": "argentina", "label": "Argentina", "count": 0},
+                ]
+            }
+        },
+    )
+
+    synced = TranscriptSyncWorker(store=store, radar=radar).sync_once()
+
+    assert synced == ["discover"]
+    assert [
+        (match.target_country, match.status, match.approval_source, match.mention_counts_json)
+        for match in store.list_target_matches(video_id="discover")
+    ] == [
+        ("ecuador", "transcrito", "title_classifier", "[]"),
+        ("uruguay", "transcrito", "transcript_summary", '[{"label":"Uruguay","count":3}]'),
     ]
 
 
@@ -1340,6 +1380,7 @@ def test_transcript_sync_worker_fans_out_important_summary_from_enqueue_attempt_
 
     assert synced == ["important-fanout"]
     assert radar.calls == [("detail", "job-important"), ("summary", "job-important")]
+    assert store.list_important_cards()[0]["mention_counts_json"] == '[{"label":"Argentina","count":2},{"label":"México","count":1}]'
     assert [(match.target_country, match.status, match.approval_source) for match in store.list_target_matches(video_id="important-fanout")] == [
         ("mexico", "transcrito", "transcript_summary"),
     ]
@@ -1412,6 +1453,7 @@ def test_transcript_sync_worker_marks_zero_mention_important_job_complete_withou
 
     assert synced == ["important-zero"]
     assert store.list_target_matches(video_id="important-zero") == []
+    assert store.list_important_cards()[0]["mention_counts_json"] == "[]"
     assert store.list_enqueue_attempts("important-zero")[-1].status == "transcrito"
 
 

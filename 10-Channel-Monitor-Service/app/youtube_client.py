@@ -541,9 +541,15 @@ def _live_status(item: dict[str, Any]) -> str:
 
 def _extract_handle(source: str) -> str:
     text = source.strip()
-    if "@" in text:
-        return text.rsplit("@", 1)[1].strip("/")
-    return text.strip("@/")
+    if not text:
+        return ""
+    if text.startswith("@"):
+        return text[1:].split("/", 1)[0].split("?", 1)[0].split("#", 1)[0].strip()
+    parsed = urllib.parse.urlparse(text if "://" in text else f"https://{text}")
+    for segment in parsed.path.split("/"):
+        if segment.startswith("@") and len(segment) > 1:
+            return segment[1:].strip()
+    return ""
 
 
 def _extract_channel_id(source: str) -> str | None:
