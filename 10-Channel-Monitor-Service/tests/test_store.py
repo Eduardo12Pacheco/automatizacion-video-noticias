@@ -37,6 +37,7 @@ def test_store_migrates_required_monitor_tables(tmp_path):
         "ai_rescue_decisions",
         "ai_rescue_rejections",
         "important_summary_mentions",
+        "card_context_dismissals",
     }
 
 
@@ -563,7 +564,96 @@ def test_store_preflight_reports_ready_after_migration(tmp_path):
         "ai_rescue_decisions",
         "ai_rescue_rejections",
         "important_summary_mentions",
+        "card_context_dismissals",
     ]
+
+
+def test_card_context_dismissals_migrate_and_upsert_by_context_without_deleting_source(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", important=True)
+    )
+    store.upsert_video(VideoRecord(video_id="shared", channel_id=channel.id, title="Ecuador y Colombia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(TargetMatchRecord(video_id="shared", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(TargetMatchRecord(video_id="shared", target_country="colombia", status="aprobado"))
+
+    first = store.upsert_card_context_dismissal(
+        surface="monitor-card",
+        target_context="Ecuador",
+        video_id="shared",
+        dismissed_at="2026-05-28T12:00:00Z",
+        dismissed_by="control-panel",
+        reason="operator-dismissed",
+    )
+    second = store.upsert_card_context_dismissal(
+        surface="monitor-card",
+        target_context="ecuador",
+        video_id="shared",
+        dismissed_at="2026-05-28T12:05:00Z",
+        dismissed_by="control-panel",
+        reason="operator-dismissed-again",
+    )
+
+    with sqlite3.connect(store.db_path) as connection:
+        rows = connection.execute("select surface, target_context, video_id, dismissed_at, reason from card_context_dismissals").fetchall()
+
+    assert first["context_key"] == "monitor-card:ecuador:shared"
+    assert second["context_key"] == "monitor-card:ecuador:shared"
+    assert rows == [("monitor-card", "ecuador", "shared", "2026-05-28T12:05:00Z", "operator-dismissed-again")]
+    assert store.get_video("shared") is not None
+    assert [(match.target_country, match.status) for match in store.list_target_matches(video_id="shared")] == [
+        ("ecuador", "aprobado"),
+        ("colombia", "aprobado"),
+    ]
+
+
+def test_card_context_dismissals_filter_only_matching_radar_contexts_counts_and_summary(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", important=True)
+    )
+    store.upsert_video(
+        VideoRecord(
+            video_id="shared",
+            channel_id=channel.id,
+            title="Ecuador y Colombia",
+            lifecycle="enqueued",
+            matched=True,
+            classification_status="important_channel",
+            detected_at="2026-05-28T10:00:00Z",
+        )
+    )
+    store.upsert_target_match(TargetMatchRecord(video_id="shared", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(TargetMatchRecord(video_id="shared", target_country="colombia", status="transcrito"))
+    store.upsert_card_context_dismissal(
+        surface="monitor-card",
+        target_context="ecuador",
+        video_id="shared",
+        dismissed_at="2026-05-28T12:00:00Z",
+    )
+
+    assert store.list_target_cards(target_country="ecuador", now="2026-05-28T12:30:00Z") == []
+    assert [card["video_id"] for card in store.list_target_cards(target_country="colombia", now="2026-05-28T12:30:00Z")] == ["shared"]
+    assert [card["target_country"] for card in store.list_target_cards(now="2026-05-28T12:30:00Z")] == ["colombia"]
+    assert [card["video_id"] for card in store.list_important_cards(now="2026-05-28T12:30:00Z")] == ["shared"]
+    assert store.count_target_cards(target_country="ecuador", now="2026-05-28T12:30:00Z") == 0
+    assert store.count_target_cards(target_country="colombia", now="2026-05-28T12:30:00Z") == 1
+    assert store.count_target_cards(now="2026-05-28T12:30:00Z") == 1
+    assert store.count_important_cards(now="2026-05-28T12:30:00Z") == 1
+    counts = store.target_status_counts(now="2026-05-28T12:30:00Z")
+    assert counts["ecuador"]["aprobado"] == 0
+    assert counts["colombia"]["transcrito"] == 1
+
+    store.upsert_card_context_dismissal(
+        surface="monitor-card",
+        target_context="important",
+        video_id="shared",
+        dismissed_at="2026-05-28T12:40:00Z",
+    )
+    assert store.list_important_cards(now="2026-05-28T12:45:00Z") == []
+    assert store.count_important_cards(now="2026-05-28T12:45:00Z") == 0
 
 
 def test_baseline_reset_dry_run_requires_backup_without_mutating_operational_state(tmp_path):

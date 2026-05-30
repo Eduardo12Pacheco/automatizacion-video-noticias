@@ -516,6 +516,32 @@ def test_ai_rescue_queue_candidates_detail_and_rejections_contracts_are_sorted_a
     assert before_matches == after_matches
 
 
+def test_card_dismissal_endpoint_filters_ai_rescue_candidate_context_without_decision(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
+    store, candidate_id = _seed_ai_rescue_candidate(tmp_path, settings=settings, target_country="ecuador")
+    client = TestClient(create_app(settings=settings, store=store))
+
+    dismissed = client.post(
+        "/api/monitor/card-dismissals",
+        headers={"x-api-key": "monitor-secret"},
+        json={
+            "surface": "ai-rescue-candidate",
+            "target_context": "ecuador",
+            "video_id": "trash-approve",
+            "candidate_id": candidate_id,
+            "reason": "operator-dismissed",
+        },
+    )
+    candidates = client.get("/api/monitor/ai-rescue/candidates", headers={"x-api-key": "monitor-secret"})
+
+    assert dismissed.status_code == 200
+    assert dismissed.json() == {"status": "dismissed", "context_key": f"ai-rescue-candidate:ecuador:{candidate_id}"}
+    assert candidates.status_code == 200
+    assert candidates.json()["items"] == []
+    assert store.get_ai_rescue_candidate(candidate_id).status == "candidate"
+    assert store.list_target_matches(video_id="trash-approve") == []
+
+
 def test_ai_rescue_refresh_enqueues_rejected_videos_only_when_enabled_without_external_calls(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store = MonitorStore(settings.db_path)
@@ -1114,6 +1140,69 @@ def test_monitor_cards_endpoint_filters_target_rows_and_exposes_canonical_counts
             "classification_version": "title-country-v1",
         }
     ]
+
+
+def test_card_dismissal_endpoint_requires_auth_validates_payload_and_filters_cards_summary(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", radar_api_key="radar-secret")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", important=True)
+    )
+    store.upsert_video(
+        VideoRecord(
+            video_id="multi-dismiss",
+            channel_id=channel.id,
+            title="Ecuador y Colombia",
+            url="https://youtu.be/multi-dismiss",
+            published_at="2026-05-21T18:00:00Z",
+            lifecycle="enqueued",
+            matched=True,
+            classification_status="important_channel",
+        )
+    )
+    store.upsert_target_match(TargetMatchRecord(video_id="multi-dismiss", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(TargetMatchRecord(video_id="multi-dismiss", target_country="colombia", status="transcrito"))
+    client = TestClient(create_app(settings=settings, store=store))
+
+    unauthorized = client.post(
+        "/api/monitor/card-dismissals",
+        json={"surface": "monitor-card", "target_context": "ecuador", "video_id": "multi-dismiss"},
+    )
+    invalid = client.post(
+        "/api/monitor/card-dismissals",
+        headers={"x-api-key": "monitor-secret"},
+        json={"surface": "monitor-card", "target_context": "ecuador"},
+    )
+    dismissed = client.post(
+        "/api/monitor/card-dismissals",
+        headers={"x-api-key": "monitor-secret"},
+        json={
+            "surface": "monitor-card",
+            "target_context": "Ecuador",
+            "video_id": "multi-dismiss",
+            "reason": "operator-dismissed",
+            "dismissed_by": "control-panel",
+        },
+    )
+    ecuador = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "ecuador"})
+    colombia = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "colombia"})
+    important = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "important"})
+    summary = client.get("/api/monitor/summary", headers={"x-api-key": "monitor-secret"})
+
+    assert unauthorized.status_code == 401
+    assert invalid.status_code == 400
+    assert invalid.json()["detail"]["code"] == "missing_dismissal_subject"
+    assert dismissed.status_code == 200
+    assert dismissed.json() == {"status": "dismissed", "context_key": "monitor-card:ecuador:multi-dismiss"}
+    assert ecuador.json()["items"] == []
+    assert ecuador.json()["pagination"]["total"] == 0
+    assert [item["video_id"] for item in colombia.json()["items"]] == ["multi-dismiss"]
+    assert [item["video_id"] for item in important.json()["items"]] == ["multi-dismiss"]
+    ecuador_counts = next(item for item in summary.json()["targets"] if item["country"] == "ecuador")
+    colombia_counts = next(item for item in summary.json()["targets"] if item["country"] == "colombia")
+    assert ecuador_counts["aprobado"] == 0
+    assert colombia_counts["transcrito"] == 1
 
 
 def test_monitor_cards_endpoint_marks_transcribed_zero_mentions_as_ready(tmp_path):

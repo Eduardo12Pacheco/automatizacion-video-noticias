@@ -73,6 +73,7 @@ def test_dry_run_report_uses_detected_at_boundary_and_reports_all_channel_states
         "enqueue_attempts": 1,
         "video_target_matches": 1,
         "rejected_videos": 1,
+        "card_context_dismissals": 2,
         "ai_rescue_queue": 1,
         "ai_rescue_candidates": 1,
         "ai_rescue_evidence": 1,
@@ -89,6 +90,7 @@ def test_dry_run_report_uses_detected_at_boundary_and_reports_all_channel_states
             "enqueue_attempts": 2,
             "video_target_matches": 2,
             "rejected_videos": 2,
+            "card_context_dismissals": 4,
             "ai_rescue_queue": 2,
             "ai_rescue_candidates": 2,
             "ai_rescue_evidence": 2,
@@ -177,6 +179,7 @@ def test_cleanup_worker_apply_deletes_transcript_first_then_channel_state_in_dep
         "enqueue_attempts": 1,
         "video_target_matches": 1,
         "rejected_videos": 1,
+        "card_context_dismissals": 2,
         "ai_rescue_queue": 1,
         "ai_rescue_candidates": 1,
         "ai_rescue_evidence": 1,
@@ -185,6 +188,30 @@ def test_cleanup_worker_apply_deletes_transcript_first_then_channel_state_in_dep
         "cleanup_runs": 1,
     }
     assert store.list_cleanup_runs()[0].deleted_count == 1
+
+
+def test_retention_cleanup_removes_card_context_dismissals_with_expired_video_state(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    _seed_report_video(store, channel.id, video_id="expired", detected_at="2026-05-21T09:00:00Z", lifecycle="enqueued")
+    store.upsert_card_context_dismissal(surface="monitor-card", target_context="ecuador", video_id="expired", dismissed_at="2026-05-22T09:00:00Z")
+    store.upsert_card_context_dismissal(surface="monitor-card", target_context="important", video_id="expired", dismissed_at="2026-05-22T09:00:00Z")
+
+    report = CleanupWorker(
+        store=store,
+        now=lambda: "2026-05-26T10:00:00Z",
+        retention_hours=120,
+        mode="apply",
+        transcript=FakeTranscriptApplyClient(),
+    ).run_retention_cleanup()
+
+    with sqlite3.connect(store.db_path) as connection:
+        remaining = connection.execute("select count(*) from card_context_dismissals").fetchone()[0]
+
+    assert report.items[0].planned_deletions["card_context_dismissals"] == 2
+    assert remaining == 0
+    assert store.get_video("expired") is None
 
 
 def test_cleanup_worker_apply_preserves_channel_rows_when_transcript_cleanup_skips_active(tmp_path):
@@ -284,6 +311,8 @@ def _seed_report_video(store: MonitorStore, channel_id: int, *, video_id: str, d
         reason="weak-evidence",
     )
     store.mark_ai_rescue_candidate_rejected(candidate.id, reviewer="tester", reason="manual", decided_at=detected_at)
+    store.upsert_card_context_dismissal(surface="monitor-card", target_context="ecuador", video_id=video_id, dismissed_at=detected_at)
+    store.upsert_card_context_dismissal(surface="monitor-card", target_context="important", video_id=video_id, dismissed_at=detected_at)
 
 
 def _table_counts(store: MonitorStore) -> dict[str, int]:
@@ -295,6 +324,7 @@ def _table_counts(store: MonitorStore) -> dict[str, int]:
                 "enqueue_attempts",
                 "video_target_matches",
                 "rejected_videos",
+                "card_context_dismissals",
                 "ai_rescue_queue",
                 "ai_rescue_candidates",
                 "ai_rescue_evidence",

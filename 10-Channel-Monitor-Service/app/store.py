@@ -27,6 +27,7 @@ REQUIRED_TABLES = [
     "ai_rescue_decisions",
     "ai_rescue_rejections",
     "important_summary_mentions",
+    "card_context_dismissals",
 ]
 
 PROTECTED_TARGET_STATUSES = {"transcribiendo", "transcrito", "error", "geo_blocked"}
@@ -491,6 +492,29 @@ class MonitorStore:
                     details_json text,
                     created_at text not null default current_timestamp
                 );
+
+                create table if not exists card_context_dismissals (
+                    id integer primary key autoincrement,
+                    surface text not null,
+                    target_context text not null,
+                    video_id text references videos(video_id),
+                    candidate_id integer references ai_rescue_candidates(id),
+                    dismissed_at text not null,
+                    dismissed_by text,
+                    reason text,
+                    expires_at text,
+                    created_at text not null default current_timestamp,
+                    updated_at text not null default current_timestamp,
+                    check (video_id is not null or candidate_id is not null)
+                );
+
+                create unique index if not exists idx_card_context_dismissals_video_context
+                on card_context_dismissals(surface, target_context, video_id)
+                where video_id is not null and candidate_id is null;
+
+                create unique index if not exists idx_card_context_dismissals_candidate_context
+                on card_context_dismissals(surface, target_context, candidate_id)
+                where candidate_id is not null;
                 """
             )
             self._ensure_subscription_columns(connection)
@@ -499,6 +523,72 @@ class MonitorStore:
             self._ensure_important_audit_columns(connection)
             self._ensure_retention_columns(connection)
             self._ensure_channel_checkpoint_columns(connection)
+
+    def upsert_card_context_dismissal(
+        self,
+        *,
+        surface: str,
+        target_context: str,
+        video_id: str | None = None,
+        candidate_id: int | None = None,
+        dismissed_at: str,
+        dismissed_by: str | None = None,
+        reason: str | None = None,
+        expires_at: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_surface = _normalize_dismissal_surface(surface)
+        normalized_context = _normalize_dismissal_context(target_context)
+        normalized_video_id = _optional_stripped(video_id)
+        if normalized_video_id is None and candidate_id is None:
+            raise ValueError("missing_dismissal_subject")
+        resolved_expires_at = expires_at or self._dismissal_expires_at(video_id=normalized_video_id)
+        with self._connect() as connection:
+            if candidate_id is not None:
+                existing = connection.execute(
+                    """
+                    select id from card_context_dismissals
+                    where surface = ? and target_context = ? and candidate_id = ?
+                    """,
+                    (normalized_surface, normalized_context, candidate_id),
+                ).fetchone()
+            else:
+                existing = connection.execute(
+                    """
+                    select id from card_context_dismissals
+                    where surface = ? and target_context = ? and video_id = ? and candidate_id is null
+                    """,
+                    (normalized_surface, normalized_context, normalized_video_id),
+                ).fetchone()
+            if existing is not None:
+                dismissal_id = int(existing["id"])
+                connection.execute(
+                    """
+                    update card_context_dismissals
+                    set video_id = ?, candidate_id = ?, dismissed_at = ?, dismissed_by = ?, reason = ?, expires_at = ?, updated_at = current_timestamp
+                    where id = ?
+                    """,
+                    (normalized_video_id, candidate_id, dismissed_at, dismissed_by, reason, resolved_expires_at, dismissal_id),
+                )
+            else:
+                cursor = connection.execute(
+                    """
+                    insert into card_context_dismissals(surface, target_context, video_id, candidate_id, dismissed_at, dismissed_by, reason, expires_at)
+                    values (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (normalized_surface, normalized_context, normalized_video_id, candidate_id, dismissed_at, dismissed_by, reason, resolved_expires_at),
+                )
+                dismissal_id = int(cursor.lastrowid)
+        return {
+            "id": dismissal_id,
+            "status": "dismissed",
+            "context_key": _dismissal_context_key(
+                surface=normalized_surface,
+                target_context=normalized_context,
+                video_id=normalized_video_id,
+                candidate_id=candidate_id,
+            ),
+            "expires_at": resolved_expires_at,
+        }
 
     def upsert_channel(self, record: ChannelRecord) -> ChannelRecord:
         with self._connect() as connection:
@@ -628,7 +718,7 @@ class MonitorStore:
     def _operational_state_counts(self) -> dict[str, int]:
         counts = _empty_retention_deletion_counts()
         with self._connect() as connection:
-            for table in ["videos", "enqueue_attempts", "video_target_matches", "rejected_videos", "ai_rescue_queue", "ai_rescue_candidates", "ai_rescue_evidence", "ai_rescue_decisions", "ai_rescue_rejections"]:
+            for table in ["videos", "enqueue_attempts", "video_target_matches", "rejected_videos", "card_context_dismissals", "ai_rescue_queue", "ai_rescue_candidates", "ai_rescue_evidence", "ai_rescue_decisions", "ai_rescue_rejections"]:
                 counts[table] = int(connection.execute(f"select count(*) as total from {table}").fetchone()["total"])
         return counts
 
@@ -1471,6 +1561,7 @@ class MonitorStore:
 
     def list_ai_rescue_candidates(self, *, now: str | None = None) -> list[AiRescueCandidateRecord]:
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
@@ -1479,9 +1570,20 @@ class MonitorStore:
                 join videos on videos.video_id = ai_rescue_candidates.video_id
                 where ai_rescue_candidates.status = 'candidate'
                   and {window_sql}
+                  and not exists (
+                    select 1
+                    from card_context_dismissals dismissals
+                    where dismissals.surface = 'ai-rescue-candidate'
+                      and dismissals.target_context = ai_rescue_candidates.target_country
+                      and (
+                        dismissals.candidate_id = ai_rescue_candidates.id
+                        or (dismissals.candidate_id is null and dismissals.video_id = ai_rescue_candidates.video_id)
+                      )
+                      and {dismissal_sql}
+                  )
                 order by score desc, ai_rescue_candidates.id
                 """,
-                window_args,
+                (*window_args, *dismissal_args),
             ).fetchall()
             evidence_by_candidate = _ai_rescue_evidence_by_candidate(connection, [int(row["id"]) for row in rows])
         return [_ai_rescue_candidate_from_row(row, evidence_by_candidate.get(int(row["id"]), [])) for row in rows]
@@ -1797,8 +1899,23 @@ class MonitorStore:
         safe_offset = max(0, int(offset))
         target = normalize_country(target_country) if target_country else None
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
         filters = [window_sql]
         args_list: list[Any] = list(window_args)
+        filters.append(
+            f"""
+            not exists (
+                select 1
+                from card_context_dismissals dismissals
+                where dismissals.surface = 'monitor-card'
+                  and dismissals.target_context = matches.target_country
+                  and dismissals.video_id = matches.video_id
+                  and dismissals.candidate_id is null
+                  and {dismissal_sql}
+            )
+            """
+        )
+        args_list.extend(dismissal_args)
         if target:
             filters.append("matches.target_country = ?")
             args_list.append(target)
@@ -1860,6 +1977,7 @@ class MonitorStore:
         safe_limit = max(1, min(int(limit), 1000))
         safe_offset = max(0, int(offset))
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
         with self._connect() as connection:
             rows = connection.execute(
                 """
@@ -1897,10 +2015,19 @@ class MonitorStore:
                     or videos.classification_status in ('important', 'important_channel')
                 )
                   and {window_sql}
+                  and not exists (
+                    select 1
+                    from card_context_dismissals dismissals
+                    where dismissals.surface = 'monitor-card'
+                      and dismissals.target_context = 'important'
+                      and dismissals.video_id = videos.video_id
+                      and dismissals.candidate_id is null
+                      and {dismissal_sql}
+                  )
                 order by coalesce(videos.published_at, videos.created_at) desc, videos.video_id
                 limit ? offset ?
-                """.format(window_sql=window_sql),
-                (*window_args, safe_limit, safe_offset),
+                """.format(window_sql=window_sql, dismissal_sql=dismissal_sql),
+                (*window_args, *dismissal_args, safe_limit, safe_offset),
             ).fetchall()
         return [dict(row) for row in rows]
 
@@ -1912,8 +2039,23 @@ class MonitorStore:
     def count_target_cards(self, *, target_country: str | None = None, now: str | None = None) -> int:
         target = normalize_country(target_country) if target_country else None
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
         filters = [window_sql]
         args = list(window_args)
+        filters.append(
+            f"""
+            not exists (
+                select 1
+                from card_context_dismissals dismissals
+                where dismissals.surface = 'monitor-card'
+                  and dismissals.target_context = matches.target_country
+                  and dismissals.video_id = matches.video_id
+                  and dismissals.candidate_id is null
+                  and {dismissal_sql}
+            )
+            """
+        )
+        args.extend(dismissal_args)
         if target:
             filters.append("matches.target_country = ?")
             args.append(target)
@@ -1922,6 +2064,7 @@ class MonitorStore:
 
     def count_important_cards(self, *, now: str | None = None) -> int:
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
         with self._connect() as connection:
             return int(connection.execute(f"""
                 select count(*) as total
@@ -1929,7 +2072,16 @@ class MonitorStore:
                 join channels on channels.id = videos.channel_id
                 where (channels.important = 1 or videos.important_mode is not null or videos.queue_priority_tier = 'important' or videos.classification_status in ('important', 'important_channel'))
                   and {window_sql}
-            """, window_args).fetchone()["total"])
+                  and not exists (
+                    select 1
+                    from card_context_dismissals dismissals
+                    where dismissals.surface = 'monitor-card'
+                      and dismissals.target_context = 'important'
+                      and dismissals.video_id = videos.video_id
+                      and dismissals.candidate_id is null
+                      and {dismissal_sql}
+                  )
+            """, (*window_args, *dismissal_args)).fetchone()["total"])
 
     def list_stale_classification_candidates(
         self, *, classification_version: str, limit: int = 100
@@ -2106,16 +2258,26 @@ class MonitorStore:
 
     def target_status_counts(self, *, now: str | None = None) -> dict[str, dict[str, int]]:
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
-                select target_country, status, count(*) as total
+                select video_target_matches.target_country, video_target_matches.status, count(*) as total
                 from video_target_matches
                 join videos on videos.video_id = video_target_matches.video_id
                 where {window_sql}
+                  and not exists (
+                    select 1
+                    from card_context_dismissals dismissals
+                    where dismissals.surface = 'monitor-card'
+                      and dismissals.target_context = video_target_matches.target_country
+                      and dismissals.video_id = video_target_matches.video_id
+                      and dismissals.candidate_id is null
+                      and {dismissal_sql}
+                  )
                 group by target_country, status
                 """,
-                window_args,
+                (*window_args, *dismissal_args),
             ).fetchall()
         counts = {country: {"aprobado": 0, "transcribiendo": 0, "transcrito": 0, "error": 0} for country in TARGET_COUNTRY_ORDER}
         for row in rows:
@@ -2149,6 +2311,7 @@ class MonitorStore:
             "enqueue_attempts",
             "video_target_matches",
             "rejected_videos",
+            "card_context_dismissals",
             "ai_rescue_queue",
             "ai_rescue_candidates",
             "ai_rescue_rejections",
@@ -2229,6 +2392,9 @@ class MonitorStore:
             )
             counts["rejected_videos"] = int(
                 connection.execute("delete from rejected_videos where video_id = ?", (video_id,)).rowcount
+            )
+            counts["card_context_dismissals"] = int(
+                connection.execute("delete from card_context_dismissals where video_id = ?", (video_id,)).rowcount
             )
             counts["video_target_matches"] = int(
                 connection.execute("delete from video_target_matches where video_id = ?", (video_id,)).rowcount
@@ -2414,6 +2580,18 @@ class MonitorStore:
                 )
             row = connection.execute("select * from ai_rescue_decisions where id = ?", (cursor.lastrowid,)).fetchone()
         return _ai_rescue_decision_from_row(row)
+
+    def _dismissal_expires_at(self, *, video_id: str | None) -> str | None:
+        if not video_id:
+            return None
+        with self._connect() as connection:
+            row = connection.execute("select detected_at from videos where video_id = ?", (video_id,)).fetchone()
+        if row is None:
+            return None
+        detected_at = _parse_datetime(row["detected_at"])
+        if detected_at is None:
+            return None
+        return (detected_at + timedelta(hours=120)).astimezone(UTC).isoformat().replace("+00:00", "Z")
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
@@ -2675,6 +2853,43 @@ def _active_window_sql(column: str, *, now: str | None = None, hours: int = 120)
     if now:
         return f"{normalized} >= datetime(replace(replace(?, 'T', ' '), 'Z', ''), ?)", (now, f"-{hours} hours")
     return f"{normalized} >= datetime('now', ?)", (f"-{hours} hours",)
+
+
+def _active_dismissal_sql(alias: str = "dismissals", *, now: str | None = None) -> tuple[str, tuple[Any, ...]]:
+    normalized = f"datetime(replace(replace({alias}.expires_at, 'T', ' '), 'Z', ''))"
+    if now:
+        return f"({alias}.expires_at is null or {normalized} > datetime(replace(replace(?, 'T', ' '), 'Z', '')))", (now,)
+    return f"({alias}.expires_at is null or {normalized} > datetime('now'))", ()
+
+
+def _normalize_dismissal_surface(value: Any) -> str:
+    surface = str(value or "").strip().casefold()
+    if surface not in {"monitor-card", "ai-rescue-candidate"}:
+        raise ValueError("invalid_surface")
+    return surface
+
+
+def _normalize_dismissal_context(value: Any) -> str:
+    normalized = normalize_country(value)
+    if normalized in {"importantes", "important"}:
+        return "important"
+    if normalized not in set(TARGET_COUNTRY_ORDER):
+        raise ValueError("invalid_target_context")
+    return normalized
+
+
+def _dismissal_context_key(
+    *, surface: str, target_context: str, video_id: str | None = None, candidate_id: int | None = None
+) -> str:
+    subject = str(candidate_id) if candidate_id is not None else str(video_id or "")
+    return f"{surface}:{target_context}:{subject}"
+
+
+def _optional_stripped(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _rejected_video_from_row(row: sqlite3.Row) -> RejectedVideoRecord:
@@ -2989,6 +3204,7 @@ def _empty_retention_deletion_counts() -> dict[str, int]:
         "enqueue_attempts": 0,
         "video_target_matches": 0,
         "rejected_videos": 0,
+        "card_context_dismissals": 0,
         "ai_rescue_queue": 0,
         "ai_rescue_candidates": 0,
         "ai_rescue_evidence": 0,

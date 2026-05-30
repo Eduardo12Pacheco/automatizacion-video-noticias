@@ -228,6 +228,32 @@ def create_app(
         except ValueError as exc:
             raise _error("invalid_reset", str(exc), 400) from exc
 
+    @app.post("/api/monitor/card-dismissals")
+    async def dismiss_card_context(payload: dict[str, Any]) -> dict[str, Any]:
+        surface = str(payload.get("surface") or "").strip()
+        target_context = str(payload.get("target_context") or "").strip()
+        video_id = _optional_text(payload.get("video_id"))
+        candidate_id = _optional_int(payload.get("candidate_id"))
+        if not surface:
+            raise _error("missing_surface", "Dismissal surface is required", 400)
+        if not target_context:
+            raise _error("missing_target_context", "Dismissal target_context is required", 400)
+        if video_id is None and candidate_id is None:
+            raise _error("missing_dismissal_subject", "Dismissal requires video_id or candidate_id", 400)
+        try:
+            result = store.upsert_card_context_dismissal(
+                surface=surface,
+                target_context=target_context,
+                video_id=video_id,
+                candidate_id=candidate_id,
+                dismissed_at=_utc_now_iso(),
+                dismissed_by=_optional_text(payload.get("dismissed_by")),
+                reason=_optional_text(payload.get("reason")) or "operator-dismissed",
+            )
+        except ValueError as exc:
+            raise _error(str(exc), "Invalid dismissal payload", 400) from exc
+        return {"status": result["status"], "context_key": result["context_key"]}
+
     @app.get("/api/monitor/cards")
     async def list_monitor_cards(limit: int | None = None, offset: int = 0, target_country: str | None = None) -> dict[str, Any]:
         safe_limit = _safe_page_limit(limit, settings=settings)
@@ -756,6 +782,15 @@ def _optional_text(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise _error("invalid_candidate_id", "candidate_id must be an integer", 400) from exc
 
 
 def _require_confirmation(payload: dict[str, Any]) -> None:

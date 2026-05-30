@@ -261,6 +261,41 @@ def test_ai_rescue_candidate_and_rejection_storage_are_idempotent_per_queue_targ
     assert [(item.target_country, item.reason) for item in rejections] == [("mexico", "weak-evidence")]
 
 
+def test_ai_rescue_candidate_dismissal_filters_only_candidate_context_without_changing_decision_state(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+    )
+    store.upsert_video(VideoRecord(video_id="trash-dismiss", channel_id=channel.id, title="Elogio a Ecuador", lifecycle="ignored_seen"))
+    store.upsert_rejected_video(video_id="trash-dismiss", source_country="colombia", reason="no_valid_target_match")
+    queue_item = store.enqueue_ai_rescue_rejected_video(video_id="trash-dismiss", now="2026-05-22T10:00:00Z")
+    candidate = store.store_ai_rescue_candidate(
+        queue_id=queue_item.id,
+        video_id="trash-dismiss",
+        target_country="ecuador",
+        score=85,
+        summary_es="Ecuador destacado.",
+        angle_es="Elogio deportivo.",
+        risk="low",
+        evidence=[],
+        raw_response_json="{}",
+    )
+
+    store.upsert_card_context_dismissal(
+        surface="ai-rescue-candidate",
+        target_context="ecuador",
+        video_id="trash-dismiss",
+        candidate_id=candidate.id,
+        dismissed_at="2026-05-22T10:30:00Z",
+    )
+
+    assert store.list_ai_rescue_candidates(now="2026-05-22T10:31:00Z") == []
+    assert store.get_ai_rescue_candidate(candidate.id).status == "candidate"
+    assert store.list_target_matches(video_id="trash-dismiss") == []
+    assert store.get_video("trash-dismiss") is not None
+
+
 def test_ai_rescue_human_approval_promotes_candidate_without_widening_targets(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
