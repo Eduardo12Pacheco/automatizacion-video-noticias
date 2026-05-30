@@ -43,7 +43,7 @@ export type SubtitleRenderProps = {
   font_faces?: FontFace[];
 };
 
-const previewOverlayPaddingX = 22;
+const previewOverlayPaddingX = 94;
 const previewPaddingY = 14;
 const previewStripeThickness = 3;
 const previewLineHeight = 1.02;
@@ -91,6 +91,7 @@ const SubtitleOverlay: React.FC<{cue: SubtitleCue}> = ({cue}) => {
     <AbsoluteFill
       style={{
         display: 'flex',
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: justifyContentForAlign(align),
         paddingLeft: previewOverlayPaddingX,
