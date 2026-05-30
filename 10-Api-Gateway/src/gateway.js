@@ -51,6 +51,7 @@ export const DEFAULT_PANEL_BOOTSTRAP = Object.freeze({
 
 export const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 export const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000;
+export const DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS = 120_000;
 export const DEFAULT_PANEL_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 export const DEFAULT_PRESENCE_TTL_MS = 60_000;
 
@@ -139,10 +140,14 @@ function resolveRouteMatches(rawUrl, routes = DEFAULT_ROUTES) {
     const prefix = normalizePrefix(route.prefix);
     if (!prefix || !matchesPrefix(parsed.pathname, prefix)) continue;
     const strippedPath = parsed.pathname.slice(prefix.length) || '/';
+    const upstreamPath = `${strippedPath}${parsed.search}`;
     matches.push({
       service,
       target: route.target,
-      upstreamPath: `${strippedPath}${parsed.search}`,
+      upstreamPath,
+      ...(service === 'subtitles' && /^\/api\/subtitles\/sessions\/[^/]+\/render(?:\?|$)/.test(upstreamPath)
+        ? { upstreamTimeoutMs: DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS }
+        : {}),
     });
   }
   return matches;
@@ -1287,8 +1292,9 @@ function proxyRequest(req, res, route, options, session = null, bodyBuffer = nul
     },
   );
 
+  const upstreamTimeoutMs = route.upstreamTimeoutMs || options.upstreamTimeoutMs;
   if (typeof upstreamReq.setTimeout === 'function') {
-    upstreamReq.setTimeout(options.upstreamTimeoutMs, () => {
+    upstreamReq.setTimeout(upstreamTimeoutMs, () => {
       timedOut = true;
       options.logger.warn?.('gateway upstream timeout', {
         service: route.service,

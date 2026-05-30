@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
-import { BoundedTtlStore, createGatewayServer, resolveRoutePolicy } from '../src/gateway.js';
+import { BoundedTtlStore, createGatewayServer, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, resolveRoutePolicy } from '../src/gateway.js';
 import {
   DEFAULT_EVENT_RETENTION,
   JsonlEventRecorder,
@@ -666,6 +666,20 @@ test('resolveRoutePolicy makes protected proxy and read-model requirements expli
   assert.equal(readModel.requiresEditor, false);
   assert.equal(readModel.requiresCsrf, false);
   assert.equal(readModel.allowsCredentialInjection, true);
+});
+
+test('subtitle render proxy gets an extended upstream timeout', () => {
+  const policy = resolveRoutePolicy({
+    method: 'POST',
+    url: '/subtitles/api/subtitles/sessions/session_42/render',
+  }, {
+    routes: { subtitles: { prefix: '/subtitles', target: 'http://127.0.0.1:8092' } },
+    serviceCredentials: { subtitles: { 'x-api-key': 'subtitles-secret' } },
+  });
+
+  assert.equal(policy.kind, 'proxy');
+  assert.equal(policy.route.service, 'subtitles');
+  assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS);
 });
 
 test('unknown proxy route fails closed locally without upstream proxying', async () => {
