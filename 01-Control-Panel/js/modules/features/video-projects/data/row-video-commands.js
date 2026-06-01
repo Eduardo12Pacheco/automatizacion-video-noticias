@@ -145,7 +145,7 @@ export function createRowVideoCommands({ api, ui, getProject, resolveProjectKey,
           effect1AssetId: 'overlay-layer-01',
           effect2AssetId: 'overlay-layer-02',
         },
-      });
+      }, { render: false });
     } catch {
       return false;
     }
