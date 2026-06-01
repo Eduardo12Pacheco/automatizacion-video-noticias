@@ -56,6 +56,7 @@ type TimelineSegment = {
   transition?: string;
   caption?: string;
   mediaMode?: "image" | "newspaper";
+  newspaper?: { labelEnabled?: boolean; foregroundMotion?: { fromX?: number; fromY?: number; toX?: number; toY?: number; fromScale?: number; toScale?: number; easing?: string } };
   media?: { kind: "image" } | VideoSegmentMedia;
 };
 
@@ -542,8 +543,16 @@ const NewspaperScene = ({
   durationInFrames: number;
 }) => {
   useNewspaperFont();
-  const motionRange = segment.motion ? resolveMotionRange(segment.motion) : NEWSPAPER_MOTION;
+  const motionRange = segment.newspaper?.foregroundMotion ? resolveMotionRange(segment.newspaper.foregroundMotion) : (segment.motion ? resolveMotionRange(segment.motion) : NEWSPAPER_MOTION);
   const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const x = interpolate(frame, [0, durationInFrames], [motionRange.fromX, motionRange.toX], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const y = interpolate(frame, [0, durationInFrames], [motionRange.fromY, motionRange.toY], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -575,11 +584,11 @@ const NewspaperScene = ({
           height: "100%",
           objectFit: "contain",
           objectPosition: "center center",
-          transform: `scale(${scale})`,
+          transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
           transformOrigin: "center center",
         }}
       />
-      <div
+      {segment.newspaper?.labelEnabled === false ? null : <div
         data-layer="newspaper-artistic-label"
         style={{
           position: "absolute",
@@ -601,7 +610,7 @@ const NewspaperScene = ({
         }}
       >
         {NEWSPAPER_LABEL_LINES.join("\n")}
-      </div>
+      </div>}
     </AbsoluteFill>
   );
 };

@@ -139,6 +139,25 @@ function resolveImageMotionForMode(segment) {
   return segment?.motion || segment?.motionPresetId || "slow-zoom-in";
 }
 
+function normalizeNewspaperSettings(segment = {}) {
+  const settings = segment?.newspaper && typeof segment.newspaper === "object" ? segment.newspaper : {};
+  const foregroundMotion = settings.foregroundMotion && typeof settings.foregroundMotion === "object" ? settings.foregroundMotion : null;
+  return {
+    labelEnabled: settings.labelEnabled !== false,
+    ...(foregroundMotion ? {
+      foregroundMotion: {
+        fromX: Number(foregroundMotion.fromX || 0),
+        fromY: Number(foregroundMotion.fromY || 0),
+        toX: Number(foregroundMotion.toX || 0),
+        toY: Number(foregroundMotion.toY || 0),
+        fromScale: Math.max(0.1, Number(foregroundMotion.fromScale || 1)),
+        toScale: Math.max(0.1, Number(foregroundMotion.toScale || 1.25)),
+        easing: "linear",
+      },
+    } : {}),
+  };
+}
+
 function resolveSegmentRowId(segment = {}, index = 0) {
   return String(segment?.rowId || segment?.id || `row-${index + 1}`);
 }
@@ -296,6 +315,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       ...imageDimensions,
       ...(media ? { media } : {}),
       mediaMode: resolveMediaMode(segment?.mediaMode),
+      newspaper: normalizeNewspaperSettings(segment),
       startTime: Number(segment?.startTime || 0),
       endTime,
       effectiveEndTime: Number.isFinite(Number(segment?.effectiveEndTime)) ? Number(segment.effectiveEndTime) : undefined,

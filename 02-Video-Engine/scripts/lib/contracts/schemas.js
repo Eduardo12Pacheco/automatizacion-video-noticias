@@ -14,6 +14,11 @@ const imageMotionObjectSchema = z.object({
 
 const imageMotionSchema = z.union([z.string(), imageMotionObjectSchema]);
 
+const newspaperSettingsSchema = z.object({
+  labelEnabled: z.boolean().default(true).optional(),
+  foregroundMotion: imageMotionObjectSchema.optional(),
+}).passthrough();
+
 const whipTransitionConfigSchema = z.object({
   type: z.literal("whip").default("whip"),
   durationSeconds: numericSecondsSchema.default(0.43),
@@ -206,6 +211,7 @@ const renderSegmentSchema = timelineFrameSchema.extend({
   sfx: z.string().nullable().optional(),
   caption: z.string().optional(),
   mediaMode: z.enum(["image", "newspaper"]).default("image").optional(),
+  newspaper: newspaperSettingsSchema.optional(),
   media: rowMediaSchema.optional(),
 });
 
@@ -270,6 +276,7 @@ const editorRowSchema = z
     candidates: z.array(rowCandidateSchema).default([]),
     motion: imageMotionSchema.default("slow-zoom-in"),
     mediaMode: z.enum(["image", "newspaper"]).default("image").optional(),
+    newspaper: newspaperSettingsSchema.optional(),
     dust: z.object({ enabled: z.boolean().default(false) }).default({ enabled: false }),
     logo: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
     filter: z.object({ enabled: z.boolean().default(true), mode: z.string().default("cover") }).default({ enabled: true, mode: "cover" }),
