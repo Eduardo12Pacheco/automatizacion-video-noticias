@@ -142,6 +142,7 @@ function normalizeRow(seed = {}, segment = {}, index, imageAsset, channelAssets)
     sfx: seed.sfx || null,
     media: { kind: "image" },
     mediaMode: seed.mediaMode === "newspaper" ? "newspaper" : "image",
+    newspaper: seed.newspaper && typeof seed.newspaper === "object" ? { ...seed.newspaper } : { labelEnabled: true },
     status: "ready",
   };
 }
