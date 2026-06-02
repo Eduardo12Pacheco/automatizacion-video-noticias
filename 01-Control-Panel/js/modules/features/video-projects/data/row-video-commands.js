@@ -144,6 +144,7 @@ export function createRowVideoCommands({ api, ui, getProject, resolveProjectKey,
           overlayOpacity: 0.3,
           effect1AssetId: 'overlay-layer-01',
           effect2AssetId: 'overlay-layer-02',
+          foregroundTransform: { x: 0, y: 0, scale: 1 },
         },
       }, { render: false });
     } catch {
