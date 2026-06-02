@@ -198,6 +198,8 @@ const renderSegmentSchema = timelineFrameSchema.extend({
   requestedImage: z.string().nullable().optional(),
   imageWidth: z.number().finite().positive().optional(),
   imageHeight: z.number().finite().positive().optional(),
+  panViewportWidth: z.number().finite().positive().optional(),
+  panViewportHeight: z.number().finite().positive().optional(),
   imageStrategy: z.string().optional(),
   rowId: z.string().optional(),
   paragraphBoundaryAfter: z.boolean().optional(),

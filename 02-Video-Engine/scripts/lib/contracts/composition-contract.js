@@ -64,6 +64,36 @@ function resolveOptionalImageDimensions(manifestAsset) {
   return { imageWidth: width, imageHeight: height };
 }
 
+function resolvePositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function resolveMotionRenderGeometry(motion) {
+  if (!motion || typeof motion !== "object") return {};
+  const imageWidth = resolvePositiveNumber(motion.imageWidth);
+  const imageHeight = resolvePositiveNumber(motion.imageHeight);
+  const panViewportWidth = resolvePositiveNumber(motion.panViewportWidth);
+  const panViewportHeight = resolvePositiveNumber(motion.panViewportHeight);
+  return {
+    ...(imageWidth && imageHeight ? { imageWidth, imageHeight } : {}),
+    ...(panViewportWidth && panViewportHeight ? { panViewportWidth, panViewportHeight } : {}),
+  };
+}
+
+function isManualImageMotion(motion) {
+  return Boolean(motion && typeof motion === "object" && !Array.isArray(motion));
+}
+
+function hasCompleteRenderGeometry(geometry = {}) {
+  return Boolean(
+    resolvePositiveNumber(geometry.imageWidth)
+    && resolvePositiveNumber(geometry.imageHeight)
+    && resolvePositiveNumber(geometry.panViewportWidth)
+    && resolvePositiveNumber(geometry.panViewportHeight)
+  );
+}
+
 function extendFinalSegmentToDuration(segments, compositionDurationSeconds) {
   if (!Array.isArray(segments) || segments.length === 0) return segments;
   const lastIndex = segments.length - 1;
@@ -302,16 +332,24 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
   const musicSrc = resolveRequiredAsset(assets, musicAssetId, "audio.music", options);
 
   const contractRows = Array.isArray(safeContract?.rows) ? safeContract.rows : safeContract?.segments;
+  const missingRenderGeometryRowIds = [];
   const segments = (Array.isArray(contractRows) ? contractRows : []).map((segment, index) => {
     const image = resolveRequiredAsset(assets, segment?.selectedAssetId, `segment[${index}].image`, options);
     const imageDimensions = resolveOptionalImageDimensions(assets[String(segment?.selectedAssetId || "")] || {});
+    const motionGeometry = resolveMotionRenderGeometry(segment?.motion);
     const endTime = Number.isFinite(Number(segment?.effectiveEndTime)) ? Number(segment.effectiveEndTime) : Number(segment?.endTime);
     const media = resolveVideoSegmentMedia(segment, assets, index, options);
+    const rowId = resolveSegmentRowId(segment, index);
+    const renderGeometry = { ...motionGeometry, ...imageDimensions };
+    if (media?.kind !== "video-segment" && isManualImageMotion(segment?.motion) && !hasCompleteRenderGeometry(renderGeometry)) {
+      missingRenderGeometryRowIds.push(rowId);
+    }
     return {
-      rowId: resolveSegmentRowId(segment, index),
+      rowId,
       id: index + 1,
       phrase: String(segment?.phrase || segment?.text || "").trim() || `Segmento ${index + 1}`,
       image,
+      ...motionGeometry,
       ...imageDimensions,
       ...(media ? { media } : {}),
       mediaMode: resolveMediaMode(segment?.mediaMode),
@@ -331,6 +369,10 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
       caption: segment?.caption || "",
     };
   });
+
+  if (missingRenderGeometryRowIds.length) {
+    throw createAdapterError(`Image rows require complete render geometry before final render: ${missingRenderGeometryRowIds.join(", ")}`, { rowIds: missingRenderGeometryRowIds });
+  }
 
   const latestSegmentEnd = segments.reduce((max, segment) => Math.max(max, Number(segment.endTime || 0)), 0);
   const explicitDuration = Number(

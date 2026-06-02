@@ -46,6 +46,8 @@ type TimelineSegment = {
   image: string;
   imageWidth?: number;
   imageHeight?: number;
+  panViewportWidth?: number;
+  panViewportHeight?: number;
   phrase?: string;
   startTime: number;
   endTime: number;
@@ -662,6 +664,8 @@ const SegmentScene = ({
     viewportHeight: VIEWPORT_HEIGHT,
     imageWidth: segment.imageWidth,
     imageHeight: segment.imageHeight,
+    panViewportWidth: segment.panViewportWidth ?? segment.imageWidth,
+    panViewportHeight: segment.panViewportHeight ?? (segment.imageWidth ? segment.imageWidth * (VIEWPORT_HEIGHT / VIEWPORT_WIDTH) : undefined),
     scale,
     x,
     y,

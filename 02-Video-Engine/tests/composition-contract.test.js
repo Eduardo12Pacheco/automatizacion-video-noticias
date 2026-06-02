@@ -103,6 +103,82 @@ test("adapter maps contract + manifest to renderPropsV2 shape", () => {
   assert.equal(props.outro.enabled, true);
 });
 
+test("adapter passes row motion image and pan viewport metadata when asset dimensions are absent", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments[0].motion = {
+    fromX: 0,
+    fromY: 267,
+    toX: 0,
+    toY: 341,
+    fromScale: 1,
+    toScale: 1.27,
+    imageWidth: 951,
+    imageHeight: 1171,
+    panViewportWidth: 950.53125,
+    panViewportHeight: 533.796875,
+  };
+  delete manifest.assets["img-1"].imageWidth;
+  delete manifest.assets["img-1"].imageHeight;
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 951);
+  assert.equal(props.segments[0].imageHeight, 1171);
+  assert.equal(props.segments[0].panViewportWidth, 950.53125);
+  assert.equal(props.segments[0].panViewportHeight, 533.796875);
+});
+
+test("adapter keeps manifest asset dimensions ahead of row motion image metadata", () => {
+  const { contract, manifest } = makeFixture();
+  manifest.assets["img-1"].imageWidth = 2400;
+  manifest.assets["img-1"].imageHeight = 3200;
+  contract.segments[0].motion = {
+    fromX: 0,
+    fromY: 267,
+    toX: 0,
+    toY: 341,
+    fromScale: 1,
+    toScale: 1.27,
+    imageWidth: 951,
+    imageHeight: 1171,
+    panViewportWidth: 950.53125,
+    panViewportHeight: 533.796875,
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 2400);
+  assert.equal(props.segments[0].imageHeight, 3200);
+  assert.equal(props.segments[0].panViewportWidth, 950.53125);
+  assert.equal(props.segments[0].panViewportHeight, 533.796875);
+});
+
+test("adapter rejects manual image motion when rows 6 and 7 reach render without complete geometry", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments = Array.from({ length: 7 }, (_, index) => {
+    const rowNumber = index + 1;
+    const assetId = `img-${rowNumber}`;
+    manifest.assets[assetId] = { renderPath: `generated/images/${assetId}.jpg`, status: "ready" };
+    return {
+      rowId: `seg-00${rowNumber}`,
+      phrase: `Fila ${rowNumber}`,
+      startTime: index,
+      endTime: index + 1,
+      effectiveEndTime: index + 1,
+      selectedAssetId: assetId,
+      media: { kind: "image" },
+      motion: rowNumber <= 5
+        ? { fromX: 0, fromY: rowNumber * 10, toX: 0, toY: rowNumber * 12, fromScale: 1, toScale: 1.2, imageWidth: 900 + index, imageHeight: 1200 + index, panViewportWidth: 950.53125, panViewportHeight: 533.796875 }
+        : { fromX: 0, fromY: rowNumber * 10, toX: 0, toY: rowNumber * 12, fromScale: 1, toScale: 1.2 },
+    };
+  });
+
+  assert.throws(
+    () => adaptCompositionContractToRenderProps({ contract, manifest }),
+    /geometry.*seg-006, seg-007/i,
+  );
+});
+
 test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX events without changing duration", () => {
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
@@ -337,7 +413,7 @@ test("adapter preserves final render fidelity contract for audio sync, alpha log
         endTime: 5,
         effectiveEndTime: 5,
         selectedAssetId: "image-1",
-        motion: { fromX: -8, fromY: 3, toX: 8, toY: -3, fromScale: 1.02, toScale: 1.18, easing: "linear" },
+        motion: { fromX: -8, fromY: 3, toX: 8, toY: -3, fromScale: 1.02, toScale: 1.18, easing: "linear", imageWidth: 2400, imageHeight: 3200, panViewportWidth: 950.53125, panViewportHeight: 533.796875 },
         dust: { enabled: true, type: dustAssetId, opacity: 0.41, blendMode: "screen" },
         logo: { enabled: true },
         media: { kind: "image" },
@@ -353,7 +429,11 @@ test("adapter preserves final render fidelity contract for audio sync, alpha log
     assert.equal(props.audio.music.fadeOutSeconds, 1.1);
     assert.equal(props.compositionDurationSeconds, 9.25);
     assert.equal(props.segments[0].endTime, 9.25);
-    assert.deepEqual(props.segments[0].motion, snapshot.rows[0].motion);
+    assert.deepEqual(props.segments[0].motion, { fromX: -8, fromY: 3, toX: 8, toY: -3, fromScale: 1.02, toScale: 1.18, easing: "linear" });
+    assert.equal(props.segments[0].imageWidth, 2400);
+    assert.equal(props.segments[0].imageHeight, 3200);
+    assert.equal(props.segments[0].panViewportWidth, 950.53125);
+    assert.equal(props.segments[0].panViewportHeight, 533.796875);
     assert.equal(props.logo.src, logoRenderPath);
     assert.equal(props.logo.enabled, true);
     assert.equal(props.overlays.dust.src, dustRenderPath);
@@ -389,7 +469,7 @@ test("adapter maps approval editor V1 canonical snapshot fields for final render
       effectiveEndTime: 1.5,
       selectedAssetId: "img-1",
       motionPresetId: "Zoom-125",
-      motion: { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear" },
+      motion: { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear", imageWidth: 2400, imageHeight: 3200, panViewportWidth: 950.53125, panViewportHeight: 533.796875 },
       dust: { enabled: true, type: "particle-2", assetId: "particle-2", opacity: 0.4, blendMode: "screen" },
       logo: { enabled: true },
     }],
@@ -399,7 +479,11 @@ test("adapter maps approval editor V1 canonical snapshot fields for final render
 
   assert.equal(props.lastRenderedSnapshotHash, "hash-v1");
   assert.equal(props.segments[0].image, "imagenes/uno.jpg");
-  assert.deepEqual(props.segments[0].motion, snapshot.rows[0].motion);
+  assert.deepEqual(props.segments[0].motion, { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear" });
+  assert.equal(props.segments[0].imageWidth, 2400);
+  assert.equal(props.segments[0].imageHeight, 3200);
+  assert.equal(props.segments[0].panViewportWidth, 950.53125);
+  assert.equal(props.segments[0].panViewportHeight, 533.796875);
   assert.equal(props.overlays.dust.src, "overlays/particle-2.webm");
   assert.equal(props.logo.src, "logo-demo-alpha.webm");
   assert.equal(props.audio.voiceSrc, "audio/voice.wav");
@@ -516,6 +600,16 @@ test("adapter passes optional image dimensions from asset metadata to render seg
 
   assert.equal(props.segments[0].imageWidth, 4000);
   assert.equal(props.segments[0].imageHeight, 2000);
+});
+
+test("adapter passes optional image dimensions from nested selected asset metadata", () => {
+  const { contract, manifest } = makeFixture();
+  manifest.assets["img-1"].metadata = { imageWidth: 2400, imageHeight: 3200 };
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 2400);
+  assert.equal(props.segments[0].imageHeight, 3200);
 });
 
 test("adapter omits image dimensions when asset metadata is unavailable", () => {
@@ -896,6 +990,8 @@ test("Remotion final image and overlay source keeps preview fidelity rules", () 
   const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
 
   assert.match(source, /objectFit: "cover",\n\s*filter: segment\.filter/, "image render must preserve aspect ratio like preview, not stretch with object-fit fill");
+  assert.match(source, /panViewportWidth: segment\.panViewportWidth \?\? segment\.imageWidth/, "manual pan offsets must be scaled from the browser preview viewport before final render");
+  assert.match(source, /panViewportHeight: segment\.panViewportHeight \?\? \(segment\.imageWidth \? segment\.imageWidth \* \(VIEWPORT_HEIGHT \/ VIEWPORT_WIDTH\) : undefined\)/, "final render must infer the 16:9 preview pan basis when the contract has only image dimensions");
   assert.match(source, /<DustOverlay layer=\{dustLayer\} startFrom=\{0\} \/>/, "dust video must start from local segment time so it remains visible on later rows");
   assert.match(source, /<LogoOverlay logo=\{logo\} startFrom=\{0\} \/>/, "logo video must start from local segment time so it remains visible on later rows");
   assert.doesNotMatch(source, /absoluteStartFrame/, "final render should not trim reusable overlay videos by absolute row time inside segment sequences");

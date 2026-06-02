@@ -3,6 +3,8 @@ type CoverPanLayerInput = {
   viewportHeight: number;
   imageWidth?: number;
   imageHeight?: number;
+  panViewportWidth?: number;
+  panViewportHeight?: number;
   scale?: number;
   x?: number;
   y?: number;
@@ -18,40 +20,44 @@ function finiteNumber(value: unknown, fallback: number) {
   return Number.isFinite(number) ? number : fallback;
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
-export function resolveCoverPanLayer({ viewportWidth, viewportHeight, imageWidth, imageHeight, scale = 1, x = 0, y = 0 }: CoverPanLayerInput) {
+export function resolveCoverPanLayer({ viewportWidth, viewportHeight, imageWidth, imageHeight, panViewportWidth, panViewportHeight, scale = 1, x = 0, y = 0 }: CoverPanLayerInput) {
   const safeViewportWidth = finitePositive(viewportWidth, 1);
   const safeViewportHeight = finitePositive(viewportHeight, 1);
+  const safePanViewportHeight = finitePositive(panViewportHeight, safeViewportHeight);
+  const safePanViewportWidth = finitePositive(panViewportWidth, safePanViewportHeight * (safeViewportWidth / safeViewportHeight));
   const safeImageWidth = finitePositive(imageWidth, safeViewportWidth);
   const safeImageHeight = finitePositive(imageHeight, safeViewportHeight);
   const safeScale = finitePositive(scale, 1);
-  const requestedX = finiteNumber(x, 0);
-  const requestedY = finiteNumber(y, 0);
+  const panScale = safeViewportWidth / safePanViewportWidth;
+  const requestedX = finiteNumber(x, 0) * panScale;
+  const requestedY = finiteNumber(y, 0) * panScale;
 
   const coverScale = Math.max(safeViewportWidth / safeImageWidth, safeViewportHeight / safeImageHeight);
   const baseWidth = safeImageWidth * coverScale;
   const baseHeight = safeImageHeight * coverScale;
   const layerWidth = baseWidth * safeScale;
   const layerHeight = baseHeight * safeScale;
+  const baseLeft = (safeViewportWidth - baseWidth) / 2;
+  const baseTop = (safeViewportHeight - baseHeight) / 2;
   const maxX = Math.max(0, (layerWidth - safeViewportWidth) / 2);
   const maxY = Math.max(0, (layerHeight - safeViewportHeight) / 2);
-  const clampedX = clamp(requestedX, -maxX, maxX);
-  const clampedY = clamp(requestedY, -maxY, maxY);
 
   return {
     coverScale,
     baseWidth,
     baseHeight,
+    baseLeft,
+    baseTop,
     layerWidth,
     layerHeight,
     maxX,
     maxY,
-    clampedX,
-    clampedY,
-    left: (safeViewportWidth - layerWidth) / 2 + clampedX,
-    top: (safeViewportHeight - layerHeight) / 2 + clampedY,
+    appliedX: requestedX,
+    appliedY: requestedY,
+    left: (safeViewportWidth - layerWidth) / 2 + requestedX,
+    top: (safeViewportHeight - layerHeight) / 2 + requestedY,
+    transformX: requestedX,
+    transformY: requestedY,
+    transformScale: safeScale,
   };
 }
