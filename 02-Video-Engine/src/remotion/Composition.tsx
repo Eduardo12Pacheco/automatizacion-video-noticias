@@ -40,6 +40,7 @@ type VideoSegmentMedia = {
   effect1BlendMode?: "screen";
   effect2Src: string;
   effect2BlendMode?: "multiply";
+  foregroundTransform?: { x?: number; y?: number; scale?: number };
 };
 
 type TimelineSegment = {
@@ -442,6 +443,11 @@ const VideoSegmentScene = ({
   fps: number;
 }) => {
   const durationInFrames = Math.max(1, Math.round(media.durationSeconds * fps));
+  const foregroundTransform = {
+    x: media.foregroundTransform?.x ?? 0,
+    y: media.foregroundTransform?.y ?? 0,
+    scale: Math.max(0.1, media.foregroundTransform?.scale ?? 1),
+  };
 
   return (
     <AbsoluteFill>
@@ -487,7 +493,7 @@ const VideoSegmentScene = ({
           src={staticFile(media.sourceVideoSrc)}
           muted
           startFrom={Math.round(media.sourceInSeconds * fps)}
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          style={{ width: "100%", height: "100%", objectFit: "contain", transform: `translate(${foregroundTransform.x}px, ${foregroundTransform.y}px) scale(${foregroundTransform.scale})`, transformOrigin: "center center" }}
         />
       </Sequence>
     </AbsoluteFill>

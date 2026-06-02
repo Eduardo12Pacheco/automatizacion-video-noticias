@@ -699,6 +699,45 @@ test("adapter preserves image selectedAssetId while mapping explicit video segme
   });
 });
 
+test("adapter passes video segment foreground transform through render media", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-v1",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "video-1": { assetId: "video-1", renderPath: "videos/source.mp4", status: "ready" },
+      "overlay-layer-01": { assetId: "overlay-layer-01", renderPath: "overlays/overlay-layer-01.mp4", status: "ready" },
+      "overlay-layer-02": { assetId: "overlay-layer-02", renderPath: "overlays/overlay-layer-02.mp4", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    rows: [{
+      rowId: "row-video",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 2.5,
+      effectiveEndTime: 2.5,
+      selectedAssetId: "img-1",
+      media: {
+        kind: "video-segment",
+        sourceVideoAssetId: "video-1",
+        sourceInSeconds: 4,
+        durationSeconds: 2.5,
+        foregroundTransform: { x: -42, y: 18, scale: 1.35 },
+      },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.deepEqual(props.segments[0].media.foregroundTransform, { x: -42, y: 18, scale: 1.35 });
+});
+
 test("adapter preserves newspaper media mode as an image-driven render segment", () => {
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
@@ -1060,6 +1099,9 @@ test("Remotion composition source contains deterministic five-layer VideoSegment
   assert.match(source, /overlay-layer-01/);
   assert.match(source, /overlay-layer-02/);
   assert.match(source, /foreground-video/);
+  assert.match(source, /foregroundTransform\?: \{ x\?: number; y\?: number; scale\?: number \}/);
+  assert.match(source, /transform: `translate\(\$\{foregroundTransform\.x\}px, \$\{foregroundTransform\.y\}px\) scale\(\$\{foregroundTransform\.scale\}\)`/);
+  assert.match(source, /transformOrigin: "center center"/);
   assert.match(source, /mixBlendMode: media\.effect1BlendMode \?\? "screen"/);
   assert.match(source, /mixBlendMode: media\.effect2BlendMode \?\? "multiply"/);
   assert.match(source, /backgroundColor: media\.overlayColor \?\? "#3835AF"/);

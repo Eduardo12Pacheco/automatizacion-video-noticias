@@ -141,6 +141,7 @@ function resolveVideoSegmentMedia(segment, assets, index, options) {
   const sourceVideoSrc = media.sourceVideoSrc || resolveRequiredAsset(assets, media.sourceVideoAssetId, `segment[${index}].video`, options);
   const effect1Src = media.effect1Src || resolveRequiredAsset(assets, media.effect1AssetId || "overlay-layer-01", `segment[${index}].effect1`, options);
   const effect2Src = media.effect2Src || resolveRequiredAsset(assets, media.effect2AssetId || "overlay-layer-02", `segment[${index}].effect2`, options);
+  const foregroundTransform = media.foregroundTransform && typeof media.foregroundTransform === "object" ? media.foregroundTransform : null;
 
   return {
     kind: "video-segment",
@@ -154,6 +155,13 @@ function resolveVideoSegmentMedia(segment, assets, index, options) {
     effect1BlendMode: "screen",
     effect2Src,
     effect2BlendMode: "multiply",
+    ...(foregroundTransform ? {
+      foregroundTransform: {
+        x: Number(foregroundTransform.x || 0),
+        y: Number(foregroundTransform.y || 0),
+        scale: Math.max(0.1, Number(foregroundTransform.scale || 1)),
+      },
+    } : {}),
   };
 }
 

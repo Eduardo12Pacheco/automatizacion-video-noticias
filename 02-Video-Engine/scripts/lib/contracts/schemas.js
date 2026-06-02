@@ -14,6 +14,12 @@ const imageMotionObjectSchema = z.object({
 
 const imageMotionSchema = z.union([z.string(), imageMotionObjectSchema]);
 
+const videoForegroundTransformSchema = z.object({
+  x: z.number().finite().default(0),
+  y: z.number().finite().default(0),
+  scale: z.number().finite().positive().default(1),
+});
+
 const newspaperSettingsSchema = z.object({
   labelEnabled: z.boolean().default(true).optional(),
   foregroundMotion: imageMotionObjectSchema.optional(),
@@ -86,6 +92,7 @@ const videoSegmentMediaSchema = z.object({
   effect2AssetId: z.literal("overlay-layer-02").optional(),
   effect2Src: z.string().min(1).optional(),
   effect2BlendMode: z.literal("multiply").default("multiply"),
+  foregroundTransform: videoForegroundTransformSchema.optional(),
 });
 
 const rowMediaSchema = z.union([
