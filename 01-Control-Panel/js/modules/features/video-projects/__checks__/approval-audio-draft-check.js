@@ -1,6 +1,11 @@
 import { pathToFileURL } from 'node:url';
 import { createGlobalAudioCommands } from '../controller/audio-commands.js';
 import { createApprovalSnapshotOperations } from '../controller/approval-snapshot-operations.js';
+import {
+  DEFAULT_BACKGROUND_MUSIC_TRACK_ID,
+  DEFAULT_BACKGROUND_MUSIC_TRACKS,
+  findDefaultBackgroundMusicTrack,
+} from '../audio/default-background-music.js';
 import { normalizeGlobalAudioState } from '../domain/editor-state.js';
 import { buildEditorDetailRailViewModel } from '../render/editor-view-model.js';
 import { buildSelectedVideoProjectViewModel } from '../render/view-model.js';
@@ -115,6 +120,20 @@ function assertSetupUsesGolazoMusicByDefault() {
   assertEqual(detail.canPreparePreview, true, 'Expected default Golazo music to satisfy background audio requirement');
 }
 
+function assertDefaultMusicCatalogIncludesEmotiveGolazoWithoutChangingDefault() {
+  const emotiveTrack = findDefaultBackgroundMusicTrack('musica-emotiva-golazo');
+
+  assertEqual(DEFAULT_BACKGROUND_MUSIC_TRACK_ID, 'musica-golazo', 'Expected default background music track id to remain Golazo');
+  assertEqual(DEFAULT_BACKGROUND_MUSIC_TRACKS[0]?.id, 'musica-golazo', 'Expected Golazo music to remain first in the default music catalog');
+  assertEqual(emotiveTrack?.id, 'musica-emotiva-golazo', 'Expected Emotiva Golazo music option to exist');
+  assertEqual(emotiveTrack?.fileName, 'musica-emotiva-golazo.wav', 'Expected Emotiva Golazo music option to reference the local WAV file name');
+  assertEqual(
+    emotiveTrack?.path,
+    'defaults/background-music/musica-emotiva-golazo.wav',
+    'Expected Emotiva Golazo music option to use the default background music storage path',
+  );
+}
+
 function assertExplicitMusicVolumeIsPreserved() {
   const normalized = normalizeGlobalAudioState({ music: { volume: 0.16, muted: false } });
 
@@ -174,6 +193,7 @@ export async function runApprovalAudioDraftCheck() {
   await assertApprovalAudioUsesOptimisticDrafts();
   assertDefaultMusicVolumeIsEightyPercent();
   assertSetupUsesGolazoMusicByDefault();
+  assertDefaultMusicCatalogIncludesEmotiveGolazoWithoutChangingDefault();
   assertExplicitMusicVolumeIsPreserved();
   assertZeroVolumeDoesNotSnapToDefault();
   assertCanonicalApplyKeepsPendingAudioDraft();
