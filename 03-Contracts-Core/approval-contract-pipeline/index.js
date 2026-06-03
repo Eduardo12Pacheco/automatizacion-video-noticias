@@ -85,6 +85,74 @@ function round(value) {
   return Number(Number(value || 0).toFixed(3));
 }
 
+function timelineRowId(row = {}, index = 0) {
+  return String(row?.rowId || row?.id || `row-${index + 1}`);
+}
+
+function timelineNumber(row = {}, field) {
+  const value = Number(row?.[field]);
+  return Number.isFinite(value) ? value : null;
+}
+
+function formatTimelineNumber(value) {
+  return Number(value).toString();
+}
+
+function createInvalidTimelineError(violations, { label = "timeline" } = {}) {
+  const error = new Error(`Invalid timeline: ${violations.join("; ")}`);
+  error.code = "invalid_timeline";
+  error.details = { label, violations };
+  return error;
+}
+
+function validateApprovalTimeline(rows = [], options = {}) {
+  const label = options.label || "approval timeline";
+  if (!Array.isArray(rows)) {
+    throw createInvalidTimelineError([`${label} rows must be an array`], { label });
+  }
+  const violations = [];
+  let previous = null;
+
+  rows.forEach((row, index) => {
+    const rowId = timelineRowId(row, index);
+    const startTime = timelineNumber(row, "startTime");
+    const endTime = timelineNumber(row, "endTime");
+    const hasEffectiveEndTime = row && Object.prototype.hasOwnProperty.call(row, "effectiveEndTime");
+    const effectiveEndTime = hasEffectiveEndTime ? timelineNumber(row, "effectiveEndTime") : null;
+
+    if (startTime === null) violations.push(`row ${rowId} has invalid startTime ${row?.startTime}`);
+    if (endTime === null) violations.push(`row ${rowId} has invalid endTime ${row?.endTime}`);
+    if (hasEffectiveEndTime && effectiveEndTime === null) violations.push(`row ${rowId} has invalid effectiveEndTime ${row?.effectiveEndTime}`);
+
+    if (startTime !== null && endTime !== null && endTime <= startTime) {
+      violations.push(`row ${rowId} endTime ${formatTimelineNumber(endTime)} is not after startTime ${formatTimelineNumber(startTime)}`);
+    }
+    if (startTime !== null && effectiveEndTime !== null && effectiveEndTime < startTime) {
+      violations.push(`row ${rowId} effectiveEndTime ${formatTimelineNumber(effectiveEndTime)} is before startTime ${formatTimelineNumber(startTime)}`);
+    }
+    if (endTime !== null && effectiveEndTime !== null && effectiveEndTime < endTime) {
+      violations.push(`row ${rowId} effectiveEndTime ${formatTimelineNumber(effectiveEndTime)} is before endTime ${formatTimelineNumber(endTime)}`);
+    }
+
+    if (previous && startTime !== null) {
+      if (previous.startTime !== null && startTime < previous.startTime) {
+        violations.push(`row ${rowId} starts at ${formatTimelineNumber(startTime)} before previous row ${previous.rowId} startTime ${formatTimelineNumber(previous.startTime)}`);
+      }
+      if (previous.endTime !== null && startTime < previous.endTime) {
+        violations.push(`row ${rowId} starts at ${formatTimelineNumber(startTime)} before previous row ${previous.rowId} endTime ${formatTimelineNumber(previous.endTime)}`);
+      }
+      if (previous.effectiveEndTime !== null && startTime < previous.effectiveEndTime) {
+        violations.push(`row ${rowId} starts at ${formatTimelineNumber(startTime)} before previous row ${previous.rowId} effectiveEndTime ${formatTimelineNumber(previous.effectiveEndTime)}`);
+      }
+    }
+
+    previous = { rowId, startTime, endTime, effectiveEndTime };
+  });
+
+  if (violations.length) throw createInvalidTimelineError(violations, { label });
+  return rows;
+}
+
 function normalizeAsset(asset = {}, fallback = {}) {
   const assetId = String(asset.assetId || asset.id || fallback.assetId || fallback.id || "").trim();
   if (!assetId) return null;
@@ -106,7 +174,7 @@ function normalizeAsset(asset = {}, fallback = {}) {
 
 function timedSegments({ segments = [], alignedTimings = null, totalDurationSeconds = 0 }) {
   const phrases = Array.isArray(alignedTimings?.phrases) ? alignedTimings.phrases : [];
-  return segments.map((segment, index) => {
+  const timed = segments.map((segment, index) => {
     const timing = phrases[index] || segment;
     const startTime = round(timing?.startTime ?? timing?.start ?? segment?.startTime ?? index);
     const endTime = round(timing?.endTime ?? timing?.end ?? segment?.endTime ?? startTime + 1);
@@ -116,6 +184,7 @@ function timedSegments({ segments = [], alignedTimings = null, totalDurationSeco
     const finalEnd = index === all.length - 1 ? Math.max(segment.endTime, totalDurationSeconds || 0) : next.startTime;
     return { ...segment, effectiveEndTime: round(finalEnd) };
   });
+  return validateApprovalTimeline(timed, { label: "approval contract timed segments" });
 }
 
 function normalizeRow(seed = {}, segment = {}, index, imageAsset, channelAssets) {
@@ -174,6 +243,7 @@ function buildApprovalContractPipeline({
   const audioDuration = Math.max(numberOr(normalizedVoice?.durationSeconds), numberOr(alignedTimings?.totalDurationSeconds));
   const preparedSegments = timedSegments({ segments, alignedTimings, totalDurationSeconds: audioDuration });
   const rows = preparedSegments.map((segment, index) => normalizeRow(rowsSeed[index] || {}, segment, index, normalizedImages[index], channelAssets));
+  validateApprovalTimeline(rows, { label: "approval contract rows" });
   const brandAssets = buildBrandAssetRecords(channelAssets);
   const assets = {};
   for (const asset of [...normalizedImages, normalizedVoice, normalizedMusic].filter(Boolean)) assets[asset.assetId] = asset;
@@ -254,6 +324,7 @@ module.exports = {
   buildBrandAssetRecords,
   buildApprovalContractPipeline,
   buildCompositionContractFromPreparedInput,
+  validateApprovalTimeline,
   computeApprovalSnapshotHash,
   parseGuionSegments,
   alignPhrasesToTranscript,
