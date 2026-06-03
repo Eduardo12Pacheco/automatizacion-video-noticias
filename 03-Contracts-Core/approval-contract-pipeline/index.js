@@ -18,6 +18,12 @@ const BRAND_CHANNEL_ASSETS = {
     logo: { assetId: "brand-logo-demo-co", previewPath: "logo-demo-co.webm", renderPath: "overlays/logo-demo-co-alpha-frames", source: "logo-demo-co.webm" },
     outro: { assetId: "brand-outro-colombia", previewPath: "final-demo-co.webm", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, label: "Golazo Colombia" },
   },
+  "final-demo-cup": {
+    channel: "final-demo-cup",
+    label: "Final Mundial",
+    logo: { assetId: "brand-logo-demo-cup", previewPath: "logo-demo-cup.png", renderPath: "overlays/logo-demo-cup.png", source: "logo-demo-cup.png" },
+    outro: { assetId: "brand-outro-mundial", previewPath: "final-demo-cup.webm", renderPath: "overlays/final-demo-cup.mp4", durationSeconds: 29.3, label: "Final Mundial" },
+  },
 };
 
 function stableId(value) {
