@@ -552,7 +552,7 @@ const NewspaperScene = ({
   durationInFrames: number;
 }) => {
   useNewspaperFont();
-  const motionRange = segment.newspaper?.foregroundMotion ? resolveMotionRange(segment.newspaper.foregroundMotion) : (segment.motion ? resolveMotionRange(segment.motion) : NEWSPAPER_MOTION);
+  const motionRange = segment.newspaper?.foregroundMotion ? resolveMotionRange(segment.newspaper.foregroundMotion) : NEWSPAPER_MOTION;
   const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
