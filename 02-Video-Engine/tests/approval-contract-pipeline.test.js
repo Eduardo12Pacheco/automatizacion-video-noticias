@@ -85,6 +85,35 @@ test("approval contract pipeline extends final segment to official voice asset d
   assert.equal(result.contract.rows[1].effectiveEndTime, 9.5);
 });
 
+test("approval contract pipeline defaults prepared music volume to eighty percent", () => {
+  const result = buildApprovalContractPipeline({
+    projectId: "draft-music-default",
+    title: "Music Default",
+    draftId: "Draft Music Default",
+    rowsSeed: makeRows(),
+    segments: [
+      { phrase: "Linea 1", startTime: 0, endTime: 1.4 },
+      { phrase: "Linea 2", startTime: 1.4, endTime: 3.1 },
+    ],
+    alignedTimings: {
+      totalDurationSeconds: 3.1,
+      phrases: [
+        { startTime: 0, endTime: 1.4 },
+        { startTime: 1.4, endTime: 3.1 },
+      ],
+    },
+    alignmentStatus: { status: "ready", source: "whisper-alignment", generatedAt: "2026-05-07T00:00:00.000Z" },
+    imageAssets: [
+      { id: "image-1", localPath: "imagenes/001.jpg", publicPath: "generated/images/001.jpg", source: { kind: "local", bridge: "approval-panel" } },
+      { id: "image-2", localPath: "imagenes/002.jpg", publicPath: "generated/images/002.jpg", source: { kind: "local", bridge: "approval-panel" } },
+    ],
+    voiceAsset: { id: "voice-1", localPath: "audio/voice-original.wav", publicPath: "generated/voice-original.wav", source: { kind: "local", bridge: "approval-panel" } },
+    musicAsset: { id: "music-1", localPath: "audio/background-music.wav", publicPath: "generated/background-music.wav", source: { kind: "local", bridge: "approval-panel" } },
+  });
+
+  assert.equal(result.contract.audio.music.volume, 0.8);
+});
+
 test("approval contract pipeline rejects the seg-017 through seg-020 timing regression", () => {
   assert.throws(
     () => buildApprovalContractPipeline({
