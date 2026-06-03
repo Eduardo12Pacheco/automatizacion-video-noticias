@@ -128,6 +128,7 @@ test("approval contract pipeline manifest is stable and row-linked", () => {
     ],
     voiceAsset: { id: "voice-1", localPath: "audio/voice-original.wav", publicPath: "generated/voice-original.wav", source: { kind: "local", bridge: "approval-panel" } },
     musicAsset: { id: "music-1", localPath: "audio/background-music.wav", publicPath: "generated/background-music.wav", source: { kind: "local", bridge: "approval-panel" } },
+    nowIso: "2026-05-08T12:00:00.000Z",
   };
 
   const first = buildApprovalContractPipeline(input);
@@ -295,6 +296,18 @@ test("brand channel registry resolves preview and render assets with legacy Ecua
   assert.equal(colombia.outro.renderPath, "overlays/final-demo-co.mp4");
   assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "golazo-colombia", kind: "logo" }), "./assets/logo-demo-co.webm");
 
+  assert.equal(normalizeBrandChannel("final-demo-cup"), "final-demo-cup");
+  const mundial = resolveBrandChannelAssets("final-demo-cup");
+  assert.equal(mundial.logo.assetId, "brand-logo-demo-cup");
+  assert.equal(mundial.logo.previewPath, "logo-demo-cup.png");
+  assert.equal(mundial.logo.renderPath, "overlays/logo-demo-cup.png");
+  assert.equal(mundial.outro.assetId, "brand-outro-mundial");
+  assert.equal(mundial.outro.previewPath, "final-demo-cup.webm");
+  assert.equal(mundial.outro.renderPath, "overlays/final-demo-cup.mp4");
+  assert.equal(mundial.outro.durationSeconds, 29.3);
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "final-demo-cup", kind: "logo" }), "./assets/logo-demo-cup.png");
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "final-demo-cup", kind: "outro" }), "./assets/final-demo-cup.webm");
+
   const fallback = resolveBrandChannelAssets(null);
   assert.equal(fallback.channel, "golazo-ecuador");
   assert.equal(fallback.logo.previewPath, "logo-demo-alpha.webm");
@@ -325,6 +338,7 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
 
   const ecuador = buildApprovalContractPipeline(baseInput).contract;
   const colombia = buildApprovalContractPipeline({ ...baseInput, brandChannel: "golazo-colombia" }).contract;
+  const mundial = buildApprovalContractPipeline({ ...baseInput, brandChannel: "final-demo-cup" }).contract;
 
   assert.equal(ecuador.brandChannel, "golazo-ecuador");
   assert.equal(ecuador.globalLayers.logo.assetId, "brand-logo-ecuador");
@@ -342,4 +356,15 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
   assert.equal(colombia.assets["brand-logo-demo-co"].renderPath, "overlays/logo-demo-co-alpha-frames");
   assert.equal(colombia.assets["brand-outro-colombia"].renderPath, "overlays/final-demo-co.mp4");
   assert.notEqual(computeApprovalSnapshotHash(ecuador), computeApprovalSnapshotHash(colombia));
+
+  assert.equal(mundial.brandChannel, "final-demo-cup");
+  assert.equal(mundial.globalLayers.logo.assetId, "brand-logo-demo-cup");
+  assert.equal(mundial.globalLayers.logo.source, "logo-demo-cup.png");
+  assert.equal(mundial.globalLayers.outro.assetId, "brand-outro-mundial");
+  assert.equal(mundial.assets["brand-logo-demo-cup"].previewUrl, "./assets/logo-demo-cup.png");
+  assert.equal(mundial.assets["brand-logo-demo-cup"].renderPath, "overlays/logo-demo-cup.png");
+  assert.equal(mundial.assets["brand-outro-mundial"].previewUrl, "./assets/final-demo-cup.webm");
+  assert.equal(mundial.assets["brand-outro-mundial"].renderPath, "overlays/final-demo-cup.mp4");
+  assert.equal(mundial.assets["brand-outro-mundial"].durationSeconds, 29.3);
+  assert.notEqual(computeApprovalSnapshotHash(ecuador), computeApprovalSnapshotHash(mundial));
 });

@@ -536,6 +536,52 @@ test("adapter maps channel logo and outro render assets from safe overlay paths"
   assert.equal(props.compositionDurationSeconds, 8);
 });
 
+test("adapter maps Mundial static PNG logo and original outro render assets", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-brand-mundial",
+    brandChannel: "final-demo-cup",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-logo-demo-cup": { assetId: "brand-logo-demo-cup", type: "logo", renderPath: "overlays/logo-demo-cup.png", status: "ready" },
+      "brand-outro-mundial": { assetId: "brand-outro-mundial", type: "outro", renderPath: "overlays/final-demo-cup.mp4", durationSeconds: 29.3, status: "ready" },
+    },
+    audio: {
+      totalDurationSeconds: 6,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.8, muted: false },
+    },
+    globalLayers: {
+      logo: { enabled: true, assetId: "brand-logo-demo-cup", source: "logo-demo-cup.png" },
+      logoAssetId: "brand-logo-demo-cup",
+      outro: { enabled: true, assetId: "brand-outro-mundial" },
+      outroAssetId: "brand-outro-mundial",
+    },
+    rows: [{
+      rowId: "row-1",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 4,
+      effectiveEndTime: 4,
+      selectedAssetId: "img-1",
+      media: { kind: "image" },
+      logo: { enabled: true },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.logo.src, "overlays/logo-demo-cup.png");
+  assert.equal(props.logo.enabled, true);
+  assert.equal(props.outro.enabled, true);
+  assert.equal(props.outro.src, "overlays/final-demo-cup.mp4");
+  assert.equal(props.outro.durationSeconds, 29.3);
+  assert.equal(props.compositionDurationSeconds, 8);
+});
+
 test("adapter prefers channel outro asset duration over stale contract duration", () => {
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
