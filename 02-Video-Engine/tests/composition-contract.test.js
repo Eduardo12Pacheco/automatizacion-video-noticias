@@ -357,6 +357,20 @@ test("adapter throws useful error when referenced asset is missing", () => {
   );
 });
 
+test("adapter rejects out-of-order overlapping contract rows before final render props", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments = [
+    { ...contract.segments[0], rowId: "seg-018", startTime: 97.7, endTime: 98.7, effectiveEndTime: 98.7, selectedAssetId: "img-1" },
+    { ...contract.segments[0], rowId: "seg-019", startTime: 88.74, endTime: 93.64, effectiveEndTime: 93.64, selectedAssetId: "img-2" },
+  ];
+  manifest.assets["img-2"] = { renderPath: "generated/images/dos.jpg", status: "ready" };
+
+  assert.throws(
+    () => adaptCompositionContractToRenderProps({ contract, manifest }),
+    /Invalid timeline:.*row seg-019 starts at 88\.74 before previous row seg-018 endTime 98\.7/is,
+  );
+});
+
 test("adapter uses effectiveEndTime for segment render end", () => {
   const { contract, manifest } = makeFixture();
   contract.segments[0].endTime = 1;

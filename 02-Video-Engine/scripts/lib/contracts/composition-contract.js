@@ -1,4 +1,5 @@
 const { renderPropsV2Schema } = require("./schemas");
+const { validateApprovalTimeline } = require("../../../../03-Contracts-Core/approval-contract-pipeline");
 
 const FINAL_OUTRO_GAP_SECONDS = 2;
 const WHIP_TRANSITION_DURATION_SECONDS = 0.43;
@@ -340,6 +341,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
   const musicSrc = resolveRequiredAsset(assets, musicAssetId, "audio.music", options);
 
   const contractRows = Array.isArray(safeContract?.rows) ? safeContract.rows : safeContract?.segments;
+  validateApprovalTimeline(Array.isArray(contractRows) ? contractRows : [], { label: "composition contract rows" });
   const missingRenderGeometryRowIds = [];
   const segments = (Array.isArray(contractRows) ? contractRows : []).map((segment, index) => {
     const image = resolveRequiredAsset(assets, segment?.selectedAssetId, `segment[${index}].image`, options);

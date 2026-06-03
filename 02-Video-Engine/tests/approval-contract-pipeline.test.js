@@ -85,6 +85,58 @@ test("approval contract pipeline extends final segment to official voice asset d
   assert.equal(result.contract.rows[1].effectiveEndTime, 9.5);
 });
 
+test("approval contract pipeline rejects the seg-017 through seg-020 timing regression", () => {
+  assert.throws(
+    () => buildApprovalContractPipeline({
+      projectId: "draft-corrupt-timeline",
+      title: "Corrupt Timeline",
+      draftId: "Draft Corrupt Timeline",
+      rowsSeed: [
+        { id: "seg-017", phrase: "Segmento 17" },
+        { id: "seg-018", phrase: "Segmento 18" },
+        { id: "seg-019", phrase: "Segmento 19" },
+        { id: "seg-020", phrase: "Segmento 20" },
+      ],
+      segments: [
+        { id: "seg-017", phrase: "Segmento 17", startTime: 92.28, endTime: 97.7 },
+        { id: "seg-018", phrase: "Segmento 18", startTime: 97.7, endTime: 98.7 },
+        { id: "seg-019", phrase: "Segmento 19", startTime: 88.74, endTime: 93.64 },
+        { id: "seg-020", phrase: "Segmento 20", startTime: 93.84, endTime: 97.7 },
+      ],
+      alignedTimings: {
+        phrases: [
+          { startTime: 92.28, endTime: 97.7 },
+          { startTime: 97.7, endTime: 98.7 },
+          { startTime: 88.74, endTime: 93.64 },
+          { startTime: 93.84, endTime: 97.7 },
+        ],
+      },
+      alignmentStatus: { status: "ready", source: "whisper-alignment" },
+      imageAssets: [
+        { id: "image-17", publicPath: "generated/images/017.jpg" },
+        { id: "image-18", publicPath: "generated/images/018.jpg" },
+        { id: "image-19", publicPath: "generated/images/019.jpg" },
+        { id: "image-20", publicPath: "generated/images/020.jpg" },
+      ],
+      voiceAsset: { id: "voice-1", publicPath: "generated/voice.wav", durationSeconds: 99 },
+      musicAsset: { id: "music-1", publicPath: "generated/music.wav" },
+    }),
+    /Invalid timeline:.*seg-018 effectiveEndTime 88\.74 is before endTime 98\.7.*seg-019 starts at 88\.74 before previous row seg-018 endTime 98\.7/is,
+  );
+});
+
+test("approval contract pipeline rejects effectiveEndTime before a row endTime", () => {
+  const rows = [
+    { rowId: "seg-014", startTime: 63.37, endTime: 87.04, effectiveEndTime: 80.56 },
+    { rowId: "seg-015", startTime: 87.04, endTime: 92.28, effectiveEndTime: 92.28 },
+  ];
+
+  assert.throws(
+    () => sharedApprovalPipeline.validateApprovalTimeline(rows, { label: "deployed snapshot" }),
+    /Invalid timeline: row seg-014 effectiveEndTime 80\.56 is before endTime 87\.04/i,
+  );
+});
+
 test("approval contract pipeline reports selected image mismatch diagnostics", () => {
   const result = buildApprovalContractPipeline({
     projectId: "draft-43",
@@ -203,6 +255,7 @@ test("shared module exports preserve approval contract parity", () => {
     ],
     voiceAsset: { id: "voice-1", localPath: "audio/voice-original.wav", publicPath: "generated/voice-original.wav", source: { kind: "local", bridge: "approval-panel" } },
     musicAsset: { id: "music-1", localPath: "audio/background-music.wav", publicPath: "generated/background-music.wav", source: { kind: "local", bridge: "approval-panel" } },
+    nowIso: "2026-05-08T12:00:00.000Z",
   };
 
   const legacy = buildApprovalContractPipeline(input);
