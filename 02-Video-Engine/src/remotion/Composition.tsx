@@ -638,7 +638,12 @@ const SegmentScene = ({
   const frame = useCurrentFrame();
 
   if (segment.media?.kind === "video-segment") {
-    return <VideoSegmentScene media={segment.media} fps={fps} />;
+    return (
+      <AbsoluteFill>
+        <VideoSegmentScene media={segment.media} fps={fps} />
+        {segment.logo?.enabled !== false ? <LogoOverlay logo={logo} startFrom={0} /> : null}
+      </AbsoluteFill>
+    );
   }
 
   const durationInFrames = Math.max(

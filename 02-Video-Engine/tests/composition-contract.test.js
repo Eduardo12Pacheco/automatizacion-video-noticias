@@ -1152,6 +1152,7 @@ test("Remotion composition source contains deterministic five-layer VideoSegment
 
   assert.match(source, /type VideoSegmentMedia = \{/);
   assert.match(source, /const VideoSegmentScene = /);
+  assert.match(source, /segment\.media\?\.kind === "video-segment"[\s\S]*?<VideoSegmentScene media=\{segment\.media\} fps=\{fps\} \/>[\s\S]*?segment\.logo\?\.enabled !== false \? <LogoOverlay logo=\{logo\} startFrom=\{0\} \/> : null/, "video segments must render the same active brand logo overlay as image and newspaper segments");
   assert.match(source, /startFrom=\{Math\.round\(media\.sourceInSeconds \* fps\)\}/);
   assert.match(source, /durationInFrames=\{durationInFrames\}/);
   assert.match(source, /background-video/);
