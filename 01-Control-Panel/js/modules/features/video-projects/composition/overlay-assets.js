@@ -42,6 +42,23 @@ export const BRAND_CHANNEL_ASSETS = {
       label: 'Golazo Colombia',
     },
   },
+  'final-demo-cup': {
+    channel: 'final-demo-cup',
+    label: 'Final Mundial',
+    logo: {
+      assetId: 'brand-logo-demo-cup',
+      previewPath: 'logo-demo-cup.png',
+      renderPath: 'overlays/logo-demo-cup.png',
+      source: 'logo-demo-cup.png',
+    },
+    outro: {
+      assetId: 'brand-outro-mundial',
+      previewPath: 'final-demo-cup.webm',
+      renderPath: 'overlays/final-demo-cup.mp4',
+      durationSeconds: 29.3,
+      label: 'Final Mundial',
+    },
+  },
 };
 
 export function normalizeBrandChannel(value = DEFAULT_BRAND_CHANNEL) {
