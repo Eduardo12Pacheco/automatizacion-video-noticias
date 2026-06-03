@@ -39,3 +39,13 @@ test("parseGuionSegments marca solo el bloque saliente separado por salto de par
     { blockIndex: 3, phrase: "cierre" },
   ]);
 });
+
+test("parseGuionSegments marca salto de parrafo cuando el pipe esta solo en su linea", () => {
+  const result = parseGuionSegments("intro|cuerpo \n|\n cierre");
+
+  assert.deepEqual(result, [
+    { blockIndex: 1, phrase: "intro" },
+    { blockIndex: 2, phrase: "cuerpo", paragraphBoundaryAfter: true },
+    { blockIndex: 3, phrase: "cierre" },
+  ]);
+});
