@@ -830,7 +830,7 @@ test("adapter preserves newspaper media mode as an image-driven render segment",
   assert.equal(props.segments[0].mediaMode, "newspaper");
   assert.equal(props.segments[0].image, "imagenes/uno.jpg");
   assert.equal(props.segments[0].media.kind, "image");
-  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
+  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
 });
 
 test("stable approval snapshot hash ignores video-segment key order", () => {

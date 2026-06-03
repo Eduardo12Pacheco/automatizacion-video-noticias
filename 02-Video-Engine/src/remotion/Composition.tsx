@@ -140,6 +140,7 @@ const getFadedMusicVolume = ({
 const isVideoSource = (src?: string | null) => /\.(mp4|webm|mov|m4v)$/i.test(src || "");
 const isGreenScreenLogoSource = (src?: string | null) => /(?:logo-green|logo-demo-co(?:-keyed)?)\.(?:mp4|webm)$/i.test(src || "");
 const isLogoFrameSequenceSource = (src?: string | null) => /logo-(?:colombia|ecuador)-alpha-frames$/i.test(src || "");
+const isMundialLogoSource = (src?: string | null) => /logo-demo-cup\.png$/i.test(src || "");
 const logoFrameSequenceSrc = (src: string, frame: number) => `${src}/frame-${String(frame % 900).padStart(4, "0")}.png`;
 
 const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
@@ -167,7 +168,7 @@ const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
 };
 
 const NEWSPAPER_LABEL_LINES = ["RECREACIÓN", "ARTÍSTICA"];
-const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
+const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
 const NEWSPAPER_BACKGROUND_BLUR = 15;
 
 const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFrom: number }) => {
@@ -353,10 +354,10 @@ const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number 
 
   const style: CSSProperties = {
     position: "absolute",
-    left: 52,
-    top: 38,
-    width: 220,
-    height: 124,
+    left: isMundialLogoSource(logo.src) ? 30 : 52,
+    top: isMundialLogoSource(logo.src) ? 21 : 38,
+    width: isMundialLogoSource(logo.src) ? 412 : 220,
+    height: isMundialLogoSource(logo.src) ? 232 : 124,
     opacity: 0.94,
     filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.55))",
     pointerEvents: "none",
