@@ -354,8 +354,8 @@ const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number 
 
   const style: CSSProperties = {
     position: "absolute",
-    left: isMundialLogoSource(logo.src) ? 57 : 52,
-    top: isMundialLogoSource(logo.src) ? 6 : 38,
+    left: isMundialLogoSource(logo.src) ? -42 : 52,
+    top: isMundialLogoSource(logo.src) ? -9 : 38,
     width: isMundialLogoSource(logo.src) ? 412 : 220,
     height: isMundialLogoSource(logo.src) ? 232 : 124,
     opacity: 0.94,
