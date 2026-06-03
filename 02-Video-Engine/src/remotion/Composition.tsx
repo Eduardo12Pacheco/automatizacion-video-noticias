@@ -721,7 +721,7 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
           volume={(frame) =>
             getFadedMusicVolume({
               frame,
-              baseVolume: audio?.music?.volume ?? 0.16,
+              baseVolume: audio?.music?.volume ?? 0.8,
               fps,
               totalFrames,
               fadeInSeconds: audio?.music?.fadeInSeconds ?? 0,

@@ -408,10 +408,10 @@ const editorProjectBaseSchema = z.object({
     .default({ logoAssetId: null, outroAssetId: null, logo: { enabled: false, position: "top-left" }, dustDefault: false, filterDefault: true }),
   audio: z
     .object({
-      music: z.object({ volume: z.number().finite().min(0).max(1).default(0.15), muted: z.boolean().default(false) }).default({ volume: 0.15, muted: false }),
+      music: z.object({ volume: z.number().finite().min(0).max(1).default(0.8), muted: z.boolean().default(false) }).default({ volume: 0.8, muted: false }),
       voice: z.object({ volume: z.number().finite().min(0).max(1).default(1), muted: z.boolean().default(false) }).default({ volume: 1, muted: false }),
     })
-    .default({ music: { volume: 0.15, muted: false }, voice: { volume: 1, muted: false } }),
+    .default({ music: { volume: 0.8, muted: false }, voice: { volume: 1, muted: false } }),
   rows: z.array(editorRowSchema),
   selectedRowId: z.string().nullable().default(null),
   preview: z
@@ -496,7 +496,7 @@ const renderPropsV2Schema = z.object({
       volume: z.number().finite().min(0).max(1).default(1),
     }).default({ volume: 1 }),
     music: z.object({
-      volume: z.number().finite().min(0).max(1).default(0.16),
+      volume: z.number().finite().min(0).max(1).default(0.8),
       loop: z.boolean().default(true),
       fadeInSeconds: numericSecondsSchema.default(0.5),
       fadeOutSeconds: numericSecondsSchema.default(1),

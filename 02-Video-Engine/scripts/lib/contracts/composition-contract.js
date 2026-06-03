@@ -427,7 +427,7 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
         volume: safeContract?.audio?.voice?.muted ? 0 : Number(safeContract?.audio?.voice?.volume ?? 1),
       },
       music: {
-        volume: safeContract?.audio?.music?.muted ? 0 : Number(safeContract?.audio?.music?.volume ?? 0.15),
+        volume: safeContract?.audio?.music?.muted ? 0 : Number(safeContract?.audio?.music?.volume ?? 0.8),
         loop: safeContract?.audio?.music?.loop !== false,
         fadeInSeconds: Number(safeContract?.audio?.music?.fadeInSeconds ?? 0.5),
         fadeOutSeconds: Number(safeContract?.audio?.music?.fadeOutSeconds ?? 1),
