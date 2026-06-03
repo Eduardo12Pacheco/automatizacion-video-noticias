@@ -280,7 +280,7 @@ function buildApprovalContractPipeline({
       voiceAssetId: normalizedVoice?.assetId || null,
       musicAssetId: normalizedMusic?.assetId || null,
       voice: { assetId: normalizedVoice?.assetId || null, volume: 1, muted: false, previewUrl: normalizedVoice?.previewUrl || null, renderPath: normalizedVoice?.renderPath || null },
-      music: { assetId: normalizedMusic?.assetId || null, volume: 0.15, muted: false, loop: true, fadeInSeconds: 0.5, fadeOutSeconds: 1, previewUrl: normalizedMusic?.previewUrl || null, renderPath: normalizedMusic?.renderPath || null },
+      music: { assetId: normalizedMusic?.assetId || null, volume: 0.8, muted: false, loop: true, fadeInSeconds: 0.5, fadeOutSeconds: 1, previewUrl: normalizedMusic?.previewUrl || null, renderPath: normalizedMusic?.renderPath || null },
     },
     outro: { enabled: true, assetId: channelAssets.outro.assetId, durationSeconds: channelAssets.outro.durationSeconds, label: channelAssets.outro.label },
     render: { status: "idle", updatedAt: nowIso },
