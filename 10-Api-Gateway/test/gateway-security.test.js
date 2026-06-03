@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
-import { BoundedTtlStore, createGatewayServer, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, resolveRoutePolicy } from '../src/gateway.js';
+import { BoundedTtlStore, createGatewayServer, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, resolveRoutePolicy } from '../src/gateway.js';
 import {
   DEFAULT_EVENT_RETENTION,
   JsonlEventRecorder,
@@ -680,6 +680,28 @@ test('subtitle render proxy gets an extended upstream timeout', () => {
   assert.equal(policy.kind, 'proxy');
   assert.equal(policy.route.service, 'subtitles');
   assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS);
+});
+
+test('approval and remotion create-from-approval routes get an extended preparation timeout', () => {
+  for (const [service, url] of [
+    ['approval', '/approval/api/projects/create-from-approval'],
+    ['remotion', '/remotion/api/projects/create-from-approval'],
+  ]) {
+    const policy = resolveRoutePolicy({
+      method: 'POST',
+      url,
+    }, {
+      routes: {
+        approval: { prefix: '/approval', target: 'http://127.0.0.1:3042' },
+        remotion: { prefix: '/remotion', target: 'https://remotion-api.example.local' },
+      },
+      serviceCredentials: { approval: { 'x-approval-secret': 'approval-secret' } },
+    });
+
+    assert.equal(policy.kind, 'proxy');
+    assert.equal(policy.route.service, service);
+    assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS);
+  }
 });
 
 test('unknown proxy route fails closed locally without upstream proxying', async () => {

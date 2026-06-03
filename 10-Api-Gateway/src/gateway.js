@@ -52,6 +52,7 @@ export const DEFAULT_PANEL_BOOTSTRAP = Object.freeze({
 export const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 export const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000;
 export const DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS = 120_000;
+export const DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS = 15 * 60 * 1000;
 export const DEFAULT_PANEL_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 export const DEFAULT_PRESENCE_TTL_MS = 60_000;
 
@@ -95,6 +96,17 @@ const PANEL_READ_MODEL_PREFIX = '/panel/read-models';
 const GATEWAY_EVENTS_READ_MODEL_PATH = '/panel/read-models/gateway/events';
 const GATEWAY_PRESENCE_READ_MODEL_PATH = '/panel/read-models/gateway/presence';
 const PANEL_PRESENCE_HEARTBEAT_PATH = '/panel/presence/heartbeat';
+const PREPARE_ROUTE_SERVICES = new Set(['approval', 'remotion']);
+
+function resolveRouteUpstreamTimeoutMs(service, upstreamPath) {
+  if (service === 'subtitles' && /^\/api\/subtitles\/sessions\/[^/]+\/render(?:\?|$)/.test(upstreamPath)) {
+    return DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS;
+  }
+  if (PREPARE_ROUTE_SERVICES.has(service) && /^\/api\/projects\/create-from-approval(?:\?|$)/.test(upstreamPath)) {
+    return DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS;
+  }
+  return null;
+}
 
 function isBrowserSuppliedIdentityHeader(name) {
   const lowerName = String(name || '').toLowerCase();
@@ -141,13 +153,12 @@ function resolveRouteMatches(rawUrl, routes = DEFAULT_ROUTES) {
     if (!prefix || !matchesPrefix(parsed.pathname, prefix)) continue;
     const strippedPath = parsed.pathname.slice(prefix.length) || '/';
     const upstreamPath = `${strippedPath}${parsed.search}`;
+    const upstreamTimeoutMs = resolveRouteUpstreamTimeoutMs(service, upstreamPath);
     matches.push({
       service,
       target: route.target,
       upstreamPath,
-      ...(service === 'subtitles' && /^\/api\/subtitles\/sessions\/[^/]+\/render(?:\?|$)/.test(upstreamPath)
-        ? { upstreamTimeoutMs: DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS }
-        : {}),
+      ...(upstreamTimeoutMs ? { upstreamTimeoutMs } : {}),
     });
   }
   return matches;
