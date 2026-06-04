@@ -18,7 +18,7 @@ from .settings import Settings, load_and_validate_channel_config, load_settings,
 from .store import ChannelRecord, MonitorCardRecord, MonitorStore
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, load_title_catalog, normalize_country
 from .workers import AiRescueWorker, ClassificationService, CatchupWorker, CleanupWorker, DiscoveryWorker, EnqueueWorker, TranscriptSyncWorker, WebSubRenewalWorker
-from .youtube_client import CallbackValidationError, WebSubClient, YouTubeDataClient, YouTubeTranscriptSubtitleProvider, parse_websub_video_ids, validate_websub_callback
+from .youtube_client import CallbackValidationError, CompositeSubtitleProvider, WebSubClient, YouTubeDataClient, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider, parse_websub_video_ids, validate_websub_callback
 
 
 def _error(code: str, message: str, status_code: int) -> HTTPException:
@@ -545,6 +545,7 @@ def _target_card_to_dict(record: dict[str, Any], *, default_classification_versi
     status = str(record.get("status") or "")
     approval_source = str(record.get("approval_source") or "title_classifier")
     last_error = record.get("last_error")
+    failure = _operator_failure(status=status, reason=last_error)
     item = {
         "id": f"{record.get('video_id')}:{target_country}",
         "video_id": record.get("video_id"),
@@ -573,6 +574,9 @@ def _target_card_to_dict(record: dict[str, Any], *, default_classification_versi
                 "important_rule": _parse_json_object(record.get("important_rule_json")),
             }
         )
+    if failure["code"]:
+        item["failure_code"] = failure["code"]
+        item["failure_category"] = failure["category"]
     return item
 
 
@@ -586,7 +590,8 @@ def _ai_rescue_summary(*, candidates: list[Any], rejection_count: int) -> dict[s
 def _ai_rescue_queue_to_dict(record: Any | None) -> dict[str, Any] | None:
     if record is None:
         return None
-    return {
+    failure = _operator_failure(status=record.status, reason=record.last_error)
+    item = {
         "id": record.id,
         "video_id": record.video_id,
         "source_country": normalize_country(record.source_country),
@@ -596,6 +601,11 @@ def _ai_rescue_queue_to_dict(record: Any | None) -> dict[str, Any] | None:
         "next_attempt_at": record.next_attempt_at,
         "last_error": record.last_error,
     }
+    if failure["code"]:
+        item["display_status"] = failure["label"]
+        item["failure_code"] = failure["code"]
+        item["failure_category"] = failure["category"]
+    return item
 
 
 def _ai_rescue_candidate_to_dict(store: MonitorStore, candidate: Any, *, include_evidence: bool) -> dict[str, Any]:
@@ -637,7 +647,8 @@ def _ai_rescue_evidence_to_dict(record: Any) -> dict[str, Any]:
 
 def _ai_rescue_rejection_to_dict(record: Any) -> dict[str, Any]:
     target_country = normalize_country(record.target_country) if record.target_country else None
-    return {
+    failure = _operator_failure(status="rejected", reason=record.reason)
+    item = {
         "id": record.id,
         "video_id": record.video_id,
         "candidate_id": record.candidate_id,
@@ -647,6 +658,11 @@ def _ai_rescue_rejection_to_dict(record: Any) -> dict[str, Any]:
         "reason": record.reason,
         "details": _parse_json_object(record.details_json),
     }
+    if failure["code"]:
+        item["display_status"] = failure["label"]
+        item["failure_code"] = failure["code"]
+        item["failure_category"] = failure["category"]
+    return item
 
 
 def _promoted_match_to_dict(record: Any) -> dict[str, Any]:
@@ -681,6 +697,9 @@ def _retention_report_to_dict(report: Any) -> dict[str, Any]:
 def _display_status(*, status: str, approval_source: str | None, last_error: str | None = None) -> str:
     if _is_geo_blocked_status(status) or _is_geo_blocked_status(last_error):
         return "GEO-BLOQUEADO"
+    failure = _operator_failure(status=status, reason=last_error)
+    if failure["label"]:
+        return failure["label"]
     if status == "aprobado" and approval_source == "ai_rescue":
         return "RESCATADO IA"
     return status.upper()
@@ -689,6 +708,40 @@ def _display_status(*, status: str, approval_source: str | None, last_error: str
 def _is_geo_blocked_status(value: str | None) -> bool:
     normalized = str(value or "").strip().casefold().replace("-", "_")
     return normalized in {"geo_blocked", "yt_dlp_geo_blocked"}
+
+
+def _operator_failure(*, status: str | None, reason: str | None) -> dict[str, str | None]:
+    normalized_status = _normalize_failure_token(status)
+    normalized_reason = _normalize_failure_token(reason)
+    token = normalized_reason or normalized_status
+    if not token:
+        return {"code": None, "category": None, "label": None}
+    if token in {"geo_blocked", "yt_dlp_geo_blocked", "youtube_geo_blocked"}:
+        return {"code": token, "category": "youtube_geo_blocked", "label": "GEO-BLOQUEADO"}
+    if token in {"yt_dlp_bot_check", "youtube_bot_check"}:
+        return {"code": token, "category": "youtube_bot_check", "label": "BLOQUEO YOUTUBE"}
+    if token in {"yt_dlp_timeout", "youtube_download_timeout", "opencode_timeout", "timeout"}:
+        return {"code": token, "category": "timeout", "label": "TIMEOUT"}
+    if token in {"yt_dlp_live_pending", "youtube_live_pending", "live_pending"}:
+        return {"code": token, "category": "youtube_live_pending", "label": "LIVE PENDIENTE"}
+    if token in {"yt_dlp_copyright_blocked", "youtube_copyright_blocked", "copyright_blocked"}:
+        return {"code": token, "category": "youtube_copyright_blocked", "label": "COPYRIGHT"}
+    if token in {"no_subtitles", "no_transcript", "language_unavailable", "empty_transcript"}:
+        return {"code": token, "category": "no_subtitles", "label": "SIN SUBTÍTULOS"}
+    if token in {"transcripts_disabled", "subtitles_disabled"}:
+        return {"code": token, "category": "subtitles_disabled", "label": "SUBTÍTULOS OFF"}
+    if token in {"video_unavailable", "yt_dlp_private_or_removed", "private_or_removed", "unavailable", "private", "removed", "yt_dlp_age_restricted"}:
+        return {"code": token, "category": "video_unavailable", "label": "NO DISPONIBLE"}
+    if token in {"ffmpeg_failed", "ffmpeg_timeout", "yt_dlp_unavailable", "yt_dlp_no_output", "analysis_error", "opencode_server_error", "opencode_transport", "opencode_auth", "provider_fetch_error", "fetch_error"}:
+        return {"code": token, "category": "technical_failure", "label": "FALLO TÉCNICO"}
+    if normalized_status == "error" or token.endswith("_error") or token.endswith("_failed"):
+        return {"code": token, "category": "unknown_failure", "label": "ERROR"}
+    return {"code": None, "category": None, "label": None}
+
+
+def _normalize_failure_token(value: str | None) -> str | None:
+    token = str(value or "").strip().casefold().replace("-", "_")
+    return token or None
 
 
 def _rejected_video_to_dict(record: Any, *, default_classification_version: str) -> dict[str, Any]:
@@ -865,6 +918,7 @@ def _build_runtime_coordinator(
         RuntimeLoop(
             name="catchup",
             interval_seconds=settings.worker_catchup_interval_seconds,
+            initial_delay_seconds=settings.worker_catchup_initial_delay_seconds,
             enabled=settings.worker_catchup_enabled and catchup_worker is not None,
             duty=catchup_worker.run_once if catchup_worker else _noop,
         ),
@@ -928,7 +982,13 @@ def _build_ai_rescue_worker(*, settings: Settings, store: MonitorStore) -> AiRes
         return None
     return AiRescueWorker(
         store=store,
-        subtitles=YouTubeTranscriptSubtitleProvider(),
+        subtitles=CompositeSubtitleProvider(
+            primary=YouTubeTranscriptSubtitleProvider(),
+            fallback=YtDlpSubtitleProvider(
+                binary=settings.ai_rescue_yt_dlp_binary,
+                cookies_path=settings.ai_rescue_yt_dlp_cookies_path,
+            ),
+        ),
         analyzer=AiRescueAnalyzer(
             client=OpenCodeGoClient(
                 base_url=settings.ai_rescue_opencode_base_url,

@@ -516,6 +516,45 @@ def test_ai_rescue_queue_candidates_detail_and_rejections_contracts_are_sorted_a
     assert before_matches == after_matches
 
 
+def test_ai_rescue_queue_and_rejections_expose_spanish_operator_labels(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    for video_id, reason in [
+        ("queue-no-subtitles", "no-subtitles"),
+        ("queue-timeout", "opencode_timeout"),
+        ("queue-technical", "opencode_server_error"),
+        ("reject-off", "transcripts_disabled"),
+        ("reject-unavailable", "video_unavailable"),
+    ]:
+        store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=video_id, lifecycle="ignored_seen"))
+        store.upsert_rejected_video(video_id=video_id, source_country="colombia", reason="no_valid_target_match")
+        queue_item = store.enqueue_ai_rescue_rejected_video(video_id=video_id, now="2026-05-22T10:00:00Z")
+        if video_id.startswith("queue-"):
+            store.schedule_ai_rescue_retry(queue_item.id, now="2026-05-22T10:01:00Z", next_attempt_at="2026-05-22T10:00:00Z", last_error=reason)
+        else:
+            store.reject_ai_rescue_queue_item(queue_item.id, now="2026-05-22T10:01:00Z", source="system", reason=reason)
+    client = TestClient(create_app(settings=settings, store=store))
+
+    queue_response = client.get("/api/monitor/ai-rescue/queue", headers={"x-api-key": "monitor-secret"})
+    rejected_response = client.get("/api/monitor/ai-rescue/rejections", headers={"x-api-key": "monitor-secret"})
+
+    assert queue_response.status_code == 200
+    queue_labels = {item["video_id"]: (item["last_error"], item["failure_code"], item["display_status"]) for item in queue_response.json()["upcoming"]}
+    assert queue_labels == {
+        "queue-no-subtitles": ("no-subtitles", "no_subtitles", "SIN SUBTÍTULOS"),
+        "queue-timeout": ("opencode_timeout", "opencode_timeout", "TIMEOUT"),
+        "queue-technical": ("opencode_server_error", "opencode_server_error", "FALLO TÉCNICO"),
+    }
+    assert rejected_response.status_code == 200
+    rejection_labels = {item["video_id"]: (item["reason"], item["failure_code"], item["display_status"]) for item in rejected_response.json()["items"]}
+    assert rejection_labels == {
+        "reject-off": ("transcripts_disabled", "transcripts_disabled", "SUBTÍTULOS OFF"),
+        "reject-unavailable": ("video_unavailable", "video_unavailable", "NO DISPONIBLE"),
+    }
+
+
 def test_card_dismissal_endpoint_filters_ai_rescue_candidate_context_without_decision(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store, candidate_id = _seed_ai_rescue_candidate(tmp_path, settings=settings, target_country="ecuador")
@@ -1078,6 +1117,39 @@ def test_monitor_cards_endpoint_displays_geo_blocked_target_status(tmp_path):
     assert item["last_error"] == "yt_dlp_geo_blocked"
 
 
+def test_monitor_cards_endpoint_maps_known_failures_to_spanish_display_statuses(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+    )
+    cases = [
+        ("bot-video", "ecuador", "yt_dlp_bot_check", "BLOQUEO YOUTUBE"),
+        ("live-video", "mexico", "yt_dlp_live_pending", "LIVE PENDIENTE"),
+        ("copy-video", "argentina", "yt_dlp_copyright_blocked", "COPYRIGHT"),
+        ("timeout-video", "uruguay", "yt_dlp_timeout", "TIMEOUT"),
+        ("private-video", "paraguay", "yt_dlp_private_or_removed", "NO DISPONIBLE"),
+        ("technical-video", "colombia", "ffmpeg_failed", "FALLO TÉCNICO"),
+        ("unknown-video", "ecuador", "provider_new_failure", "ERROR"),
+    ]
+    for video_id, target_country, last_error, _label in cases:
+        store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=video_id, lifecycle="enqueued", matched=True))
+        store.upsert_target_match(
+            TargetMatchRecord(video_id=video_id, target_country=target_country, status="error", radar_job_id=f"job-{video_id}", last_error=last_error)
+        )
+    client = TestClient(create_app(settings=settings, store=store))
+
+    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"limit": 20})
+
+    assert response.status_code == 200
+    by_video = {item["video_id"]: item for item in response.json()["items"]}
+    for video_id, _target_country, last_error, label in cases:
+        assert by_video[video_id]["last_error"] == last_error
+        assert by_video[video_id]["failure_code"] == last_error
+        assert by_video[video_id]["display_status"] == label
+
+
 def test_monitor_cards_endpoint_filters_target_rows_and_exposes_canonical_counts(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", radar_api_key="radar-secret")
     store = MonitorStore(settings.db_path)
@@ -1296,7 +1368,6 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
             title="Important without country mentions",
             url="https://youtu.be/important-zero-api",
             published_at="2026-05-27T12:00:00Z",
-            detected_at="2026-05-27T12:00:00Z",
             lifecycle="enqueued",
             matched=True,
             classification_status="important_channel",
@@ -1362,7 +1433,6 @@ def test_monitor_cards_endpoint_adds_important_audit_fields_without_removing_leg
             title="Fútbol Picante EN VIVO",
             url="https://youtu.be/important-program-api",
             published_at="2026-05-27T13:00:00Z",
-            detected_at="2026-05-27T13:00:00Z",
             lifecycle="enqueued",
             matched=True,
             classification_status="important",
@@ -1432,7 +1502,6 @@ def test_monitor_cards_endpoint_keeps_geo_blocked_important_visible_without_coun
             title="IMPORTANT geo blocked",
             url="https://youtu.be/geo-important-api",
             published_at="2026-05-27T14:00:00Z",
-            detected_at="2026-05-27T14:00:00Z",
             lifecycle="geo_blocked",
             matched=True,
             classification_status="important_channel",

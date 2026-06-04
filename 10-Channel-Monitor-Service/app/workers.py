@@ -364,7 +364,9 @@ class CatchupWorker:
                 continue
             effective_since = channel.last_seen_published_at or channel.baseline_started_at
             checkpoint_candidate: str | None = None
+            reached_effective_since = effective_since is None
             checkpoint_blocked = False
+            non_blocking_error: str | None = None
             for item in self._iter_upload_items(channel.uploads_playlist_id):
                 item_published_at = item.published_at
                 metadata: VideoMetadata | None = None
@@ -401,22 +403,26 @@ class CatchupWorker:
                                 caught_up_at=_now_iso(),
                             )
                         continue
-                if effective_since and item_published_at and _iso_lte(item_published_at, effective_since):
-                    break
+                if effective_since and item_published_at:
+                    if _iso_lt(item_published_at, effective_since):
+                        reached_effective_since = True
+                        break
+                    if _iso_equal(item_published_at, effective_since):
+                        reached_effective_since = True
                 if existing is not None:
                     continue
                 result = self.discovery.process_video_metadata(metadata) if metadata is not None else self.discovery.process_video_id(item.video_id)
                 processed.append(result)
                 if result.lifecycle == "metadata_failed":
-                    checkpoint_blocked = True
-                    if channel.id is not None:
-                        self.store.record_channel_catchup_error(channel.id, error=f"item_failed:{item.video_id}", caught_up_at=_now_iso())
+                    non_blocking_error = f"item_failed:{item.video_id}"
                     continue
                 if item_published_at and not checkpoint_blocked:
                     if checkpoint_candidate is None or _iso_gt(item_published_at, checkpoint_candidate):
                         checkpoint_candidate = item_published_at
-            if channel.id is not None and checkpoint_candidate is not None and not checkpoint_blocked:
+            if channel.id is not None and checkpoint_candidate is not None and reached_effective_since and not checkpoint_blocked:
                 self.store.advance_channel_catchup_checkpoint(channel.id, published_at=checkpoint_candidate, caught_up_at=_now_iso())
+            if channel.id is not None and non_blocking_error is not None:
+                self.store.record_channel_catchup_error(channel.id, error=non_blocking_error, caught_up_at=_now_iso())
         return processed
 
     def _iter_upload_items(self, uploads_playlist_id: str):
@@ -521,12 +527,12 @@ class TranscriptSyncWorker:
                         radar_job_id=job_id,
                         summary=summary,
                     )
-                    self.store.update_enqueue_attempt_status_by_job(
-                        video_id=video_id,
-                        radar_job_id=job_id,
-                        status="transcrito",
-                        last_error=None,
-                    )
+                self.store.update_enqueue_attempt_status_by_job(
+                    video_id=video_id,
+                    radar_job_id=job_id,
+                    status="transcrito",
+                    last_error=None,
+                )
                 synced.append(video_id)
             elif status in {"failed", "cancelled", "deleted"}:
                 error_code = _job_error_code(detail, fallback=status)
@@ -538,13 +544,12 @@ class TranscriptSyncWorker:
                         radar_job_id=job_id,
                         last_error=error_code,
                     )
-                else:
-                    self.store.update_enqueue_attempt_status_by_job(
-                        video_id=video_id,
-                        radar_job_id=job_id,
-                        status=terminal_status,
-                        last_error=error_code,
-                    )
+                self.store.update_enqueue_attempt_status_by_job(
+                    video_id=video_id,
+                    radar_job_id=job_id,
+                    status=terminal_status,
+                    last_error=error_code,
+                )
                 synced.append(video_id)
         if synced and self.enqueue_due is not None:
             self.enqueue_due()
@@ -855,6 +860,14 @@ def _iso_lte(left: str, right: str) -> bool:
     return _parse_iso(left) <= _parse_iso(right)
 
 
+def _iso_lt(left: str, right: str) -> bool:
+    return _parse_iso(left) < _parse_iso(right)
+
+
+def _iso_equal(left: str, right: str) -> bool:
+    return _parse_iso(left) == _parse_iso(right)
+
+
 def _iso_gt(left: str, right: str) -> bool:
     return _parse_iso(left) > _parse_iso(right)
 
@@ -871,6 +884,12 @@ def _countries_from_match_reason(match_reason: str | None) -> list[str]:
         country = str(reason.get("country", "")).strip().casefold()
         if country and country not in countries:
             countries.append(country)
+    if countries:
+        return countries
+    for reason in reasons:
+        source_country = str(reason.get("source_country", "")).strip().casefold()
+        if source_country and source_country not in countries:
+            countries.append(source_country)
     return countries
 
 
@@ -986,14 +1005,39 @@ def _job_error_code(detail: dict, *, fallback: str) -> str:
     error = detail.get("error")
     if isinstance(error, dict):
         message = str(error.get("message", "")).strip()
-        if _is_geo_blocked_error(message):
-            return "yt_dlp_geo_blocked"
         code = str(error.get("code", "")).strip()
+        classified = _classify_provider_error(code or message)
+        if classified:
+            return classified
+        classified = _classify_provider_error(message)
+        if classified:
+            return classified
         if code:
             return code
-    if isinstance(error, str) and _is_geo_blocked_error(error):
-        return "yt_dlp_geo_blocked"
+    if isinstance(error, str):
+        classified = _classify_provider_error(error)
+        if classified:
+            return classified
     return fallback
+
+
+def _classify_provider_error(value: str) -> str | None:
+    normalized = str(value or "").casefold().replace("-", "_")
+    if _is_geo_blocked_error(value):
+        return "yt_dlp_geo_blocked"
+    if "yt_dlp_live_pending" in normalized or "live event will begin" in normalized or "not started" in normalized or "upcoming" in normalized:
+        return "yt_dlp_live_pending"
+    if "yt_dlp_copyright_blocked" in normalized or "copyright" in normalized or "contains content from" in normalized:
+        return "yt_dlp_copyright_blocked"
+    if "yt_dlp_private_or_removed" in normalized or "video unavailable" in normalized or "private" in normalized or "removed by" in normalized:
+        return "yt_dlp_private_or_removed"
+    if "yt_dlp_age_restricted" in normalized or "confirm your age" in normalized or "age_restricted" in normalized or "age restricted" in normalized:
+        return "yt_dlp_age_restricted"
+    if "yt_dlp_bot_check" in normalized or "not a bot" in normalized or "sign in to confirm" in normalized:
+        return "yt_dlp_bot_check"
+    if "yt_dlp_timeout" in normalized or "timed out" in normalized or "timeout" in normalized:
+        return "yt_dlp_timeout"
+    return None
 
 
 def _is_geo_blocked_error(value: str) -> bool:
