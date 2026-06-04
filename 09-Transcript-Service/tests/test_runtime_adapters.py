@@ -6,7 +6,7 @@ import subprocess
 import pytest
 
 from app.audio import FfmpegAudioExtractor
-from app.downloader import YtDlpDownloader
+from app.downloader import YtDlpDownloader, validate_media_url
 from app.models import TranscriptSegment
 from app.settings import DEFAULT_YT_DLP_COOKIES_PATH
 from app.settings import Settings
@@ -32,13 +32,13 @@ def test_yt_dlp_downloader_invokes_injected_runner_and_returns_downloaded_file(t
             downloaded.write_text("video", encoding="utf-8")
         return Completed()
 
-    result = YtDlpDownloader(binary="yt-dlp", runner=runner).download("https://video.example/watch?v=abc", tmp_path)
+    result = YtDlpDownloader(binary="yt-dlp", runner=runner, resolve_media_host=False).download("https://www.youtube.com/watch?v=abc", tmp_path)
 
     assert result.path == tmp_path / "source.mp4"
     assert result.title == "Argentina vs Colombia Highlights"
     assert calls == [
-        ["yt-dlp", "--no-playlist", "--skip-download", "--print", "title", "https://video.example/watch?v=abc"],
-        ["yt-dlp", "--no-playlist", "--format", "bestaudio/best", "--output", str(tmp_path / "source.%(ext)s"), "https://video.example/watch?v=abc"],
+        ["yt-dlp", "--no-playlist", "--socket-timeout", "30", "--retries", "3", "--fragment-retries", "3", "--skip-download", "--print", "title", "https://www.youtube.com/watch?v=abc"],
+        ["yt-dlp", "--no-playlist", "--socket-timeout", "30", "--retries", "3", "--fragment-retries", "3", "--max-filesize", "2G", "--match-filter", "duration <= 7200", "--format", "bestaudio/best", "--output", str(tmp_path / "source.%(ext)s"), "https://www.youtube.com/watch?v=abc"],
     ]
 
 
@@ -50,7 +50,7 @@ def test_yt_dlp_downloader_does_not_treat_title_print_as_download(tmp_path):
         return Completed()
 
     with pytest.raises(DependencyFailure) as failure:
-        YtDlpDownloader(binary="yt-dlp", runner=runner).download("https://video.example/watch?v=abc", tmp_path)
+        YtDlpDownloader(binary="yt-dlp", runner=runner, resolve_media_host=False).download("https://www.youtube.com/watch?v=abc", tmp_path)
 
     assert failure.value.code == "yt_dlp_no_output"
     assert len(calls) == 2
@@ -64,7 +64,7 @@ def test_yt_dlp_downloader_reports_typed_failure_when_binary_is_missing(tmp_path
         raise FileNotFoundError(command[0])
 
     with pytest.raises(DependencyFailure) as failure:
-        YtDlpDownloader(binary="missing-yt-dlp", runner=runner).download("https://video.example/watch", tmp_path)
+        YtDlpDownloader(binary="missing-yt-dlp", runner=runner, resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
 
     assert failure.value.code == "yt_dlp_unavailable"
     assert "missing-yt-dlp" in failure.value.message
@@ -85,12 +85,40 @@ def test_yt_dlp_downloader_rejects_unsafe_url_before_subprocess(tmp_path):
     assert calls == []
 
 
+def test_validate_media_url_accepts_only_youtube_hosts_without_dns_lookup():
+    validate_media_url("https://www.youtube.com/watch?v=abc", resolve_host=False)
+    validate_media_url("https://youtube.com/shorts/abc", resolve_host=False)
+    validate_media_url("https://youtu.be/abc", resolve_host=False)
+
+    with pytest.raises(DependencyFailure) as failure:
+        validate_media_url("https://video.example/watch?v=abc", resolve_host=False)
+
+    assert failure.value.code == "invalid_url"
+    assert failure.value.message == "URL host is not allowed"
+
+
+def test_validate_media_url_rejects_youtube_host_when_dns_resolves_to_private_ip():
+    def resolver(host: str) -> list[str]:
+        assert host == "www.youtube.com"
+        return ["10.0.0.12", "93.184.216.34"]
+
+    with pytest.raises(DependencyFailure) as failure:
+        validate_media_url("https://www.youtube.com/watch?v=abc", resolver=resolver)
+
+    assert failure.value.code == "invalid_url"
+    assert failure.value.message == "URL host resolves to a blocked address"
+
+
+def test_validate_media_url_accepts_youtube_host_when_dns_resolves_publicly():
+    validate_media_url("https://youtu.be/abc", resolver=lambda host: ["8.8.8.8"])
+
+
 def test_yt_dlp_downloader_reports_timeout_as_typed_failure(tmp_path):
     def runner(command: list[str], **kwargs):
         raise subprocess.TimeoutExpired(command, kwargs["timeout"])
 
     with pytest.raises(DependencyFailure) as failure:
-        YtDlpDownloader(binary="yt-dlp", runner=runner, timeout_seconds=3).download("https://video.example/watch", tmp_path)
+        YtDlpDownloader(binary="yt-dlp", runner=runner, timeout_seconds=3, resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
 
     assert failure.value.code == "yt_dlp_timeout"
     assert failure.value.message == "yt-dlp timed out after 3 seconds"
@@ -108,7 +136,7 @@ def test_yt_dlp_downloader_adds_existing_cookies_file_to_title_and_download_comm
             output.with_name("source.webm").write_text("video", encoding="utf-8")
         return Completed()
 
-    YtDlpDownloader(binary="yt-dlp", runner=runner, cookies_path=cookies).download("https://video.example/watch?v=abc", tmp_path)
+    YtDlpDownloader(binary="yt-dlp", runner=runner, cookies_path=cookies, resolve_media_host=False).download("https://www.youtube.com/watch?v=abc", tmp_path)
 
     assert [command[command.index("--cookies") + 1] for command in calls] == [str(cookies), str(cookies)]
 
@@ -123,7 +151,7 @@ def test_yt_dlp_downloader_skips_missing_cookies_file(tmp_path):
             output.with_name("source.webm").write_text("video", encoding="utf-8")
         return Completed()
 
-    YtDlpDownloader(binary="yt-dlp", runner=runner, cookies_path=tmp_path / "missing.txt").download("https://video.example/watch?v=abc", tmp_path)
+    YtDlpDownloader(binary="yt-dlp", runner=runner, cookies_path=tmp_path / "missing.txt", resolve_media_host=False).download("https://www.youtube.com/watch?v=abc", tmp_path)
 
     assert all("--cookies" not in command for command in calls)
 
@@ -138,7 +166,7 @@ def test_yt_dlp_downloader_adds_configured_js_runtime(tmp_path):
             output.with_name("source.webm").write_text("video", encoding="utf-8")
         return Completed()
 
-    YtDlpDownloader(binary="yt-dlp", runner=runner, js_runtime="node").download("https://video.example/watch?v=abc", tmp_path)
+    YtDlpDownloader(binary="yt-dlp", runner=runner, js_runtime="node", resolve_media_host=False).download("https://www.youtube.com/watch?v=abc", tmp_path)
 
     assert [command[command.index("--js-runtimes") + 1] for command in calls] == ["node", "node"]
 
@@ -150,7 +178,7 @@ def test_yt_dlp_downloader_classifies_bot_check_and_geo_block_errors(tmp_path):
         stdout = ""
 
     with pytest.raises(DependencyFailure) as bot_failure:
-        YtDlpDownloader(binary="yt-dlp", runner=lambda command: BotCheck()).download("https://video.example/watch", tmp_path)
+        YtDlpDownloader(binary="yt-dlp", runner=lambda command: BotCheck(), resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
 
     assert bot_failure.value.code == "yt_dlp_bot_check"
 
@@ -160,7 +188,7 @@ def test_yt_dlp_downloader_classifies_bot_check_and_geo_block_errors(tmp_path):
         stdout = ""
 
     with pytest.raises(DependencyFailure) as geo_failure:
-        YtDlpDownloader(binary="yt-dlp", runner=lambda command: GeoBlocked()).download("https://video.example/watch", tmp_path)
+        YtDlpDownloader(binary="yt-dlp", runner=lambda command: GeoBlocked(), resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
 
     assert geo_failure.value.code == "yt_dlp_geo_blocked"
 
@@ -170,9 +198,31 @@ def test_yt_dlp_downloader_classifies_bot_check_and_geo_block_errors(tmp_path):
         stdout = ""
 
     with pytest.raises(DependencyFailure) as country_failure:
-        YtDlpDownloader(binary="yt-dlp", runner=lambda command: CountryUnavailable()).download("https://video.example/watch", tmp_path)
+        YtDlpDownloader(binary="yt-dlp", runner=lambda command: CountryUnavailable(), resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
 
     assert country_failure.value.code == "yt_dlp_geo_blocked"
+
+
+def test_yt_dlp_downloader_classifies_live_copyright_unavailable_and_age_restricted_errors(tmp_path):
+    cases = [
+        ("ERROR: This live event will begin in a few moments", "yt_dlp_live_pending"),
+        ("ERROR: This video is not available because it contains content from FIFA, who has blocked it on copyright grounds", "yt_dlp_copyright_blocked"),
+        ("ERROR: Video unavailable. This video is private", "yt_dlp_private_or_removed"),
+        ("ERROR: This video has been removed by the uploader", "yt_dlp_private_or_removed"),
+        ("ERROR: Sign in to confirm your age. This video may be inappropriate for some users", "yt_dlp_age_restricted"),
+    ]
+
+    for stderr, expected_code in cases:
+        class Failed:
+            returncode = 1
+            stdout = ""
+
+        Failed.stderr = stderr
+
+        with pytest.raises(DependencyFailure) as failure:
+            YtDlpDownloader(binary="yt-dlp", runner=lambda command: Failed(), resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
+
+        assert failure.value.code == expected_code
 
 
 def test_ffmpeg_audio_extractor_creates_required_16khz_wav_contract(tmp_path):

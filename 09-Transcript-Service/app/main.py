@@ -49,6 +49,12 @@ def create_app(
             cookies_path=settings.yt_dlp_cookies_path,
             js_runtime=settings.yt_dlp_js_runtime,
             remote_components=settings.yt_dlp_remote_components,
+            max_filesize=settings.yt_dlp_max_filesize,
+            max_duration_seconds=settings.yt_dlp_max_duration_seconds,
+            socket_timeout_seconds=settings.yt_dlp_socket_timeout_seconds,
+            retries=settings.yt_dlp_retries,
+            fragment_retries=settings.yt_dlp_fragment_retries,
+            resolve_media_host=settings.media_url_dns_check,
         ),
         audio_extractor=FfmpegAudioExtractor(binary=settings.ffmpeg_binary, timeout_seconds=settings.subprocess_timeout_seconds),
         transcriber=FasterWhisperTranscriber(settings=settings),
@@ -99,7 +105,7 @@ def create_app(
     @app.post("/api/radar/jobs", status_code=201, response_model=JobCreateResponse)
     async def create_job(request: JobCreateRequest) -> JobCreateResponse:
         try:
-            validate_media_url(request.url)
+            validate_media_url(request.url, resolve_host=settings.media_url_dns_check)
         except DependencyFailure as exc:
             raise _error(exc.code, exc.message, 422) from exc
         if not request.target and not request.countries:

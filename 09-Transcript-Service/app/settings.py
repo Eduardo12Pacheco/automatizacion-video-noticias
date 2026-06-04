@@ -40,6 +40,12 @@ class Settings:
     yt_dlp_cookies_path: Path | None = DEFAULT_YT_DLP_COOKIES_PATH
     yt_dlp_js_runtime: str | None = None
     yt_dlp_remote_components: str | None = None
+    yt_dlp_max_filesize: str = "2G"
+    yt_dlp_max_duration_seconds: int = 7200
+    yt_dlp_socket_timeout_seconds: int = 30
+    yt_dlp_retries: int = 3
+    yt_dlp_fragment_retries: int = 3
+    media_url_dns_check: bool = True
     subprocess_timeout_seconds: int = 1800
     cleanup_ttl_seconds: int = DEFAULT_CLEANUP_TTL_SECONDS
 
@@ -62,6 +68,12 @@ def load_settings() -> Settings:
         yt_dlp_cookies_path=_optional_path_env("TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH", DEFAULT_YT_DLP_COOKIES_PATH),
         yt_dlp_js_runtime=os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_JS_RUNTIME") or None,
         yt_dlp_remote_components=os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_REMOTE_COMPONENTS") or None,
+        yt_dlp_max_filesize=os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_MAX_FILESIZE", "2G"),
+        yt_dlp_max_duration_seconds=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_MAX_DURATION_SECONDS", "7200"), default=7200),
+        yt_dlp_socket_timeout_seconds=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_SOCKET_TIMEOUT_SECONDS", "30"), default=30),
+        yt_dlp_retries=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_RETRIES", "3"), default=3),
+        yt_dlp_fragment_retries=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_FRAGMENT_RETRIES", "3"), default=3),
+        media_url_dns_check=os.environ.get("TRANSCRIPT_SERVICE_MEDIA_URL_DNS_CHECK", "1").strip().lower() not in {"0", "false", "no", "off"},
         subprocess_timeout_seconds=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_SUBPROCESS_TIMEOUT_SECONDS", "1800"), default=1800),
         cleanup_ttl_seconds=_parse_int(
             os.environ.get("TRANSCRIPT_SERVICE_CLEANUP_TTL_SECONDS", str(DEFAULT_CLEANUP_TTL_SECONDS)),

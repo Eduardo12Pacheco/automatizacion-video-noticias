@@ -84,7 +84,7 @@ class FakeTranscriber:
 
 
 def _client(tmp_path):
-    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"])
+    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], media_url_dns_check=False)
     store = JobStore(tmp_path)
     worker = CompletingWorker(store)
     app = create_app(settings=settings, store=store, worker=worker, preflight_checker=FixedPreflightChecker())
@@ -97,7 +97,7 @@ def _headers() -> dict[str, str]:
 
 def _job_payload() -> dict:
     return {
-        "url": "https://video.example/watch?v=abc123",
+        "url": "https://www.youtube.com/watch?v=abc123",
         "countries": ["argentina"],
         "extra_keywords": ["pressing"],
     }
@@ -171,7 +171,7 @@ def test_cors_preflight_for_authenticated_radar_jobs_is_allowed_without_api_key(
 
 def test_actual_radar_methods_remain_authenticated_after_preflight_is_allowed(tmp_path):
     client, store = _client(tmp_path)
-    queued = store.create_job(url="https://video.example/protected", countries=["colombia"], extra_keywords=[])
+    queued = store.create_job(url="https://www.youtube.com/watch?v=protected", countries=["colombia"], extra_keywords=[])
 
     protected_responses = [
         client.get("/api/radar/jobs"),
@@ -195,7 +195,7 @@ def test_health_remains_ok_when_all_preflight_dependencies_are_available(tmp_pat
                 "faster_whisper": {"status": "ok", "model": "large-v3", "device": "cuda", "compute_type": "float16"},
             }
 
-    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"])
+    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], media_url_dns_check=False)
     store = JobStore(tmp_path)
     worker = CompletingWorker(store)
     app = create_app(settings=settings, store=store, worker=worker, preflight_checker=HealthyPreflightChecker())
@@ -270,10 +270,24 @@ def test_submit_job_rejects_unsafe_url_before_worker_enqueue(tmp_path):
     assert store.list_history() == []
 
 
+def test_submit_job_rejects_non_youtube_url_before_worker_enqueue(tmp_path):
+    client, store = _client(tmp_path)
+
+    response = client.post(
+        "/api/radar/jobs",
+        headers=_headers(),
+        json={"url": "https://video.example/watch?v=abc123", "countries": ["argentina"], "extra_keywords": []},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": {"code": "invalid_url", "message": "URL host is not allowed"}}
+    assert store.list_history() == []
+
+
 def test_startup_recovery_allows_job_creation_after_orphaned_running_job(tmp_path):
-    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"])
+    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], media_url_dns_check=False)
     store = JobStore(tmp_path)
-    orphaned = store.create_job(url="https://video.example/orphaned", countries=["argentina"], extra_keywords=[])
+    orphaned = store.create_job(url="https://www.youtube.com/watch?v=orphaned", countries=["argentina"], extra_keywords=[])
     store.mark_running(orphaned.job_id)
     app = create_app(
         settings=settings,
@@ -293,9 +307,9 @@ def test_startup_recovery_allows_job_creation_after_orphaned_running_job(tmp_pat
 
 
 def test_startup_cleanup_removes_expired_non_active_runtime_outputs_without_losing_history(tmp_path):
-    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], cleanup_ttl_seconds=3600)
+    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], cleanup_ttl_seconds=3600, media_url_dns_check=False)
     store = JobStore(tmp_path)
-    expired = store.create_job(url="https://video.example/expired", countries=["argentina"], extra_keywords=[])
+    expired = store.create_job(url="https://www.youtube.com/watch?v=expired", countries=["argentina"], extra_keywords=[])
     store.save_export_text(expired.job_id, "old export")
     store.mark_succeeded(expired.job_id)
     expired_record = store.get_job(expired.job_id).model_dump(mode="json")
@@ -309,7 +323,7 @@ def test_startup_cleanup_removes_expired_non_active_runtime_outputs_without_losi
 
 
 def test_submit_job_returns_before_worker_finishes_processing(tmp_path):
-    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"])
+    settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], media_url_dns_check=False)
     store = JobStore(tmp_path)
     downloader = BlockingDownloader()
     worker = TranscriptWorker(
@@ -371,7 +385,7 @@ def test_catalog_summary_summary_export_cancel_and_delete_endpoints(tmp_path):
     assert deleted.json() == {"job_id": job_id, "status": "deleted"}
     assert store.list_history() == []
 
-    queued = store.create_job(url="https://video.example/queued", countries=["colombia"], extra_keywords=[])
+    queued = store.create_job(url="https://www.youtube.com/watch?v=queued", countries=["colombia"], extra_keywords=[])
     cancelled = client.post(f"/api/radar/jobs/{queued.job_id}/cancel", headers=_headers())
     assert cancelled.status_code == 200
     assert cancelled.json()["status"] == "cancelled"
@@ -404,7 +418,7 @@ def test_cleanup_linked_artifacts_endpoint_hard_deletes_terminal_jobs_without_ne
 
 def test_submit_rejects_concurrent_active_job_with_typed_busy_error(tmp_path):
     client, store = _client(tmp_path)
-    store.create_job(url="https://video.example/active", target={"type": "player", "name": "Messi"}, extra_keywords=[])
+    store.create_job(url="https://www.youtube.com/watch?v=active", target={"type": "player", "name": "Messi"}, extra_keywords=[])
 
     response = client.post("/api/radar/jobs", headers=_headers(), json=_job_payload())
 
