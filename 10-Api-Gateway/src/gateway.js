@@ -140,6 +140,25 @@ function matchesPrefix(pathname, prefix) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+function decodePathPrefix(value, maxPasses = 2) {
+  let decoded = String(value || '');
+  for (let index = 0; index < maxPasses; index += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    } catch {
+      break;
+    }
+  }
+  return decoded;
+}
+
+function isProtocolRelativeUpstreamPath(path) {
+  const normalized = decodePathPrefix(path).replace(/\\/g, '/');
+  return normalized.startsWith('//');
+}
+
 export function resolveRoute(rawUrl, routes = DEFAULT_ROUTES) {
   const matches = resolveRouteMatches(rawUrl, routes);
   return matches.length === 1 ? matches[0] : null;
@@ -152,6 +171,7 @@ function resolveRouteMatches(rawUrl, routes = DEFAULT_ROUTES) {
     const prefix = normalizePrefix(route.prefix);
     if (!prefix || !matchesPrefix(parsed.pathname, prefix)) continue;
     const strippedPath = parsed.pathname.slice(prefix.length) || '/';
+    if (isProtocolRelativeUpstreamPath(strippedPath)) continue;
     const upstreamPath = `${strippedPath}${parsed.search}`;
     const upstreamTimeoutMs = resolveRouteUpstreamTimeoutMs(service, upstreamPath);
     matches.push({

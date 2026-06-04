@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
-import { BoundedTtlStore, createGatewayServer, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, resolveRoutePolicy } from '../src/gateway.js';
+import { BoundedTtlStore, createGatewayServer, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, resolveRoute, resolveRoutePolicy } from '../src/gateway.js';
 import {
   DEFAULT_EVENT_RETENTION,
   JsonlEventRecorder,
@@ -724,6 +724,46 @@ test('unknown proxy route fails closed locally without upstream proxying', async
   });
   assert.equal(ambiguousPolicy.kind, 'reject');
   assert.equal(ambiguousPolicy.code, 'route_not_found');
+});
+
+test('local service routes reject protocol-relative upstream paths before proxying', () => {
+  const routes = {
+    monitor: { prefix: '/monitor', target: 'http://127.0.0.1:8775' },
+    radar: { prefix: '/radar', target: 'http://127.0.0.1:8765' },
+    approval: { prefix: '/approval', target: 'http://127.0.0.1:3042' },
+  };
+
+  for (const [service, url] of [
+    ['monitor', '/monitor//example.com/path'],
+    ['monitor', '/monitor/%2f%2fevil.example/path'],
+    ['monitor', '/monitor/\\\\evil.example/path'],
+    ['radar', '/radar//example.com/api/radar/jobs'],
+    ['radar', '/radar/%5c%5cevil.example/api/radar/jobs'],
+    ['approval', '/approval//example.com/api/projects'],
+    ['approval', '/approval/%2F%5Cevil.example/api/projects'],
+  ]) {
+    assert.equal(resolveRoute(url, routes), null, `${service} route ${url} must not resolve`);
+    const policy = resolveRoutePolicy({ method: 'GET', url }, { routes, serviceCredentials: {} });
+    assert.equal(policy.kind, 'reject', `${service} route ${url} must fail closed`);
+    assert.equal(policy.code, 'route_not_found');
+  }
+});
+
+test('authenticated protocol-relative local service route does not reach upstream', async () => {
+  const upstream = await createUpstream({ body: 'must-not-reach' });
+  const baseUrl = await createGateway({
+    routes: { radar: { prefix: '/radar', target: upstream.target } },
+    serviceCredentials: { radar: { 'x-api-key': 'radar-secret' } },
+    panelSessions: { 'valid-token': panelSession() },
+  });
+
+  const response = await fetch(`${baseUrl}/radar//example.com/api/radar/jobs`, {
+    headers: { cookie: sessionCookie() },
+  });
+
+  assert.equal(response.status, 404);
+  assert.equal((await readJson(response)).code, 'route_not_found');
+  assert.equal(upstream.requests.length, 0);
 });
 
 // === WU2 TRIANGULATE tests ===
