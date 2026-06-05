@@ -637,6 +637,42 @@ test('public local live proxy route does not inject service credentials', async 
   assert.equal(monitor.requests[0].headers['x-api-key'], undefined, 'Public liveness proxy must not receive injected credentials');
 });
 
+test('resolveRoutePolicy keeps boundary WebSub event intake public for machine forwarding', () => {
+  const options = { routes: { monitor: { prefix: '/monitor', target: 'http://127.0.0.1:8775' } }, serviceCredentials: {} };
+
+  const policy = resolveRoutePolicy({ method: 'POST', url: '/monitor/api/monitor/boundary/websub-events' }, options);
+
+  assert.equal(policy.kind, 'proxy');
+  assert.equal(policy.requiresSession, false);
+  assert.equal(policy.requiresEditor, false);
+  assert.equal(policy.requiresCsrf, false);
+  assert.equal(policy.allowsCredentialInjection, false);
+});
+
+test('public boundary WebSub event proxy forwards only caller boundary key without service credentials', async () => {
+  const monitor = await createUpstream({ body: '{"status":"accepted"}' });
+  const baseUrl = await createGateway({
+    routes: { monitor: { prefix: '/monitor', target: monitor.target } },
+    serviceCredentials: { monitor: { 'x-api-key': 'monitor-secret' } },
+  });
+
+  const response = await fetch(`${baseUrl}/monitor/api/monitor/boundary/websub-events`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-boundary-event-api-key': 'boundary-event-key',
+    },
+    body: JSON.stringify({ event_id: 'websub:UC:vid-1', received_at: '2026-06-05T00:00:00Z', video_ids: ['vid-1'] }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(monitor.requests.length, 1);
+  assert.equal(monitor.requests[0].method, 'POST');
+  assert.equal(monitor.requests[0].url, '/api/monitor/boundary/websub-events');
+  assert.equal(monitor.requests[0].headers['x-boundary-event-api-key'], 'boundary-event-key');
+  assert.equal(monitor.requests[0].headers['x-api-key'], undefined, 'Boundary event intake must not receive gateway service credentials');
+});
+
 test('resolveRoutePolicy makes protected proxy and read-model requirements explicit', () => {
   const options = {
     routes: {

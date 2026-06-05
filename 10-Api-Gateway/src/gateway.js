@@ -11,7 +11,7 @@ export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8099;
 
 export const DEFAULT_ROUTES = Object.freeze({
-  n8n: { prefix: '/n8n', target: 'https://n8n.example.local' },
+  n8n: { prefix: '/n8n', target: 'http://127.0.0.1:5678' },
   tts: { prefix: '/tts', target: 'http://127.0.0.1:8088' },
   subtitles: { prefix: '/subtitles', target: 'http://127.0.0.1:8092' },
   radar: { prefix: '/radar', target: 'http://127.0.0.1:8765' },
@@ -951,6 +951,16 @@ function isPublicLocalLivenessRoute(route) {
   return pathname === '/health' || pathname === '/healthz' || pathname === '/api/monitor/live' || pathname === '/api/radar/live';
 }
 
+function isPublicLocalMachineRoute(route) {
+  if (!route || !LOCAL_SERVICE_NAMES.has(route.service)) return false;
+  const pathname = new URL(route.upstreamPath, 'http://gateway.local').pathname;
+  return route.service === 'monitor' && pathname === '/api/monitor/boundary/websub-events';
+}
+
+function isPublicLocalUnauthenticatedRoute(route) {
+  return isPublicLocalLivenessRoute(route) || isPublicLocalMachineRoute(route);
+}
+
 function resolvePanelReadModelRoute(rawUrl, routes = DEFAULT_ROUTES) {
   const parsed = new URL(rawUrl, 'http://gateway.local');
   if (!matchesPrefix(parsed.pathname, PANEL_READ_MODEL_PREFIX)) return null;
@@ -1059,7 +1069,7 @@ export function resolveRoutePolicy(req, options = {}) {
   const matches = resolveRouteMatches(rawUrl, routes);
   if (matches.length !== 1) return rejectPolicy({ statusCode: 404, code: 'route_not_found' });
   const route = matches[0];
-  if (isPublicLocalLivenessRoute(route)) {
+  if (isPublicLocalUnauthenticatedRoute(route)) {
     return routePolicy({ kind: 'proxy', route });
   }
 
@@ -1082,6 +1092,7 @@ function hasInjectedServiceCredentials(route, options) {
 }
 
 function shouldProtectRequest(req, route, options = { serviceCredentials: {} }) {
+  if (isPublicLocalUnauthenticatedRoute(route)) return false;
   if (isMutationMethod(req.method)) return true;
   if (LOCAL_SERVICE_NAMES.has(route?.service) && isPublicLocalLivenessRoute(route)) return false;
   if (hasInjectedServiceCredentials(route, options)) return true;
