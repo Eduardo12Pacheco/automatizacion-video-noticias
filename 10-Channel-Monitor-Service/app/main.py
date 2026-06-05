@@ -157,9 +157,8 @@ def create_app(
         target = normalize_country(target_country) if target_country else None
         now = _utc_now_iso()
         candidates = [candidate for candidate in store.list_ai_rescue_candidates(now=now) if target is None or candidate.target_country == target]
-        rejections = store.list_ai_rescue_rejections(now=now)
         return {
-            "summary": _ai_rescue_summary(candidates=candidates, rejection_count=len(rejections)),
+            "summary": _ai_rescue_summary(candidates=candidates, rejection_count=store.count_ai_rescue_rejections(now=now)),
             "items": [_ai_rescue_candidate_to_dict(store, candidate, include_evidence=False) for candidate in candidates],
         }
 
@@ -172,9 +171,22 @@ def create_app(
         return _ai_rescue_candidate_to_dict(store, candidate, include_evidence=True)
 
     @app.get("/api/monitor/ai-rescue/rejections")
-    async def ai_rescue_rejections() -> dict[str, Any]:
+    async def ai_rescue_rejections(limit: int = 50, offset: int = 0) -> dict[str, Any]:
         _require_ai_rescue_enabled(settings)
-        return {"items": [_ai_rescue_rejection_to_dict(rejection) for rejection in store.list_ai_rescue_rejections(now=_utc_now_iso())]}
+        now = _utc_now_iso()
+        safe_limit = max(1, min(int(limit), 250))
+        safe_offset = max(0, int(offset))
+        total = store.count_ai_rescue_rejections(now=now)
+        items = store.list_ai_rescue_rejections(now=now, limit=safe_limit, offset=safe_offset)
+        return {
+            "items": [_ai_rescue_rejection_to_dict(rejection) for rejection in items],
+            "pagination": {
+                "total": total,
+                "limit": safe_limit,
+                "offset": safe_offset,
+                "has_more": safe_offset + len(items) < total,
+            },
+        }
 
     @app.post("/api/monitor/ai-rescue/refresh")
     async def ai_rescue_refresh() -> dict[str, Any]:

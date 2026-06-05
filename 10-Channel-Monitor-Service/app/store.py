@@ -1695,8 +1695,21 @@ class MonitorStore:
             row = connection.execute("select * from ai_rescue_rejections where id = ?", (cursor.lastrowid,)).fetchone()
         return _ai_rescue_rejection_from_row(row)
 
-    def list_ai_rescue_rejections(self, *, now: str | None = None) -> list[AiRescueRejectionRecord]:
+    def list_ai_rescue_rejections(
+        self,
+        *,
+        now: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[AiRescueRejectionRecord]:
         window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        safe_offset = max(0, int(offset or 0))
+        limit_sql = ""
+        args = list(window_args)
+        if limit is not None:
+            safe_limit = max(1, min(int(limit), 250))
+            limit_sql = " limit ? offset ?"
+            args.extend([safe_limit, safe_offset])
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
@@ -1705,8 +1718,9 @@ class MonitorStore:
                 join videos on videos.video_id = ai_rescue_rejections.video_id
                 where {window_sql}
                 order by ai_rescue_rejections.id
+                {limit_sql}
                 """,
-                window_args,
+                args,
             ).fetchall()
         return [_ai_rescue_rejection_from_row(row) for row in rows]
 
