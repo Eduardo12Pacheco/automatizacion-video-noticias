@@ -927,7 +927,7 @@ def test_enqueue_worker_submits_important_channel_without_target_rows_to_all_rea
     assert store.list_enqueue_attempts("important-ready")[-1].radar_job_id == "job-1"
 
 
-def test_enqueue_worker_submits_important_full_channel_with_source_country_fallback(tmp_path):
+def test_enqueue_worker_submits_important_full_channel_to_all_target_countries(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
@@ -961,8 +961,46 @@ def test_enqueue_worker_submits_important_full_channel_with_source_country_fallb
     results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
 
     assert [video.video_id for video in results] == ["important-full-ready"]
-    assert radar.calls == [("https://youtu.be/important-full-ready", ["argentina"])]
+    assert radar.calls == [("https://youtu.be/important-full-ready", list(TARGET_COUNTRY_ORDER))]
     assert store.list_enqueue_attempts("important-full-ready")[-1].radar_job_id == "job-1"
+
+
+def test_enqueue_worker_submits_important_program_rule_to_all_target_countries(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(
+            country="peru",
+            label="Mr Peet",
+            source_url=None,
+            youtube_channel_id="UCMrPeet",
+            important_mode="program_rules",
+            important_rules=[ImportantRule(content_types=["completed"], op="starts_with", value="MADRUGOL CON MR PEET")],
+        )
+    )
+    store.upsert_video(
+        VideoRecord(
+            video_id="important-program-ready",
+            channel_id=channel.id,
+            title="MADRUGOL CON MR PEET - previa internacional",
+            url="https://youtu.be/important-program-ready",
+            lifecycle="enqueue_pending",
+            matched=True,
+            match_reason='[{"type":"important_program_rule","label":"Mr Peet","source_country":"peru","op":"starts_with","value":"MADRUGOL CON MR PEET"}]',
+            classification_status="important",
+            important_mode="program_rules",
+            queue_priority_tier="important",
+            queue_priority_rank=0,
+        )
+    )
+    radar = FakeRadarSubmitter()
+
+    results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
+
+    assert [video.video_id for video in results] == ["important-program-ready"]
+    assert radar.calls == [("https://youtu.be/important-program-ready", list(TARGET_COUNTRY_ORDER))]
+    assert store.list_target_matches(video_id="important-program-ready") == []
+    assert store.list_enqueue_attempts("important-program-ready")[-1].radar_job_id == "job-1"
 
 
 def test_discovery_worker_keeps_non_important_title_mismatch_rejected(tmp_path):

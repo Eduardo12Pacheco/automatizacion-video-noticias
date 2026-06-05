@@ -62,6 +62,7 @@ def test_match_program_title_starts_with_does_not_behave_like_contains():
     ("title", "rule"),
     [
         ("LA PIZARRA DE QUINTANA: mercado europeo", ProgramTitleRule("starts_with", "LA PIZARRA DE QUINTANA")),
+        ("Debate táctico: LA PIZARRA DE QUINTANA", ProgramTitleRule("contains", "LA PIZARRA DE QUINTANA")),
         ("EXITOSA DEPORTES en vivo", ProgramTitleRule("starts_with", "EXITOSA DEPORTES")),
         ("MADRUGOL CON MR PEET - edición central", ProgramTitleRule("starts_with", "MADRUGOL CON MR PEET")),
         ("Los Tenores comentan la fecha", ProgramTitleRule("contains", "TENORES")),

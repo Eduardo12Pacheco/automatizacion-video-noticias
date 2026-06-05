@@ -447,9 +447,7 @@ class EnqueueWorker:
             return results
         for video in self.store.list_due_enqueue(now):
             target_matches = self.store.list_target_matches(video_id=video.video_id)
-            countries = [match.target_country for match in target_matches if match.status == "aprobado"]
-            if not countries:
-                countries = _countries_from_match_reason(video.match_reason)
+            countries = _submission_countries_for_video(video, target_matches)
             try:
                 submitted = self.radar.submit_job(video.url or _video_url(video.video_id), countries=countries)
             except RadarBusy:
@@ -901,6 +899,25 @@ def _countries_from_match_reason(match_reason: str | None) -> list[str]:
         if source_country and source_country not in countries:
             countries.append(source_country)
     return countries
+
+
+def _submission_countries_for_video(video: VideoRecord, target_matches: list[Any]) -> list[str]:
+    countries = [match.target_country for match in target_matches if match.status == "aprobado"]
+    if countries:
+        return countries
+    if _submits_to_all_target_countries(video):
+        return list(TARGET_COUNTRY_ORDER)
+    return _countries_from_match_reason(video.match_reason)
+
+
+def _submits_to_all_target_countries(video: VideoRecord) -> bool:
+    if video.queue_priority_tier == "important":
+        return True
+    if video.important_mode in {"full_channel", "program_rules", "legacy_important_channel"}:
+        return True
+    if video.classification_status in {"important", "important_channel"}:
+        return True
+    return False
 
 
 def _important_channel_match_reason() -> str:

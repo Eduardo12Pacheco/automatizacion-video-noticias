@@ -120,6 +120,9 @@ countries:
           - content_types: [live, completed]
             op: starts_with
             value: LA PIZARRA DE QUINTANA
+          - content_types: [live, completed]
+            op: contains
+            value: LA PIZARRA DE QUINTANA
       - url: https://www.youtube.com/@diarioas
         label: Diario AS
         enabled: true

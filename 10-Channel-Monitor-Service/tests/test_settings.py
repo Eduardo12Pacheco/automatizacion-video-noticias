@@ -401,7 +401,7 @@ def test_default_channel_config_contains_exact_program_rule_sources():
     }
 
     assert rule_sources == {
-        "MARCA": [("starts_with", "LA PIZARRA DE QUINTANA")],
+        "MARCA": [("starts_with", "LA PIZARRA DE QUINTANA"), ("contains", "LA PIZARRA DE QUINTANA")],
         "Exitosa": [("starts_with", "EXITOSA DEPORTES")],
         "Mr Peet": [("starts_with", "MADRUGOL CON MR PEET")],
         "ADN Chile": [("contains", "TENORES")],
