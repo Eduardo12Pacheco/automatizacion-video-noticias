@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Callable, Protocol
 
 from .ai_rescue import AiRescueAnalysisResult, AiRescueVideoInput
+from .boundary_client import BoundaryRequestError
 from .opencode_go_client import OpenCodeGoError
 from .radar_client import RadarBusy, RadarJobResult, RadarServerError
 from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport, SubscriptionRecord, VideoRecord
@@ -207,10 +208,10 @@ class DiscoveryWorker:
             return existing
         try:
             metadata = self.get_video_metadata(video_id)
-        except MetadataUnavailable:
+        except MetadataUnavailable as exc:
             failed = existing or VideoRecord(video_id=video_id, url=_video_url(video_id), lifecycle="metadata_failed")
             return self.store.upsert_video(
-                failed.with_updates(lifecycle="metadata_failed", matched=False, match_reason="metadata_unavailable")
+                failed.with_updates(lifecycle="metadata_failed", matched=False, match_reason=_metadata_unavailable_reason(exc))
             )
         except Exception as exc:
             LOGGER.exception("channel monitor item processing failed", extra={"video_id": video_id})
@@ -815,7 +816,12 @@ class WebSubRenewalWorker:
         for channel in self.store.list_channels():
             if not channel.enabled:
                 continue
-            accepted = self.websub.renew(channel.youtube_channel_id, lease_seconds=self.lease_seconds)
+            last_error = None
+            try:
+                accepted = self.websub.renew(channel.youtube_channel_id, lease_seconds=self.lease_seconds)
+            except BoundaryRequestError as exc:
+                accepted = False
+                last_error = exc.code
             results.append(
                 self.store.record_subscription(
                     channel_id=channel.id,
@@ -824,7 +830,7 @@ class WebSubRenewalWorker:
                     expires_at=expires_at if accepted else None,
                     last_renewed_at=renewed_at,
                     status="ready" if accepted else "failed",
-                    last_error=None if accepted else "websub_renewal_rejected",
+                    last_error=None if accepted else (last_error or "websub_renewal_rejected"),
                 )
             )
         return results
@@ -836,6 +842,10 @@ def _video_url(video_id: str) -> str:
 
 def _now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _metadata_unavailable_reason(error: MetadataUnavailable) -> str:
+    return str(getattr(error, "reason", "") or "metadata_unavailable")
 
 
 def _next_poll_at() -> str:

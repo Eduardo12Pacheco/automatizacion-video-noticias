@@ -18,6 +18,7 @@ class RuntimeLoop:
     interval_seconds: int
     enabled: bool
     duty: Duty
+    initial_delay_seconds: int = 0
 
 
 class RuntimeCoordinator:
@@ -62,6 +63,8 @@ class RuntimeCoordinator:
 
     async def _run_loop(self, loop: RuntimeLoop) -> None:
         try:
+            if loop.initial_delay_seconds > 0:
+                await self._sleep(loop.initial_delay_seconds)
             while True:
                 try:
                     await _run_duty(loop.duty)

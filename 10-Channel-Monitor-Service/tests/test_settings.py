@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.settings import load_channel_config, load_settings, validate_channel_config
+from app.settings import load_channel_config, load_settings, validate_channel_config, validate_network_boundary_policy
 
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +21,10 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_CALLBACK_URL", "https://example.test/websub")
     monkeypatch.setenv("CHANNEL_MONITOR_CALLBACK_SECRET", "callback-secret")
     monkeypatch.setenv("CHANNEL_MONITOR_YOUTUBE_API_KEY", "youtube-secret")
+    monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_MODE", "protected")
+    monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "https://boundary.example.test")
+    monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", "boundary-secret")
+    monkeypatch.setenv("CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY", "event-secret")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_ENQUEUE_ENABLED", "false")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_ENQUEUE_INTERVAL_SECONDS", "7")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_PENDING_LIVE_ENABLED", "true")
@@ -33,6 +37,7 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_WEBSUB_INTERVAL_SECONDS", "31")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_ENABLED", "false")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_INTERVAL_SECONDS", "37")
+    monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_INITIAL_DELAY_SECONDS", "41")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_ENABLED", "false")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_INTERVAL_SECONDS", "17")
     monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_ENABLED", "true")
@@ -48,6 +53,8 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_MAX_CHARACTERS", "300000")
     monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_HARD_MAX_CHARACTERS", "1000000")
     monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_MAX_SEGMENTS", "10000")
+    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_YT_DLP_BINARY", "yt-dlp-test")
+    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_YT_DLP_COOKIES_PATH", str(tmp_path / "cookies.txt"))
     monkeypatch.setenv("CHANNEL_MONITOR_CATCHUP_PAGE_LIMIT", "9")
     monkeypatch.setenv("CHANNEL_MONITOR_CATCHUP_ITEM_LIMIT", "321")
 
@@ -62,6 +69,10 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.callback_url == "https://example.test/websub"
     assert settings.callback_secret == "callback-secret"
     assert settings.youtube_api_key == "youtube-secret"
+    assert settings.network_mode == "protected"
+    assert settings.network_boundary_url == "https://boundary.example.test"
+    assert settings.network_boundary_token == "boundary-secret"
+    assert settings.boundary_event_api_key == "event-secret"
     assert settings.worker_enqueue_enabled is False
     assert settings.worker_enqueue_interval_seconds == 7
     assert settings.worker_pending_live_enabled is True
@@ -74,6 +85,7 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.worker_websub_interval_seconds == 31
     assert settings.worker_catchup_enabled is False
     assert settings.worker_catchup_interval_seconds == 37
+    assert settings.worker_catchup_initial_delay_seconds == 41
     assert settings.worker_transcript_sync_enabled is False
     assert settings.worker_transcript_sync_interval_seconds == 17
     assert settings.ai_rescue_enabled is True
@@ -89,6 +101,8 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.ai_rescue_subtitle_max_characters == 300000
     assert settings.ai_rescue_subtitle_hard_max_characters == 1000000
     assert settings.ai_rescue_subtitle_max_segments == 10000
+    assert settings.ai_rescue_yt_dlp_binary == "yt-dlp-test"
+    assert settings.ai_rescue_yt_dlp_cookies_path == tmp_path / "cookies.txt"
     assert settings.catchup_page_limit == 9
     assert settings.catchup_item_limit == 321
 
@@ -108,6 +122,7 @@ def test_worker_runtime_settings_have_safe_defaults():
     assert settings.worker_websub_interval_seconds == 86400
     assert settings.worker_catchup_enabled is True
     assert settings.worker_catchup_interval_seconds == 3600
+    assert settings.worker_catchup_initial_delay_seconds == 300
     assert settings.worker_transcript_sync_enabled is True
     assert settings.worker_transcript_sync_interval_seconds == 60
     assert settings.ai_rescue_enabled is False
@@ -123,8 +138,125 @@ def test_worker_runtime_settings_have_safe_defaults():
     assert settings.ai_rescue_subtitle_max_characters == 300000
     assert settings.ai_rescue_subtitle_hard_max_characters == 1000000
     assert settings.ai_rescue_subtitle_max_segments == 10000
+    assert settings.ai_rescue_yt_dlp_binary == "yt-dlp"
+    assert settings.ai_rescue_yt_dlp_cookies_path is None
+    assert settings.network_mode == "local_dev"
+    assert settings.network_boundary_url == ""
+    assert settings.network_boundary_token == ""
+    assert settings.boundary_event_api_key == ""
     assert settings.catchup_page_limit == 20
     assert settings.catchup_item_limit == 1000
+
+
+def test_protected_network_policy_fails_closed_when_boundary_url_or_token_missing():
+    settings = load_settings()
+    protected_without_boundary = settings.__class__(
+        **{**settings.__dict__, "network_mode": "protected", "network_boundary_url": "", "network_boundary_token": ""}
+    )
+
+    report = validate_network_boundary_policy(protected_without_boundary)
+
+    assert report.status == "failed"
+    assert report.workers_enabled is False
+    assert {finding.code for finding in report.findings} == {
+        "boundary_url_required",
+        "boundary_token_required",
+    }
+
+
+def test_protected_network_policy_fails_closed_when_boundary_url_or_token_is_whitespace():
+    settings = load_settings()
+    protected_without_token = settings.__class__(
+        **{**settings.__dict__, "network_mode": "protected", "network_boundary_url": "  ", "network_boundary_token": "\t"}
+    )
+
+    report = validate_network_boundary_policy(protected_without_token)
+
+    assert report.status == "failed"
+    assert report.workers_enabled is False
+    assert [finding.code for finding in report.findings] == ["boundary_url_required", "boundary_token_required"]
+
+
+def test_protected_network_policy_accepts_complete_boundary_config_and_keeps_workers_enabled():
+    settings = load_settings()
+    protected = settings.__class__(
+        **{
+            **settings.__dict__,
+            "network_mode": "protected",
+            "network_boundary_url": "https://boundary.example.test/",
+            "network_boundary_token": "boundary-secret",
+        }
+    )
+
+    report = validate_network_boundary_policy(protected)
+
+    assert report.status == "ready"
+    assert report.workers_enabled is True
+    assert report.findings == []
+
+
+def test_protected_network_policy_rejects_cookie_configuration_without_leaking_secret_path(tmp_path):
+    cookie_path = tmp_path / "secret-channel-cookies.txt"
+    settings = load_settings()
+    protected_with_cookies = settings.__class__(
+        **{
+            **settings.__dict__,
+            "network_mode": "protected",
+            "network_boundary_url": "https://boundary.example.test",
+            "network_boundary_token": "boundary-secret",
+            "ai_rescue_yt_dlp_cookies_path": cookie_path,
+        }
+    )
+
+    report = validate_network_boundary_policy(protected_with_cookies)
+
+    assert report.status == "failed"
+    assert report.workers_enabled is False
+    assert [finding.code for finding in report.findings] == ["cookie_config_forbidden"]
+    assert "secret-channel-cookies" not in report.findings[0].message
+
+
+def test_protected_load_settings_rejects_inherited_transcript_cookie_path(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_MODE", "protected")
+    monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "https://boundary.example.test")
+    monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", "boundary-secret")
+    monkeypatch.setenv("TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH", str(tmp_path / "transcript-cookies.txt"))
+
+    settings = load_settings()
+    report = validate_network_boundary_policy(settings)
+
+    assert report.status == "failed"
+    assert report.workers_enabled is False
+    assert [finding.code for finding in report.findings] == ["cookie_config_forbidden"]
+
+
+def test_env_example_uses_five_day_cleanup_retention_without_apply_mode():
+    env_example = (SERVICE_ROOT / ".env.example").read_text(encoding="utf-8")
+
+    assert "CHANNEL_MONITOR_CLEANUP_RETENTION_HOURS=120" in env_example
+    assert "CHANNEL_MONITOR_CLEANUP_MODE=apply" not in env_example
+
+
+def test_env_example_documents_protected_boundary_without_cookie_examples():
+    env_example = (SERVICE_ROOT / ".env.example").read_text(encoding="utf-8")
+
+    assert "CHANNEL_MONITOR_NETWORK_MODE=local_dev" in env_example
+    assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_URL=" in env_example
+    assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN=" in env_example
+    assert "CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY=" in env_example
+    assert "CHANNEL_MONITOR_AI_RESCUE_YT_DLP_COOKIES_PATH" not in env_example
+    assert "TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH" not in env_example
+
+
+def test_load_settings_reuses_transcript_service_yt_dlp_defaults(monkeypatch, tmp_path):
+    cookies = tmp_path / "transcript-cookies.txt"
+    monkeypatch.setenv("TRANSCRIPT_SERVICE_YT_DLP_BINARY", "yt-dlp-transcript")
+    monkeypatch.setenv("TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH", str(cookies))
+
+    settings = load_settings()
+
+    assert settings.ai_rescue_yt_dlp_binary == "yt-dlp-transcript"
+    assert settings.ai_rescue_yt_dlp_cookies_path == cookies
 
 
 def test_load_channel_config_parses_seed_handle_grouped_by_country(tmp_path):

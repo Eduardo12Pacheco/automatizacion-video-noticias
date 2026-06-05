@@ -89,6 +89,19 @@ def test_radar_client_fetches_authenticated_job_detail_and_summary_without_secre
     assert "radar-secret" not in json.dumps(detail | summary)
 
 
+def test_radar_client_fetches_authenticated_transcript_without_secret_in_result():
+    http = FakeHttpClient(FakeHttpResponse(200, {"segments": [{"start_ms": 0, "end_ms": 1000, "text": "gol"}]}))
+    client = RadarClient(base_url="http://radar.local/", api_key="radar-secret", http=http)
+
+    transcript = client.get_job_transcript("job-1")
+
+    assert transcript == {"segments": [{"start_ms": 0, "end_ms": 1000, "text": "gol"}]}
+    assert http.calls == [
+        {"method": "GET", "url": "http://radar.local/api/radar/jobs/job-1/transcript", "headers": {"x-api-key": "radar-secret"}}
+    ]
+    assert "radar-secret" not in json.dumps(transcript)
+
+
 def test_radar_preflight_uses_authenticated_health_get_without_secret_in_result():
     http = FakeHttpClient(FakeHttpResponse(200, {"status": "ok"}))
     client = RadarClient(base_url="http://radar.local/", api_key="radar-secret", http=http)

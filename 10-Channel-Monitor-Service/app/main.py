@@ -6,17 +6,19 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any, Callable
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from .ai_rescue import AiRescueAnalyzer, SubtitlePayloadPolicy
+from .boundary_client import BoundaryRequestError, ChannelNetworkBoundaryClient
 from .channel_bootstrap import ChannelResolver, channel_sync_report_to_dict, sync_configured_channels
 from .opencode_go_client import OpenCodeGoClient
 from .radar_client import RadarClient
 from .runtime import RuntimeCoordinator, RuntimeLoop
-from .settings import Settings, load_and_validate_channel_config, load_settings, validation_report_to_dict
+from .settings import NETWORK_MODE_PROTECTED, Settings, load_and_validate_channel_config, load_channel_config, load_settings, validation_report_to_dict
 from .store import ChannelRecord, MonitorCardRecord, MonitorStore
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, load_title_catalog, normalize_country
+from .transcript_service_client import TranscriptServiceSubtitleProvider
 from .workers import AiRescueWorker, ClassificationService, CatchupWorker, CleanupWorker, DiscoveryWorker, EnqueueWorker, TranscriptSyncWorker, WebSubRenewalWorker
 from .youtube_client import CallbackValidationError, CompositeSubtitleProvider, WebSubClient, YouTubeDataClient, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider, parse_websub_video_ids, validate_websub_callback
 
@@ -30,6 +32,18 @@ def _authorize(settings: Settings, api_key: str | None) -> None:
         raise _error("missing_api_key_config", "Channel monitor API key is not configured", 500)
     if not api_key or not secrets.compare_digest(api_key, settings.api_key):
         raise _error("unauthorized", "Invalid or missing API key", 401)
+
+
+def _authorize_boundary_event(settings: Settings, api_key: str | None) -> None:
+    if not settings.boundary_event_api_key:
+        raise _error("missing_boundary_event_api_key_config", "Boundary event API key is not configured", 500)
+    if not api_key or not secrets.compare_digest(api_key, settings.boundary_event_api_key):
+        raise _error("unauthorized", "Invalid or missing boundary event API key", 401)
+
+
+def _process_boundary_video_ids(discovery_worker: DiscoveryWorker, video_ids: list[str]) -> None:
+    for video_id in video_ids:
+        discovery_worker.process_video_id(video_id)
 
 
 def _require_ai_rescue_enabled(settings: Settings) -> None:
@@ -74,7 +88,7 @@ def create_app(
 
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
-        public_paths = {"/api/monitor/live", "/api/monitor/websub"}
+        public_paths = {"/api/monitor/live", "/api/monitor/websub", "/api/monitor/boundary/websub-events"}
         if request.url.path.startswith("/api/monitor/") and request.url.path not in public_paths:
             try:
                 _authorize(settings, request.headers.get("x-api-key"))
@@ -383,6 +397,38 @@ def create_app(
             discovery_worker.process_video_id(video_id)
         return {"status": "accepted", "video_ids": video_ids}
 
+    @app.post("/api/monitor/boundary/websub-events", status_code=202)
+    async def boundary_websub_events(request: Request, background_tasks: BackgroundTasks, payload: dict[str, Any]) -> dict[str, Any]:
+        _authorize_boundary_event(settings, request.headers.get("x-boundary-event-api-key"))
+        event_id = _optional_text(payload.get("event_id"))
+        channel_id = _optional_text(payload.get("channel_id"))
+        received_at = _optional_text(payload.get("received_at"))
+        video_ids = _normalize_video_ids(payload.get("video_ids"))
+        if not event_id:
+            raise _error("missing_event_id", "Boundary WebSub event_id is required", 400)
+        if not received_at:
+            raise _error("missing_received_at", "Boundary WebSub received_at is required", 400)
+        if not video_ids:
+            raise _error("missing_video_ids", "Boundary WebSub event requires at least one video id", 400)
+        if discovery_worker is None:
+            raise _error("discovery_worker_unavailable", "Discovery worker is not configured", 503)
+        inserted = store.record_boundary_websub_event(
+            event_id=event_id,
+            channel_id=channel_id,
+            video_ids=video_ids,
+            received_at=received_at,
+        )
+        if inserted:
+            background_tasks.add_task(_process_boundary_video_ids, discovery_worker, video_ids)
+        return {
+            "status": "accepted",
+            "event_id": event_id,
+            "channel_id": channel_id,
+            "video_ids": video_ids,
+            "received_at": received_at,
+            "duplicate": not inserted,
+        }
+
     return app
 
 
@@ -430,8 +476,6 @@ def _classification_preflight(*, settings: Settings, store: MonitorStore) -> dic
 def _ai_rescue_preflight_response(
     *, settings: Settings, store: MonitorStore, runtime_coordinator: Any | None = None
 ) -> dict[str, Any]:
-    candidates = store.list_ai_rescue_candidates()
-    rejections = store.list_ai_rescue_rejections()
     queue = store.ai_rescue_queue_snapshot(now=_utc_now_iso(), upcoming_limit=10)
     runtime_status = runtime_coordinator.status() if runtime_coordinator else {}
     runtime_enabled = "ai_rescue" in runtime_status.get("enabled", [])
@@ -457,8 +501,8 @@ def _ai_rescue_preflight_response(
         "catalog": {"configured": settings.catalog_config_path.exists()},
         "runtime": {"enabled": runtime_enabled, "running": runtime_running},
         "queue_counts": queue["counts"],
-        "candidate_count": len(candidates),
-        "rejection_count": len(rejections),
+        "candidate_count": store.count_ai_rescue_candidates(),
+        "rejection_count": store.count_ai_rescue_rejections(),
     }
     if degraded_reasons:
         response["degraded_reasons"] = degraded_reasons
@@ -484,7 +528,23 @@ def _ai_rescue_degraded_reasons(*, settings: Settings, runtime_enabled: bool) ->
 def _channel_preflight(
     *, settings: Settings, store: MonitorStore, channel_resolver: ChannelResolver | None
 ) -> dict[str, Any]:
-    return _sync_channels_for_preflight_or_startup(settings=settings, store=store, channel_resolver=channel_resolver)
+    report = validation_report_to_dict(load_and_validate_channel_config(settings.channels_config_path))
+    configured_count = None
+    if report["status"] == "ready":
+        config = load_channel_config(settings.channels_config_path)
+        configured_count = sum(len(country.channels) for country in config.countries)
+    report.update(
+        {
+            "configured_count": configured_count,
+            "stored_count": len(store.list_channels()),
+            "sync": {
+                "status": "deferred",
+                "code": "channel_sync_deferred",
+                "message": "Channel resolver sync is deferred to startup and worker paths.",
+            },
+        }
+    )
+    return report
 
 
 def _sync_channels_for_preflight_or_startup(
@@ -501,10 +561,12 @@ def _sync_channels_for_preflight_or_startup(
     )
 
 
-def _build_channel_resolver(*, settings: Settings) -> YouTubeDataClient | None:
+def _build_channel_resolver(*, settings: Settings) -> YouTubeDataClient | ChannelNetworkBoundaryClient | None:
+    if _protected_network_mode(settings):
+        return _build_boundary_client(settings=settings)
     if not settings.youtube_api_key:
         return None
-    return YouTubeDataClient(api_key=settings.youtube_api_key)
+    return YouTubeDataClient(api_key=settings.youtube_api_key, network_mode=settings.network_mode)
 
 
 def _channel_to_dict(record: ChannelRecord) -> dict[str, Any]:
@@ -837,6 +899,19 @@ def _optional_text(value: Any) -> str | None:
     return text or None
 
 
+def _normalize_video_ids(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in value:
+        video_id = _optional_text(item)
+        if video_id and video_id not in seen:
+            seen.add(video_id)
+            normalized.append(video_id)
+    return normalized
+
+
 def _optional_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
@@ -856,11 +931,17 @@ def _utc_now_iso() -> str:
 
 
 def _build_discovery_worker(*, settings: Settings, store: MonitorStore) -> DiscoveryWorker | None:
-    if not settings.youtube_api_key or not settings.catalog_config_path.exists():
+    if not settings.catalog_config_path.exists():
         return None
+    if _protected_network_mode(settings):
+        youtube = _require_boundary_client(settings=settings)
+    else:
+        if not settings.youtube_api_key:
+            return None
+        youtube = YouTubeDataClient(api_key=settings.youtube_api_key, network_mode=settings.network_mode)
     return DiscoveryWorker(
         store=store,
-        youtube=YouTubeDataClient(api_key=settings.youtube_api_key),
+        youtube=youtube,
         classifier=ClassificationService(
             matcher=TitleMatcher(load_title_catalog(settings.catalog_config_path)),
             classification_version=settings.classification_version,
@@ -947,11 +1028,22 @@ def _build_transcript_sync_worker(
 
 
 def _build_websub_worker(*, settings: Settings, store: MonitorStore) -> WebSubRenewalWorker | None:
+    if _protected_network_mode(settings):
+        boundary = _build_boundary_client(settings=settings)
+        if boundary is None:
+            return None
+        callback_url = f"{settings.network_boundary_url.rstrip('/')}/v1/websub/callback"
+        return WebSubRenewalWorker(
+            store=store,
+            websub=boundary,
+            callback_url=callback_url,
+            lease_seconds=settings.websub_lease_seconds,
+        )
     if not settings.callback_url:
         return None
     return WebSubRenewalWorker(
         store=store,
-        websub=WebSubClient(callback_url=settings.callback_url),
+        websub=WebSubClient(callback_url=settings.callback_url, network_mode=settings.network_mode),
         callback_url=settings.callback_url,
         lease_seconds=settings.websub_lease_seconds,
     )
@@ -960,11 +1052,17 @@ def _build_websub_worker(*, settings: Settings, store: MonitorStore) -> WebSubRe
 def _build_catchup_worker(
     *, settings: Settings, store: MonitorStore, discovery_worker: DiscoveryWorker | None
 ) -> CatchupWorker | None:
-    if discovery_worker is None or not settings.youtube_api_key:
+    if discovery_worker is None:
         return None
+    if _protected_network_mode(settings):
+        youtube = _require_boundary_client(settings=settings)
+    else:
+        if not settings.youtube_api_key:
+            return None
+        youtube = YouTubeDataClient(api_key=settings.youtube_api_key, network_mode=settings.network_mode)
     return CatchupWorker(
         store=store,
-        youtube=YouTubeDataClient(api_key=settings.youtube_api_key),
+        youtube=youtube,
         discovery=discovery_worker,
         page_limit=settings.catchup_page_limit,
         item_limit=settings.catchup_item_limit,
@@ -980,15 +1078,30 @@ def _build_ai_rescue_worker(*, settings: Settings, store: MonitorStore) -> AiRes
         or not settings.catalog_config_path.exists()
     ):
         return None
-    return AiRescueWorker(
-        store=store,
-        subtitles=CompositeSubtitleProvider(
-            primary=YouTubeTranscriptSubtitleProvider(),
+    if _protected_network_mode(settings):
+        boundary_subtitles = _require_boundary_client(settings=settings)
+        if settings.radar_url and settings.radar_api_key:
+            subtitles = CompositeSubtitleProvider(
+                primary=boundary_subtitles,
+                fallback=TranscriptServiceSubtitleProvider(
+                    radar=RadarClient(base_url=settings.radar_url, api_key=settings.radar_api_key),
+                    timeout_seconds=settings.ai_rescue_processing_timeout_seconds,
+                ),
+            )
+        else:
+            subtitles = boundary_subtitles
+    else:
+        subtitles = CompositeSubtitleProvider(
+            primary=YouTubeTranscriptSubtitleProvider(network_mode=settings.network_mode),
             fallback=YtDlpSubtitleProvider(
                 binary=settings.ai_rescue_yt_dlp_binary,
                 cookies_path=settings.ai_rescue_yt_dlp_cookies_path,
+                network_mode=settings.network_mode,
             ),
-        ),
+        )
+    return AiRescueWorker(
+        store=store,
+        subtitles=subtitles,
         analyzer=AiRescueAnalyzer(
             client=OpenCodeGoClient(
                 base_url=settings.ai_rescue_opencode_base_url,
@@ -1016,6 +1129,30 @@ def _ai_rescue_opencode_api_keys(settings: Settings) -> list[str]:
         return configured
     legacy = settings.ai_rescue_opencode_api_key.strip()
     return [legacy] if legacy else []
+
+
+def _protected_network_mode(settings: Settings) -> bool:
+    return str(settings.network_mode or "").strip().casefold() == NETWORK_MODE_PROTECTED
+
+
+def _build_boundary_client(*, settings: Settings) -> ChannelNetworkBoundaryClient | None:
+    if not settings.network_boundary_url.strip() or not settings.network_boundary_token.strip():
+        return None
+    return ChannelNetworkBoundaryClient(
+        base_url=settings.network_boundary_url,
+        token=settings.network_boundary_token,
+    )
+
+
+def _require_boundary_client(*, settings: Settings) -> ChannelNetworkBoundaryClient:
+    boundary = _build_boundary_client(settings=settings)
+    if boundary is None:
+        raise BoundaryRequestError(
+            code="boundary_misconfigured",
+            message="Channel network boundary URL/token are required in protected mode",
+            retryable=False,
+        )
+    return boundary
 
 
 def _noop() -> None:

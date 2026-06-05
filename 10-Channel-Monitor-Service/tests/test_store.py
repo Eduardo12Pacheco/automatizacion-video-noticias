@@ -29,6 +29,7 @@ def test_store_migrates_required_monitor_tables(tmp_path):
         "video_target_matches",
         "rejected_videos",
         "subscriptions",
+        "boundary_websub_events",
         "cleanup_runs",
         "classification_runs",
         "ai_rescue_queue",
@@ -556,6 +557,7 @@ def test_store_preflight_reports_ready_after_migration(tmp_path):
         "video_target_matches",
         "rejected_videos",
         "subscriptions",
+        "boundary_websub_events",
         "cleanup_runs",
         "classification_runs",
         "ai_rescue_queue",
@@ -678,7 +680,7 @@ def test_baseline_reset_apply_creates_backup_preserves_channels_and_stamps_basel
     store = MonitorStore(db_path)
     store.migrate()
     channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", uploads_playlist_id="UUCaracol", enabled=True))
-    disabled = store.upsert_channel(ChannelRecord(country="ecuador", label="Disabled", source_url=None, youtube_channel_id="UCDisabled", uploads_playlist_id="UUDisabled", enabled=False))
+    store.upsert_channel(ChannelRecord(country="ecuador", label="Disabled", source_url=None, youtube_channel_id="UCDisabled", uploads_playlist_id="UUDisabled", enabled=False))
     store.upsert_video(VideoRecord(video_id="old-video", channel_id=channel.id, title="Old", lifecycle="ignored_seen"))
     store.upsert_target_match(TargetMatchRecord(video_id="old-video", target_country="ecuador", status="aprobado"))
     store.upsert_rejected_video(video_id="old-video", source_country="colombia", reason="no_valid_target_match")

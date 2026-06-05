@@ -91,6 +91,35 @@ def test_runtime_start_schedules_catchup_loop_once_with_other_enabled_duties():
     asyncio.run(scenario())
 
 
+def test_runtime_waits_initial_delay_before_first_duty():
+    async def scenario():
+        duty = FakeDuty()
+        sleep = BlockingSleep()
+        coordinator = RuntimeCoordinator(
+            loops=[
+                RuntimeLoop(
+                    name="catchup",
+                    interval_seconds=3600,
+                    initial_delay_seconds=300,
+                    enabled=True,
+                    duty=duty,
+                ),
+            ],
+            sleep=sleep,
+        )
+
+        await coordinator.start()
+        await sleep.started.wait()
+
+        assert sleep.intervals == [300]
+        assert duty.calls == 0
+
+        await coordinator.stop()
+        assert coordinator.status()["running"] == []
+
+    asyncio.run(scenario())
+
+
 def test_runtime_status_can_report_classification_loop_disabled_by_configuration():
     coordinator = RuntimeCoordinator(
         loops=[RuntimeLoop(name="classification_backfill", interval_seconds=3600, enabled=False, duty=lambda: None)]
@@ -114,6 +143,23 @@ def test_runtime_status_reports_ai_rescue_loop_disabled_by_default(tmp_path):
 
     assert "ai_rescue" in status["disabled"]
     assert "ai_rescue" not in status["enabled"]
+
+
+def test_build_runtime_coordinator_applies_initial_delay_only_to_catchup(tmp_path):
+    settings = Settings(
+        db_path=tmp_path / "monitor.sqlite3",
+        radar_url="",
+        radar_api_key="",
+        worker_catchup_initial_delay_seconds=123,
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+
+    coordinator = _build_runtime_coordinator(settings=settings, store=store, discovery_worker=None, radar_client=None)
+
+    delays = {loop.name: loop.initial_delay_seconds for loop in coordinator._loops}
+    assert delays["catchup"] == 123
+    assert all(delay == 0 for name, delay in delays.items() if name != "catchup")
 
 
 def test_runtime_stop_cancels_and_awaits_running_loops():

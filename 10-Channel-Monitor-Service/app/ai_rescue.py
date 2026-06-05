@@ -161,6 +161,7 @@ def build_ai_rescue_prompt(
         },
         "constraints": [
             "Use only provided YouTube subtitles as evidence.",
+            "Provided subtitles may be in the video's original language; translate and analyze them as needed.",
             "Do not use audio, Whisper, professional transcription, or metadata-only claims.",
             "Exclude the source country and any unconfigured target.",
             "Require at least 20 seconds of accumulated relevant positive football evidence per candidate.",

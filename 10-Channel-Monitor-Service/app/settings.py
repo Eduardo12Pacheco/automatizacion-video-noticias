@@ -18,6 +18,17 @@ DEFAULT_AI_RESCUE_SUBTITLE_HARD_MAX_CHARACTERS = 1_000_000
 DEFAULT_AI_RESCUE_SUBTITLE_MAX_SEGMENTS = 10_000
 IMPORTANT_MODES = {"full_channel", "program_rules"}
 IMPORTANT_RULE_OPS = {"starts_with", "contains"}
+NETWORK_MODE_LOCAL_DEV = "local_dev"
+NETWORK_MODE_PROTECTED = "protected"
+NETWORK_MODES = {NETWORK_MODE_LOCAL_DEV, NETWORK_MODE_PROTECTED}
+FORBIDDEN_COOKIE_OR_BYPASS_ENVS = (
+    "CHANNEL_MONITOR_YOUTUBE_COOKIES_PATH",
+    "CHANNEL_MONITOR_BROWSER_COOKIES_PATH",
+    "CHANNEL_MONITOR_BYPASS_COOKIES_PATH",
+    "CHANNEL_MONITOR_BOTCHECK_BYPASS_TOKEN",
+    "CHANNEL_MONITOR_CAPTCHA_API_KEY",
+    "YOUTUBE_COOKIES_PATH",
+)
 
 
 @dataclass(frozen=True)
@@ -31,6 +42,11 @@ class Settings:
     callback_url: str = ""
     callback_secret: str = ""
     youtube_api_key: str = ""
+    network_mode: str = NETWORK_MODE_LOCAL_DEV
+    network_boundary_url: str = ""
+    network_boundary_token: str = ""
+    boundary_event_api_key: str = ""
+    forbidden_cookie_or_bypass_envs: list[str] = field(default_factory=list)
     worker_enqueue_enabled: bool = True
     worker_enqueue_interval_seconds: int = 60
     worker_pending_live_enabled: bool = True
@@ -41,6 +57,7 @@ class Settings:
     worker_websub_interval_seconds: int = 86400
     worker_catchup_enabled: bool = True
     worker_catchup_interval_seconds: int = 3600
+    worker_catchup_initial_delay_seconds: int = 300
     worker_transcript_sync_enabled: bool = True
     worker_transcript_sync_interval_seconds: int = 60
     ai_rescue_enabled: bool = False
@@ -56,6 +73,8 @@ class Settings:
     ai_rescue_subtitle_max_characters: int = DEFAULT_AI_RESCUE_SUBTITLE_MAX_CHARACTERS
     ai_rescue_subtitle_hard_max_characters: int = DEFAULT_AI_RESCUE_SUBTITLE_HARD_MAX_CHARACTERS
     ai_rescue_subtitle_max_segments: int = DEFAULT_AI_RESCUE_SUBTITLE_MAX_SEGMENTS
+    ai_rescue_yt_dlp_binary: str = "yt-dlp"
+    ai_rescue_yt_dlp_cookies_path: Path | None = None
     catchup_page_limit: int = 20
     catchup_item_limit: int = 1000
     backend_card_default_limit: int = 200
@@ -116,6 +135,13 @@ class ConfigValidationReport:
     findings: list[ConfigFinding]
 
 
+@dataclass(frozen=True)
+class NetworkBoundaryPolicyReport:
+    status: str
+    workers_enabled: bool
+    findings: list[ConfigFinding]
+
+
 def load_settings() -> Settings:
     return Settings(
         api_key=os.environ.get("CHANNEL_MONITOR_API_KEY", ""),
@@ -127,6 +153,11 @@ def load_settings() -> Settings:
         callback_url=os.environ.get("CHANNEL_MONITOR_CALLBACK_URL", ""),
         callback_secret=os.environ.get("CHANNEL_MONITOR_CALLBACK_SECRET", ""),
         youtube_api_key=os.environ.get("CHANNEL_MONITOR_YOUTUBE_API_KEY", ""),
+        network_mode=_network_mode(os.environ.get("CHANNEL_MONITOR_NETWORK_MODE", NETWORK_MODE_LOCAL_DEV)),
+        network_boundary_url=os.environ.get("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "").strip().rstrip("/"),
+        network_boundary_token=os.environ.get("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", ""),
+        boundary_event_api_key=os.environ.get("CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY", ""),
+        forbidden_cookie_or_bypass_envs=_present_forbidden_cookie_or_bypass_envs(),
         worker_enqueue_enabled=_env_bool("CHANNEL_MONITOR_WORKER_ENQUEUE_ENABLED", True),
         worker_enqueue_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_ENQUEUE_INTERVAL_SECONDS", 60),
         worker_pending_live_enabled=_env_bool("CHANNEL_MONITOR_WORKER_PENDING_LIVE_ENABLED", True),
@@ -137,6 +168,7 @@ def load_settings() -> Settings:
         worker_websub_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_WEBSUB_INTERVAL_SECONDS", 86400),
         worker_catchup_enabled=_env_bool("CHANNEL_MONITOR_WORKER_CATCHUP_ENABLED", True),
         worker_catchup_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_CATCHUP_INTERVAL_SECONDS", 3600),
+        worker_catchup_initial_delay_seconds=_env_int("CHANNEL_MONITOR_WORKER_CATCHUP_INITIAL_DELAY_SECONDS", 300),
         worker_transcript_sync_enabled=_env_bool("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_ENABLED", True),
         worker_transcript_sync_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_INTERVAL_SECONDS", 60),
         ai_rescue_enabled=_env_bool("CHANNEL_MONITOR_AI_RESCUE_ENABLED", False),
@@ -162,6 +194,14 @@ def load_settings() -> Settings:
         ),
         ai_rescue_subtitle_max_segments=_env_int(
             "CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_MAX_SEGMENTS", DEFAULT_AI_RESCUE_SUBTITLE_MAX_SEGMENTS
+        ),
+        ai_rescue_yt_dlp_binary=os.environ.get(
+            "CHANNEL_MONITOR_AI_RESCUE_YT_DLP_BINARY",
+            os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_BINARY", "yt-dlp"),
+        ),
+        ai_rescue_yt_dlp_cookies_path=_env_optional_path(
+            "CHANNEL_MONITOR_AI_RESCUE_YT_DLP_COOKIES_PATH",
+            fallback=os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH", ""),
         ),
         catchup_page_limit=_env_int("CHANNEL_MONITOR_CATCHUP_PAGE_LIMIT", 20),
         catchup_item_limit=_env_int("CHANNEL_MONITOR_CATCHUP_ITEM_LIMIT", 1000),
@@ -298,6 +338,49 @@ def validation_report_to_dict(report: ConfigValidationReport) -> dict[str, Any]:
     }
 
 
+def validate_network_boundary_policy(settings: Settings) -> NetworkBoundaryPolicyReport:
+    findings: list[ConfigFinding] = []
+    network_mode = _network_mode(settings.network_mode)
+
+    if network_mode not in NETWORK_MODES:
+        findings.append(
+            ConfigFinding(
+                code="invalid_network_mode",
+                message="CHANNEL_MONITOR_NETWORK_MODE must be 'protected' or 'local_dev'",
+            )
+        )
+
+    if network_mode == NETWORK_MODE_PROTECTED:
+        if not settings.network_boundary_url.strip():
+            findings.append(
+                ConfigFinding(
+                    code="boundary_url_required",
+                    message="CHANNEL_MONITOR_NETWORK_BOUNDARY_URL is required in protected mode",
+                )
+            )
+        if not settings.network_boundary_token.strip():
+            findings.append(
+                ConfigFinding(
+                    code="boundary_token_required",
+                    message="CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN is required in protected mode",
+                )
+            )
+        if settings.ai_rescue_yt_dlp_cookies_path is not None or settings.forbidden_cookie_or_bypass_envs:
+            findings.append(
+                ConfigFinding(
+                    code="cookie_config_forbidden",
+                    message="Channel cookies, browser-session credentials, CAPTCHA, and botcheck bypass configuration are forbidden in protected mode",
+                )
+            )
+
+    status = "failed" if findings else "ready"
+    return NetworkBoundaryPolicyReport(
+        status=status,
+        workers_enabled=status == "ready",
+        findings=findings,
+    )
+
+
 def _optional_str(value: Any) -> str | None:
     if value is None:
         return None
@@ -312,6 +395,14 @@ def _optional_int(value: Any) -> int | None:
     if not text:
         return None
     return int(text)
+
+
+def _network_mode(value: Any) -> str:
+    return str(value or NETWORK_MODE_LOCAL_DEV).strip().casefold() or NETWORK_MODE_LOCAL_DEV
+
+
+def _present_forbidden_cookie_or_bypass_envs() -> list[str]:
+    return [name for name in FORBIDDEN_COOKIE_OR_BYPASS_ENVS if os.environ.get(name, "").strip()]
 
 
 def _important_rule_from_dict(raw: Any) -> ImportantRule:
@@ -339,6 +430,11 @@ def _env_csv(name: str, *, fallback: str = "") -> list[str]:
         return values
     fallback = fallback.strip()
     return [fallback] if fallback else []
+
+
+def _env_optional_path(name: str, *, fallback: str = "") -> Path | None:
+    raw = os.environ.get(name, fallback).strip()
+    return Path(raw) if raw else None
 
 
 def _env_int(name: str, default: int) -> int:

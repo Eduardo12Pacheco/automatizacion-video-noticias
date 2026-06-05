@@ -68,6 +68,12 @@ class RadarClient:
             return response.json()
         raise RadarServerError(response.status_code, "radar_job_summary_unavailable")
 
+    def get_job_transcript(self, job_id: str) -> dict[str, Any]:
+        response = self.http.get(f"{self.base_url}/api/radar/jobs/{job_id}/transcript", headers={"x-api-key": self.api_key})
+        if response.status_code == 200:
+            return response.json()
+        raise RadarServerError(response.status_code, "radar_job_transcript_unavailable")
+
     def preflight(self) -> dict[str, Any]:
         url_configured = bool(self.base_url)
         api_key_configured = bool(self.api_key)

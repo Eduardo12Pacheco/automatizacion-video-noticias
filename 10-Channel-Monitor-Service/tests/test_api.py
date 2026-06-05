@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app import main as main_module
+from app.boundary_client import BoundaryRequestError, ChannelNetworkBoundaryClient
 from app.main import create_app, _parse_mention_counts
 from app.settings import Settings
 from app.store import ChannelRecord, MonitorStore, TargetMatchRecord, VideoRecord
@@ -61,6 +63,11 @@ class StartupFakeChannelResolver:
         return ChannelMetadata(channel_id="UCFakeResolved", title="Resolved", uploads_playlist_id="UUFakeResolved")
 
 
+class ExplodingChannelResolver:
+    def resolve_channel(self, source: str) -> ChannelMetadata:
+        raise AssertionError(f"preflight must not resolve channels: {source}")
+
+
 def test_lifespan_starts_and_stops_injected_runtime_coordinator_once(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
     store = MonitorStore(settings.db_path)
@@ -105,6 +112,158 @@ countries:
     assert [(channel.youtube_channel_id, channel.important, channel.important_mode, channel.priority_tier, channel.algorithm_priority_rank) for channel in runtime.channels_at_start] == [
         ("UCFakeResolved", True, "full_channel", "importantes", 3)
     ]
+
+
+def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_youtube_providers(tmp_path, monkeypatch):
+    catalog_path = tmp_path / "catalog.yaml"
+    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    settings = Settings(
+        api_key="monitor-secret",
+        db_path=tmp_path / "monitor.sqlite3",
+        catalog_config_path=catalog_path,
+        network_mode="protected",
+        network_boundary_url="https://boundary.example.test",
+        network_boundary_token="boundary-token",
+        radar_url="http://transcript-service.test",
+        radar_api_key="transcript-service-key",
+        ai_rescue_enabled=True,
+        ai_rescue_worker_enabled=True,
+        ai_rescue_opencode_model="gpt-test",
+        ai_rescue_opencode_api_key="opencode-token",
+        worker_websub_enabled=True,
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+
+    def forbidden_local_provider(*args, **kwargs):
+        raise AssertionError("local YouTube provider constructed in protected mode")
+
+    monkeypatch.setattr(main_module, "YouTubeDataClient", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "WebSubClient", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "YouTubeTranscriptSubtitleProvider", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "YtDlpSubtitleProvider", forbidden_local_provider)
+
+    resolver = main_module._build_channel_resolver(settings=settings)
+    discovery = main_module._build_discovery_worker(settings=settings, store=store)
+    catchup = main_module._build_catchup_worker(settings=settings, store=store, discovery_worker=discovery)
+    websub = main_module._build_websub_worker(settings=settings, store=store)
+    ai_rescue = main_module._build_ai_rescue_worker(settings=settings, store=store)
+
+    assert isinstance(resolver, ChannelNetworkBoundaryClient)
+    assert isinstance(discovery.youtube, ChannelNetworkBoundaryClient)
+    assert isinstance(catchup.youtube, ChannelNetworkBoundaryClient)
+    assert isinstance(websub.websub, ChannelNetworkBoundaryClient)
+    assert websub.callback_url == "https://boundary.example.test/v1/websub/callback"
+    assert ai_rescue.subtitles.__class__.__name__ == "CompositeSubtitleProvider"
+    assert isinstance(ai_rescue.subtitles.primary, ChannelNetworkBoundaryClient)
+    assert ai_rescue.subtitles.fallback.__class__.__name__ == "TranscriptServiceSubtitleProvider"
+
+
+def test_protected_discovery_builder_fails_closed_when_boundary_config_missing_with_local_api_key(tmp_path, monkeypatch):
+    catalog_path = tmp_path / "catalog.yaml"
+    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    settings = Settings(
+        db_path=tmp_path / "monitor.sqlite3",
+        catalog_config_path=catalog_path,
+        network_mode="protected",
+        network_boundary_url="",
+        network_boundary_token="",
+        youtube_api_key="local-youtube-key-that-must-not-be-used",
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+
+    def forbidden_local_provider(*args, **kwargs):
+        raise AssertionError("local YouTube provider constructed when boundary config is missing")
+
+    monkeypatch.setattr(main_module, "YouTubeDataClient", forbidden_local_provider)
+
+    try:
+        main_module._build_discovery_worker(settings=settings, store=store)
+    except BoundaryRequestError as exc:
+        assert exc.code == "boundary_misconfigured"
+    else:
+        raise AssertionError("protected discovery builder must fail closed when boundary config is missing")
+
+
+def test_protected_catchup_builder_fails_closed_when_boundary_config_missing_with_local_api_key(tmp_path, monkeypatch):
+    settings = Settings(
+        db_path=tmp_path / "monitor.sqlite3",
+        network_mode="protected",
+        network_boundary_url="",
+        network_boundary_token="",
+        youtube_api_key="local-youtube-key-that-must-not-be-used",
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+
+    def forbidden_local_provider(*args, **kwargs):
+        raise AssertionError("local YouTube provider constructed when boundary config is missing")
+
+    monkeypatch.setattr(main_module, "YouTubeDataClient", forbidden_local_provider)
+
+    try:
+        main_module._build_catchup_worker(settings=settings, store=store, discovery_worker=object())
+    except BoundaryRequestError as exc:
+        assert exc.code == "boundary_misconfigured"
+    else:
+        raise AssertionError("protected catchup builder must fail closed when boundary config is missing")
+
+
+def test_protected_ai_rescue_builder_fails_closed_when_boundary_config_missing_with_local_subtitle_settings(tmp_path, monkeypatch):
+    catalog_path = tmp_path / "catalog.yaml"
+    cookies_path = tmp_path / "cookies.txt"
+    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    cookies_path.write_text("local cookies must not be read\n", encoding="utf-8")
+    settings = Settings(
+        db_path=tmp_path / "monitor.sqlite3",
+        catalog_config_path=catalog_path,
+        network_mode="protected",
+        network_boundary_url="",
+        network_boundary_token="",
+        ai_rescue_enabled=True,
+        ai_rescue_worker_enabled=True,
+        ai_rescue_opencode_model="gpt-test",
+        ai_rescue_opencode_api_key="opencode-token",
+        ai_rescue_yt_dlp_cookies_path=cookies_path,
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+
+    def forbidden_local_provider(*args, **kwargs):
+        raise AssertionError("local subtitle provider constructed when boundary config is missing")
+
+    monkeypatch.setattr(main_module, "YouTubeTranscriptSubtitleProvider", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "YtDlpSubtitleProvider", forbidden_local_provider)
+
+    try:
+        main_module._build_ai_rescue_worker(settings=settings, store=store)
+    except BoundaryRequestError as exc:
+        assert exc.code == "boundary_misconfigured"
+    else:
+        raise AssertionError("protected AI Rescue builder must fail closed when boundary config is missing")
+
+
+def test_local_dev_builders_keep_explicit_local_provider_path(tmp_path):
+    catalog_path = tmp_path / "catalog.yaml"
+    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    settings = Settings(
+        db_path=tmp_path / "monitor.sqlite3",
+        catalog_config_path=catalog_path,
+        network_mode="local_dev",
+        youtube_api_key="youtube-key",
+        callback_url="https://monitor.example.test/api/monitor/websub",
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+
+    resolver = main_module._build_channel_resolver(settings=settings)
+    discovery = main_module._build_discovery_worker(settings=settings, store=store)
+    websub = main_module._build_websub_worker(settings=settings, store=store)
+
+    assert resolver.__class__.__name__ == "YouTubeDataClient"
+    assert discovery.youtube.__class__.__name__ == "YouTubeDataClient"
+    assert websub.websub.__class__.__name__ == "WebSubClient"
 
 
 def test_health_requires_api_key_and_redacts_secrets(tmp_path):
@@ -172,6 +331,35 @@ countries:
     assert body["status"] == "degraded"
     assert body["checks"]["channels"]["status"] == "failed"
     assert body["checks"]["channels"]["findings"][0]["code"] == "duplicate_channel_source"
+
+
+def test_preflight_defers_channel_sync_without_calling_resolver(tmp_path):
+    channels_path = tmp_path / "channels.yaml"
+    channels_path.write_text(
+        """
+countries:
+  - code: fr
+    name: France
+    channels:
+      - url: https://www.youtube.com/@lequipe
+        label: L'Équipe
+""".strip(),
+        encoding="utf-8",
+    )
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", channels_config_path=channels_path)
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=ExplodingChannelResolver()))
+
+    response = client.get("/api/monitor/preflight", headers={"x-api-key": "monitor-secret"})
+
+    assert response.status_code == 200
+    channels = response.json()["checks"]["channels"]
+    assert channels["status"] == "ready"
+    assert channels["configured_count"] == 1
+    assert channels["stored_count"] == 0
+    assert channels["sync"]["status"] == "deferred"
+    assert channels["sync"]["code"] == "channel_sync_deferred"
 
 
 def test_preflight_alias_is_authenticated_and_returns_same_check_shape(tmp_path):
@@ -360,6 +548,52 @@ def test_ai_rescue_preflight_reports_missing_model_and_catalog_without_enabling_
     assert body["catalog"]["configured"] is False
     assert body["runtime"]["enabled"] is False
     assert "configured-secret" not in response.text
+
+
+def test_ai_rescue_preflight_uses_counts_without_loading_candidates_or_rejections(tmp_path, monkeypatch):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+    )
+    store.upsert_video(
+        VideoRecord(
+            video_id="trash-1",
+            channel_id=channel.id,
+            title="Elogio a Ecuador",
+            lifecycle="ignored_seen",
+            detected_at="2099-01-01T00:00:00Z",
+        )
+    )
+    store.upsert_rejected_video(video_id="trash-1", source_country="colombia", reason="no_valid_target_match")
+    queue_item = store.enqueue_ai_rescue_rejected_video(video_id="trash-1", now="2099-01-01T00:00:00Z")
+    store.store_ai_rescue_candidate(
+        queue_id=queue_item.id,
+        video_id="trash-1",
+        target_country="ecuador",
+        score=86,
+        summary_es="Hablan de Ecuador.",
+        angle_es="Ecuador recibe elogios.",
+        risk="low",
+    )
+    store.store_ai_rescue_rejection(
+        queue_id=queue_item.id,
+        video_id="trash-1",
+        target_country="mexico",
+        source="ai",
+        reason="weak-evidence",
+    )
+    monkeypatch.setattr(store, "list_ai_rescue_candidates", lambda **_: (_ for _ in ()).throw(AssertionError("loaded candidates")))
+    monkeypatch.setattr(store, "list_ai_rescue_rejections", lambda **_: (_ for _ in ()).throw(AssertionError("loaded rejections")))
+    client = TestClient(create_app(settings=settings, store=store))
+
+    response = client.get("/api/monitor/ai-rescue/preflight", headers={"x-api-key": "monitor-secret"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["candidate_count"] == 1
+    assert body["rejection_count"] == 1
 
 
 def test_ai_rescue_read_endpoints_are_unavailable_when_feature_is_disabled(tmp_path):
@@ -1711,7 +1945,7 @@ def test_channel_management_contract_rejects_add_without_channel_source(tmp_path
     assert response.json()["detail"]["code"] == "missing_channel_source"
 
 
-def test_preflight_resolves_configured_handle_url_into_stored_channel(tmp_path):
+def test_preflight_reports_configured_channels_without_syncing_handle_urls(tmp_path):
     channels_path = tmp_path / "channels.yaml"
     channels_path.write_text(
         """
@@ -1736,13 +1970,14 @@ countries:
 
     response = client.get("/api/monitor/preflight", headers={"x-api-key": "monitor-secret"})
 
-    stored = store.list_channels()
     assert response.status_code == 200
-    assert response.json()["checks"]["channels"]["status"] == "ready"
-    assert response.json()["checks"]["channels"]["synced_count"] == 1
-    assert resolver.calls == ["https://www.youtube.com/@lequipe"]
-    assert stored[0].country == "fr"
-    assert stored[0].youtube_channel_id == "UClequipeStable"
+    channels = response.json()["checks"]["channels"]
+    assert channels["status"] == "ready"
+    assert channels["configured_count"] == 1
+    assert channels["stored_count"] == 0
+    assert channels["sync"]["status"] == "deferred"
+    assert resolver.calls == []
+    assert store.list_channels() == []
 
 
 def test_websub_get_challenge_is_public_and_requires_verify_token(tmp_path):
@@ -1786,6 +2021,73 @@ def test_websub_post_validates_callback_and_processes_video_ids(tmp_path):
     assert response.status_code == 202
     assert response.json() == {"status": "accepted", "video_ids": ["abc123"]}
     assert worker.video_ids == ["abc123"]
+
+
+def test_boundary_websub_events_route_rejects_missing_or_wrong_event_api_key(tmp_path):
+    settings = Settings(
+        api_key="monitor-secret",
+        db_path=tmp_path / "monitor.sqlite3",
+        boundary_event_api_key="boundary-event-secret",
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    client = TestClient(create_app(settings=settings, store=store, discovery_worker=FakeDiscoveryWorker()))
+    payload = {
+        "event_id": "websub:UCBoundary:vid-1",
+        "channel_id": "UCBoundary",
+        "video_ids": ["vid-1"],
+        "received_at": "2026-06-05T12:00:00Z",
+    }
+
+    missing = client.post("/api/monitor/boundary/websub-events", json=payload)
+    wrong = client.post("/api/monitor/boundary/websub-events", headers={"x-boundary-event-api-key": "wrong"}, json=payload)
+
+    assert missing.status_code == 401
+    assert missing.json()["detail"]["code"] == "unauthorized"
+    assert wrong.status_code == 401
+    assert wrong.json()["detail"]["code"] == "unauthorized"
+
+
+def test_boundary_websub_events_route_accepts_normalized_event_and_is_idempotent(tmp_path):
+    settings = Settings(
+        api_key="monitor-secret",
+        db_path=tmp_path / "monitor.sqlite3",
+        boundary_event_api_key="boundary-event-secret",
+    )
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    worker = FakeDiscoveryWorker()
+    client = TestClient(create_app(settings=settings, store=store, discovery_worker=worker))
+    payload = {
+        "event_id": "websub:UCBoundary:vid-1,vid-2",
+        "channel_id": "UCBoundary",
+        "video_ids": ["vid-1", "vid-2", "vid-1"],
+        "received_at": "2026-06-05T12:00:00Z",
+    }
+    headers = {"x-boundary-event-api-key": "boundary-event-secret"}
+
+    first = client.post("/api/monitor/boundary/websub-events", headers=headers, json=payload)
+    second = client.post("/api/monitor/boundary/websub-events", headers=headers, json=payload)
+
+    assert first.status_code == 202
+    assert first.json() == {
+        "status": "accepted",
+        "event_id": "websub:UCBoundary:vid-1,vid-2",
+        "channel_id": "UCBoundary",
+        "video_ids": ["vid-1", "vid-2"],
+        "received_at": "2026-06-05T12:00:00Z",
+        "duplicate": False,
+    }
+    assert second.status_code == 202
+    assert second.json()["duplicate"] is True
+    assert worker.video_ids == ["vid-1", "vid-2"]
+    stored = store.get_boundary_websub_event("websub:UCBoundary:vid-1,vid-2")
+    assert stored == {
+        "event_id": "websub:UCBoundary:vid-1,vid-2",
+        "channel_id": "UCBoundary",
+        "video_ids": ["vid-1", "vid-2"],
+        "received_at": "2026-06-05T12:00:00Z",
+    }
 
 
 def _seed_ai_rescue_candidate(

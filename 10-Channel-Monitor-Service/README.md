@@ -24,6 +24,22 @@ No build step is required.
 - `scripts\install-service.ps1` installs or updates the NSSM service `radar-channel-monitor`.
 - `scripts\check-service.ps1` calls public live and authenticated preflight without exposing secrets.
 
+### Protected boundary smoke
+
+Use `scripts\check-protected-boundary.ps1` as the safe local coordinator smoke before moving Channel Monitor behind the cloud boundary.
+
+This script does not start or restart `radar-channel-monitor`. It checks that the Windows service is Manual and not running, validates protected boundary env presence without printing tokens, optionally calls the local `/api/monitor/preflight` endpoint, and prints a focused pytest command proving protected mode has no local YouTube provider fallback.
+
+```powershell
+# Safe: local service status + local preflight only; no live external network calls.
+10-Channel-Monitor-Service\scripts\check-protected-boundary.ps1
+
+# Optional executable proof for local provider guards; still no live YouTube calls.
+10-Channel-Monitor-Service\scripts\check-protected-boundary.ps1 -RunNoLocalProviderTests
+```
+
+Expected fail-closed reasons during migration include `boundary_misconfigured` for missing URL/token and `policy_forbidden_local_youtube` if protected mode tries to construct a local provider.
+
 ### Runtime worker loops
 
 FastAPI startup owns one cancellable runtime loop per enabled duty: Radar enqueue retry, transcript summary sync, pending-live polling, SQLite cleanup, Upload playlist catch-up, and optional WebSub renewal. Configure them with `CHANNEL_MONITOR_WORKER_*_ENABLED` and `CHANNEL_MONITOR_WORKER_*_INTERVAL_SECONDS` in `.env`.
@@ -68,6 +84,7 @@ Automated verification stays local with pytest and fakes. Only after explicit op
 | `GET /api/monitor/live` | No | Minimal liveness response. |
 | `GET /api/monitor/health` | `x-api-key` | Redacted preflight. |
 | `GET /api/monitor/preflight` | `x-api-key` | Alias for redacted preflight checks. |
+| `POST /api/monitor/boundary/websub-events` | `x-boundary-event-api-key` | Boundary-only normalized WebSub event intake; idempotent by `event_id` and dispatches video IDs to local discovery coordination. |
 | `POST /api/monitor/radar-baseline-reset` | `x-api-key` | Dry-run/apply clean baseline reset with backup and confirmation. |
 | `GET /api/monitor/basura` | `x-api-key` | Paged rejected/non-matching videos preserved for review. |
 | `GET /api/monitor/summary` | `x-api-key` | Fixed target-country counters plus `basura_count`. |

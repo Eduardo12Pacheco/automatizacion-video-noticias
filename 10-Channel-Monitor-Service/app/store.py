@@ -19,6 +19,7 @@ REQUIRED_TABLES = [
     "video_target_matches",
     "rejected_videos",
     "subscriptions",
+    "boundary_websub_events",
     "cleanup_runs",
     "classification_runs",
     "ai_rescue_queue",
@@ -422,6 +423,14 @@ class MonitorStore:
                     last_error text
                 );
 
+                create table if not exists boundary_websub_events (
+                    event_id text primary key,
+                    channel_id text,
+                    video_ids_json text not null,
+                    received_at text not null,
+                    created_at text not null default current_timestamp
+                );
+
                 create table if not exists cleanup_runs (
                     id integer primary key autoincrement,
                     started_at text not null,
@@ -523,6 +532,41 @@ class MonitorStore:
             self._ensure_important_audit_columns(connection)
             self._ensure_retention_columns(connection)
             self._ensure_channel_checkpoint_columns(connection)
+
+    def record_boundary_websub_event(
+        self,
+        *,
+        event_id: str,
+        channel_id: str | None,
+        video_ids: list[str],
+        received_at: str,
+    ) -> bool:
+        """Persist a normalized boundary WebSub event.
+
+        Returns True for a new event and False when the event_id was already
+        recorded, allowing replay-safe callback forwarding.
+        """
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                insert or ignore into boundary_websub_events(event_id, channel_id, video_ids_json, received_at)
+                values (?, ?, ?, ?)
+                """,
+                (event_id, channel_id, json.dumps(video_ids), received_at),
+            )
+            return cursor.rowcount == 1
+
+    def get_boundary_websub_event(self, event_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute("select * from boundary_websub_events where event_id = ?", (event_id,)).fetchone()
+        if row is None:
+            return None
+        return {
+            "event_id": row["event_id"],
+            "channel_id": row["channel_id"],
+            "video_ids": json.loads(row["video_ids_json"]),
+            "received_at": row["received_at"],
+        }
 
     def upsert_card_context_dismissal(
         self,
@@ -1588,6 +1632,33 @@ class MonitorStore:
             evidence_by_candidate = _ai_rescue_evidence_by_candidate(connection, [int(row["id"]) for row in rows])
         return [_ai_rescue_candidate_from_row(row, evidence_by_candidate.get(int(row["id"]), [])) for row in rows]
 
+    def count_ai_rescue_candidates(self, *, now: str | None = None) -> int:
+        window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
+        with self._connect() as connection:
+            row = connection.execute(
+                f"""
+                select count(*) as total
+                from ai_rescue_candidates
+                join videos on videos.video_id = ai_rescue_candidates.video_id
+                where ai_rescue_candidates.status = 'candidate'
+                  and {window_sql}
+                  and not exists (
+                    select 1
+                    from card_context_dismissals dismissals
+                    where dismissals.surface = 'ai-rescue-candidate'
+                      and dismissals.target_context = ai_rescue_candidates.target_country
+                      and (
+                        dismissals.candidate_id = ai_rescue_candidates.id
+                        or (dismissals.candidate_id is null and dismissals.video_id = ai_rescue_candidates.video_id)
+                      )
+                      and {dismissal_sql}
+                  )
+                """,
+                (*window_args, *dismissal_args),
+            ).fetchone()
+        return int(row["total"] if row else 0)
+
     def store_ai_rescue_rejection(
         self,
         *,
@@ -1638,6 +1709,20 @@ class MonitorStore:
                 window_args,
             ).fetchall()
         return [_ai_rescue_rejection_from_row(row) for row in rows]
+
+    def count_ai_rescue_rejections(self, *, now: str | None = None) -> int:
+        window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
+        with self._connect() as connection:
+            row = connection.execute(
+                f"""
+                select count(*) as total
+                from ai_rescue_rejections
+                join videos on videos.video_id = ai_rescue_rejections.video_id
+                where {window_sql}
+                """,
+                window_args,
+            ).fetchone()
+        return int(row["total"] if row else 0)
 
     def mark_ai_rescue_candidate_rejected(
         self, candidate_id: int, *, reviewer: str | None, reason: str, decided_at: str

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import hmac
 import json
+import re
+import subprocess
+import tempfile
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Protocol
 
 from .title_matcher import normalize_country, normalize_title
@@ -15,6 +20,16 @@ from .title_matcher import normalize_country, normalize_title
 YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3"
 WEBSUB_HUB_URL = "https://pubsubhubbub.appspot.com/subscribe"
 YOUTUBE_FEED_URL = "https://www.youtube.com/xml/feeds/videos.xml"
+NETWORK_MODE_PROTECTED = "protected"
+
+
+class PolicyForbiddenLocalYouTube(RuntimeError):
+    pass
+
+
+def _guard_local_youtube_policy(network_mode: str | None) -> None:
+    if str(network_mode or "").strip().casefold() == NETWORK_MODE_PROTECTED:
+        raise PolicyForbiddenLocalYouTube("policy_forbidden_local_youtube")
 
 
 class HttpResponse(Protocol):
@@ -120,7 +135,8 @@ class CallbackValidationError(RuntimeError):
 
 
 class YouTubeDataClient:
-    def __init__(self, *, api_key: str, http: HttpClient | None = None):
+    def __init__(self, *, api_key: str, http: HttpClient | None = None, network_mode: str | None = None):
+        _guard_local_youtube_policy(network_mode)
         self.api_key = api_key
         self.http = http or _UrllibHttpClient()
 
@@ -271,7 +287,9 @@ class YouTubeTranscriptSubtitleProvider:
         *,
         api: TranscriptApiAdapter | None = None,
         api_factory: Callable[[], TranscriptApiAdapter] | None = None,
+        network_mode: str | None = None,
     ):
+        _guard_local_youtube_policy(network_mode)
         self._api = api
         self._api_factory = api_factory or YouTubeTranscriptApiAdapter
 
@@ -324,6 +342,13 @@ class YouTubeTranscriptSubtitleProvider:
         return self._api
 
     def _select_transcript(self, transcript_list: TranscriptListAdapter, *, requested_languages: list[str]) -> Any:
+        try:
+            transcript = _select_original_transcript(transcript_list)
+            if transcript is not None:
+                return transcript
+        except Exception:
+            pass
+
         last_error: Exception | None = None
         for finder_name in ("find_manually_created_transcript", "find_generated_transcript"):
             finder = getattr(transcript_list, finder_name)
@@ -371,6 +396,105 @@ class YouTubeTranscriptSubtitleProvider:
             "error": str(error),
         }
         return SubtitleUnavailable(video_id, language, reason=reason, details=error_details)
+
+
+class CompositeSubtitleProvider:
+    def __init__(self, *, primary: SubtitleProvider, fallback: SubtitleProvider):
+        self.primary = primary
+        self.fallback = fallback
+
+    def fetch(self, *, video_id: str, source_language: str | None, default_language: str) -> list[SubtitleSegment]:
+        try:
+            return self.primary.fetch(video_id=video_id, source_language=source_language, default_language=default_language)
+        except SubtitleUnavailable:
+            return self.fallback.fetch(video_id=video_id, source_language=source_language, default_language=default_language)
+
+
+@dataclass(frozen=True)
+class _YtDlpSubtitleChoice:
+    language: str
+    source: str
+
+
+class YtDlpSubtitleProvider:
+    provider_name = "yt-dlp-subtitles"
+
+    def __init__(
+        self,
+        *,
+        binary: str = "yt-dlp",
+        cookies_path: Path | str | None = None,
+        runner: Callable[[list[str], Path], Any] | None = None,
+        network_mode: str | None = None,
+    ):
+        _guard_local_youtube_policy(network_mode)
+        self.binary = binary or "yt-dlp"
+        self.cookies_path = Path(cookies_path) if cookies_path else None
+        self.runner = runner or _run_yt_dlp
+
+    def fetch(self, *, video_id: str, source_language: str | None, default_language: str) -> list[SubtitleSegment]:
+        resolution = resolve_caption_language(source_country=source_language, default_language=default_language)
+        details = {
+            "provider": self.provider_name,
+            "reason": "unavailable",
+            "video_id": video_id,
+            "source_language": source_language,
+            "default_language": default_language,
+            "resolution_reason": resolution.reason,
+            "fallback_used": resolution.fallback_used,
+        }
+        try:
+            with tempfile.TemporaryDirectory(prefix="channel-monitor-ytdlp-") as tmp:
+                workdir = Path(tmp)
+                info = self._dump_info(video_id, workdir)
+                choice = _choose_yt_dlp_subtitle(info, preferred_language=resolution.language)
+                if choice is None:
+                    raise SubtitleUnavailable(video_id, resolution.language, reason="no_subtitles", details={**details, "reason": "no_subtitles"})
+                self._download_subtitle(video_id, workdir, choice)
+                segments = _parse_downloaded_subtitle_files(workdir, language=choice.language)
+        except SubtitleUnavailable:
+            raise
+        except Exception as exc:
+            raise SubtitleUnavailable(
+                video_id,
+                resolution.language,
+                reason="fetch_error",
+                details={**details, "reason": "fetch_error", "error_type": type(exc).__name__, "error": str(exc)},
+            ) from exc
+        if not segments:
+            raise SubtitleUnavailable(video_id, choice.language, reason="empty_transcript", details={**details, "reason": "empty_transcript"})
+        return segments
+
+    def _base_args(self) -> list[str]:
+        args = [self.binary, "--skip-download", "--no-playlist"]
+        if self.cookies_path and self.cookies_path.exists():
+            args.extend(["--cookies", str(self.cookies_path)])
+        return args
+
+    def _dump_info(self, video_id: str, workdir: Path) -> dict[str, Any]:
+        result = self.runner([*self._base_args(), "--dump-json", _video_url(video_id)], workdir)
+        if int(getattr(result, "returncode", 1)) != 0:
+            raise RuntimeError(_yt_dlp_error(result))
+        return json.loads(str(getattr(result, "stdout", "") or "{}"))
+
+    def _download_subtitle(self, video_id: str, workdir: Path, choice: _YtDlpSubtitleChoice) -> None:
+        write_flag = "--write-auto-subs" if choice.source == "automatic" else "--write-subs"
+        result = self.runner(
+            [
+                *self._base_args(),
+                write_flag,
+                "--sub-langs",
+                choice.language,
+                "--sub-format",
+                "vtt/json3/srv3/srv2/srv1",
+                "--output",
+                "%(id)s.%(ext)s",
+                _video_url(video_id),
+            ],
+            workdir,
+        )
+        if int(getattr(result, "returncode", 1)) != 0:
+            raise RuntimeError(_yt_dlp_error(result))
 
 
 def resolve_caption_language(*, source_country: str | None, default_language: str) -> CaptionLanguageResolution:
@@ -442,6 +566,27 @@ def _transcript_language(transcript: Any, *, fallback: str) -> str:
     return str(getattr(transcript, "language_code", None) or getattr(transcript, "language", None) or fallback).strip() or fallback
 
 
+def _select_original_transcript(transcript_list: Any) -> Any | None:
+    transcripts = [transcript for transcript in list(transcript_list) if not _is_translated_transcript(transcript)]
+    manual = [transcript for transcript in transcripts if not bool(getattr(transcript, "is_generated", False))]
+    if manual:
+        return manual[0]
+    if transcripts:
+        return transcripts[0]
+    return None
+
+
+def _is_translated_transcript(transcript: Any) -> bool:
+    for attribute in ("is_translated", "translated"):
+        value = getattr(transcript, attribute, None)
+        if isinstance(value, bool):
+            return value
+    for attribute in ("_translation_language", "translation_language", "translation_language_code"):
+        if getattr(transcript, attribute, None):
+            return True
+    return False
+
+
 def _parse_transcript_api_snippets(snippets: Any, *, language: str) -> list[SubtitleSegment]:
     segments: list[SubtitleSegment] = []
     for snippet in snippets or []:
@@ -459,6 +604,146 @@ def _parse_transcript_api_snippets(snippets: Any, *, language: str) -> list[Subt
     return segments
 
 
+def _run_yt_dlp(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, timeout=90)
+
+
+def _yt_dlp_error(result: Any) -> str:
+    text = str(getattr(result, "stderr", "") or getattr(result, "stdout", "") or "yt-dlp failed")
+    return " ".join(text.split())[:500]
+
+
+def _choose_yt_dlp_subtitle(info: dict[str, Any], *, preferred_language: str) -> _YtDlpSubtitleChoice | None:
+    video_language = _normalize_language_code(info.get("language"))
+    for source, tracks in (("manual", info.get("subtitles") or {}), ("automatic", info.get("automatic_captions") or {})):
+        languages = _ordered_yt_dlp_languages(tracks, preferred_language=video_language or preferred_language)
+        for language in languages:
+            entries = tracks.get(language) or []
+            if entries and not _looks_translated_caption(language, entries):
+                return _YtDlpSubtitleChoice(language=language, source=source)
+    return None
+
+
+def _ordered_yt_dlp_languages(tracks: dict[str, Any], *, preferred_language: str | None) -> list[str]:
+    languages = [str(language) for language in tracks.keys()]
+    preferred_base = _normalize_language_code(preferred_language)
+    return sorted(languages, key=lambda language: (0 if _normalize_language_code(language) == preferred_base else 1, language))
+
+
+def _looks_translated_caption(language: str, entries: list[Any]) -> bool:
+    if language.startswith("live_chat"):
+        return True
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name") or entry.get("format") or "").casefold()
+        if "translated" in name or " from " in name or " auto-translated" in name:
+            return True
+    return False
+
+
+def _parse_downloaded_subtitle_files(workdir: Path, *, language: str) -> list[SubtitleSegment]:
+    files = sorted(
+        path
+        for path in workdir.iterdir()
+        if path.is_file() and path.suffix.lower().lstrip(".") in {"vtt", "json3", "srv1", "srv2", "srv3", "xml"}
+    )
+    for path in files:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        suffix = path.suffix.lower().lstrip(".")
+        if suffix == "vtt":
+            segments = _parse_vtt_subtitles(text, language=language)
+        elif suffix == "json3":
+            segments = _parse_json3_subtitles(text, language=language)
+        else:
+            segments = _parse_srv_subtitles(text, language=language)
+        if segments:
+            return segments
+    return []
+
+
+def _parse_vtt_subtitles(text: str, *, language: str) -> list[SubtitleSegment]:
+    segments: list[SubtitleSegment] = []
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    index = 0
+    while index < len(lines):
+        line = lines[index].strip()
+        index += 1
+        if "-->" not in line:
+            continue
+        left, right = line.split("-->", 1)
+        start_ms = _parse_vtt_timestamp(left.strip())
+        end_ms = _parse_vtt_timestamp(right.strip().split(" ", 1)[0])
+        body: list[str] = []
+        while index < len(lines) and lines[index].strip():
+            body.append(lines[index].strip())
+            index += 1
+        text_body = _clean_subtitle_text(" ".join(body))
+        if start_ms is not None and end_ms is not None and end_ms > start_ms and text_body:
+            segments.append(SubtitleSegment(start_ms=start_ms, end_ms=end_ms, text=text_body, language=language))
+    return segments
+
+
+def _parse_vtt_timestamp(value: str) -> int | None:
+    match = re.match(r"(?:(\d+):)?(\d{2}):(\d{2})[\.,](\d{3})", value)
+    if not match:
+        return None
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2))
+    seconds = int(match.group(3))
+    millis = int(match.group(4))
+    return ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis
+
+
+def _parse_json3_subtitles(text: str, *, language: str) -> list[SubtitleSegment]:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    segments: list[SubtitleSegment] = []
+    for event in payload.get("events") or []:
+        snippets = event.get("segs") if isinstance(event, dict) else None
+        if not snippets:
+            continue
+        body = _clean_subtitle_text("".join(str(snippet.get("utf8") or "") for snippet in snippets if isinstance(snippet, dict)))
+        if not body:
+            continue
+        start_ms = int(event.get("tStartMs") or 0)
+        duration_ms = int(event.get("dDurationMs") or 0)
+        if duration_ms > 0:
+            segments.append(SubtitleSegment(start_ms=start_ms, end_ms=start_ms + duration_ms, text=body, language=language))
+    return segments
+
+
+def _parse_srv_subtitles(text: str, *, language: str) -> list[SubtitleSegment]:
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError:
+        return []
+    segments: list[SubtitleSegment] = []
+    for node in root.findall(".//text") + root.findall(".//p"):
+        body = _clean_subtitle_text("".join(node.itertext()))
+        if not body:
+            continue
+        try:
+            start_ms = int(float(node.attrib.get("start", node.attrib.get("t", "0"))) * (1 if "t" in node.attrib else 1000))
+            duration_ms = int(float(node.attrib.get("dur", node.attrib.get("d", "0"))) * (1 if "d" in node.attrib else 1000))
+        except ValueError:
+            continue
+        if duration_ms > 0:
+            segments.append(SubtitleSegment(start_ms=start_ms, end_ms=start_ms + duration_ms, text=body, language=language))
+    return segments
+
+
+def _clean_subtitle_text(value: str) -> str:
+    without_tags = re.sub(r"<[^>]+>", "", value)
+    return " ".join(html.unescape(without_tags).split())
+
+
+def _video_url(video_id: str) -> str:
+    return f"https://www.youtube.com/watch?v={video_id}"
+
+
 def _snippet_value(snippet: Any, key: str, default: Any) -> Any:
     if isinstance(snippet, dict):
         return snippet.get(key, default)
@@ -466,7 +751,8 @@ def _snippet_value(snippet: Any, key: str, default: Any) -> Any:
 
 
 class WebSubClient:
-    def __init__(self, *, callback_url: str, http: HttpClient | None = None, hub_url: str = WEBSUB_HUB_URL):
+    def __init__(self, *, callback_url: str, http: HttpClient | None = None, hub_url: str = WEBSUB_HUB_URL, network_mode: str | None = None):
+        _guard_local_youtube_policy(network_mode)
         self.callback_url = callback_url
         self.http = http or _UrllibHttpClient()
         self.hub_url = hub_url

@@ -65,6 +65,29 @@ def test_docs_cover_runtime_toggles_safe_preflight_and_operator_smoke_plan():
     assert "/api/monitor/preflight" in check_script
 
 
+def test_protected_boundary_smoke_script_documents_safe_local_checks_only():
+    script = (SERVICE_ROOT / "scripts" / "check-protected-boundary.ps1").read_text(encoding="utf-8")
+    readme = (SERVICE_ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "Get-Service -Name \"radar-channel-monitor\"" in script
+    assert "StartType -eq 'Manual'" in script
+    assert "Status -ne 'Running'" in script
+    assert "CHANNEL_MONITOR_NETWORK_MODE" in script
+    assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_URL" in script
+    assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN" in script
+    assert "[redacted]" in script
+    assert "/api/monitor/preflight" in script
+    assert "policy_forbidden_local_youtube" in script
+    assert "boundary_misconfigured" in script
+    assert "no local YouTube provider fallback" in script
+    assert "youtube.com" not in script.casefold()
+    assert "googleapis" not in script.casefold()
+    assert "yt-dlp" not in script.casefold()
+    assert "Protected boundary smoke" in readme
+    assert "scripts\\check-protected-boundary.ps1" in readme
+    assert "does not start or restart" in readme
+
+
 def test_readme_documents_manual_runtime_reset_and_basura_endpoints():
     readme = (SERVICE_ROOT / "README.md").read_text(encoding="utf-8")
 

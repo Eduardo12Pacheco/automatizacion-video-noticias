@@ -136,6 +136,21 @@ def test_cleanup_worker_dry_run_adds_fake_transcript_artifact_plan_without_delet
     assert _table_counts(store) == before
 
 
+def test_cleanup_worker_default_retention_is_five_days_from_detected_at(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    _seed_report_video(store, channel.id, video_id="expired", detected_at="2026-05-21T10:00:00Z", lifecycle="enqueued")
+    _seed_report_video(store, channel.id, video_id="active", detected_at="2026-05-21T10:00:01Z", lifecycle="enqueued")
+
+    report = CleanupWorker(store=store, now=lambda: "2026-05-26T10:00:00Z").run_retention_cleanup()
+
+    assert report.cutoff == "2026-05-21T10:00:00Z"
+    assert [item.video_id for item in report.items] == ["expired"]
+    assert store.get_video("expired") is not None
+    assert store.get_video("active") is not None
+
+
 def test_cleanup_preflight_reports_five_day_detected_video_policy(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
@@ -148,6 +163,12 @@ def test_cleanup_worker_apply_deletes_transcript_first_then_channel_state_in_dep
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    store.stamp_channel_baseline(channel.id, baseline_started_at="2026-05-20T12:00:00Z")
+    store.advance_channel_catchup_checkpoint(
+        channel.id,
+        published_at="2026-05-21T12:00:00Z",
+        caught_up_at="2026-05-21T12:05:00Z",
+    )
     _seed_report_video(store, channel.id, video_id="expired", detected_at="2026-05-21T09:00:00Z", lifecycle="enqueued")
     _seed_report_video(store, channel.id, video_id="younger", detected_at="2026-05-21T10:00:01Z", lifecycle="ignored_seen")
     transcript = FakeTranscriptApplyClient()
@@ -173,6 +194,10 @@ def test_cleanup_worker_apply_deletes_transcript_first_then_channel_state_in_dep
     assert report.items[0].planned_deletions["videos"] == 1
     assert store.get_video("expired") is None
     assert store.get_video("younger") is not None
+    updated_channel = store.find_channel_by_youtube_id("UCCaracol")
+    assert updated_channel is not None
+    assert updated_channel.baseline_started_at == "2026-05-20T12:00:00Z"
+    assert updated_channel.last_seen_published_at == "2026-05-21T12:00:00Z"
     counts = _table_counts(store)
     assert counts == {
         "videos": 1,
