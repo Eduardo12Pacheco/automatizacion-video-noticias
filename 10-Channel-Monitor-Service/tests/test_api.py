@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app import main as main_module
@@ -154,9 +155,7 @@ def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_
     assert isinstance(catchup.youtube, ChannelNetworkBoundaryClient)
     assert isinstance(websub.websub, ChannelNetworkBoundaryClient)
     assert websub.callback_url == "https://boundary.example.test/v1/websub/callback"
-    assert ai_rescue.subtitles.__class__.__name__ == "CompositeSubtitleProvider"
-    assert isinstance(ai_rescue.subtitles.primary, ChannelNetworkBoundaryClient)
-    assert ai_rescue.subtitles.fallback.__class__.__name__ == "TranscriptServiceSubtitleProvider"
+    assert ai_rescue is None
 
 
 def test_protected_discovery_builder_fails_closed_when_boundary_config_missing_with_local_api_key(tmp_path, monkeypatch):
@@ -236,12 +235,7 @@ def test_protected_ai_rescue_builder_fails_closed_when_boundary_config_missing_w
     monkeypatch.setattr(main_module, "YouTubeTranscriptSubtitleProvider", forbidden_local_provider)
     monkeypatch.setattr(main_module, "YtDlpSubtitleProvider", forbidden_local_provider)
 
-    try:
-        main_module._build_ai_rescue_worker(settings=settings, store=store)
-    except BoundaryRequestError as exc:
-        assert exc.code == "boundary_misconfigured"
-    else:
-        raise AssertionError("protected AI Rescue builder must fail closed when boundary config is missing")
+    assert main_module._build_ai_rescue_worker(settings=settings, store=store) is None
 
 
 def test_local_dev_builders_keep_explicit_local_provider_path(tmp_path):
@@ -470,10 +464,10 @@ players: []
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "degraded"
+    assert body["status"] == "disabled"
     assert body["ready"] is False
     assert body["worker_ready"] is False
-    assert body["degraded_reasons"] == ["opencode_api_key_missing", "runtime_loop_disabled"]
+    assert "degraded_reasons" not in body
     assert body["runtime"] == {"enabled": False, "running": False}
     assert body["opencode"]["api_key_configured"] is False
     assert body["opencode"]["api_key_count"] == 0
@@ -543,8 +537,8 @@ def test_ai_rescue_preflight_reports_missing_model_and_catalog_without_enabling_
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "degraded"
-    assert body["degraded_reasons"] == ["opencode_model_missing", "catalog_missing", "runtime_loop_disabled"]
+    assert body["status"] == "disabled"
+    assert "degraded_reasons" not in body
     assert body["catalog"]["configured"] is False
     assert body["runtime"]["enabled"] is False
     assert "configured-secret" not in response.text
@@ -650,6 +644,7 @@ def test_ai_rescue_mutations_are_inert_when_feature_is_disabled(tmp_path):
     assert store.list_ai_rescue_rejections() == []
 
 
+@pytest.mark.skip(reason="AI Rescue is hard-disabled by product kill switch; legacy enabled endpoint contract retained only in history.")
 def test_ai_rescue_queue_candidates_detail_and_rejections_contracts_are_sorted_and_read_only(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store = MonitorStore(settings.db_path)
@@ -750,6 +745,7 @@ def test_ai_rescue_queue_candidates_detail_and_rejections_contracts_are_sorted_a
     assert before_matches == after_matches
 
 
+@pytest.mark.skip(reason="AI Rescue is hard-disabled by product kill switch; legacy enabled endpoint contract retained only in history.")
 def test_ai_rescue_queue_and_rejections_expose_spanish_operator_labels(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store = MonitorStore(settings.db_path)
@@ -789,6 +785,7 @@ def test_ai_rescue_queue_and_rejections_expose_spanish_operator_labels(tmp_path)
     }
 
 
+@pytest.mark.skip(reason="AI Rescue is hard-disabled by product kill switch; legacy enabled endpoint contract retained only in history.")
 def test_card_dismissal_endpoint_filters_ai_rescue_candidate_context_without_decision(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store, candidate_id = _seed_ai_rescue_candidate(tmp_path, settings=settings, target_country="ecuador")
@@ -815,6 +812,7 @@ def test_card_dismissal_endpoint_filters_ai_rescue_candidate_context_without_dec
     assert store.list_target_matches(video_id="trash-approve") == []
 
 
+@pytest.mark.skip(reason="AI Rescue is hard-disabled by product kill switch; refresh must not enqueue behind the scenes.")
 def test_ai_rescue_refresh_enqueues_rejected_videos_only_when_enabled_without_external_calls(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store = MonitorStore(settings.db_path)
@@ -842,6 +840,7 @@ def test_ai_rescue_refresh_enqueues_rejected_videos_only_when_enabled_without_ex
     assert [item.video_id for item in store.list_ai_rescue_queue(limit=10)] == ["refresh-trash"]
 
 
+@pytest.mark.skip(reason="AI Rescue is hard-disabled by product kill switch; legacy enabled endpoint contract retained only in history.")
 def test_ai_rescue_human_reject_requires_confirmation_hides_candidate_and_lists_rejection(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store, candidate_id = _seed_ai_rescue_candidate(tmp_path, settings=settings, target_country="ecuador")
@@ -879,6 +878,7 @@ def test_ai_rescue_human_reject_requires_confirmation_hides_candidate_and_lists_
     ]
 
 
+@pytest.mark.skip(reason="AI Rescue is hard-disabled by product kill switch; legacy enabled endpoint contract retained only in history.")
 def test_ai_rescue_human_approve_promotes_to_radar_without_widening_rules(tmp_path):
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3", ai_rescue_enabled=True)
     store, approved_candidate_id = _seed_ai_rescue_candidate(tmp_path, settings=settings, target_country="ecuador")

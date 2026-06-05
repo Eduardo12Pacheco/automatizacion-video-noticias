@@ -15,7 +15,7 @@ from .channel_bootstrap import ChannelResolver, channel_sync_report_to_dict, syn
 from .opencode_go_client import OpenCodeGoClient
 from .radar_client import RadarClient
 from .runtime import RuntimeCoordinator, RuntimeLoop
-from .settings import NETWORK_MODE_PROTECTED, Settings, load_and_validate_channel_config, load_channel_config, load_settings, validation_report_to_dict
+from .settings import AI_RESCUE_KILL_SWITCH_DISABLED, NETWORK_MODE_PROTECTED, Settings, load_and_validate_channel_config, load_channel_config, load_settings, validation_report_to_dict
 from .store import ChannelRecord, MonitorCardRecord, MonitorStore
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, load_title_catalog, normalize_country
 from .transcript_service_client import TranscriptServiceSubtitleProvider
@@ -47,7 +47,7 @@ def _process_boundary_video_ids(discovery_worker: DiscoveryWorker, video_ids: li
 
 
 def _require_ai_rescue_enabled(settings: Settings) -> None:
-    if not settings.ai_rescue_enabled:
+    if AI_RESCUE_KILL_SWITCH_DISABLED or not settings.ai_rescue_enabled:
         raise _error("ai_rescue_disabled", "AI Rescue is disabled", 403)
 
 
@@ -190,8 +190,7 @@ def create_app(
 
     @app.post("/api/monitor/ai-rescue/refresh")
     async def ai_rescue_refresh() -> dict[str, Any]:
-        if not settings.ai_rescue_enabled:
-            return {"status": "disabled", "enqueued_count": 0}
+        _require_ai_rescue_enabled(settings)
         enqueued_count = 0
         existing = {item.video_id for item in store.list_ai_rescue_queue(limit=200)}
         for item in store.list_rejected_videos(limit=200, offset=0, now=_utc_now_iso()).items:
@@ -496,13 +495,14 @@ def _ai_rescue_preflight_response(
         settings=settings,
         runtime_enabled=runtime_enabled,
     )
-    status = "disabled" if not settings.ai_rescue_enabled else "degraded" if degraded_reasons else "ready"
+    ai_rescue_enabled = settings.ai_rescue_enabled and not AI_RESCUE_KILL_SWITCH_DISABLED
+    status = "disabled" if not ai_rescue_enabled else "degraded" if degraded_reasons else "ready"
     response = {
         "status": status,
         "ready": status == "ready",
-        "enabled": settings.ai_rescue_enabled,
-        "worker_enabled": settings.ai_rescue_worker_enabled,
-        "worker_ready": settings.ai_rescue_enabled and settings.ai_rescue_worker_enabled and runtime_enabled,
+        "enabled": ai_rescue_enabled,
+        "worker_enabled": False if AI_RESCUE_KILL_SWITCH_DISABLED else settings.ai_rescue_worker_enabled,
+        "worker_ready": ai_rescue_enabled and settings.ai_rescue_worker_enabled and runtime_enabled,
         "opencode": {
             "base_url_configured": bool(settings.ai_rescue_opencode_base_url),
             "model_configured": bool(settings.ai_rescue_opencode_model),
@@ -522,7 +522,7 @@ def _ai_rescue_preflight_response(
 
 
 def _ai_rescue_degraded_reasons(*, settings: Settings, runtime_enabled: bool) -> list[str]:
-    if not settings.ai_rescue_enabled:
+    if AI_RESCUE_KILL_SWITCH_DISABLED or not settings.ai_rescue_enabled:
         return []
     reasons: list[str] = []
     if settings.ai_rescue_worker_enabled:
@@ -958,7 +958,7 @@ def _build_discovery_worker(*, settings: Settings, store: MonitorStore) -> Disco
             matcher=TitleMatcher(load_title_catalog(settings.catalog_config_path)),
             classification_version=settings.classification_version,
         ),
-        ai_rescue_enabled=settings.ai_rescue_enabled,
+        ai_rescue_enabled=False,
     )
 
 
@@ -1018,7 +1018,7 @@ def _build_runtime_coordinator(
         RuntimeLoop(
             name="ai_rescue",
             interval_seconds=settings.ai_rescue_worker_interval_seconds,
-            enabled=settings.ai_rescue_enabled and settings.ai_rescue_worker_enabled and ai_rescue_worker is not None,
+            enabled=(not AI_RESCUE_KILL_SWITCH_DISABLED) and settings.ai_rescue_enabled and settings.ai_rescue_worker_enabled and ai_rescue_worker is not None,
             duty=ai_rescue_worker.drain_due if ai_rescue_worker else _noop,
         ),
     ]
@@ -1082,6 +1082,8 @@ def _build_catchup_worker(
 
 
 def _build_ai_rescue_worker(*, settings: Settings, store: MonitorStore) -> AiRescueWorker | None:
+    if AI_RESCUE_KILL_SWITCH_DISABLED:
+        return None
     if not settings.ai_rescue_enabled or not settings.ai_rescue_worker_enabled:
         return None
     if (

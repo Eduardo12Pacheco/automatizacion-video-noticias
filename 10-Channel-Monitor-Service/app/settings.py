@@ -16,6 +16,8 @@ DEFAULT_OPENCODE_GO_BASE_URL = "https://opencode.ai/zen/go/v1"
 DEFAULT_AI_RESCUE_SUBTITLE_MAX_CHARACTERS = 300_000
 DEFAULT_AI_RESCUE_SUBTITLE_HARD_MAX_CHARACTERS = 1_000_000
 DEFAULT_AI_RESCUE_SUBTITLE_MAX_SEGMENTS = 10_000
+# Product kill switch: AI Rescue must remain fail-closed even if old env vars are still present.
+AI_RESCUE_KILL_SWITCH_DISABLED = True
 IMPORTANT_MODES = {"full_channel", "program_rules"}
 IMPORTANT_RULE_OPS = {"starts_with", "contains"}
 NETWORK_MODE_LOCAL_DEV = "local_dev"
@@ -171,8 +173,8 @@ def load_settings() -> Settings:
         worker_catchup_initial_delay_seconds=_env_int("CHANNEL_MONITOR_WORKER_CATCHUP_INITIAL_DELAY_SECONDS", 300),
         worker_transcript_sync_enabled=_env_bool("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_ENABLED", True),
         worker_transcript_sync_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_INTERVAL_SECONDS", 60),
-        ai_rescue_enabled=_env_bool("CHANNEL_MONITOR_AI_RESCUE_ENABLED", False),
-        ai_rescue_worker_enabled=_env_bool("CHANNEL_MONITOR_AI_RESCUE_WORKER_ENABLED", False),
+        ai_rescue_enabled=False,
+        ai_rescue_worker_enabled=False,
         ai_rescue_worker_interval_seconds=_env_int("CHANNEL_MONITOR_AI_RESCUE_WORKER_INTERVAL_SECONDS", 5),
         ai_rescue_retry_attempts=_env_int("CHANNEL_MONITOR_AI_RESCUE_RETRY_ATTEMPTS", 3),
         ai_rescue_retry_interval_seconds=_env_int("CHANNEL_MONITOR_AI_RESCUE_RETRY_INTERVAL_SECONDS", 7200),

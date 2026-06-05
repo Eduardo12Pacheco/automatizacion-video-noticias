@@ -88,8 +88,8 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.worker_catchup_initial_delay_seconds == 41
     assert settings.worker_transcript_sync_enabled is False
     assert settings.worker_transcript_sync_interval_seconds == 17
-    assert settings.ai_rescue_enabled is True
-    assert settings.ai_rescue_worker_enabled is True
+    assert settings.ai_rescue_enabled is False
+    assert settings.ai_rescue_worker_enabled is False
     assert settings.ai_rescue_worker_interval_seconds == 19
     assert settings.ai_rescue_retry_attempts == 5
     assert settings.ai_rescue_retry_interval_seconds == 7200

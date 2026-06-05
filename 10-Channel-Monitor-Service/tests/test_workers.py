@@ -1033,7 +1033,7 @@ def test_discovery_worker_keeps_non_important_title_mismatch_rejected(tmp_path):
     ]
 
 
-def test_discovery_worker_auto_enqueues_new_rejections_when_ai_rescue_is_enabled_idempotently(tmp_path):
+def test_discovery_worker_does_not_enqueue_rejections_even_if_ai_rescue_is_requested(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     store.upsert_channel(ChannelRecord(country="mexico", label="Canal MX", source_url=None, youtube_channel_id="UCMX"))
@@ -1065,7 +1065,7 @@ def test_discovery_worker_auto_enqueues_new_rejections_when_ai_rescue_is_enabled
 
     queue = store.list_ai_rescue_queue(limit=10)
     assert first.video_id == second.video_id == "domestic"
-    assert [(item.video_id, item.source_country, item.status) for item in queue] == [("domestic", "mexico", "waiting")]
+    assert queue == []
 
 
 def test_classification_service_returns_foreign_targets_and_rejects_domestic_only_with_versioned_reason():

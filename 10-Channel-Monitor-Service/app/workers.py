@@ -10,6 +10,7 @@ from .ai_rescue import AiRescueAnalysisResult, AiRescueVideoInput
 from .boundary_client import BoundaryRequestError
 from .opencode_go_client import OpenCodeGoError
 from .radar_client import RadarBusy, RadarJobResult, RadarServerError
+from .settings import AI_RESCUE_KILL_SWITCH_DISABLED
 from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport, SubscriptionRecord, VideoRecord
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, match_program_title, normalize_country
 from .youtube_client import MetadataUnavailable, SubtitleProvider, SubtitleUnavailable, UploadItem, VideoMetadata
@@ -194,7 +195,7 @@ class DiscoveryWorker:
     ):
         self.store = store
         self.youtube = youtube
-        self.ai_rescue_enabled = ai_rescue_enabled
+        self.ai_rescue_enabled = False if AI_RESCUE_KILL_SWITCH_DISABLED else ai_rescue_enabled
         self.now = now or _now_iso
         if classifier is None:
             if matcher is None:
