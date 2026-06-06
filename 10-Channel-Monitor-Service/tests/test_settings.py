@@ -40,21 +40,6 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_INITIAL_DELAY_SECONDS", "41")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_ENABLED", "false")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_TRANSCRIPT_SYNC_INTERVAL_SECONDS", "17")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_ENABLED", "true")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_WORKER_ENABLED", "true")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_WORKER_INTERVAL_SECONDS", "19")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_RETRY_ATTEMPTS", "5")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_RETRY_INTERVAL_SECONDS", "7200")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_OPENCODE_BASE_URL", "https://opencode.ai/zen/go/v1")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_OPENCODE_MODEL", "local-model")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_OPENCODE_API_KEY", "opencode-secret")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_OPENCODE_API_KEYS", "opencode-secret-1, opencode-secret-2")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_PROCESSING_TIMEOUT_SECONDS", "900")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_MAX_CHARACTERS", "300000")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_HARD_MAX_CHARACTERS", "1000000")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_SUBTITLE_MAX_SEGMENTS", "10000")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_YT_DLP_BINARY", "yt-dlp-test")
-    monkeypatch.setenv("CHANNEL_MONITOR_AI_RESCUE_YT_DLP_COOKIES_PATH", str(tmp_path / "cookies.txt"))
     monkeypatch.setenv("CHANNEL_MONITOR_CATCHUP_PAGE_LIMIT", "9")
     monkeypatch.setenv("CHANNEL_MONITOR_CATCHUP_ITEM_LIMIT", "321")
 
@@ -88,21 +73,6 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.worker_catchup_initial_delay_seconds == 41
     assert settings.worker_transcript_sync_enabled is False
     assert settings.worker_transcript_sync_interval_seconds == 17
-    assert settings.ai_rescue_enabled is False
-    assert settings.ai_rescue_worker_enabled is False
-    assert settings.ai_rescue_worker_interval_seconds == 19
-    assert settings.ai_rescue_retry_attempts == 5
-    assert settings.ai_rescue_retry_interval_seconds == 7200
-    assert settings.ai_rescue_opencode_base_url == "https://opencode.ai/zen/go/v1"
-    assert settings.ai_rescue_opencode_model == "local-model"
-    assert settings.ai_rescue_opencode_api_key == "opencode-secret"
-    assert settings.ai_rescue_opencode_api_keys == ["opencode-secret-1", "opencode-secret-2"]
-    assert settings.ai_rescue_processing_timeout_seconds == 900
-    assert settings.ai_rescue_subtitle_max_characters == 300000
-    assert settings.ai_rescue_subtitle_hard_max_characters == 1000000
-    assert settings.ai_rescue_subtitle_max_segments == 10000
-    assert settings.ai_rescue_yt_dlp_binary == "yt-dlp-test"
-    assert settings.ai_rescue_yt_dlp_cookies_path == tmp_path / "cookies.txt"
     assert settings.catchup_page_limit == 9
     assert settings.catchup_item_limit == 321
 
@@ -125,21 +95,6 @@ def test_worker_runtime_settings_have_safe_defaults():
     assert settings.worker_catchup_initial_delay_seconds == 300
     assert settings.worker_transcript_sync_enabled is True
     assert settings.worker_transcript_sync_interval_seconds == 60
-    assert settings.ai_rescue_enabled is False
-    assert settings.ai_rescue_worker_enabled is False
-    assert settings.ai_rescue_worker_interval_seconds == 5
-    assert settings.ai_rescue_retry_attempts == 3
-    assert settings.ai_rescue_retry_interval_seconds == 7200
-    assert settings.ai_rescue_opencode_base_url == "https://opencode.ai/zen/go/v1"
-    assert settings.ai_rescue_opencode_model == ""
-    assert settings.ai_rescue_opencode_api_key == ""
-    assert settings.ai_rescue_opencode_api_keys == []
-    assert settings.ai_rescue_processing_timeout_seconds == 1800
-    assert settings.ai_rescue_subtitle_max_characters == 300000
-    assert settings.ai_rescue_subtitle_hard_max_characters == 1000000
-    assert settings.ai_rescue_subtitle_max_segments == 10000
-    assert settings.ai_rescue_yt_dlp_binary == "yt-dlp"
-    assert settings.ai_rescue_yt_dlp_cookies_path is None
     assert settings.network_mode == "local_dev"
     assert settings.network_boundary_url == ""
     assert settings.network_boundary_token == ""
@@ -204,7 +159,7 @@ def test_protected_network_policy_rejects_cookie_configuration_without_leaking_s
             "network_mode": "protected",
             "network_boundary_url": "https://boundary.example.test",
             "network_boundary_token": "boundary-secret",
-            "ai_rescue_yt_dlp_cookies_path": cookie_path,
+            "forbidden_cookie_or_bypass_envs": [str(cookie_path)],
         }
     )
 
@@ -244,7 +199,6 @@ def test_env_example_documents_protected_boundary_without_cookie_examples():
     assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_URL=" in env_example
     assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN=" in env_example
     assert "CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY=" in env_example
-    assert "CHANNEL_MONITOR_AI_RESCUE_YT_DLP_COOKIES_PATH" not in env_example
     assert "TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH" not in env_example
 
 
@@ -255,8 +209,6 @@ def test_load_settings_reuses_transcript_service_yt_dlp_defaults(monkeypatch, tm
 
     settings = load_settings()
 
-    assert settings.ai_rescue_yt_dlp_binary == "yt-dlp-transcript"
-    assert settings.ai_rescue_yt_dlp_cookies_path == cookies
 
 
 def test_load_channel_config_parses_seed_handle_grouped_by_country(tmp_path):

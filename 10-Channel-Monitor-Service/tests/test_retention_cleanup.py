@@ -74,11 +74,6 @@ def test_dry_run_report_uses_detected_at_boundary_and_reports_all_channel_states
         "video_target_matches": 1,
         "rejected_videos": 1,
         "card_context_dismissals": 2,
-        "ai_rescue_queue": 1,
-        "ai_rescue_candidates": 1,
-        "ai_rescue_evidence": 1,
-        "ai_rescue_decisions": 1,
-        "ai_rescue_rejections": 2,
         "transcript_artifacts": 0,
     }
     assert report.summary == {
@@ -91,11 +86,6 @@ def test_dry_run_report_uses_detected_at_boundary_and_reports_all_channel_states
             "video_target_matches": 2,
             "rejected_videos": 2,
             "card_context_dismissals": 4,
-            "ai_rescue_queue": 2,
-            "ai_rescue_candidates": 2,
-            "ai_rescue_evidence": 2,
-            "ai_rescue_decisions": 2,
-            "ai_rescue_rejections": 4,
             "transcript_artifacts": 0,
         },
     }
@@ -205,11 +195,6 @@ def test_cleanup_worker_apply_deletes_transcript_first_then_channel_state_in_dep
         "video_target_matches": 1,
         "rejected_videos": 1,
         "card_context_dismissals": 2,
-        "ai_rescue_queue": 1,
-        "ai_rescue_candidates": 1,
-        "ai_rescue_evidence": 1,
-        "ai_rescue_decisions": 1,
-        "ai_rescue_rejections": 2,
         "cleanup_runs": 1,
     }
     assert store.list_cleanup_runs()[0].deleted_count == 1
@@ -315,27 +300,6 @@ def _seed_report_video(store: MonitorStore, channel_id: int, *, video_id: str, d
         TargetMatchRecord(video_id=video_id, target_country="ecuador", status="transcribiendo", radar_job_id=f"match-job-{video_id}")
     )
     store.upsert_rejected_video(video_id=video_id, source_country="colombia", reason="no_valid_target_match")
-    queue = store.enqueue_ai_rescue_rejected_video(video_id=video_id, now=detected_at)
-    candidate = store.store_ai_rescue_candidate(
-        queue_id=queue.id,
-        video_id=video_id,
-        target_country="ecuador",
-        score=80,
-        summary_es="Resumen",
-        angle_es="Ángulo",
-        risk="low",
-        risks_json="[]",
-        evidence=[{"start_ms": 0, "end_ms": 22000, "text": "Ecuador great football", "translation_es": "Ecuador bien", "explanation_es": "Elogio"}],
-        raw_response_json="{}",
-    )
-    store.store_ai_rescue_rejection(
-        queue_id=queue.id,
-        video_id=video_id,
-        target_country="mexico",
-        source="ai",
-        reason="weak-evidence",
-    )
-    store.mark_ai_rescue_candidate_rejected(candidate.id, reviewer="tester", reason="manual", decided_at=detected_at)
     store.upsert_card_context_dismissal(surface="monitor-card", target_context="ecuador", video_id=video_id, dismissed_at=detected_at)
     store.upsert_card_context_dismissal(surface="monitor-card", target_context="important", video_id=video_id, dismissed_at=detected_at)
 
@@ -350,11 +314,6 @@ def _table_counts(store: MonitorStore) -> dict[str, int]:
                 "video_target_matches",
                 "rejected_videos",
                 "card_context_dismissals",
-                "ai_rescue_queue",
-                "ai_rescue_candidates",
-                "ai_rescue_evidence",
-                "ai_rescue_decisions",
-                "ai_rescue_rejections",
                 "cleanup_runs",
             ]
         }

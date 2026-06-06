@@ -5,10 +5,8 @@ import json
 from app.boundary_client import BoundaryMetadataUnavailable, BoundaryRequestError
 from app.settings import ImportantRule
 from app.store import ChannelRecord, MonitorStore, VideoRecord
-from app.opencode_go_client import OpenCodeGoError
 from app.title_matcher import PlayerTerms, TARGET_COUNTRY_ORDER, TitleCatalog, TitleMatcher
 from app.workers import (
-    AiRescueWorker,
     CatchupWorker,
     ClassificationService,
     DiscoveryWorker,
@@ -617,38 +615,6 @@ def test_discovery_worker_creates_target_rows_for_every_non_source_match_and_rej
     ]
 
 
-def test_discovery_worker_does_not_enqueue_new_rejections_when_ai_rescue_is_disabled(tmp_path):
-    store = MonitorStore(tmp_path / "monitor.sqlite3")
-    store.migrate()
-    store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
-    worker = DiscoveryWorker(
-        store=store,
-        youtube=FakeYouTube(
-            {
-                "domestic": VideoMetadata(
-                    video_id="domestic",
-                    channel_id="UCCaracol",
-                    title="James habla de Colombia",
-                    published_at="2026-05-19T12:00:00Z",
-                    live_status="completed",
-                )
-            }
-        ),
-        matcher=TitleMatcher(
-            TitleCatalog(
-                countries={"colombia": ["colombia"]},
-                players=[PlayerTerms(name="James", country="colombia", aliases=["james"])],
-            )
-        ),
-        ai_rescue_enabled=False,
-    )
-
-    result = worker.process_video_id("domestic")
-
-    assert result.lifecycle == "ignored_seen"
-    assert store.list_rejected_videos(limit=10).items[0].video_id == "domestic"
-    assert store.list_ai_rescue_queue(limit=10) == []
-
 
 def test_discovery_worker_marks_important_title_mismatch_enqueue_pending_without_target_rows(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
@@ -677,7 +643,6 @@ def test_discovery_worker_marks_important_title_mismatch_enqueue_pending_without
             }
         ),
         matcher=TitleMatcher(TitleCatalog(countries={"ecuador": ["ecuador"]}, players=[])),
-        ai_rescue_enabled=True,
         now=lambda: "2026-05-22T11:00:00Z",
     )
 
@@ -688,7 +653,6 @@ def test_discovery_worker_marks_important_title_mismatch_enqueue_pending_without
     assert result.classification_status == "important_channel"
     assert result.classification_reason == "important_channel_all_countries"
     assert [item.video_id for item in store.list_rejected_videos(limit=10).items] == []
-    assert store.list_ai_rescue_queue(limit=10) == []
     assert store.list_target_matches(video_id="important-mismatch") == []
 
 
@@ -1032,40 +996,6 @@ def test_discovery_worker_keeps_non_important_title_mismatch_rejected(tmp_path):
         ("normal-mismatch", "no_title_match")
     ]
 
-
-def test_discovery_worker_does_not_enqueue_rejections_even_if_ai_rescue_is_requested(tmp_path):
-    store = MonitorStore(tmp_path / "monitor.sqlite3")
-    store.migrate()
-    store.upsert_channel(ChannelRecord(country="mexico", label="Canal MX", source_url=None, youtube_channel_id="UCMX"))
-    worker = DiscoveryWorker(
-        store=store,
-        youtube=FakeYouTube(
-            {
-                "domestic": VideoMetadata(
-                    video_id="domestic",
-                    channel_id="UCMX",
-                    title="México analiza a Santiago Giménez",
-                    published_at="2026-05-19T12:00:00Z",
-                    live_status="completed",
-                )
-            }
-        ),
-        matcher=TitleMatcher(
-            TitleCatalog(
-                countries={"mexico": ["méxico"]},
-                players=[PlayerTerms(name="Santiago Giménez", country="mexico", aliases=["santiago gimenez"])],
-            )
-        ),
-        ai_rescue_enabled=True,
-        now=lambda: "2026-05-22T11:00:00Z",
-    )
-
-    first = worker.process_video_id("domestic")
-    second = worker.process_video_id("domestic")
-
-    queue = store.list_ai_rescue_queue(limit=10)
-    assert first.video_id == second.video_id == "domestic"
-    assert queue == []
 
 
 def test_classification_service_returns_foreign_targets_and_rejects_domestic_only_with_versioned_reason():
@@ -1906,228 +1836,3 @@ class FailingAiAnalyzer:
         self.calls.append(video)
         raise self.error
 
-
-def test_ai_rescue_worker_is_gated_off_and_does_not_call_fakes(tmp_path):
-    from app.ai_rescue import AiRescueAnalysisResult
-
-    store, _channel = make_store(tmp_path)
-    store.upsert_video(VideoRecord(video_id="trash", title="Solo Colombia", lifecycle="ignored_seen"))
-    store.upsert_rejected_video(video_id="trash", source_country="colombia", reason="no_title_match")
-    store.enqueue_ai_rescue_rejected_video(video_id="trash", now="2026-05-22T10:00:00Z")
-    subtitles = FakeSubtitleProvider({"trash": [SubtitleSegment(0, 22000, "Buen fútbol", "es")]})
-    analyzer = FakeAiAnalyzer(AiRescueAnalysisResult(candidates=[], rejections=[]))
-
-    processed = AiRescueWorker(
-        store=store,
-        subtitles=subtitles,
-        analyzer=analyzer,
-        enabled=False,
-        now=lambda: "2026-05-22T10:00:00Z",
-    ).drain_due()
-
-    assert processed == []
-    assert subtitles.calls == []
-    assert analyzer.calls == []
-    assert store.list_ai_rescue_queue(limit=1)[0].status == "waiting"
-
-
-def test_ai_rescue_worker_processes_one_due_item_and_stores_candidates_and_rejections(tmp_path):
-    from app.ai_rescue import AiRescueAnalysisResult, AiRescueCandidate, AiRescueEvidence, AiRescueRejection
-
-    store, _channel = make_store(tmp_path)
-    for video_id in ["old", "new"]:
-        store.upsert_video(VideoRecord(video_id=video_id, title=f"{video_id} local", lifecycle="ignored_seen"))
-        store.upsert_rejected_video(video_id=video_id, source_country="colombia", reason="no_valid_target_match")
-        store.enqueue_ai_rescue_rejected_video(video_id=video_id, now=f"2026-05-22T10:0{len(video_id)}:00Z")
-    subtitles = FakeSubtitleProvider({"old": [SubtitleSegment(1000, 23000, "Ecuador played great football", "es")]})
-    analyzer = FakeAiAnalyzer(
-        AiRescueAnalysisResult(
-            candidates=[
-                AiRescueCandidate(
-                    target_country="ecuador",
-                    score=90,
-                    summary_es="Elogio a Ecuador.",
-                    angle_es="Rendimiento futbolístico.",
-                    risk="low",
-                    risks=["Sin riesgo"],
-                    evidence=[AiRescueEvidence(1000, 23000, "Ecuador played", "Ecuador jugó", "Elogio futbolístico.")],
-                )
-            ],
-            rejections=[AiRescueRejection(target_country="mexico", reason="weak-evidence", explanation_es="Mención débil")],
-            raw_response_json='{"candidates":[]}',
-        )
-    )
-
-    processed = AiRescueWorker(
-        store=store,
-        subtitles=subtitles,
-        analyzer=analyzer,
-        enabled=True,
-        now=lambda: "2026-05-22T10:30:00Z",
-    ).drain_due()
-
-    assert processed == ["old"]
-    assert subtitles.calls == [("old", "colombia", "en")]
-    assert analyzer.calls[0].video_id == "old"
-    assert analyzer.calls[0].source_language == "es"
-    assert [(candidate.target_country, candidate.score) for candidate in store.list_ai_rescue_candidates()] == [("ecuador", 90)]
-    assert [(item.video_id, item.status) for item in store.list_ai_rescue_queue(limit=10)] == [
-        ("new", "waiting"),
-        ("old", "candidate"),
-    ]
-    assert [(rejection.target_country, rejection.reason) for rejection in store.list_ai_rescue_rejections()] == [
-        ("mexico", "weak-evidence")
-    ]
-
-
-def test_ai_rescue_worker_retries_missing_subtitles_without_blocking_other_due_work(tmp_path):
-    from app.ai_rescue import AiRescueAnalysisResult
-
-    store, _channel = make_store(tmp_path)
-    for video_id in ["missing", "ready"]:
-        store.upsert_video(VideoRecord(video_id=video_id, title=video_id, lifecycle="ignored_seen"))
-        store.upsert_rejected_video(video_id=video_id, source_country="colombia", reason="no_title_match")
-        store.enqueue_ai_rescue_rejected_video(video_id=video_id, now="2026-05-22T10:00:00Z")
-    subtitles = FakeSubtitleProvider(
-        {
-            "missing": SubtitleUnavailable("missing", "colombia"),
-            "ready": [SubtitleSegment(0, 22000, "Ecuador great football", "es")],
-        }
-    )
-    analyzer = FakeAiAnalyzer(AiRescueAnalysisResult(candidates=[], rejections=[]))
-    worker = AiRescueWorker(
-        store=store,
-        subtitles=subtitles,
-        analyzer=analyzer,
-        enabled=True,
-        retry_attempts=3,
-        retry_interval_seconds=7200,
-        now=lambda: "2026-05-22T10:00:00Z",
-    )
-
-    first = worker.drain_due()
-    second = worker.drain_due()
-
-    queue = store.list_ai_rescue_queue(limit=10)
-    assert first == ["missing"]
-    assert second == ["ready"]
-    assert [(item.video_id, item.status, item.attempt_count, item.next_attempt_at) for item in queue] == [
-        ("missing", "retry", 1, "2026-05-22T12:00:00Z"),
-        ("ready", "rejected", 0, None),
-    ]
-
-
-def test_ai_rescue_worker_marks_no_subtitles_after_final_retry(tmp_path):
-    from app.ai_rescue import AiRescueAnalysisResult
-
-    store, _channel = make_store(tmp_path)
-    store.upsert_video(VideoRecord(video_id="missing", title="missing", lifecycle="ignored_seen"))
-    store.upsert_rejected_video(video_id="missing", source_country="colombia", reason="no_title_match")
-    item = store.enqueue_ai_rescue_rejected_video(video_id="missing", now="2026-05-22T10:00:00Z")
-    store.schedule_ai_rescue_retry(item.id, now="2026-05-22T10:00:00Z", next_attempt_at="2026-05-22T12:00:00Z", last_error="no-subtitles")
-    store.schedule_ai_rescue_retry(item.id, now="2026-05-22T12:00:00Z", next_attempt_at="2026-05-22T14:00:00Z", last_error="no-subtitles")
-
-    unavailable = SubtitleUnavailable(
-        "missing",
-        "es",
-        reason="transcripts_disabled",
-        details={"provider": "youtube-transcript-api", "reason": "transcripts_disabled", "video_id": "missing", "language": "es"},
-    )
-    processed = AiRescueWorker(
-        store=store,
-        subtitles=FakeSubtitleProvider({"missing": unavailable}),
-        analyzer=FakeAiAnalyzer(AiRescueAnalysisResult(candidates=[], rejections=[])),
-        enabled=True,
-        retry_attempts=3,
-        retry_interval_seconds=7200,
-        now=lambda: "2026-05-22T14:00:00Z",
-    ).drain_due()
-
-    queue_item = store.list_ai_rescue_queue(limit=1)[0]
-    assert processed == ["missing"]
-    assert (queue_item.status, queue_item.attempt_count, queue_item.last_error) == ("rejected", 3, "no-subtitles")
-    rejections = store.list_ai_rescue_rejections()
-    assert [(rejection.source, rejection.reason, rejection.video_id) for rejection in rejections] == [
-        ("system", "no-subtitles", "missing")
-    ]
-    assert rejections[0].details_json == (
-        '{"error":"Subtitles unavailable for video missing in es: transcripts_disabled",'
-        '"subtitle_error":{"provider":"youtube-transcript-api","reason":"transcripts_disabled",'
-        '"video_id":"missing","language":"es"}}'
-    )
-
-
-def test_ai_rescue_worker_retries_sanitized_opencode_failures_without_sticking_processing(tmp_path):
-    store, _channel = make_store(tmp_path)
-    store.upsert_video(VideoRecord(video_id="opencode-fail", title="Ecuador", lifecycle="ignored_seen"))
-    store.upsert_rejected_video(video_id="opencode-fail", source_country="colombia", reason="no_title_match")
-    store.enqueue_ai_rescue_rejected_video(video_id="opencode-fail", now="2026-05-22T10:00:00Z")
-
-    processed = AiRescueWorker(
-        store=store,
-        subtitles=FakeSubtitleProvider({"opencode-fail": [SubtitleSegment(0, 22000, "Ecuador great", "es")]}),
-        analyzer=FailingAiAnalyzer(OpenCodeGoError("OpenCode Go request failed with status 503 for Bearer secret")),
-        enabled=True,
-        retry_attempts=3,
-        retry_interval_seconds=600,
-        now=lambda: "2026-05-22T10:00:00Z",
-    ).drain_due()
-
-    queue_item = store.list_ai_rescue_queue(limit=1)[0]
-    assert processed == ["opencode-fail"]
-    assert (queue_item.status, queue_item.attempt_count, queue_item.next_attempt_at) == (
-        "retry",
-        1,
-        "2026-05-22T10:10:00Z",
-    )
-    assert queue_item.last_error == "opencode_error"
-    assert "secret" not in queue_item.last_error
-
-
-def test_ai_rescue_worker_final_rejects_invalid_ai_json_after_bounded_retries(tmp_path):
-    store, _channel = make_store(tmp_path)
-    store.upsert_video(VideoRecord(video_id="invalid-json", title="Ecuador", lifecycle="ignored_seen"))
-    store.upsert_rejected_video(video_id="invalid-json", source_country="colombia", reason="no_title_match")
-    item = store.enqueue_ai_rescue_rejected_video(video_id="invalid-json", now="2026-05-22T10:00:00Z")
-    store.schedule_ai_rescue_retry(item.id, now="2026-05-22T10:00:00Z", next_attempt_at="2026-05-22T10:10:00Z", last_error="analysis_error")
-
-    processed = AiRescueWorker(
-        store=store,
-        subtitles=FakeSubtitleProvider({"invalid-json": [SubtitleSegment(0, 22000, "Ecuador great", "es")]}),
-        analyzer=FailingAiAnalyzer(ValueError("invalid JSON: token api-key-123")),
-        enabled=True,
-        retry_attempts=2,
-        retry_interval_seconds=600,
-        now=lambda: "2026-05-22T10:10:00Z",
-    ).drain_due()
-
-    queue_item = store.list_ai_rescue_queue(limit=1)[0]
-    rejections = store.list_ai_rescue_rejections()
-    assert processed == ["invalid-json"]
-    assert (queue_item.status, queue_item.attempt_count, queue_item.last_error) == ("rejected", 2, "analysis_error")
-    assert [(rejection.source, rejection.reason, rejection.video_id) for rejection in rejections] == [
-        ("system", "analysis_error", "invalid-json")
-    ]
-    assert rejections[0].details_json == '{"error":"analysis_error"}'
-
-
-def test_ai_rescue_worker_retries_general_expected_failures_with_sanitized_code(tmp_path):
-    store, _channel = make_store(tmp_path)
-    store.upsert_video(VideoRecord(video_id="timeout", title="Ecuador", lifecycle="ignored_seen"))
-    store.upsert_rejected_video(video_id="timeout", source_country="colombia", reason="no_title_match")
-    store.enqueue_ai_rescue_rejected_video(video_id="timeout", now="2026-05-22T10:00:00Z")
-
-    processed = AiRescueWorker(
-        store=store,
-        subtitles=FakeSubtitleProvider({"timeout": [SubtitleSegment(0, 22000, "Ecuador great", "es")]}),
-        analyzer=FailingAiAnalyzer(TimeoutError("request timed out with secret-token")),
-        enabled=True,
-        retry_attempts=3,
-        retry_interval_seconds=600,
-        now=lambda: "2026-05-22T10:00:00Z",
-    ).drain_due()
-
-    queue_item = store.list_ai_rescue_queue(limit=1)[0]
-    assert processed == ["timeout"]
-    assert (queue_item.status, queue_item.attempt_count, queue_item.last_error) == ("retry", 1, "analysis_error")
-    assert "secret-token" not in queue_item.last_error

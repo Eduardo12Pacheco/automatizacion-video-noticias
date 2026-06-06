@@ -6,11 +6,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Callable, Protocol
 
-from .ai_rescue import AiRescueAnalysisResult, AiRescueVideoInput
 from .boundary_client import BoundaryRequestError
-from .opencode_go_client import OpenCodeGoError
 from .radar_client import RadarBusy, RadarJobResult, RadarServerError
-from .settings import AI_RESCUE_KILL_SWITCH_DISABLED
 from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport, SubscriptionRecord, VideoRecord
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, match_program_title, normalize_country
 from .youtube_client import MetadataUnavailable, SubtitleProvider, SubtitleUnavailable, UploadItem, VideoMetadata
@@ -174,10 +171,6 @@ class WebSubRenewer(Protocol):
     def renew(self, channel_id: str, *, lease_seconds: int = 864000) -> bool: ...
 
 
-class AiRescueAnalyzerProtocol(Protocol):
-    def analyze(self, video: AiRescueVideoInput) -> AiRescueAnalysisResult: ...
-
-
 class TranscriptRetentionPlanner(Protocol):
     def plan_cleanup(self, *, job_ids: list[str], urls: list[str], video_ids: list[str], mode: str) -> dict[str, Any]: ...
 
@@ -190,12 +183,10 @@ class DiscoveryWorker:
         youtube: MetadataClient,
         matcher: TitleMatcher | None = None,
         classifier: ClassificationService | None = None,
-        ai_rescue_enabled: bool = False,
         now: Callable[[], str] | None = None,
     ):
         self.store = store
         self.youtube = youtube
-        self.ai_rescue_enabled = False if AI_RESCUE_KILL_SWITCH_DISABLED else ai_rescue_enabled
         self.now = now or _now_iso
         if classifier is None:
             if matcher is None:
@@ -327,8 +318,6 @@ class DiscoveryWorker:
                 classification_version=classification.classification_version,
                 classified_at=saved.classified_at,
             )
-            if self.ai_rescue_enabled:
-                self.store.enqueue_ai_rescue_rejected_video(video_id=saved.video_id, now=self.now())
         return saved
 
     def _record_item_failure(self, video_id: str, *, existing: VideoRecord | None, error: Exception) -> VideoRecord:
@@ -554,140 +543,6 @@ class TranscriptSyncWorker:
         if synced and self.enqueue_due is not None:
             self.enqueue_due()
         return synced
-
-
-class AiRescueWorker:
-    def __init__(
-        self,
-        *,
-        store: MonitorStore,
-        subtitles: SubtitleProvider,
-        analyzer: AiRescueAnalyzerProtocol,
-        enabled: bool,
-        now: Callable[[], str] | None = None,
-        retry_attempts: int = 3,
-        retry_interval_seconds: int = 7200,
-        processing_timeout_seconds: int = 1800,
-        default_language: str = "en",
-    ):
-        self.store = store
-        self.subtitles = subtitles
-        self.analyzer = analyzer
-        self.enabled = enabled
-        self.now = now or _now_iso
-        self.retry_attempts = retry_attempts
-        self.retry_interval_seconds = retry_interval_seconds
-        self.processing_timeout_seconds = processing_timeout_seconds
-        self.default_language = default_language
-
-    def drain_due(self) -> list[str]:
-        if not self.enabled:
-            return []
-        now = self.now()
-        self.store.reap_stale_ai_rescue_processing(now=now, stale_after_seconds=self.processing_timeout_seconds)
-        queue_item = self.store.claim_next_ai_rescue_queue_item(now=now)
-        if queue_item is None:
-            return []
-        video = self.store.get_video(queue_item.video_id)
-        try:
-            segments = self.subtitles.fetch(
-                video_id=queue_item.video_id,
-                source_language=queue_item.source_country,
-                default_language=self.default_language,
-            )
-        except SubtitleUnavailable as exc:
-            self._handle_missing_subtitles(queue_item.id, now=now, error=str(exc), details=exc.details)
-            return [queue_item.video_id]
-        try:
-            analysis = self.analyzer.analyze(
-                AiRescueVideoInput(
-                    video_id=queue_item.video_id,
-                    title=video.title if video else None,
-                    source_country=queue_item.source_country,
-                    source_language=segments[0].language if segments else None,
-                    segments=segments,
-                )
-            )
-        except Exception as exc:
-            self._handle_analysis_failure(queue_item.id, now=now, reason=_ai_rescue_error_code(exc))
-            return [queue_item.video_id]
-        for candidate in analysis.candidates:
-            self.store.store_ai_rescue_candidate(
-                queue_id=queue_item.id,
-                video_id=queue_item.video_id,
-                target_country=candidate.target_country,
-                score=candidate.score,
-                summary_es=candidate.summary_es,
-                angle_es=candidate.angle_es,
-                risk=candidate.risk,
-                risks_json=json.dumps(candidate.risks, ensure_ascii=False),
-                evidence=[evidence.__dict__ for evidence in candidate.evidence],
-                raw_response_json=analysis.raw_response_json,
-            )
-        for rejection in analysis.rejections:
-            self.store.store_ai_rescue_rejection(
-                queue_id=queue_item.id,
-                video_id=queue_item.video_id,
-                target_country=rejection.target_country,
-                source="ai",
-                reason=rejection.reason,
-                details_json=json.dumps({"explanation_es": rejection.explanation_es}, ensure_ascii=False),
-            )
-        if not analysis.candidates:
-            self.store.reject_ai_rescue_queue_item(
-                queue_item.id,
-                now=now,
-                source="ai",
-                reason="no-candidates",
-                details_json=analysis.raw_response_json,
-            )
-        return [queue_item.video_id]
-
-    def _handle_missing_subtitles(
-        self, queue_id: int, *, now: str, error: str, details: dict[str, object] | None = None
-    ) -> None:
-        item = self.store.get_ai_rescue_queue_item(queue_id)
-        if item is None:
-            raise KeyError(queue_id)
-        if item.attempt_count + 1 >= self.retry_attempts:
-            self.store.reject_ai_rescue_queue_item(
-                queue_id,
-                now=now,
-                source="system",
-                reason="no-subtitles",
-                details_json=json.dumps(
-                    {"error": error, "subtitle_error": details or {}}, ensure_ascii=False, separators=(",", ":")
-                ),
-                increment_attempt=True,
-            )
-            return
-        self.store.schedule_ai_rescue_retry(
-            queue_id,
-            now=now,
-            next_attempt_at=_add_seconds(now, self.retry_interval_seconds),
-            last_error="no-subtitles",
-        )
-
-    def _handle_analysis_failure(self, queue_id: int, *, now: str, reason: str) -> None:
-        item = self.store.get_ai_rescue_queue_item(queue_id)
-        if item is None:
-            raise KeyError(queue_id)
-        if item.attempt_count + 1 >= self.retry_attempts:
-            self.store.reject_ai_rescue_queue_item(
-                queue_id,
-                now=now,
-                source="system",
-                reason=reason,
-                details_json=json.dumps({"error": reason}, ensure_ascii=False, separators=(",", ":")),
-                increment_attempt=True,
-            )
-            return
-        self.store.schedule_ai_rescue_retry(
-            queue_id,
-            now=now,
-            next_attempt_at=_add_seconds(now, self.retry_interval_seconds),
-            last_error=reason,
-        )
 
 
 class CleanupWorker:
@@ -1078,14 +933,6 @@ def _is_geo_blocked_error(value: str) -> bool:
         or "geo-restricted" in normalized
         or "geo restricted" in normalized
     )
-
-
-def _ai_rescue_error_code(error: Exception) -> str:
-    if isinstance(error, OpenCodeGoError):
-        if error.category in {"rate_limited", "server_error", "timeout", "transport", "auth"}:
-            return f"opencode_{error.category}"
-        return "opencode_error"
-    return "analysis_error"
 
 
 def accepts_foreign_press_match(reasons: list[dict[str, str]], *, source_country: str | None) -> bool:

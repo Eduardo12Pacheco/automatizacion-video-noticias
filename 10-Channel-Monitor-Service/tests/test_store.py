@@ -32,11 +32,6 @@ def test_store_migrates_required_monitor_tables(tmp_path):
         "boundary_websub_events",
         "cleanup_runs",
         "classification_runs",
-        "ai_rescue_queue",
-        "ai_rescue_candidates",
-        "ai_rescue_evidence",
-        "ai_rescue_decisions",
-        "ai_rescue_rejections",
         "important_summary_mentions",
         "card_context_dismissals",
     }
@@ -560,11 +555,6 @@ def test_store_preflight_reports_ready_after_migration(tmp_path):
         "boundary_websub_events",
         "cleanup_runs",
         "classification_runs",
-        "ai_rescue_queue",
-        "ai_rescue_candidates",
-        "ai_rescue_evidence",
-        "ai_rescue_decisions",
-        "ai_rescue_rejections",
         "important_summary_mentions",
         "card_context_dismissals",
     ]
@@ -721,16 +711,11 @@ def test_store_active_window_filters_all_visible_radar_views(tmp_path):
         store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=video_id, lifecycle="enqueue_pending", matched=True, detected_at=detected_at))
         store.upsert_target_match(TargetMatchRecord(video_id=video_id, target_country="ecuador", status="aprobado"))
         store.upsert_rejected_video(video_id=video_id, source_country="colombia", reason="test")
-        queue = store.enqueue_ai_rescue_rejected_video(video_id=video_id, now=detected_at)
-        store.store_ai_rescue_candidate(queue_id=queue.id, video_id=video_id, target_country="ecuador", score=80, summary_es="ok", angle_es="ok", risk="low")
-        store.store_ai_rescue_rejection(queue_id=queue.id, video_id=video_id, target_country="mexico", source="ai", reason="weak")
 
     assert [card.video_id for card in store.list_monitor_cards(now="2026-05-28T12:00:00Z", limit=10)] == ["active"]
     assert [card["video_id"] for card in store.list_target_cards(target_country="ecuador", now="2026-05-28T12:00:00Z", limit=10)] == ["active"]
     assert [card["video_id"] for card in store.list_important_cards(now="2026-05-28T12:00:00Z", limit=10)] == ["active"]
     assert [item.video_id for item in store.list_rejected_videos(now="2026-05-28T12:00:00Z", limit=10).items] == ["active"]
-    assert [item.video_id for item in store.list_ai_rescue_candidates(now="2026-05-28T12:00:00Z")] == ["active"]
-    assert [item.video_id for item in store.list_ai_rescue_rejections(now="2026-05-28T12:00:00Z")] == ["active"]
 
 
 def test_store_records_classification_runs_and_stale_candidates_without_promoting_lifecycle(tmp_path):
@@ -1204,7 +1189,7 @@ def test_update_target_matches_from_summary_scopes_existing_rows_and_discovers_p
             target_country="colombia",
             status="transcribiendo",
             radar_job_id="job-scoped",
-            approval_source="ai_rescue",
+            approval_source="manual",
         )
     )
 
@@ -1226,7 +1211,7 @@ def test_update_target_matches_from_summary_scopes_existing_rows_and_discovers_p
         for match in store.list_target_matches(video_id="summary-scoped")
     ] == [
         ("ecuador", "transcrito", "job-scoped", "title_classifier", "[]"),
-        ("colombia", "transcrito", "job-scoped", "ai_rescue", '[{"label":"James Rodríguez","count":2}]'),
+        ("colombia", "transcrito", "job-scoped", "manual", '[{"label":"James Rodríguez","count":2}]'),
         ("uruguay", "transcrito", "job-scoped", "transcript_summary", '[{"label":"Uruguay","count":1}]'),
     ]
 

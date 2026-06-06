@@ -22,11 +22,6 @@ REQUIRED_TABLES = [
     "boundary_websub_events",
     "cleanup_runs",
     "classification_runs",
-    "ai_rescue_queue",
-    "ai_rescue_candidates",
-    "ai_rescue_evidence",
-    "ai_rescue_decisions",
-    "ai_rescue_rejections",
     "important_summary_mentions",
     "card_context_dismissals",
 ]
@@ -163,66 +158,6 @@ class ClassificationRunRecord:
 class RejectedVideoPage:
     total: int
     items: list[RejectedVideoRecord]
-
-
-@dataclass(frozen=True)
-class AiRescueQueueRecord:
-    video_id: str
-    source_country: str | None
-    status: str
-    attempt_count: int
-    next_attempt_at: str | None = None
-    last_error: str | None = None
-    id: int | None = None
-
-
-@dataclass(frozen=True)
-class AiRescueEvidenceRecord:
-    candidate_id: int
-    start_ms: int
-    end_ms: int
-    text: str
-    translation_es: str
-    explanation_es: str
-    id: int | None = None
-
-
-@dataclass(frozen=True)
-class AiRescueCandidateRecord:
-    queue_id: int
-    video_id: str
-    target_country: str
-    status: str
-    score: int
-    summary_es: str
-    angle_es: str
-    risk: str
-    risks_json: str | None = None
-    raw_response_json: str | None = None
-    evidence: list[AiRescueEvidenceRecord] = field(default_factory=list)
-    id: int | None = None
-
-
-@dataclass(frozen=True)
-class AiRescueDecisionRecord:
-    candidate_id: int
-    decision: str
-    reviewer: str | None
-    reason: str | None
-    decided_at: str
-    id: int | None = None
-
-
-@dataclass(frozen=True)
-class AiRescueRejectionRecord:
-    video_id: str
-    source: str
-    reason: str
-    queue_id: int | None = None
-    candidate_id: int | None = None
-    target_country: str | None = None
-    details_json: str | None = None
-    id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -438,76 +373,12 @@ class MonitorStore:
                     error text
                 );
 
-                create table if not exists ai_rescue_queue (
-                    id integer primary key autoincrement,
-                    rejected_video_id integer references rejected_videos(id),
-                    video_id text not null references videos(video_id) unique,
-                    source_country text,
-                    status text not null default 'waiting',
-                    attempt_count integer not null default 0,
-                    next_attempt_at text,
-                    last_error text,
-                    started_at text,
-                    completed_at text,
-                    created_at text not null default current_timestamp,
-                    updated_at text not null default current_timestamp
-                );
-
-                create table if not exists ai_rescue_candidates (
-                    id integer primary key autoincrement,
-                    queue_id integer not null references ai_rescue_queue(id),
-                    video_id text not null references videos(video_id),
-                    target_country text not null,
-                    status text not null default 'candidate',
-                    score integer not null,
-                    summary_es text not null,
-                    angle_es text not null,
-                    risk text not null,
-                    risks_json text,
-                    raw_response_json text,
-                    created_at text not null default current_timestamp,
-                    updated_at text not null default current_timestamp
-                );
-
-                create table if not exists ai_rescue_evidence (
-                    id integer primary key autoincrement,
-                    candidate_id integer not null references ai_rescue_candidates(id) on delete cascade,
-                    start_ms integer not null,
-                    end_ms integer not null,
-                    text text not null,
-                    translation_es text not null,
-                    explanation_es text not null,
-                    created_at text not null default current_timestamp
-                );
-
-                create table if not exists ai_rescue_decisions (
-                    id integer primary key autoincrement,
-                    candidate_id integer not null references ai_rescue_candidates(id),
-                    decision text not null,
-                    reviewer text,
-                    reason text,
-                    decided_at text not null,
-                    created_at text not null default current_timestamp
-                );
-
-                create table if not exists ai_rescue_rejections (
-                    id integer primary key autoincrement,
-                    queue_id integer references ai_rescue_queue(id),
-                    video_id text not null references videos(video_id),
-                    candidate_id integer references ai_rescue_candidates(id),
-                    target_country text,
-                    source text not null,
-                    reason text not null,
-                    details_json text,
-                    created_at text not null default current_timestamp
-                );
-
                 create table if not exists card_context_dismissals (
                     id integer primary key autoincrement,
                     surface text not null,
                     target_context text not null,
                     video_id text references videos(video_id),
-                    candidate_id integer references ai_rescue_candidates(id),
+                    candidate_id integer,
                     dismissed_at text not null,
                     dismissed_by text,
                     reason text,
@@ -762,7 +633,7 @@ class MonitorStore:
     def _operational_state_counts(self) -> dict[str, int]:
         counts = _empty_retention_deletion_counts()
         with self._connect() as connection:
-            for table in ["videos", "enqueue_attempts", "video_target_matches", "rejected_videos", "card_context_dismissals", "ai_rescue_queue", "ai_rescue_candidates", "ai_rescue_evidence", "ai_rescue_decisions", "ai_rescue_rejections"]:
+            for table in ["videos", "enqueue_attempts", "video_target_matches", "rejected_videos", "card_context_dismissals"]:
                 counts[table] = int(connection.execute(f"select count(*) as total from {table}").fetchone()["total"])
         return counts
 
@@ -1329,470 +1200,6 @@ class MonitorStore:
                 (*window_args, safe_limit, safe_offset),
             ).fetchall()
         return RejectedVideoPage(total=total, items=[_rejected_video_from_row(row) for row in rows])
-
-    def enqueue_ai_rescue_rejected_video(self, *, video_id: str, now: str | None = None) -> AiRescueQueueRecord:
-        with self._connect() as connection:
-            rejected = connection.execute(
-                "select id, video_id, source_country from rejected_videos where video_id = ?", (video_id,)
-            ).fetchone()
-            if rejected is None:
-                raise KeyError(video_id)
-            connection.execute(
-                """
-                insert into ai_rescue_queue(rejected_video_id, video_id, source_country, status, created_at, updated_at)
-                values (?, ?, ?, 'waiting', coalesce(?, current_timestamp), coalesce(?, current_timestamp))
-                on conflict(video_id) do nothing
-                """,
-                (rejected["id"], rejected["video_id"], rejected["source_country"], now, now),
-            )
-            row = connection.execute("select * from ai_rescue_queue where video_id = ?", (video_id,)).fetchone()
-        return _ai_rescue_queue_from_row(row)
-
-    def list_ai_rescue_queue(self, *, limit: int = 50) -> list[AiRescueQueueRecord]:
-        safe_limit = max(1, min(int(limit), 200))
-        with self._connect() as connection:
-            rows = connection.execute(
-                """
-                select * from ai_rescue_queue
-                order by
-                    case status when 'processing' then 0 when 'retry' then 1 when 'waiting' then 2 else 3 end,
-                    coalesce(next_attempt_at, created_at),
-                    id
-                limit ?
-                """,
-                (safe_limit,),
-            ).fetchall()
-        return [_ai_rescue_queue_from_row(row) for row in rows]
-
-    def ai_rescue_queue_snapshot(self, *, now: str, upcoming_limit: int = 10) -> dict[str, Any]:
-        with self._connect() as connection:
-            current_row = connection.execute(
-                "select * from ai_rescue_queue where status = 'processing' order by started_at, id limit 1"
-            ).fetchone()
-            upcoming_rows = connection.execute(
-                """
-                select * from ai_rescue_queue
-                where status = 'waiting'
-                   or (status = 'retry' and (next_attempt_at is null or next_attempt_at <= ?))
-                order by coalesce(next_attempt_at, created_at), id
-                limit ?
-                """,
-                (now, max(1, min(int(upcoming_limit), 50))),
-            ).fetchall()
-            count_rows = connection.execute(
-                """
-                select status, count(*) as total
-                from ai_rescue_queue
-                where status in ('waiting', 'processing', 'retry')
-                group by status
-                """
-            ).fetchall()
-        counts = {"waiting": 0, "processing": 0, "retry": 0}
-        counts.update({str(row["status"]): int(row["total"]) for row in count_rows})
-        return {
-            "current": _ai_rescue_queue_from_row(current_row) if current_row else None,
-            "upcoming": [_ai_rescue_queue_from_row(row) for row in upcoming_rows],
-            "counts": counts,
-        }
-
-    def claim_next_ai_rescue_queue_item(self, *, now: str) -> AiRescueQueueRecord | None:
-        with self._connect() as connection:
-            connection.execute("begin immediate")
-            row = connection.execute(
-                """
-                select * from ai_rescue_queue
-                where status = 'waiting'
-                   or (status = 'retry' and (next_attempt_at is null or next_attempt_at <= ?))
-                order by coalesce(next_attempt_at, created_at), id
-                limit 1
-                """,
-                (now,),
-            ).fetchone()
-            if row is None:
-                return None
-            connection.execute(
-                """
-                update ai_rescue_queue
-                set status = 'processing', started_at = ?, updated_at = ?, last_error = null
-                where id = ?
-                  and (status = 'waiting' or (status = 'retry' and (next_attempt_at is null or next_attempt_at <= ?)))
-                """,
-                (now, now, row["id"], now),
-            )
-            claimed = connection.execute("select * from ai_rescue_queue where id = ?", (row["id"],)).fetchone()
-        return _ai_rescue_queue_from_row(claimed)
-
-    def reap_stale_ai_rescue_processing(self, *, now: str, stale_after_seconds: int) -> int:
-        now_dt = _parse_datetime(now)
-        if now_dt is None:
-            return 0
-        cutoff = (now_dt - timedelta(seconds=max(1, int(stale_after_seconds)))).isoformat().replace("+00:00", "Z")
-        with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                update ai_rescue_queue
-                set status = 'retry', next_attempt_at = ?, last_error = 'stale-processing', updated_at = ?
-                where status = 'processing'
-                  and started_at is not null
-                  and datetime(replace(replace(started_at, 'T', ' '), 'Z', ''))
-                      <= datetime(replace(replace(?, 'T', ' '), 'Z', ''))
-                """,
-                (now, now, cutoff),
-            )
-        return int(cursor.rowcount)
-
-    def schedule_ai_rescue_retry(
-        self, queue_id: int, *, now: str, next_attempt_at: str, last_error: str
-    ) -> AiRescueQueueRecord:
-        with self._connect() as connection:
-            connection.execute(
-                """
-                update ai_rescue_queue
-                set status = 'retry', attempt_count = attempt_count + 1, next_attempt_at = ?, last_error = ?, updated_at = ?
-                where id = ?
-                """,
-                (next_attempt_at, last_error, now, queue_id),
-            )
-            row = connection.execute("select * from ai_rescue_queue where id = ?", (queue_id,)).fetchone()
-        return _ai_rescue_queue_from_row(row)
-
-    def reject_ai_rescue_queue_item(
-        self,
-        queue_id: int,
-        *,
-        now: str,
-        source: str,
-        reason: str,
-        details_json: str | None = None,
-        increment_attempt: bool = False,
-    ) -> AiRescueQueueRecord:
-        with self._connect() as connection:
-            row = connection.execute("select * from ai_rescue_queue where id = ?", (queue_id,)).fetchone()
-            if row is None:
-                raise KeyError(queue_id)
-            attempt_increment = 1 if increment_attempt else 0
-            connection.execute(
-                """
-                update ai_rescue_queue
-                set status = 'rejected', attempt_count = attempt_count + ?, next_attempt_at = null,
-                    last_error = ?, completed_at = ?, updated_at = ?
-                where id = ?
-                """,
-                (attempt_increment, reason, now, now, queue_id),
-            )
-            existing_rejection = connection.execute(
-                """
-                select id from ai_rescue_rejections
-                where queue_id = ? and source = ? and reason = ? and target_country is null and candidate_id is null
-                """,
-                (queue_id, source, reason),
-            ).fetchone()
-            if existing_rejection is None:
-                connection.execute(
-                    """
-                    insert into ai_rescue_rejections(queue_id, video_id, source, reason, details_json)
-                    values (?, ?, ?, ?, ?)
-                    """,
-                    (queue_id, row["video_id"], source, reason, details_json),
-                )
-            updated = connection.execute("select * from ai_rescue_queue where id = ?", (queue_id,)).fetchone()
-        return _ai_rescue_queue_from_row(updated)
-
-    def store_ai_rescue_candidate(
-        self,
-        *,
-        queue_id: int,
-        video_id: str,
-        target_country: str,
-        score: int,
-        summary_es: str,
-        angle_es: str,
-        risk: str,
-        risks_json: str | None = None,
-        evidence: list[dict[str, Any]] | None = None,
-        raw_response_json: str | None = None,
-    ) -> AiRescueCandidateRecord:
-        target = normalize_country(target_country)
-        with self._connect() as connection:
-            existing = connection.execute(
-                "select id from ai_rescue_candidates where queue_id = ? and target_country = ? order by id limit 1",
-                (queue_id, target),
-            ).fetchone()
-            if existing is None:
-                cursor = connection.execute(
-                    """
-                    insert into ai_rescue_candidates(
-                        queue_id, video_id, target_country, status, score, summary_es, angle_es, risk,
-                        risks_json, raw_response_json
-                    ) values (?, ?, ?, 'candidate', ?, ?, ?, ?, ?, ?)
-                    """,
-                    (queue_id, video_id, target, score, summary_es, angle_es, risk, risks_json, raw_response_json),
-                )
-                candidate_id = int(cursor.lastrowid)
-            else:
-                candidate_id = int(existing["id"])
-                connection.execute(
-                    """
-                    update ai_rescue_candidates
-                    set status = 'candidate', score = ?, summary_es = ?, angle_es = ?, risk = ?,
-                        risks_json = ?, raw_response_json = ?, updated_at = current_timestamp
-                    where id = ?
-                    """,
-                    (score, summary_es, angle_es, risk, risks_json, raw_response_json, candidate_id),
-                )
-            connection.execute("delete from ai_rescue_evidence where candidate_id = ?", (candidate_id,))
-            for item in evidence or []:
-                connection.execute(
-                    """
-                    insert into ai_rescue_evidence(
-                        candidate_id, start_ms, end_ms, text, translation_es, explanation_es
-                    ) values (?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        candidate_id,
-                        int(item["start_ms"]),
-                        int(item["end_ms"]),
-                        str(item["text"]),
-                        str(item["translation_es"]),
-                        str(item["explanation_es"]),
-                    ),
-                )
-            connection.execute(
-                "update ai_rescue_queue set status = 'candidate', updated_at = current_timestamp where id = ?", (queue_id,)
-            )
-        candidate = self.get_ai_rescue_candidate(candidate_id)
-        if candidate is None:
-            raise KeyError(candidate_id)
-        return candidate
-
-    def get_ai_rescue_candidate(self, candidate_id: int) -> AiRescueCandidateRecord | None:
-        with self._connect() as connection:
-            row = connection.execute("select * from ai_rescue_candidates where id = ?", (candidate_id,)).fetchone()
-            if row is None:
-                return None
-            evidence_rows = connection.execute(
-                "select * from ai_rescue_evidence where candidate_id = ? order by start_ms, id", (candidate_id,)
-            ).fetchall()
-        return _ai_rescue_candidate_from_row(row, evidence_rows)
-
-    def get_ai_rescue_queue_item(self, queue_id: int) -> AiRescueQueueRecord | None:
-        with self._connect() as connection:
-            row = connection.execute("select * from ai_rescue_queue where id = ?", (queue_id,)).fetchone()
-        return _ai_rescue_queue_from_row(row) if row else None
-
-    def list_ai_rescue_candidates(self, *, now: str | None = None) -> list[AiRescueCandidateRecord]:
-        window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
-        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
-        with self._connect() as connection:
-            rows = connection.execute(
-                f"""
-                select ai_rescue_candidates.*
-                from ai_rescue_candidates
-                join videos on videos.video_id = ai_rescue_candidates.video_id
-                where ai_rescue_candidates.status = 'candidate'
-                  and {window_sql}
-                  and not exists (
-                    select 1
-                    from card_context_dismissals dismissals
-                    where dismissals.surface = 'ai-rescue-candidate'
-                      and dismissals.target_context = ai_rescue_candidates.target_country
-                      and (
-                        dismissals.candidate_id = ai_rescue_candidates.id
-                        or (dismissals.candidate_id is null and dismissals.video_id = ai_rescue_candidates.video_id)
-                      )
-                      and {dismissal_sql}
-                  )
-                order by score desc, ai_rescue_candidates.id
-                """,
-                (*window_args, *dismissal_args),
-            ).fetchall()
-            evidence_by_candidate = _ai_rescue_evidence_by_candidate(connection, [int(row["id"]) for row in rows])
-        return [_ai_rescue_candidate_from_row(row, evidence_by_candidate.get(int(row["id"]), [])) for row in rows]
-
-    def count_ai_rescue_candidates(self, *, now: str | None = None) -> int:
-        window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
-        dismissal_sql, dismissal_args = _active_dismissal_sql("dismissals", now=now)
-        with self._connect() as connection:
-            row = connection.execute(
-                f"""
-                select count(*) as total
-                from ai_rescue_candidates
-                join videos on videos.video_id = ai_rescue_candidates.video_id
-                where ai_rescue_candidates.status = 'candidate'
-                  and {window_sql}
-                  and not exists (
-                    select 1
-                    from card_context_dismissals dismissals
-                    where dismissals.surface = 'ai-rescue-candidate'
-                      and dismissals.target_context = ai_rescue_candidates.target_country
-                      and (
-                        dismissals.candidate_id = ai_rescue_candidates.id
-                        or (dismissals.candidate_id is null and dismissals.video_id = ai_rescue_candidates.video_id)
-                      )
-                      and {dismissal_sql}
-                  )
-                """,
-                (*window_args, *dismissal_args),
-            ).fetchone()
-        return int(row["total"] if row else 0)
-
-    def store_ai_rescue_rejection(
-        self,
-        *,
-        video_id: str,
-        source: str,
-        reason: str,
-        queue_id: int | None = None,
-        candidate_id: int | None = None,
-        target_country: str | None = None,
-        details_json: str | None = None,
-    ) -> AiRescueRejectionRecord:
-        with self._connect() as connection:
-            row = connection.execute(
-                """
-                select * from ai_rescue_rejections
-                where queue_id is ?
-                  and source = ?
-                  and reason = ?
-                  and coalesce(target_country, '') = coalesce(?, '')
-                  and coalesce(candidate_id, 0) = coalesce(?, 0)
-                """,
-                (queue_id, source, reason, _normalize_country_optional(target_country), candidate_id),
-            ).fetchone()
-            if row is not None:
-                return _ai_rescue_rejection_from_row(row)
-            cursor = connection.execute(
-                """
-                insert into ai_rescue_rejections(
-                    queue_id, video_id, candidate_id, target_country, source, reason, details_json
-                ) values (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (queue_id, video_id, candidate_id, _normalize_country_optional(target_country), source, reason, details_json),
-            )
-            row = connection.execute("select * from ai_rescue_rejections where id = ?", (cursor.lastrowid,)).fetchone()
-        return _ai_rescue_rejection_from_row(row)
-
-    def list_ai_rescue_rejections(
-        self,
-        *,
-        now: str | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[AiRescueRejectionRecord]:
-        window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
-        safe_offset = max(0, int(offset or 0))
-        limit_sql = ""
-        args = list(window_args)
-        if limit is not None:
-            safe_limit = max(1, min(int(limit), 250))
-            limit_sql = " limit ? offset ?"
-            args.extend([safe_limit, safe_offset])
-        with self._connect() as connection:
-            rows = connection.execute(
-                f"""
-                select ai_rescue_rejections.*
-                from ai_rescue_rejections
-                join videos on videos.video_id = ai_rescue_rejections.video_id
-                where {window_sql}
-                order by ai_rescue_rejections.id
-                {limit_sql}
-                """,
-                args,
-            ).fetchall()
-        return [_ai_rescue_rejection_from_row(row) for row in rows]
-
-    def count_ai_rescue_rejections(self, *, now: str | None = None) -> int:
-        window_sql, window_args = _active_window_sql("videos.detected_at", now=now)
-        with self._connect() as connection:
-            row = connection.execute(
-                f"""
-                select count(*) as total
-                from ai_rescue_rejections
-                join videos on videos.video_id = ai_rescue_rejections.video_id
-                where {window_sql}
-                """,
-                window_args,
-            ).fetchone()
-        return int(row["total"] if row else 0)
-
-    def mark_ai_rescue_candidate_rejected(
-        self, candidate_id: int, *, reviewer: str | None, reason: str, decided_at: str
-    ) -> AiRescueDecisionRecord:
-        return self._record_ai_rescue_decision(
-            candidate_id, decision="rejected", reviewer=reviewer, reason=reason, decided_at=decided_at
-        )
-
-    def mark_ai_rescue_candidate_approved(
-        self, candidate_id: int, *, reviewer: str | None, decided_at: str
-    ) -> AiRescueDecisionRecord:
-        return self._record_ai_rescue_decision(
-            candidate_id, decision="approved", reviewer=reviewer, reason=None, decided_at=decided_at
-        )
-
-    def promote_ai_rescue_candidate(
-        self, candidate_id: int, *, allowed_target_countries: list[str]
-    ) -> TargetMatchRecord:
-        candidate = self.get_ai_rescue_candidate(candidate_id)
-        if candidate is None:
-            raise KeyError(candidate_id)
-        allowed = {normalize_country(country) for country in allowed_target_countries}
-        if candidate.target_country not in allowed:
-            raise ValueError("target_country_not_configured")
-        queue_item = self.get_ai_rescue_queue_item(candidate.queue_id)
-        if queue_item and queue_item.source_country == candidate.target_country:
-            raise ValueError("target_country_matches_source")
-        with self._connect() as connection:
-            queue_priority = _target_queue_priority(
-                connection, video_id=candidate.video_id, target_country=candidate.target_country
-            )
-            connection.execute(
-                """
-                update videos
-                set lifecycle = 'enqueue_pending',
-                    matched = 1,
-                    match_reason = coalesce(match_reason, ?),
-                    updated_at = current_timestamp
-                where video_id = ?
-                """,
-                (candidate.summary_es, candidate.video_id),
-            )
-            connection.execute(
-                """
-                insert into video_target_matches(
-                    video_id, target_country, status, title_match_reason, approval_source,
-                    queue_priority_tier, queue_priority_rank
-                )
-                values (?, ?, 'aprobado', ?, 'ai_rescue', ?, ?)
-                on conflict(video_id, target_country) do update set
-                    status = excluded.status,
-                    title_match_reason = coalesce(excluded.title_match_reason, video_target_matches.title_match_reason),
-                    approval_source = excluded.approval_source,
-                    queue_priority_tier = coalesce(excluded.queue_priority_tier, video_target_matches.queue_priority_tier),
-                    queue_priority_rank = coalesce(excluded.queue_priority_rank, video_target_matches.queue_priority_rank),
-                    updated_at = current_timestamp
-                """,
-                (
-                    candidate.video_id,
-                    candidate.target_country,
-                    candidate.summary_es,
-                    queue_priority["tier"],
-                    queue_priority["rank"],
-                ),
-            )
-            connection.execute(
-                "update ai_rescue_candidates set status = 'approved', updated_at = current_timestamp where id = ?",
-                (candidate_id,),
-            )
-            connection.execute(
-                "update ai_rescue_queue set status = 'approved', updated_at = current_timestamp where id = ?",
-                (candidate.queue_id,),
-            )
-            row = connection.execute(
-                "select * from video_target_matches where video_id = ? and target_country = ?",
-                (candidate.video_id, candidate.target_country),
-            ).fetchone()
-        match = _target_match_from_row(row)
-        return match
 
     def record_enqueue_attempt(
         self,
@@ -2383,94 +1790,32 @@ class MonitorStore:
         video_id = str(row["video_id"])
         counts = _empty_retention_deletion_counts()
         counts["videos"] = 1
-        scalar_tables = [
-            "enqueue_attempts",
-            "video_target_matches",
-            "rejected_videos",
-            "card_context_dismissals",
-            "ai_rescue_queue",
-            "ai_rescue_candidates",
-            "ai_rescue_rejections",
-        ]
-        for table in scalar_tables:
+        for table in ["enqueue_attempts", "video_target_matches", "rejected_videos", "card_context_dismissals"]:
             counts[table] = _count_by_video_id(connection, table, video_id)
-        candidate_ids = [
-            int(candidate["id"])
-            for candidate in connection.execute("select id from ai_rescue_candidates where video_id = ?", (video_id,)).fetchall()
-        ]
-        if candidate_ids:
-            placeholders = ",".join("?" for _ in candidate_ids)
-            counts["ai_rescue_evidence"] = int(
-                connection.execute(
-                    f"select count(*) as total from ai_rescue_evidence where candidate_id in ({placeholders})",
-                    tuple(candidate_ids),
-                ).fetchone()["total"]
-            )
-            counts["ai_rescue_decisions"] = int(
-                connection.execute(
-                    f"select count(*) as total from ai_rescue_decisions where candidate_id in ({placeholders})",
-                    tuple(candidate_ids),
-                ).fetchone()["total"]
-            )
-        job_ids = _unique_non_empty(
-            [
-                *(attempt["radar_job_id"] for attempt in connection.execute("select radar_job_id from enqueue_attempts where video_id = ? order by id", (video_id,))),
-                *(match["radar_job_id"] for match in connection.execute("select radar_job_id from video_target_matches where video_id = ? order by id", (video_id,))),
-            ]
-        )
-        states = {
-            "target_matches": [dict(match) for match in connection.execute("select id, target_country, status, radar_job_id from video_target_matches where video_id = ? order by id", (video_id,)).fetchall()],
-            "rejected": [dict(rejected) for rejected in connection.execute("select id, reason, source_country from rejected_videos where video_id = ? order by id", (video_id,)).fetchall()],
-            "ai_rescue_queue": [dict(queue) for queue in connection.execute("select id, status, source_country from ai_rescue_queue where video_id = ? order by id", (video_id,)).fetchall()],
-            "ai_rescue_candidates": [dict(candidate) for candidate in connection.execute("select id, queue_id, target_country, status from ai_rescue_candidates where video_id = ? order by id", (video_id,)).fetchall()],
-            "ai_rescue_rejections": [dict(rejection) for rejection in connection.execute("select id, queue_id, candidate_id, target_country, source, reason from ai_rescue_rejections where video_id = ? order by id", (video_id,)).fetchall()],
-        }
-        url = row["url"]
+        job_ids = _transcript_job_ids_for_video(connection, video_id)
         return RetentionDryRunItem(
             video_id=video_id,
-            url=url,
-            detected_at=str(row["detected_at"]),
-            lifecycle=str(row["lifecycle"]),
-            states=states,
-            transcript_refs={
-                "radar_job_ids": job_ids,
-                "urls": _unique_non_empty([url]),
-                "video_ids": [video_id],
+            url=row["url"],
+            detected_at=row["detected_at"],
+            lifecycle=row["lifecycle"],
+            states={
+                "enqueue_attempts": _rows_for_video(connection, "enqueue_attempts", video_id),
+                "video_target_matches": _rows_for_video(connection, "video_target_matches", video_id),
+                "rejected_videos": _rows_for_video(connection, "rejected_videos", video_id),
+                "card_context_dismissals": _rows_for_video(connection, "card_context_dismissals", video_id),
             },
+            transcript_refs={"radar_job_ids": job_ids, "urls": [row["url"]] if row["url"] else [], "video_ids": [video_id]},
             planned_deletions=counts,
         )
 
     def delete_detected_video_state(self, video_id: str) -> dict[str, int]:
         counts = _empty_retention_deletion_counts()
         with self._connect() as connection:
-            candidate_ids = [
-                int(row["id"])
-                for row in connection.execute("select id from ai_rescue_candidates where video_id = ?", (video_id,)).fetchall()
-            ]
-            if candidate_ids:
-                placeholders = ",".join("?" for _ in candidate_ids)
-                counts["ai_rescue_decisions"] = _delete_by_ids(connection, "ai_rescue_decisions", "candidate_id", candidate_ids)
-                counts["ai_rescue_evidence"] = _delete_by_ids(connection, "ai_rescue_evidence", "candidate_id", candidate_ids)
-                counts["ai_rescue_rejections"] += int(
-                    connection.execute(
-                        f"delete from ai_rescue_rejections where candidate_id in ({placeholders})",
-                        tuple(candidate_ids),
-                    ).rowcount
-                )
-            counts["ai_rescue_rejections"] += int(
-                connection.execute("delete from ai_rescue_rejections where video_id = ?", (video_id,)).rowcount
-            )
-            counts["ai_rescue_candidates"] = int(
-                connection.execute("delete from ai_rescue_candidates where video_id = ?", (video_id,)).rowcount
-            )
-            counts["ai_rescue_queue"] = int(
-                connection.execute("delete from ai_rescue_queue where video_id = ?", (video_id,)).rowcount
+            counts["card_context_dismissals"] = int(
+                connection.execute("delete from card_context_dismissals where video_id = ?", (video_id,)).rowcount
             )
             counts["rejected_videos"] = int(
                 connection.execute("delete from rejected_videos where video_id = ?", (video_id,)).rowcount
-            )
-            counts["card_context_dismissals"] = int(
-                connection.execute("delete from card_context_dismissals where video_id = ?", (video_id,)).rowcount
             )
             counts["video_target_matches"] = int(
                 connection.execute("delete from video_target_matches where video_id = ?", (video_id,)).rowcount
@@ -2620,42 +1965,6 @@ class MonitorStore:
         tables = [table for table in REQUIRED_TABLES if table in existing]
         missing = [table for table in REQUIRED_TABLES if table not in existing]
         return {"status": "failed" if missing else "ready", "tables": tables, "missing_tables": missing}
-
-    def _record_ai_rescue_decision(
-        self,
-        candidate_id: int,
-        *,
-        decision: str,
-        reviewer: str | None,
-        reason: str | None,
-        decided_at: str,
-    ) -> AiRescueDecisionRecord:
-        candidate = self.get_ai_rescue_candidate(candidate_id)
-        if candidate is None:
-            raise KeyError(candidate_id)
-        with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                insert into ai_rescue_decisions(candidate_id, decision, reviewer, reason, decided_at)
-                values (?, ?, ?, ?, ?)
-                """,
-                (candidate_id, decision, reviewer, reason, decided_at),
-            )
-            connection.execute(
-                "update ai_rescue_candidates set status = ?, updated_at = current_timestamp where id = ?",
-                (decision, candidate_id),
-            )
-            if decision == "rejected":
-                connection.execute(
-                    """
-                    insert into ai_rescue_rejections(
-                        queue_id, video_id, candidate_id, target_country, source, reason, details_json
-                    ) values (?, ?, ?, ?, 'human', ?, ?)
-                    """,
-                    (candidate.queue_id, candidate.video_id, candidate.id, candidate.target_country, reason or "human-rejected", None),
-                )
-            row = connection.execute("select * from ai_rescue_decisions where id = ?", (cursor.lastrowid,)).fetchone()
-        return _ai_rescue_decision_from_row(row)
 
     def _dismissal_expires_at(self, *, video_id: str | None) -> str | None:
         if not video_id:
@@ -2940,7 +2249,7 @@ def _active_dismissal_sql(alias: str = "dismissals", *, now: str | None = None) 
 
 def _normalize_dismissal_surface(value: Any) -> str:
     surface = str(value or "").strip().casefold()
-    if surface not in {"monitor-card", "ai-rescue-candidate"}:
+    if surface != "monitor-card":
         raise ValueError("invalid_surface")
     return surface
 
@@ -2983,89 +2292,6 @@ def _rejected_video_from_row(row: sqlite3.Row) -> RejectedVideoRecord:
         classified_at=row["classified_at"],
         classification_run_id=row["classification_run_id"],
     )
-
-
-def _ai_rescue_queue_from_row(row: sqlite3.Row) -> AiRescueQueueRecord:
-    return AiRescueQueueRecord(
-        id=int(row["id"]),
-        video_id=str(row["video_id"]),
-        source_country=row["source_country"],
-        status=str(row["status"]),
-        attempt_count=int(row["attempt_count"]),
-        next_attempt_at=row["next_attempt_at"],
-        last_error=row["last_error"],
-    )
-
-
-def _ai_rescue_evidence_from_row(row: sqlite3.Row) -> AiRescueEvidenceRecord:
-    return AiRescueEvidenceRecord(
-        id=int(row["id"]),
-        candidate_id=int(row["candidate_id"]),
-        start_ms=int(row["start_ms"]),
-        end_ms=int(row["end_ms"]),
-        text=str(row["text"]),
-        translation_es=str(row["translation_es"]),
-        explanation_es=str(row["explanation_es"]),
-    )
-
-
-def _ai_rescue_candidate_from_row(
-    row: sqlite3.Row, evidence_rows: list[sqlite3.Row]
-) -> AiRescueCandidateRecord:
-    return AiRescueCandidateRecord(
-        id=int(row["id"]),
-        queue_id=int(row["queue_id"]),
-        video_id=str(row["video_id"]),
-        target_country=str(row["target_country"]),
-        status=str(row["status"]),
-        score=int(row["score"]),
-        summary_es=str(row["summary_es"]),
-        angle_es=str(row["angle_es"]),
-        risk=str(row["risk"]),
-        risks_json=row["risks_json"],
-        raw_response_json=row["raw_response_json"],
-        evidence=[_ai_rescue_evidence_from_row(evidence) for evidence in evidence_rows],
-    )
-
-
-def _ai_rescue_decision_from_row(row: sqlite3.Row) -> AiRescueDecisionRecord:
-    return AiRescueDecisionRecord(
-        id=int(row["id"]),
-        candidate_id=int(row["candidate_id"]),
-        decision=str(row["decision"]),
-        reviewer=row["reviewer"],
-        reason=row["reason"],
-        decided_at=str(row["decided_at"]),
-    )
-
-
-def _ai_rescue_rejection_from_row(row: sqlite3.Row) -> AiRescueRejectionRecord:
-    return AiRescueRejectionRecord(
-        id=int(row["id"]),
-        queue_id=row["queue_id"],
-        video_id=str(row["video_id"]),
-        candidate_id=row["candidate_id"],
-        target_country=row["target_country"],
-        source=str(row["source"]),
-        reason=str(row["reason"]),
-        details_json=row["details_json"],
-    )
-
-
-def _ai_rescue_evidence_by_candidate(
-    connection: sqlite3.Connection, candidate_ids: list[int]
-) -> dict[int, list[sqlite3.Row]]:
-    if not candidate_ids:
-        return {}
-    placeholders = ",".join("?" for _ in candidate_ids)
-    rows = connection.execute(
-        f"select * from ai_rescue_evidence where candidate_id in ({placeholders}) order by start_ms, id",
-        tuple(candidate_ids),
-    ).fetchall()
-    grouped: dict[int, list[sqlite3.Row]] = {candidate_id: [] for candidate_id in candidate_ids}
-    for row in rows:
-        grouped.setdefault(int(row["candidate_id"]), []).append(row)
-    return grouped
 
 
 def _classification_run_from_row(row: sqlite3.Row) -> ClassificationRunRecord:
@@ -3281,17 +2507,22 @@ def _empty_retention_deletion_counts() -> dict[str, int]:
         "video_target_matches": 0,
         "rejected_videos": 0,
         "card_context_dismissals": 0,
-        "ai_rescue_queue": 0,
-        "ai_rescue_candidates": 0,
-        "ai_rescue_evidence": 0,
-        "ai_rescue_decisions": 0,
-        "ai_rescue_rejections": 0,
         "transcript_artifacts": 0,
     }
 
 
 def _count_by_video_id(connection: sqlite3.Connection, table: str, video_id: str) -> int:
     return int(connection.execute(f"select count(*) as total from {table} where video_id = ?", (video_id,)).fetchone()["total"])
+
+
+def _rows_for_video(connection: sqlite3.Connection, table: str, video_id: str) -> list[dict[str, Any]]:
+    return [dict(row) for row in connection.execute(f"select * from {table} where video_id = ?", (video_id,)).fetchall()]
+
+
+def _transcript_job_ids_for_video(connection: sqlite3.Connection, video_id: str) -> list[str]:
+    enqueue_jobs = [row["radar_job_id"] for row in connection.execute("select radar_job_id from enqueue_attempts where video_id = ?", (video_id,)).fetchall()]
+    match_jobs = [row["radar_job_id"] for row in connection.execute("select radar_job_id from video_target_matches where video_id = ?", (video_id,)).fetchall()]
+    return _unique_non_empty([*enqueue_jobs, *match_jobs])
 
 
 def _delete_by_ids(connection: sqlite3.Connection, table: str, column: str, ids: list[int]) -> int:

@@ -133,17 +133,6 @@ def test_runtime_status_can_report_classification_loop_disabled_by_configuration
     }
 
 
-def test_runtime_status_reports_ai_rescue_loop_disabled_by_default(tmp_path):
-    settings = Settings(db_path=tmp_path / "monitor.sqlite3")
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    coordinator = _build_runtime_coordinator(settings=settings, store=store, discovery_worker=None, radar_client=None)
-
-    status = coordinator.status()
-
-    assert "ai_rescue" in status["disabled"]
-    assert "ai_rescue" not in status["enabled"]
-
 
 def test_build_runtime_coordinator_applies_initial_delay_only_to_catchup(tmp_path):
     settings = Settings(
