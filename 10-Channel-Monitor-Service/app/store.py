@@ -1420,9 +1420,11 @@ class MonitorStore:
                     videos.title,
                     videos.url,
                     videos.published_at,
+                    videos.created_at,
                     videos.lifecycle,
                     channels.country as source_country,
                     channels.label as channel_label,
+                    channels.algorithm_priority_rank as channel_priority_rank,
                     coalesce(
                         (select sum(cast(json_extract(value, '$.count') as integer))
                          from json_each(
@@ -1480,9 +1482,11 @@ class MonitorStore:
                     videos.title,
                     videos.url,
                     videos.published_at,
+                    videos.created_at,
                     videos.lifecycle,
                     channels.country as source_country,
-                    channels.label as channel_label
+                    channels.label as channel_label,
+                    channels.algorithm_priority_rank as channel_priority_rank
                 from videos
                 join channels on channels.id = videos.channel_id
                 left join enqueue_attempts latest

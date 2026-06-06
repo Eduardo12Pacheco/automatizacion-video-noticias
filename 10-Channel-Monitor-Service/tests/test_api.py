@@ -23,6 +23,33 @@ def test_live_endpoint_is_public_and_minimal(tmp_path):
     assert response.json() == {"status": "ok"}
 
 
+def test_monitor_cards_exposes_safe_channel_priority_rank(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(country="espana", label="Mundo Maldini", source_url=None, youtube_channel_id="UCMundo", algorithm_priority_rank=11)
+    )
+    store.upsert_video(
+        VideoRecord(
+            video_id="priority-video",
+            channel_id=channel.id,
+            title="Ecuador analiza el partido",
+            url="https://youtu.be/priority-video",
+            published_at="2026-05-22T12:00:00Z",
+            lifecycle="transcrito",
+            matched=True,
+        )
+    )
+    store.upsert_target_match(TargetMatchRecord(video_id="priority-video", target_country="ecuador", status="transcrito"))
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=StartupFakeChannelResolver()))
+
+    response = client.get("/api/monitor/cards?target_country=ecuador", headers={"x-api-key": "monitor-secret"})
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["channel_priority_rank"] == 11
+
+
 def test_parse_mention_counts_ignores_malformed_counts():
     assert _parse_mention_counts('[{"label":"Bad","count":"oops"},{"label":"Good","count":"2"}]') == [
         {"label": "Good", "count": 2}

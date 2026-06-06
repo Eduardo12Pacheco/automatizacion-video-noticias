@@ -456,6 +456,11 @@ def test_list_target_cards_prioritizes_algorithm_channels_then_mentions_then_ran
     cards = store.list_target_cards(target_country="ecuador", limit=10)
 
     assert [card["video_id"] for card in cards] == ["ariana-20", "mundo-15", "normal-high"]
+    assert [(card["video_id"], card["channel_priority_rank"]) for card in cards] == [
+        ("ariana-20", 32),
+        ("mundo-15", 11),
+        ("normal-high", None),
+    ]
 
 
 def _mention_counts_json(count: int) -> str:
