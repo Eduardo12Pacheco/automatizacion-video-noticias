@@ -1152,7 +1152,7 @@ def test_duplicate_discovery_preserves_existing_target_and_rejected_state(tmp_pa
     ]
 
 
-def test_enqueue_worker_submits_only_one_video_at_a_time_in_target_order_and_skips_basura(tmp_path):
+def test_enqueue_worker_does_not_submit_normal_title_matches(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
@@ -1176,9 +1176,9 @@ def test_enqueue_worker_submits_only_one_video_at_a_time_in_target_order_and_ski
 
     results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
 
-    assert [video.video_id for video in results] == ["ecuador-video"]
-    assert radar.calls == [("https://youtu.be/ec", ["ecuador"])]
-    assert store.list_target_matches(video_id="ecuador-video")[0].status == "transcribiendo"
+    assert results == []
+    assert radar.calls == []
+    assert store.list_target_matches(video_id="ecuador-video")[0].status == "aprobado"
     assert store.list_target_matches(video_id="mexico-video")[0].status == "aprobado"
 
 
@@ -1266,6 +1266,10 @@ def test_enqueue_worker_reuses_one_radar_job_for_all_targets_on_same_video(tmp_p
             url="https://youtu.be/multi-target",
             lifecycle="enqueue_pending",
             matched=True,
+            classification_status="important",
+            important_mode="program_rules",
+            queue_priority_tier="important",
+            queue_priority_rank=0,
         )
     )
     store.upsert_target_match(store.make_target_match(video_id="multi-target", target_country="mexico", status="aprobado"))
@@ -1296,6 +1300,8 @@ def test_enqueue_worker_records_queue_priority_audit_on_country_job_attempt(tmp_
             url="https://youtu.be/priority-country",
             lifecycle="enqueue_pending",
             matched=True,
+            classification_status="important",
+            important_mode="program_rules",
         )
     )
     store.upsert_target_match(store.make_target_match(video_id="priority-country", target_country="ecuador", status="aprobado"))
@@ -1325,6 +1331,8 @@ def test_enqueue_worker_keeps_approved_targets_retryable_when_radar_is_busy(tmp_
             url="https://youtu.be/retry-me",
             lifecycle="enqueue_pending",
             matched=True,
+            classification_status="important",
+            important_mode="program_rules",
         )
     )
     store.upsert_target_match(store.make_target_match(video_id="retry-me", target_country="ecuador", status="aprobado"))
@@ -1404,7 +1412,7 @@ def test_transcript_sync_worker_creates_transcript_discovered_country_without_ze
     ]
 
 
-def test_transcript_sync_worker_terminal_sync_triggers_immediate_enqueue_due(tmp_path):
+def test_transcript_sync_worker_terminal_sync_does_not_enqueue_normal_due_match(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
@@ -1426,8 +1434,8 @@ def test_transcript_sync_worker_terminal_sync_triggers_immediate_enqueue_due(tmp
     synced = TranscriptSyncWorker(store=store, radar=sync_radar, enqueue_due=enqueue_worker.enqueue_due).sync_once()
 
     assert synced == ["done"]
-    assert enqueue_radar.calls == [("https://youtu.be/ready-next", ["mexico"])]
-    assert store.list_target_matches(video_id="ready-next")[0].status == "transcribiendo"
+    assert enqueue_radar.calls == []
+    assert store.list_target_matches(video_id="ready-next")[0].status == "aprobado"
 
 
 def test_transcript_sync_worker_marks_important_enqueue_attempt_terminal_with_existing_target_rows(tmp_path):
@@ -1475,7 +1483,8 @@ def test_transcript_sync_worker_marks_important_enqueue_attempt_terminal_with_ex
 
     assert synced == ["important-done"]
     assert store.list_enqueue_attempts("important-done")[-1].status == "transcrito"
-    assert enqueue_radar.calls == [("https://youtu.be/ready-after-important", ["mexico"])]
+    assert enqueue_radar.calls == []
+    assert store.list_target_matches(video_id="ready-after-important")[0].status == "aprobado"
 
 
 def test_transcript_sync_worker_non_terminal_sync_does_not_trigger_immediate_enqueue(tmp_path):

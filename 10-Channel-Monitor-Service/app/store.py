@@ -901,16 +901,16 @@ class MonitorStore:
                 left join video_target_matches matches on matches.video_id = videos.video_id
                 where videos.lifecycle = 'enqueue_pending'
                   and (
+                    videos.queue_priority_tier = 'important'
+                    or videos.important_mode is not null
+                    or videos.classification_status in ('important', 'important_channel')
+                    or channels.important = 1
+                  )
+                  and (
                     matches.status = 'aprobado'
                     or (
                       videos.matched = 1
                       and not exists (select 1 from video_target_matches where video_id = videos.video_id)
-                      and (
-                        videos.queue_priority_tier = 'important'
-                        or videos.important_mode is not null
-                        or videos.classification_status in ('important', 'important_channel')
-                        or channels.important = 1
-                      )
                     )
                   )
                   and not exists (
@@ -948,29 +948,6 @@ class MonitorStore:
                 """,
                 (now,),
             ).fetchall()
-            if not rows:
-                rows = connection.execute(
-                    """
-                    select videos.*
-                    from videos
-                    where videos.lifecycle = 'enqueue_pending'
-                      and videos.matched = 1
-                      and not exists (select 1 from video_target_matches where video_id = videos.video_id)
-                      and not exists (
-                        select 1
-                        from enqueue_attempts latest
-                        where latest.video_id = videos.video_id
-                          and latest.id = (
-                            select max(id) from enqueue_attempts where video_id = videos.video_id
-                          )
-                          and latest.next_attempt_at is not null
-                          and latest.next_attempt_at > ?
-                      )
-                    order by videos.created_at, videos.video_id
-                    limit 1
-                    """,
-                    (now,),
-                ).fetchall()
         return [_video_from_row(row) for row in rows]
 
     def make_target_match(

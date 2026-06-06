@@ -982,7 +982,32 @@ def test_list_due_enqueue_sorts_important_before_country_jobs(tmp_path):
     assert [video.video_id for video in due] == ["important"]
 
 
-def test_list_due_enqueue_uses_country_pyramid_not_lexicographic_order(tmp_path):
+def test_list_due_enqueue_excludes_normal_approved_matches_but_keeps_cards_visible(tmp_path):
+    store = MonitorStore(tmp_path / "monitor.sqlite3")
+    store.migrate()
+    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    store.upsert_video(
+        VideoRecord(
+            video_id="normal-approved",
+            channel_id=channel.id,
+            title="Ecuador mira a Colombia",
+            url="https://youtu.be/normal-approved",
+            lifecycle="enqueue_pending",
+            matched=True,
+        )
+    )
+    store.upsert_target_match(store.make_target_match(video_id="normal-approved", target_country="ecuador", status="aprobado"))
+
+    due = store.list_due_enqueue("2026-05-20T10:00:00Z")
+    cards = store.list_target_cards(target_country="ecuador")
+
+    assert due == []
+    assert [(card["video_id"], card["status"], card["radar_job_id"]) for card in cards] == [
+        ("normal-approved", "aprobado", None)
+    ]
+
+
+def test_list_due_enqueue_uses_country_pyramid_for_important_jobs_not_lexicographic_order(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(ChannelRecord(country="spain", label="Normal", source_url=None, youtube_channel_id="UCNormal"))
@@ -994,7 +1019,7 @@ def test_list_due_enqueue_uses_country_pyramid_not_lexicographic_order(tmp_path)
         ("colombia", "colombia"),
         ("ecuador", "ecuador"),
     ]:
-        store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=country, url=f"https://youtu.be/{video_id}", lifecycle="enqueue_pending", matched=True))
+        store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=country, url=f"https://youtu.be/{video_id}", lifecycle="enqueue_pending", matched=True, classification_status="important", important_mode="program_rules"))
         store.upsert_target_match(store.make_target_match(video_id=video_id, target_country=country, status="aprobado"))
 
     due = store.list_due_enqueue("2026-05-20T10:00:00Z")
@@ -1002,14 +1027,14 @@ def test_list_due_enqueue_uses_country_pyramid_not_lexicographic_order(tmp_path)
     assert [video.video_id for video in due] == ["ecuador"]
 
 
-def test_list_due_enqueue_sorts_algorithm_priority_before_normal_with_stable_tiebreakers(tmp_path):
+def test_list_due_enqueue_sorts_important_algorithm_priority_with_stable_tiebreakers(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     priority = store.upsert_channel(ChannelRecord(country="spain", label="Priority", source_url=None, youtube_channel_id="UCPriority", algorithm_priority_rank=3))
     lower_priority = store.upsert_channel(ChannelRecord(country="spain", label="Lower", source_url=None, youtube_channel_id="UCLower", algorithm_priority_rank=9))
     normal = store.upsert_channel(ChannelRecord(country="spain", label="Normal", source_url=None, youtube_channel_id="UCNormal"))
     for video_id, channel in [("normal-old", normal), ("priority-lower", lower_priority), ("priority-best-b", priority), ("priority-best-a", priority)]:
-        store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title="Ecuador", url=f"https://youtu.be/{video_id}", lifecycle="enqueue_pending", matched=True))
+        store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title="Ecuador", url=f"https://youtu.be/{video_id}", lifecycle="enqueue_pending", matched=True, classification_status="important", important_mode="program_rules"))
         store.upsert_target_match(store.make_target_match(video_id=video_id, target_country="ecuador", status="aprobado"))
         store.force_video_created_at(video_id, "2026-05-20T09:00:00Z")
 
