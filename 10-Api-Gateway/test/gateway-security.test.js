@@ -729,6 +729,7 @@ test('subtitle session upload route gets an extended body limit', () => {
 
   assert.equal(policy.kind, 'proxy');
   assert.equal(policy.route.service, 'subtitles');
+  assert.equal(DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES, 500 * 1024 * 1024);
   assert.equal(policy.route.maxBodyBytes, DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES);
 });
 
