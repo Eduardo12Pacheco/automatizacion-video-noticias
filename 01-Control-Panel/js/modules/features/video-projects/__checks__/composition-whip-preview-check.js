@@ -167,7 +167,7 @@ function testWhipSfxSchedulerStartsWithOverlayAndReplaysAfterRewind() {
 
 function testTransitionPreviewEventAndVideoLayerWiring() {
   const [event] = buildBoundaryVideoPreviewEvents([
-    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-1', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', blendMode: 'screen', durationSeconds: 0.833333, audio: true } },
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-3', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/efecto-transition-3.mp4', blendMode: 'screen', durationSeconds: 1, audio: true } },
     { id: 'row-b', startTime: 1, endTime: 2, image: 'next.jpg' },
   ]);
   const video = {
@@ -183,12 +183,12 @@ function testTransitionPreviewEventAndVideoLayerWiring() {
     pause() { this.paused = true; },
   };
 
-  assertEqual(event.startTime, 0.583333, 'Expected Transition 1 video to be centered on the boundary cut');
-  assertEqual(event.endTime, 1.416666, 'Expected Transition 1 video to keep its full asset duration');
+  assertEqual(event.startTime, 0.5, 'Expected Transition 3 video to be centered on the boundary cut');
+  assertEqual(event.endTime, 1.5, 'Expected Transition 3 video to keep its full asset duration');
   const frame = resolveBoundaryVideoPreviewFrame(1, [event]);
   applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, frame, { playing: false });
   assertEqual(video.style.visibility, 'visible', 'Expected Transition preview video layer to become visible');
-  assertEqual(video.src, './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', 'Expected Transition preview video to use the browser asset');
+  assertEqual(video.src, './assets/boundary-transitions/efecto-transition-3.mp4', 'Expected Transition preview video to use the browser asset');
   assertEqual(video.style.mixBlendMode, 'screen', 'Expected Transition preview video to use screen blend mode');
   assertEqual(video.paused, true, 'Expected paused preview to avoid free-running the transition video');
   applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, frame, { playing: true });

@@ -72,6 +72,7 @@ export function buildEditorRowsTable(rows = [], { selectedRowId, rowImageUploadi
                 ${[
                   ['transition-1', 'Transition 1'],
                   ['transition-2', 'Transition 2'],
+                  ['transition-3', 'Transition 3'],
                 ].map(([transition, label]) => `
                   <button class="video-editor-boundary-connector ${boundaryConnector.activeTransition === transition ? 'is-active' : ''}" type="button" data-action="set-boundary-transition" data-row-id="${escapeHtmlCore(boundaryConnector.rowId)}" data-next-row-id="${escapeHtmlCore(boundaryConnector.nextRowId)}" data-transition="${escapeHtmlCore(transition)}" aria-pressed="${boundaryConnector.activeTransition === transition ? 'true' : 'false'}" title="Activar ${escapeHtmlCore(label)} entre párrafos">
                     <span>${escapeHtmlCore(label)}</span>

@@ -2,7 +2,7 @@ export const WHIP_TRANSITION_DURATION_SECONDS = 0.43;
 export const WHIP_BROWSER_SFX_URL = './assets/sfx/sound-demo.wav';
 export const WHIP_PREVIEW_SFX_VOLUME = 0.85;
 export const WHIP_SMEAR_SAMPLE_COUNT = 7;
-const TRANSITION_TRANSITIONS = new Set(['transition-1', 'transition-2']);
+const TRANSITION_TRANSITIONS = new Set(['transition-1', 'transition-2', 'transition-3']);
 
 function toFiniteNumber(value, fallback = 0) {
   const number = Number(value);

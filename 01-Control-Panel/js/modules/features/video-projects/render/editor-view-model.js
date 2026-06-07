@@ -277,7 +277,7 @@ export function buildEditorRowsTableViewModel(rows = [], { selectedRowId, rowIma
         ? {
           rowId: row.id,
           nextRowId: row.nextRowId.toString(),
-          activeTransition: ['transition-1', 'transition-2'].includes(row.transition) ? row.transition : null,
+          activeTransition: ['transition-1', 'transition-2', 'transition-3'].includes(row.transition) ? row.transition : null,
         }
         : null,
     };

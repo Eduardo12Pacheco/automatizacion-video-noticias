@@ -120,7 +120,7 @@ function applyBoundaryTransition(next, op = {}) {
     });
   }
   if (transition !== "none" && transition !== "whip" && !BOUNDARY_TRANSITION_CONFIGS[transition]) {
-    throw createInvalidBoundaryTransitionError("boundary transition must be none, whip, transition-1, or transition-2", { transition });
+    throw createInvalidBoundaryTransitionError("boundary transition must be none, whip, transition-1, transition-2, or transition-3", { transition });
   }
 
   if (transition === "none") {

@@ -1,12 +1,13 @@
 export const BOUNDARY_TRANSITION_CONFIGS = {
   'transition-1': { type: 'overlay-video', assetId: 'transition-1', src: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', renderPath: 'overlays/TRANSITION 1 NUEVO.mp4', previewUrl: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', blendMode: 'screen', durationSeconds: 0.833333, audio: true },
   'transition-2': { type: 'overlay-video', assetId: 'transition-2', src: './assets/boundary-transitions/TRANSITION 2 NUEVO.mp4', renderPath: 'overlays/TRANSITION 2 NUEVO.mp4', previewUrl: './assets/boundary-transitions/TRANSITION 2 NUEVO.mp4', blendMode: 'screen', durationSeconds: 1.4, audio: true },
+  'transition-3': { type: 'overlay-video', assetId: 'transition-3', src: './assets/boundary-transitions/efecto-transition-3.mp4', renderPath: 'overlays/efecto-transition-3.mp4', previewUrl: './assets/boundary-transitions/efecto-transition-3.mp4', blendMode: 'screen', durationSeconds: 1, audio: true },
 };
 
 export const WHIP_TRANSITION_CONFIG = { type: 'whip', durationSeconds: 0.5, direction: 'left-to-right' };
 export const WHIP_SFX = { type: 'whip', assetId: 'whip', src: 'sfx/sound-demo.wav' };
 
-const MANUAL_BOUNDARY_TRANSITIONS = new Set(['transition-1', 'transition-2', 'whip']);
+const MANUAL_BOUNDARY_TRANSITIONS = new Set(['transition-1', 'transition-2', 'transition-3', 'whip']);
 const TRANSITION_SOURCES = new Set(['auto', 'manual']);
 
 function normalizeTransitionName(value = '') {
@@ -42,12 +43,9 @@ export function resolveBoundaryTransitionPatch(value, options = {}) {
 
 export function applyAlternatingBoundaryTransitionDefaults(rows = []) {
   if (!Array.isArray(rows) || !rows.length) return [];
-  let boundaryIndex = 0;
   return rows.map((row) => {
     if (!isEligibleParagraphBoundary(row)) return row;
-    const defaultTransition = boundaryIndex % 2 === 0 ? 'transition-1' : 'transition-2';
-    boundaryIndex += 1;
     if (!shouldApplyAutomaticBoundaryDefault(row)) return row;
-    return { ...row, ...resolveBoundaryTransitionPatch(defaultTransition, { source: 'auto' }) };
+    return { ...row, ...resolveBoundaryTransitionPatch('transition-3', { source: 'auto' }) };
   });
 }
