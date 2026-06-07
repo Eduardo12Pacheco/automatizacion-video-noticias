@@ -52,7 +52,7 @@ function runBoundaryConnectorMarkupCheck() {
   assert(markup.includes('data-next-row-id="row-2"'), 'Expected connector to target the next row boundary');
   assert(markup.includes('Transition 1'), 'Expected inactive eligible connector to offer Transition 1 activation');
   assert(markup.includes('Transition 2'), 'Expected inactive eligible connector to offer Transition 2 activation');
-  assert(markup.includes('Transition 3'), 'Expected inactive eligible connector to offer Transition 3 activation');
+  assert(markup.includes('Whoosh'), 'Expected inactive eligible connector to offer Whoosh activation');
   assert(!markup.includes('data-row-id="row-2" data-next-row-id="row-3"'), 'Expected ineligible row not to render connector');
   assert(!markup.includes('data-row-id="row-3" data-next-row-id'), 'Expected missing nextRowId not to render connector');
 
