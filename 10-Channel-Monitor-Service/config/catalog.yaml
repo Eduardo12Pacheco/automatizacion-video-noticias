@@ -25,7 +25,6 @@ countries:
   - code: argentina
     terms:
       - Argentina
-      - albiceleste
       - la albiceleste
       - selección argentina
       - seleccion argentina
@@ -42,7 +41,6 @@ countries:
       - uruguayo
       - charrúa
       - charrua
-      - celeste
       - la celeste
       - selección uruguaya
       - seleccion uruguaya
@@ -52,7 +50,6 @@ countries:
     terms:
       - Paraguay
       - paraguayo
-      - albirroja
       - guaraní
       - guarani
       - la albirroja
@@ -63,7 +60,6 @@ countries:
       - México
       - Mexico
       - mexicano
-      - Tri
       - El Tri
       - Tricolor
       - selección mexicana
