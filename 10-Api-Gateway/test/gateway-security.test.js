@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
-import { BoundedTtlStore, createGatewayServer, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, resolveRoute, resolveRoutePolicy } from '../src/gateway.js';
+import { BoundedTtlStore, createGatewayServer, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES, resolveRoute, resolveRoutePolicy } from '../src/gateway.js';
 import {
   DEFAULT_EVENT_RETENTION,
   JsonlEventRecorder,
@@ -718,6 +718,20 @@ test('subtitle render proxy gets an extended upstream timeout', () => {
   assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS);
 });
 
+test('subtitle session upload route gets an extended body limit', () => {
+  const policy = resolveRoutePolicy({
+    method: 'POST',
+    url: '/subtitles/api/subtitles/sessions',
+  }, {
+    routes: { subtitles: { prefix: '/subtitles', target: 'http://127.0.0.1:8092' } },
+    serviceCredentials: { subtitles: { 'x-api-key': 'subtitles-secret' } },
+  });
+
+  assert.equal(policy.kind, 'proxy');
+  assert.equal(policy.route.service, 'subtitles');
+  assert.equal(policy.route.maxBodyBytes, DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES);
+});
+
 test('approval and remotion create-from-approval routes get an extended preparation timeout', () => {
   for (const [service, url] of [
     ['approval', '/approval/api/projects/create-from-approval'],
@@ -1020,6 +1034,32 @@ test('declared Content-Length exceeding maxBodyBytes is rejected with 413 before
   assert.equal(body.code, 'payload_too_large');
   assert.equal(upstream.totalBytes, 0, 'Upstream MUST receive zero body bytes for oversized body');
   assert.equal(upstream.requests.length, 0, 'Upstream MUST NOT be called for oversized body');
+});
+
+test('subtitle session upload can exceed the default proxy body limit', async () => {
+  const upstream = await createBodyRecordingUpstream();
+  const baseUrl = await createGateway({
+    routes: { subtitles: { prefix: '/subtitles', target: upstream.target } },
+    serviceCredentials: { subtitles: { 'x-api-key': 'subtitles-secret' } },
+    panelSessions: { 'valid-token': panelSession() },
+    allowedOrigins: ['https://panel.example.local'],
+    maxBodyBytes: 64,
+  });
+
+  const response = await fetch(`${baseUrl}/subtitles/api/subtitles/sessions`, {
+    method: 'POST',
+    headers: {
+      cookie: sessionCookie(),
+      origin: 'https://panel.example.local',
+      'content-type': 'multipart/form-data; boundary=test',
+    },
+    body: 'x'.repeat(512),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(upstream.requests.length, 1);
+  assert.equal(upstream.requests[0].url, '/api/subtitles/sessions');
+  assert.equal(upstream.requests[0].body.length, 512);
 });
 
 test('streaming body exceeding maxBodyBytes is rejected with 413 and upstream receives no over-limit bytes', async () => {

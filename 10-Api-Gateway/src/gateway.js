@@ -50,6 +50,7 @@ export const DEFAULT_PANEL_BOOTSTRAP = Object.freeze({
 });
 
 export const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
+export const DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES = 200 * 1024 * 1024;
 export const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000;
 export const DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS = 120_000;
 export const DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS = 15 * 60 * 1000;
@@ -104,6 +105,13 @@ function resolveRouteUpstreamTimeoutMs(service, upstreamPath) {
   }
   if (PREPARE_ROUTE_SERVICES.has(service) && /^\/api\/projects\/create-from-approval(?:\?|$)/.test(upstreamPath)) {
     return DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS;
+  }
+  return null;
+}
+
+function resolveRouteMaxBodyBytes(service, upstreamPath) {
+  if (service === 'subtitles' && /^\/api\/subtitles\/sessions(?:\?|$)/.test(upstreamPath)) {
+    return DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES;
   }
   return null;
 }
@@ -174,11 +182,13 @@ function resolveRouteMatches(rawUrl, routes = DEFAULT_ROUTES) {
     if (isProtocolRelativeUpstreamPath(strippedPath)) continue;
     const upstreamPath = `${strippedPath}${parsed.search}`;
     const upstreamTimeoutMs = resolveRouteUpstreamTimeoutMs(service, upstreamPath);
+    const maxBodyBytes = resolveRouteMaxBodyBytes(service, upstreamPath);
     matches.push({
       service,
       target: route.target,
       upstreamPath,
       ...(upstreamTimeoutMs ? { upstreamTimeoutMs } : {}),
+      ...(maxBodyBytes ? { maxBodyBytes } : {}),
     });
   }
   return matches;
@@ -1167,10 +1177,15 @@ function rejectPayloadTooLarge(req, res, options, { route = null, session = null
   writeJson(res, 413, { error: 'payload_too_large', code: 'payload_too_large' });
 }
 
-function enforceBodySizeLimit(req, res, options) {
+function routeBodyLimit(route, options) {
+  return route?.maxBodyBytes || options.maxBodyBytes;
+}
+
+function enforceBodySizeLimit(req, res, options, route = null) {
+  const maxBodyBytes = routeBodyLimit(route, options);
   const declaredLength = Number.parseInt(String(req.headers['content-length'] || ''), 10);
-  if (Number.isFinite(declaredLength) && declaredLength > options.maxBodyBytes) {
-    rejectPayloadTooLarge(req, res, options);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
+    rejectPayloadTooLarge(req, res, options, { route });
     return false;
   }
   return true;
@@ -1335,6 +1350,7 @@ function proxyRequest(req, res, route, options, session = null, bodyBuffer = nul
   );
 
   const upstreamTimeoutMs = route.upstreamTimeoutMs || options.upstreamTimeoutMs;
+  const maxBodyBytes = routeBodyLimit(route, options);
   if (typeof upstreamReq.setTimeout === 'function') {
     upstreamReq.setTimeout(upstreamTimeoutMs, () => {
       timedOut = true;
@@ -1398,7 +1414,7 @@ function proxyRequest(req, res, route, options, session = null, bodyBuffer = nul
     req.on('data', (chunk) => {
       if (limitHit) return;
       pipedBytes += chunk.length;
-      if (pipedBytes > options.maxBodyBytes) {
+      if (pipedBytes > maxBodyBytes) {
         limitHit = true;
         upstreamReq.destroy(new PayloadTooLargeError());
         if (!res.headersSent) {
@@ -1872,7 +1888,7 @@ export function createGatewayServer({
         return;
       }
     }
-    if (!enforceBodySizeLimit(req, res, options)) {
+    if (!enforceBodySizeLimit(req, res, options, route)) {
       emitGatewayEvent(req, options, {
         kind: 'error',
         route_service: route?.service,
