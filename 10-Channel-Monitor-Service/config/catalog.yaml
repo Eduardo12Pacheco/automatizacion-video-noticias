@@ -120,20 +120,10 @@ players:
       - Pervis Estupinan
       - Estupiñán
       - Estupinan
-  - name: Jeremy Sarmiento
-    country: ecuador
-    aliases:
-      - Jeremy Sarmiento
-      - Sarmiento
   - name: Alan Franco
     country: ecuador
     aliases:
       - Alan Franco
-  - name: Jhegson Méndez
-    country: ecuador
-    aliases:
-      - Jhegson Méndez
-      - Jhegson Mendez
   - name: Kevin Rodríguez
     country: ecuador
     aliases:
@@ -166,21 +156,6 @@ players:
       - James Rodriguez
       - James Rodrigue
       - James
-  - name: Jhon Durán
-    country: colombia
-    aliases:
-      - Jhon Durán
-      - Jhon Duran
-      - Jhon Jáder Durán
-      - Jhon Jader Duran
-      - Durán
-      - Duran
-  - name: Yaser Asprilla
-    country: colombia
-    aliases:
-      - Yaser Asprilla
-      - Yáser Asprilla
-      - Asprilla
   - name: Daniel Muñoz
     country: colombia
     aliases:
@@ -212,20 +187,6 @@ players:
       - Juan Fernando Quintero
       - Juanfer Quintero
       - Quintero
-  - name: Rafael Santos Borré
-    country: colombia
-    aliases:
-      - Rafael Santos Borré
-      - Rafael Santos Borre
-      - Santos Borré
-      - Santos Borre
-      - Borré
-      - Borre
-  - name: Luis Sinisterra
-    country: colombia
-    aliases:
-      - Luis Sinisterra
-      - Sinisterra
   - name: Jhon Arias
     country: colombia
     aliases:
@@ -255,15 +216,6 @@ players:
       - Lautaro Martinez
       - Toro Martínez
       - Toro Martinez
-  - name: Ángel Di María
-    country: argentina
-    aliases:
-      - Ángel Di María
-      - Angel Di Maria
-      - Di María
-      - Di Maria
-      - Fideo Di María
-      - Fideo Di Maria
   - name: Emiliano Martínez
     country: argentina
     aliases:
@@ -294,22 +246,12 @@ players:
       - Cristian Romero
       - Cuti Romero
       - Romero
-  - name: Alejandro Garnacho
-    country: argentina
-    aliases:
-      - Alejandro Garnacho
-      - Garnacho
   - name: Nicolás Otamendi
     country: argentina
     aliases:
       - Nicolás Otamendi
       - Nicolas Otamendi
       - Otamendi
-  - name: Paulo Dybala
-    country: argentina
-    aliases:
-      - Paulo Dybala
-      - Dybala
   - name: Federico Valverde
     country: uruguay
     aliases:
@@ -379,13 +321,6 @@ players:
       - Nicolas De La Cruz
       - De La Cruz
       - De la Cruz
-  - name: Luis Suárez
-    country: uruguay
-    aliases:
-      - Luis Suárez
-      - Luis Suarez
-      - Lucho Suárez
-      - Lucho Suarez
   - name: Miguel Almirón
     country: paraguay
     aliases:
@@ -420,22 +355,11 @@ players:
     aliases:
       - Diego Gómez
       - Diego Gomez
-  - name: Matías Rojas
-    country: paraguay
-    aliases:
-      - Matías Rojas
-      - Matias Rojas
   - name: Omar Alderete
     country: paraguay
     aliases:
       - Omar Alderete
       - Alderete
-  - name: Mathías Villasanti
-    country: paraguay
-    aliases:
-      - Mathías Villasanti
-      - Mathias Villasanti
-      - Villasanti
   - name: Damián Bobadilla
     country: paraguay
     aliases:
@@ -446,12 +370,6 @@ players:
     country: paraguay
     aliases:
       - Junior Alonso
-  - name: Derlis González
-    country: paraguay
-    aliases:
-      - Derlis González
-      - Derlis Gonzalez
-      - Derlis
   - name: Santiago Giménez
     country: mexico
     aliases:
@@ -480,12 +398,6 @@ players:
     aliases:
       - Edson Álvarez
       - Edson Alvarez
-  - name: Hirving Lozano
-    country: mexico
-    aliases:
-      - Hirving Lozano
-      - Chucky Lozano
-      - Lozano
   - name: Orbelín Pineda
     country: mexico
     aliases:
@@ -509,11 +421,6 @@ players:
     aliases:
       - Johan Vásquez
       - Johan Vasquez
-  - name: Henry Martín
-    country: mexico
-    aliases:
-      - Henry Martín
-      - Henry Martin
   - name: Julián Quiñones
     country: mexico
     aliases:
@@ -521,8 +428,3 @@ players:
       - Julian Quinones
       - Quiñones
       - Quinones
-  - name: Uriel Antuna
-    country: mexico
-    aliases:
-      - Uriel Antuna
-      - Antuna
