@@ -213,7 +213,7 @@ function isActiveWhipBoundary(segment = {}, nextSegment = null) {
 function isActiveOverlayVideoBoundary(segment = {}, nextSegment = null) {
   if (!segment || !nextSegment) return false;
   if (segment.paragraphBoundaryAfter !== true) return false;
-  if (!["transition-1", "transition-2"].includes(String(segment.transition || "").trim().toLowerCase())) return false;
+  if (!["transition-1", "transition-2", "transition-3"].includes(String(segment.transition || "").trim().toLowerCase())) return false;
   if (segment.transitionConfig?.type !== "overlay-video") return false;
   const expectedNextRowId = String(segment.nextRowId || "");
   if (expectedNextRowId && expectedNextRowId !== String(nextSegment.rowId || nextSegment.id || "")) return false;
