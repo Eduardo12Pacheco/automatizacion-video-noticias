@@ -576,7 +576,7 @@ countries:
   - code: hn
     name: Honduras
     channels:
-      - url: https://www.youtube.com/@igosportshondurasonduras
+      - url: https://www.youtube.com/@igosportshonduras
         label: iGo Sports Honduras
         enabled: true
       - url: https://www.youtube.com/@tdtvhn
