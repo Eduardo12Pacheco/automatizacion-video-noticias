@@ -465,3 +465,139 @@ countries:
           - content_types: [live, completed]
             op: contains
             value: JULIO RIOS
+
+  - code: us
+    name: Estados Unidos
+    channels:
+      - url: https://www.youtube.com/@ESPNFC
+        label: ESPN FC
+        enabled: true
+      - url: https://www.youtube.com/@NBCSports
+        label: NBC Sports
+        enabled: true
+      - url: https://www.youtube.com/@cbssportsgolazo
+        label: CBS Sports Golazo
+        enabled: true
+
+  - code: nl
+    name: Países Bajos
+    channels:
+      - url: https://www.youtube.com/@ESPNnl
+        label: ESPN NL
+        enabled: true
+
+  - code: br
+    name: Brasil
+    channels:
+      - url: https://www.youtube.com/@espnbrasil
+        label: ESPN Brasil
+        enabled: true
+
+  - code: gb
+    name: Reino Unido
+    channels:
+      - url: https://www.youtube.com/@ESPNUK
+        label: ESPN UK
+        enabled: true
+      - url: https://www.youtube.com/@SkySportsNews
+        label: Sky Sports News
+        enabled: true
+      - url: https://www.youtube.com/@skysportspremierleague
+        label: Sky Sports Premier League
+        enabled: true
+      - url: https://www.youtube.com/@skysportsfootball
+        label: Sky Sports Football
+        enabled: true
+
+  - code: ca
+    name: Canadá
+    channels:
+      - url: https://www.youtube.com/@TSN_Sports
+        label: TSN
+        enabled: true
+      - url: https://www.youtube.com/@OneSoccer
+        label: OneSoccer
+        enabled: true
+
+  - code: ve
+    name: Venezuela
+    channels:
+      - url: https://www.youtube.com/@programa412
+        label: 412 - El Programa Del Fútbol
+        enabled: true
+
+  - code: cr
+    name: Costa Rica
+    channels:
+      - url: https://www.youtube.com/@TeleticaRadio
+        label: Teletica Radio
+        enabled: true
+      - url: https://www.youtube.com/@DeportesGrupoRepretelCR
+        label: Deportes Grupo Repretel CR
+        enabled: true
+      - url: https://www.youtube.com/@SomosFox_CR
+        label: Somos Fox CR
+        enabled: true
+      - url: https://www.youtube.com/@alfaroperiodista
+        label: Alfaro Periodista
+        enabled: true
+
+  - code: pa
+    name: Panamá
+    channels:
+      - url: https://www.youtube.com/@DiarioDiez
+        label: Diario Diez
+        enabled: true
+      - url: https://www.youtube.com/@ColumbiaDigital
+        label: Columbia Digital
+        enabled: true
+      - url: https://www.youtube.com/@TVMAXPANAMAYT
+        label: TVMAX
+        enabled: true
+      - url: https://www.youtube.com/@DeportesRPC
+        label: Deportes RPC
+        enabled: true
+      - url: https://www.youtube.com/@ShowDeportivopa
+        label: Show Deportivo
+        enabled: true
+      - url: https://www.youtube.com/@ElMarcadorTV
+        label: El Marcador
+        enabled: true
+      - url: https://www.youtube.com/@OpinionesconCorea
+        label: Opiniones con Corea
+        enabled: true
+      - url: https://www.youtube.com/@fepafutvideos
+        label: FEPAFUT
+        enabled: true
+      - url: https://www.youtube.com/@TigoSportsPanama
+        label: Tigo Sports Panamá
+        enabled: true
+
+  - code: hn
+    name: Honduras
+    channels:
+      - url: https://www.youtube.com/@igosportshondurasonduras
+        label: iGo Sports Honduras
+        enabled: true
+      - url: https://www.youtube.com/@tdtvhn
+        label: Todo Deportes TV
+        enabled: true
+      - url: https://www.youtube.com/@deportestvchn
+        label: Deportes TVC
+        enabled: true
+
+  - code: gt
+    name: Guatemala
+    channels:
+      - url: https://www.youtube.com/@TigoSportsGT
+        label: Tigo Sports Guatemala
+        enabled: true
+      - url: https://www.youtube.com/@lapizarragt
+        label: LA PIZARRA GT
+        enabled: true
+      - url: https://www.youtube.com/@ciudaddeportivagt
+        label: Ciudad Deportiva GT
+        enabled: true
+      - url: https://www.youtube.com/@laredguatemala
+        label: La Red Guatemala
+        enabled: true
