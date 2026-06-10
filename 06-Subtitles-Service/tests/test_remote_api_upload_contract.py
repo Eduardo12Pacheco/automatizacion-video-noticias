@@ -231,7 +231,7 @@ def test_create_session_auto_triggers_analyze(client, auth_headers, store) -> No
 
     session = store.get_session(body["session_id"])
     assert session is not None
-    # The analyze stub marks the session as 'analyzed' and bumps the snapshot
+    # The analyze stub marks the session as 'editing' and bumps the snapshot
     # version, which is the signal the panel polls for to advance.
     assert session["status"] in {"analyzed", "analyze_failed"}, (
         f"upload did not auto-trigger analyze; got status={session['status']!r}"
@@ -344,3 +344,75 @@ def test_render_status_returns_job_and_download_envelopes(client, auth_headers) 
     ).json()
     assert "job" in payload and "status" in payload["job"]
     assert "download" in payload and "ready" in payload["download"]
+
+
+def test_render_404_for_unknown_session(client, auth_headers) -> None:
+    response = client.post(
+        "/api/subtitles/sessions/does-not-exist/render",
+        headers=auth_headers,
+        json={"base_version": 0},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "session_not_found"
+
+
+def test_render_409_when_no_snapshot(client, auth_headers, store) -> None:
+    """Render must fail with 409 (render_not_ready) when no analyze snapshot
+    exists. We trigger that branch by deleting the auto-created snapshot
+    rows directly through a fresh SubtitleStore pointing at the same
+    workspace_root the app uses.
+    """
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    # Open a parallel store against the same workspace (the SQLite file is
+    # shared on disk) and clear the snapshot that the auto-trigger wrote.
+    import sqlite3
+    from subtitles_service.storage.sqlite_store import SubtitleStore
+    from pathlib import Path
+    db_path = Path(store.db_path)
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute("DELETE FROM snapshots WHERE session_id = ?", (session_id,))
+
+    response = client.post(
+        f"/api/subtitles/sessions/{session_id}/render",
+        headers=auth_headers,
+        json={"base_version": 0},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "render_not_ready"
+
+
+def test_download_file_returns_404_before_render(client, auth_headers) -> None:
+    """A user can poll the download envelope and the file endpoint and
+    both report 'not ready' until the render actually finishes.
+    """
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    # Don't trigger a render. The session is auto-analyzed but never rendered,
+    # so the artifact is missing and the file endpoint should 400.
+    download = client.get(
+        f"/api/subtitles/sessions/{session_id}/download",
+        headers=auth_headers,
+    ).json()
+    assert download["ready"] is False
+    assert download["url"] == ""
+
+    file_resp = client.get(
+        f"/api/subtitles/sessions/{session_id}/download/file",
+        headers=auth_headers,
+    )
+    assert file_resp.status_code == 400
+    detail = file_resp.json()["detail"]
+    assert detail["code"] == "render_not_ready"
