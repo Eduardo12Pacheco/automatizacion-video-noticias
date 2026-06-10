@@ -239,3 +239,108 @@ def test_create_session_auto_triggers_analyze(client, auth_headers, store) -> No
     assert int(session.get("current_snapshot_version") or 0) > 0, (
         "analyze must produce a snapshot so the panel can leave 'Procesando audio'"
     )
+
+
+def test_get_session_returns_flat_shape_panel_can_poll(client, auth_headers) -> None:
+    """The panel reads `detail.status`, `detail.current_snapshot_version`,
+    `detail.preview.video_url`, and `detail.download.ready` directly off the
+    response object. Earlier we wrapped the row in `{"session": ...}` and
+    the polling fell back to defaults, leaving the UI stuck on
+    'Procesando audio'. This test pins the new flat shape.
+    """
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    detail = client.get(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+    ).json()
+
+    # Flat fields used by the polling loop
+    assert detail["id"] == session_id
+    assert detail["status"] in {"analyzed", "analyze_failed"}
+    assert int(detail.get("current_snapshot_version") or 0) > 0
+    # Nested objects the panel reads
+    assert detail["preview"]["video_url"] == (
+        f"/api/subtitles/sessions/{session_id}/preview/video"
+    )
+    assert "ready" in detail["download"]
+    # Make sure we did NOT regress to the old wrapped shape
+    assert "session" not in detail
+
+
+def test_list_sessions_returns_items_envelope(client, auth_headers) -> None:
+    """The panel reads `sessions.items` off the list endpoint."""
+    client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    payload = client.get(
+        "/api/subtitles/sessions?limit=20",
+        headers=auth_headers,
+    ).json()
+    assert "items" in payload
+    assert isinstance(payload["items"], list)
+    assert len(payload["items"]) >= 1
+    assert "preview" in payload["items"][0]
+    # Old envelope name must be gone
+    assert "sessions" not in payload
+
+
+def test_get_segments_returns_version_and_segments(client, auth_headers) -> None:
+    """The panel reads `segments.version` and `segments.segments`."""
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    payload = client.get(
+        f"/api/subtitles/sessions/{session_id}/segments",
+        headers=auth_headers,
+    ).json()
+    assert "version" in payload
+    assert "segments" in payload
+    assert isinstance(payload["segments"], list)
+    assert int(payload["version"]) >= 1
+
+
+def test_health_endpoint_under_api_prefix(client, auth_headers) -> None:
+    """The gateway read-model mapping sends /panel/read-models/subtitles/health
+    to /api/subtitles/health on this service, so the endpoint must be exposed
+    under that exact path (the panel uses it to know the service is online).
+    """
+    response = client.get(
+        "/api/subtitles/health",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body.get("status") == "ok"
+
+
+def test_render_status_returns_job_and_download_envelopes(client, auth_headers) -> None:
+    """The panel reads payload.job.status and payload.download.ready."""
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    payload = client.get(
+        f"/api/subtitles/sessions/{session_id}/render",
+        headers=auth_headers,
+    ).json()
+    assert "job" in payload and "status" in payload["job"]
+    assert "download" in payload and "ready" in payload["download"]
