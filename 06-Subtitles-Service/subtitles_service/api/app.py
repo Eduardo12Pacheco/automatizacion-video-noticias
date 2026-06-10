@@ -1,59 +1,19 @@
 from __future__ import annotations
 
-import importlib.abc
-import importlib.machinery
-import importlib.util
-import sys
 from pathlib import Path
 
+from fastapi import FastAPI, Header, HTTPException
 
-class _ProjectPycacheFinder(importlib.abc.MetaPathFinder):
-    def __init__(self, project_root: Path) -> None:
-        self.project_root = project_root
-        self.cache_tag = sys.implementation.cache_tag
-
-    def find_spec(self, fullname: str, path: object = None, target: object = None):
-        if not fullname.startswith("subtitles_service."):
-            return None
-
-        parts = fullname.split(".")
-        module_dir = self.project_root.joinpath(*parts[:-1])
-        module_name = parts[-1]
-        source_path = module_dir / f"{module_name}.py"
-        package_source_path = module_dir / module_name / "__init__.py"
-        if source_path.exists() or package_source_path.exists():
-            return None
-
-        pyc_path = module_dir / "__pycache__" / f"{module_name}.{self.cache_tag}.pyc"
-        if not pyc_path.exists():
-            return None
-
-        loader = importlib.machinery.SourcelessFileLoader(fullname, str(pyc_path))
-        return importlib.util.spec_from_file_location(fullname, str(pyc_path), loader=loader)
-
-
-def _install_project_pycache_finder() -> None:
-    project_root = Path(__file__).resolve().parents[2]
-    for finder in sys.meta_path:
-        if isinstance(finder, _ProjectPycacheFinder) and finder.project_root == project_root:
-            return
-    sys.meta_path.insert(0, _ProjectPycacheFinder(project_root))
-
-
-_install_project_pycache_finder()
-
-from fastapi import FastAPI, Header, HTTPException  # noqa: E402
-
-from subtitles_service.application.analyze_session import AnalyzeSessionService  # noqa: E402
-from subtitles_service.application.render_session import RenderSessionService  # noqa: E402
-from subtitles_service.api.cors import (  # noqa: E402
+from subtitles_service.api.cors import (
     DEFAULT_CORS_ALLOW_ORIGIN_REGEX,
     add_cors_middleware,
 )
-from subtitles_service.api.errors import http_error  # noqa: E402
-from subtitles_service.api.routes.subtitles import register_subtitle_routes  # noqa: E402
-from subtitles_service.api.security import validate_voice_style_auth  # noqa: E402
-from subtitles_service.storage.sqlite_store import SubtitleStore  # noqa: E402
+from subtitles_service.api.errors import http_error
+from subtitles_service.api.routes.subtitles import register_subtitle_routes
+from subtitles_service.api.security import validate_voice_style_auth
+from subtitles_service.application.analyze_session import AnalyzeSessionService
+from subtitles_service.application.render_session import RenderSessionService
+from subtitles_service.storage.sqlite_store import SubtitleStore
 
 
 def _http_error(error: Exception) -> HTTPException:

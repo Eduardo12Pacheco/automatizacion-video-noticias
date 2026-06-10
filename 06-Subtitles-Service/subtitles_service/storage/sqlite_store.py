@@ -81,8 +81,9 @@ class SubtitleStore:
         source_language: str,
         target_language: str = "es",
         preview_video_path: str | None = None,
+        session_id: str | None = None,
     ) -> dict[str, Any]:
-        session_id = str(uuid4())
+        session_id = session_id or str(uuid4())
         now = datetime.now(timezone.utc).isoformat()
 
         with self._connect() as conn:
