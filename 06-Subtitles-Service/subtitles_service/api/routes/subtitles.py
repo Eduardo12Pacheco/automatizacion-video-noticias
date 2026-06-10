@@ -66,7 +66,7 @@ def register_subtitle_routes(
         # `require_auth` already raises an `HTTPException` (401) on bad auth.
         # We only need to convert `PipelineError` raised later in this handler.
         try:
-            require_auth(x_api_key=x_api_key, authorization=authorization)
+            user_email = require_auth(x_api_key=x_api_key, authorization=authorization)
         except PipelineError as e:
             raise http_error(e) from e
 
@@ -145,6 +145,38 @@ def register_subtitle_routes(
             target_language=normalized_target,
             preview_video_path=str(target_path),
         )
+
+        # Auto-kick the analyze pipeline. The frontend never calls /analyze on
+        # its own after a successful upload, so without this the session stays
+        # at status='created' with current_snapshot_version=0 and the panel
+        # polls forever stuck in 'Procesando audio'. The worker is currently a
+        # stub that produces an empty snapshot, but that's enough to bump
+        # current_snapshot_version and let the panel transition to 'Edicion'.
+        try:
+            analyze_worker.start_analysis(
+                session_id=session["id"],
+                user_email=user_email,
+                request_id=f"auto-upload:{session['id']}",
+            )
+        except PipelineError as analysis_error:
+            # Surface the analysis failure on the session, but don't fail the
+            # upload itself — the file is on disk and the user can retry.
+            store.update_session(
+                session["id"],
+                status="analyze_failed",
+            )
+            session = store.get_session(session["id"]) or session
+        except Exception:
+            # Same as above: never let an analyze hiccup eat the upload.
+            store.update_session(
+                session["id"],
+                status="analyze_failed",
+            )
+            session = store.get_session(session["id"]) or session
+
+        # Re-read the session so the response reflects whatever state the
+        # analyze worker (or its failure path) just produced.
+        session = store.get_session(session["id"]) or session
 
         # The frontend (`01-Control-Panel/.../controller/session.js`) reads
         # `response.session_id`, `response.status`, and `response.preview.video_url`.
