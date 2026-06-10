@@ -52,7 +52,7 @@ def test_invalid_layout_is_dropped_without_breaking_legacy_segments():
     assert "layout" not in build_render_subtitles_payload(normalized)[0]
 
 
-def test_render_props_writer_includes_layout_and_source_video(monkeypatch, tmp_path):
+def test_render_props_writer_includes_layout_without_source_video(monkeypatch, tmp_path):
     normalized = normalize_segments_for_snapshot(
         [
             {
@@ -73,5 +73,4 @@ def test_render_props_writer_includes_layout_and_source_video(monkeypatch, tmp_p
     assert '"layout"' in render_props
     assert '"lines"' in render_props
     assert '"browser-preview"' in render_props
-    assert '"source_video_path"' in render_props
-    assert '"source.mp4"' in render_props
+    assert '"source_video_path"' not in render_props

@@ -101,7 +101,6 @@ def render_black_subtitles_video(session_dir: Path, source_video_path: str | Pat
             "height": 1080,
             "fps": 30,
             "background": "#000000",
-            "source_video_path": str(source_video_path),
             "subtitles": subtitles,
         },
     )
