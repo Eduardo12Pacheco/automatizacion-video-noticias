@@ -115,10 +115,22 @@ const payload = JSON.parse(fs.readFileSync(propsPath, 'utf8'));
 const width = Math.round(numeric(payload.width, 1920, 1));
 const height = Math.round(numeric(payload.height, 1080, 1));
 const fps = Math.round(numeric(payload.fps, 30, 1));
-const sourceVideo = resolveSourceVideo(payload, propsPath);
-const durationSeconds = Math.max(subtitleEndSeconds(payload), probeSourceDurationSeconds(sourceVideo));
+// The Subtítulos 2 contract is a pure black background with subtitles
+// overlaid. When the payload sets `black_background_only: true` we must
+// NOT resolve the source video (the React composition would otherwise
+// render the uploaded footage as the background layer). The
+// `source_static_path` lands as '' in the enriched props and the
+// <OffthreadVideo> is skipped in the component.
+const blackBackgroundOnly = Boolean(payload.black_background_only);
+const sourceVideo = blackBackgroundOnly ? '' : resolveSourceVideo(payload, propsPath);
+const durationSeconds = Math.max(
+  subtitleEndSeconds(payload),
+  blackBackgroundOnly ? 0 : probeSourceDurationSeconds(sourceVideo),
+);
 const durationInFrames = Math.max(1, Math.ceil(durationSeconds * fps));
-const staticSource = prepareStaticSource(sourceVideo);
+const staticSource = blackBackgroundOnly
+  ? { publicPath: '', cleanupDir: '' }
+  : prepareStaticSource(sourceVideo);
 const fontFaces = subtitleFontFaces();
 const cleanupDirs = [
   staticSource.cleanupDir,
@@ -134,7 +146,7 @@ const enrichedPayload = {
   height,
   fps,
   durationInFrames,
-  source_video_path: sourceVideo || payload.source_video_path || '',
+  source_video_path: blackBackgroundOnly ? '' : (sourceVideo || payload.source_video_path || ''),
   source_static_path: staticSource.publicPath,
   font_faces: fontFaces.map(({ cleanup_dir, ...font }) => font),
 };

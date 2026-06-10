@@ -94,6 +94,12 @@ def render_black_subtitles_video(session_dir: Path, source_video_path: str | Pat
     output_path = session_dir / "video-final.mp4"
     render_props_path = session_dir / "render-props.json"
     subtitles = build_render_subtitles_payload(segments)
+    # The contract for the Subtítulos 2 remote service is a pure black
+    # background with the translated subtitles overlaid. The React
+    # composition skips the <OffthreadVideo> layer when
+    # `source_static_path` is empty, so we explicitly set
+    # `black_background_only: true` to tell the Node.js render script
+    # NOT to fall back to the uploaded source.mp4 in the session dir.
     write_json(
         render_props_path,
         {
@@ -101,6 +107,7 @@ def render_black_subtitles_video(session_dir: Path, source_video_path: str | Pat
             "height": 1080,
             "fps": 30,
             "background": "#000000",
+            "black_background_only": True,
             "subtitles": subtitles,
         },
     )
