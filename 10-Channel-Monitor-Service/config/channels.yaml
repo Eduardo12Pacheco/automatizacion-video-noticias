@@ -601,3 +601,23 @@ countries:
       - url: https://www.youtube.com/@laredguatemala
         label: La Red Guatemala
         enabled: true
+
+  - code: ci
+    name: Costa de Marfil
+    channels:
+      - url: https://www.youtube.com/@nostalgiecotedivoire8471
+        label: Nostalgie Côte d'Ivoire
+        enabled: true
+
+  - code: de
+    name: Alemania
+    channels:
+      - url: https://www.youtube.com/@CALCIOBERLIN
+        label: CALCIO BERLIN
+        enabled: true
+      - url: https://www.youtube.com/@ManuThiele
+        label: Manu Thiele
+        enabled: true
+      - url: https://www.youtube.com/@servustvONsport
+        label: ServusTV On Sport
+        enabled: true
