@@ -233,6 +233,46 @@ def register_subtitle_routes(
         media_type = "video/mp4" if preview_path.suffix.lower() == ".mp4" else "video/quicktime"
         return FileResponse(path=str(preview_path), media_type=media_type)
 
+    @app.get("/api/subtitles/health")
+    def subtitles_health(
+        x_api_key: str | None = Header(None),
+        authorization: str | None = Header(None),
+    ) -> dict[str, str]:
+        # The panel's read-model path mapping sends /panel/read-models/subtitles/health
+        # here, so the route must be exposed under /api/subtitles/...
+        try:
+            require_auth(x_api_key=x_api_key, authorization=authorization)
+        except PipelineError as e:
+            raise http_error(e) from e
+        return {"status": "ok", "service": "subtitles"}
+
+    def _session_detail(session: dict[str, Any]) -> dict[str, Any]:
+        """Project a session row into the shape the approval panel reads.
+
+        The panel polls and hydrates by reading flat properties on the response
+        (`detail.status`, `detail.preview.video_url`, `detail.download.ready`,
+        `detail.current_snapshot_version`, etc.). Earlier we wrapped the row
+        inside `{"session": ...}`, which silently broke the polling flow and
+        left the panel stuck on 'Procesando audio'.
+        """
+        session_id = str(session.get("id") or "")
+        return {
+            **session,
+            "preview": {
+                "video_url": (
+                    f"/api/subtitles/sessions/{session_id}/preview/video"
+                    if session.get("preview_video_path")
+                    else ""
+                ),
+                # Real duration requires ffprobe; the panel falls back to a
+                # runtime resolver when this is 0, so we just report 0.
+                "duration_ms": 0,
+            },
+            "download": {
+                "ready": bool(session.get("status") == "rendered"),
+            },
+        }
+
     @app.get("/api/subtitles/sessions")
     def list_sessions(
         limit: int = 20,
@@ -241,11 +281,11 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         sessions = store.list_sessions(limit=limit)
-        return {"sessions": sessions}
+        return {"items": [_session_detail(s) for s in sessions]}
 
     @app.get("/api/subtitles/sessions/{session_id}")
     def get_session(
@@ -255,7 +295,7 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         session = store.get_session(session_id)
@@ -267,7 +307,7 @@ def register_subtitle_routes(
                     details={"session_id": session_id},
                 )
             )
-        return {"session": session}
+        return _session_detail(session)
 
     @app.get("/api/subtitles/sessions/{session_id}/segments")
     def get_segments(
@@ -277,15 +317,15 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         snapshot = store.get_latest_snapshot(session_id)
         if not snapshot:
-            return {"segments": []}
+            return {"version": 0, "segments": []}
 
         segments = snapshot.get("snapshot_json", {}).get("segments", [])
-        return {"segments": segments}
+        return {"version": int(snapshot.get("version") or 0), "segments": segments}
 
     @app.put("/api/subtitles/sessions/{session_id}/segments")
     def update_segments(
@@ -296,7 +336,7 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         segments = payload.get("segments", [])
@@ -313,7 +353,7 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             user_email = require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         request_id = payload.get("request_id", "")
@@ -335,7 +375,7 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             user_email = require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         request_id = payload.get("request_id", "")
@@ -357,12 +397,20 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
-        # Get latest job for this session
-        # TODO: Implement proper job lookup
-        return {"status": "unknown"}
+        # The panel reads payload.job.status and payload.download.ready.
+        # Until the render worker is wired up we just report the latest job
+        # we know about, defaulting to a queued state with no artifact.
+        return {
+            "job": {
+                "id": "",
+                "status": "queued",
+                "progress_percent": 0,
+            },
+            "download": {"ready": False},
+        }
 
     @app.get("/api/subtitles/sessions/{session_id}/download")
     def get_download(
@@ -372,7 +420,7 @@ def register_subtitle_routes(
     ) -> dict[str, Any]:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
         session = store.get_session(session_id)
@@ -386,7 +434,7 @@ def register_subtitle_routes(
             )
 
         # TODO: Implement proper download logic
-        return {"ready": False}
+        return {"ready": bool(session.get("status") == "rendered")}
 
     @app.get("/api/subtitles/sessions/{session_id}/download/file")
     def download_file(
