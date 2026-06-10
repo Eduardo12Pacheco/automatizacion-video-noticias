@@ -212,3 +212,30 @@ def test_create_session_accepts_basic_auth(client, basic_auth_headers) -> None:
     )
     assert response.status_code == 200, response.text
     assert "session_id" in response.json()
+
+
+def test_create_session_auto_triggers_analyze(client, auth_headers, store) -> None:
+    """The frontend never calls /analyze itself, so the upload route must
+    auto-kick the analyze worker. Otherwise the session stays at
+    status='created' with current_snapshot_version=0 and the panel polls
+    forever stuck in 'Procesando audio'.
+    """
+    response = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+
+    session = store.get_session(body["session_id"])
+    assert session is not None
+    # The analyze stub marks the session as 'analyzed' and bumps the snapshot
+    # version, which is the signal the panel polls for to advance.
+    assert session["status"] in {"analyzed", "analyze_failed"}, (
+        f"upload did not auto-trigger analyze; got status={session['status']!r}"
+    )
+    assert int(session.get("current_snapshot_version") or 0) > 0, (
+        "analyze must produce a snapshot so the panel can leave 'Procesando audio'"
+    )
