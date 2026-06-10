@@ -331,6 +331,45 @@ def register_subtitle_routes(
             )
         return {"deleted": True, "session_id": session_id}
 
+    @app.patch("/api/subtitles/sessions/{session_id}")
+    def rename_session_route(
+        session_id: str,
+        payload: dict[str, Any],
+        x_api_key: str | None = Header(None),
+        authorization: str | None = Header(None),
+    ) -> dict[str, Any]:
+        try:
+            require_auth(x_api_key=x_api_key, authorization=authorization)
+        except PipelineError as e:
+            raise http_error(e) from e
+
+        # The panel sends {display_name: "..."} on PATCH. Accept either
+        # 'display_name' (camelCase, what the panel uses) or 'displayName'
+        # as a courtesy, but reject anything that isn't a plain string
+        # so the route can't be misused as a generic update endpoint.
+        raw_name = payload.get("display_name")
+        if raw_name is None:
+            raw_name = payload.get("displayName")
+        if raw_name is not None and not isinstance(raw_name, str):
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.INPUT_CONTRACT_VIOLATION,
+                    message="display_name must be a string",
+                    details={"received_type": type(raw_name).__name__},
+                )
+            )
+
+        updated = store.rename_session(session_id, raw_name or "")
+        if updated is None:
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.SESSION_NOT_FOUND,
+                    message=f"Session not found: {session_id}",
+                    details={"session_id": session_id},
+                )
+            )
+        return _session_detail(updated)
+
     @app.get("/api/subtitles/sessions/{session_id}/segments")
     def get_segments(
         session_id: str,

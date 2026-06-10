@@ -31,7 +31,8 @@ class SubtitleStore:
                     target_language TEXT NOT NULL DEFAULT 'es',
                     preview_video_path TEXT,
                     current_snapshot_version INTEGER NOT NULL DEFAULT 0,
-                    status TEXT NOT NULL DEFAULT 'created'
+                    status TEXT NOT NULL DEFAULT 'created',
+                    display_name TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS jobs (
@@ -68,6 +69,16 @@ class SubtitleStore:
                     UNIQUE(session_id, request_id)
                 );
             """)
+            # Lightweight in-place migration: existing DBs created before
+            # the display_name column need it added so the PATCH endpoint
+            # can persist renames. SQLite has no IF NOT EXISTS for columns,
+            # so we probe pragma_table_info first.
+            existing = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(sessions)").fetchall()
+            }
+            if "display_name" not in existing:
+                conn.execute("ALTER TABLE sessions ADD COLUMN display_name TEXT")
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(str(self.db_path), isolation_level=None)
@@ -306,3 +317,20 @@ class SubtitleStore:
                 except OSError:
                     pass
         return deleted
+
+    def rename_session(self, session_id: str, display_name: str) -> dict[str, Any] | None:
+        """Set the user-facing display name for a session.
+
+        Empty / whitespace-only names reset the field to NULL so the
+        panel falls back to the UUID. Returns the updated row, or None
+        if the session does not exist.
+        """
+        cleaned = (display_name or "").strip() or None
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "UPDATE sessions SET display_name = ?, updated_at = ? WHERE id = ?",
+                (cleaned, datetime.now(timezone.utc).isoformat(), session_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+        return self.get_session(session_id)

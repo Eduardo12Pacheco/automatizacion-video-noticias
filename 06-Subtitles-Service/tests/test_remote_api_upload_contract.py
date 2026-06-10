@@ -446,6 +446,89 @@ def test_delete_requires_auth(client) -> None:
     assert response.status_code == 401
 
 
+def test_rename_session_persists_display_name(client, auth_headers, store) -> None:
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    response = client.patch(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+        json={"display_name": "Allemanya demo"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["display_name"] == "Allemanya demo"
+    assert body["id"] == session_id
+
+    # The DB row also reflects the new name.
+    persisted = store.get_session(session_id)
+    assert persisted["display_name"] == "Allemanya demo"
+
+    # The list endpoint also surfaces it.
+    listing = client.get(
+        "/api/subtitles/sessions?limit=20",
+        headers=auth_headers,
+    ).json()
+    matching = [item for item in listing["items"] if item["id"] == session_id]
+    assert matching and matching[0]["display_name"] == "Allemanya demo"
+
+
+def test_rename_session_with_blank_string_clears_name(client, auth_headers) -> None:
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    # Set, then clear.
+    client.patch(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+        json={"display_name": "with name"},
+    )
+    response = client.patch(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+        json={"display_name": "   "},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["display_name"] is None
+
+
+def test_rename_session_404_for_unknown(client, auth_headers) -> None:
+    response = client.patch(
+        "/api/subtitles/sessions/does-not-exist",
+        headers=auth_headers,
+        json={"display_name": "ghost"},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "session_not_found"
+
+
+def test_rename_session_rejects_non_string_payload(client, auth_headers) -> None:
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+    response = client.patch(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+        json={"display_name": 42},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "input_contract_violation"
+
+
 def test_render_status_returns_job_and_download_envelopes(client, auth_headers) -> None:
     """The panel reads payload.job.status and payload.download.ready."""
     create = client.post(
