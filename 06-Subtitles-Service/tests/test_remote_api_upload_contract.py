@@ -389,6 +389,63 @@ def test_analyze_pipeline_persists_normalized_segments(
     assert first["translated_text"]
 
 
+def test_delete_session_removes_row_and_file(client, auth_headers, store) -> None:
+    """The panel's history rows have a small 'x' that fires
+    DELETE /api/subtitles/sessions/{id}. We must accept the call, drop
+    the row, and clean up the on-disk session directory so the
+    workspace doesn't grow forever.
+    """
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    # Wait for the auto-triggered analyze so the job + snapshot rows exist
+    # too — the delete path must clean them all.
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, session_id)
+
+    session = store.get_session(session_id)
+    assert session is not None
+    preview_path = session.get("preview_video_path")
+    assert preview_path and Path(str(preview_path)).is_file()
+
+    response = client.delete(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body == {"deleted": True, "session_id": session_id}
+
+    # The row is gone.
+    assert store.get_session(session_id) is None
+    # And so are the dependent rows.
+    assert store.get_latest_job_for_session(session_id, kind="analyze") is None
+    assert store.get_latest_snapshot(session_id) is None
+    # The session directory and the uploaded video file are gone.
+    session_dir = Path(str(preview_path)).parent
+    assert not session_dir.exists()
+    assert not Path(str(preview_path)).exists()
+
+
+def test_delete_unknown_session_returns_404(client, auth_headers) -> None:
+    response = client.delete(
+        "/api/subtitles/sessions/does-not-exist",
+        headers=auth_headers,
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "session_not_found"
+
+
+def test_delete_requires_auth(client) -> None:
+    response = client.delete("/api/subtitles/sessions/anything")
+    assert response.status_code == 401
+
+
 def test_render_status_returns_job_and_download_envelopes(client, auth_headers) -> None:
     """The panel reads payload.job.status and payload.download.ready."""
     create = client.post(

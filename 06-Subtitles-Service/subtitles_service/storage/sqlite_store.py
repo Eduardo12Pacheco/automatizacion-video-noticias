@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -271,3 +272,37 @@ class SubtitleStore:
                 (session_id, kind),
             ).fetchone()
             return dict(row) if row else None
+
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a session and everything tied to it.
+
+        Returns True if a row was deleted, False if the session did not
+        exist. Cleans up: jobs, render_requests, snapshots, and the
+        session row itself. The on-disk session directory and video
+        file are best-effort removed; missing files are not an error.
+        """
+        with self._connect() as conn:
+            # Clean up dependent rows first to keep the schema happy even
+            # without foreign-key cascade.
+            conn.execute("DELETE FROM jobs WHERE session_id = ?", (session_id,))
+            conn.execute(
+                "DELETE FROM render_requests WHERE session_id = ?",
+                (session_id,),
+            )
+            conn.execute("DELETE FROM snapshots WHERE session_id = ?", (session_id,))
+            cursor = conn.execute(
+                "DELETE FROM sessions WHERE id = ?", (session_id,)
+            )
+            deleted = cursor.rowcount > 0
+
+        # Best-effort filesystem cleanup. We never want a half-deleted
+        # session to leave a phantom file behind, so we swallow OSError
+        # and let the boolean result reflect the database outcome.
+        if deleted:
+            session_dir = self.workspace_root / "sessions" / session_id
+            if session_dir.exists():
+                try:
+                    shutil.rmtree(session_dir, ignore_errors=True)
+                except OSError:
+                    pass
+        return deleted

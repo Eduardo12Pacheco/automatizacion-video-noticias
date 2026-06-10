@@ -309,6 +309,28 @@ def register_subtitle_routes(
             )
         return _session_detail(session)
 
+    @app.delete("/api/subtitles/sessions/{session_id}")
+    def delete_session_route(
+        session_id: str,
+        x_api_key: str | None = Header(None),
+        authorization: str | None = Header(None),
+    ) -> dict[str, Any]:
+        try:
+            require_auth(x_api_key=x_api_key, authorization=authorization)
+        except PipelineError as e:
+            raise http_error(e) from e
+
+        deleted = store.delete_session(session_id)
+        if not deleted:
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.SESSION_NOT_FOUND,
+                    message=f"Session not found: {session_id}",
+                    details={"session_id": session_id},
+                )
+            )
+        return {"deleted": True, "session_id": session_id}
+
     @app.get("/api/subtitles/sessions/{session_id}/segments")
     def get_segments(
         session_id: str,
