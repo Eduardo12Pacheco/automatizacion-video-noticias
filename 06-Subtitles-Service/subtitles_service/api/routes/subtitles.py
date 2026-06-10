@@ -381,13 +381,47 @@ def register_subtitle_routes(
         request_id = payload.get("request_id", "")
         base_version = payload.get("base_version", 0)
 
-        job = render_worker.submit(
-            session_id=session_id,
-            base_version=base_version,
-            user_email=user_email,
-            request_id=request_id,
-        )
-        return {"job": job}
+        # 404 if the session is unknown
+        session = store.get_session(session_id)
+        if not session:
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.SESSION_NOT_FOUND,
+                    message=f"Session not found: {session_id}",
+                    details={"session_id": session_id},
+                )
+            )
+        # A render can only run once analyze produced a snapshot the user
+        # agreed on; otherwise surface that as a 409.
+        if not store.get_latest_snapshot(session_id):
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.RENDER_NOT_READY,
+                    message="Cannot render: no analyze snapshot available",
+                    details={"session_id": session_id},
+                )
+            )
+
+        try:
+            job = render_worker.submit(
+                session_id=session_id,
+                base_version=base_version,
+                user_email=user_email,
+                request_id=request_id,
+            )
+        except PipelineError as error:
+            raise http_error(error) from error
+
+        return {
+            "job": {
+                "id": str(job.get("id") or ""),
+                "status": str(job.get("status") or "queued"),
+                "progress_percent": int(job.get("progress_pct") or 0),
+            },
+            "download": {
+                "ready": bool(job.get("status") == "succeeded"),
+            },
+        }
 
     @app.get("/api/subtitles/sessions/{session_id}/render")
     def get_render_status(
@@ -400,16 +434,36 @@ def register_subtitle_routes(
         except PipelineError as e:
             raise http_error(e) from e
 
-        # The panel reads payload.job.status and payload.download.ready.
-        # Until the render worker is wired up we just report the latest job
-        # we know about, defaulting to a queued state with no artifact.
+        # The panel reads payload.job.status and payload.download.ready. We
+        # read the latest render job from the store so the panel sees the
+        # real progress (queued/running/succeeded/failed) and the artifact
+        # path when the render finishes.
+        job = store.get_latest_job_for_session(session_id, kind="render")
+        if not job:
+            return {
+                "job": {"id": "", "status": "queued", "progress_percent": 0},
+                "download": {"ready": False},
+            }
+        artifact_path = job.get("artifact_path")
+        artifact_ready = bool(
+            job.get("status") == "succeeded"
+            and artifact_path
+            and Path(str(artifact_path)).is_file()
+        )
         return {
             "job": {
-                "id": "",
-                "status": "queued",
-                "progress_percent": 0,
+                "id": str(job.get("id") or ""),
+                "status": str(job.get("status") or "queued"),
+                "progress_percent": int(job.get("progress_pct") or 0),
             },
-            "download": {"ready": False},
+            "download": {
+                "ready": artifact_ready,
+                "url": (
+                    f"/api/subtitles/sessions/{session_id}/download/file"
+                    if artifact_ready
+                    else ""
+                ),
+            },
         }
 
     @app.get("/api/subtitles/sessions/{session_id}/download")
@@ -433,8 +487,23 @@ def register_subtitle_routes(
                 )
             )
 
-        # TODO: Implement proper download logic
-        return {"ready": bool(session.get("status") == "rendered")}
+        # Same envelope as get_render_status so the panel can use either
+        # endpoint to discover whether the artifact is ready.
+        job = store.get_latest_job_for_session(session_id, kind="render")
+        artifact_path = (job or {}).get("artifact_path")
+        ready = bool(
+            session.get("status") == "rendered"
+            and artifact_path
+            and Path(str(artifact_path)).is_file()
+        )
+        return {
+            "ready": ready,
+            "url": (
+                f"/api/subtitles/sessions/{session_id}/download/file"
+                if ready
+                else ""
+            ),
+        }
 
     @app.get("/api/subtitles/sessions/{session_id}/download/file")
     def download_file(
@@ -444,14 +513,41 @@ def register_subtitle_routes(
     ) -> FileResponse:
         try:
             require_auth(x_api_key=x_api_key, authorization=authorization)
-        except Exception as e:
+        except PipelineError as e:
             raise http_error(e) from e
 
-        # TODO: Implement proper file download
-        raise http_error(
-            PipelineError(
-                code=ErrorCode.RENDER_NOT_READY,
-                message="No render artifact available",
-                details={"session_id": session_id},
+        session = store.get_session(session_id)
+        if not session:
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.SESSION_NOT_FOUND,
+                    message=f"Session not found: {session_id}",
+                    details={"session_id": session_id},
+                )
             )
+
+        # Only serve the artifact when the render has actually completed and
+        # the file is on disk. The contract requires a real video (H.264 with
+        # a black background) — never fall back to the source upload.
+        job = store.get_latest_job_for_session(session_id, kind="render")
+        artifact_path = (job or {}).get("artifact_path")
+        if not (
+            session.get("status") == "rendered"
+            and artifact_path
+            and Path(str(artifact_path)).is_file()
+        ):
+            raise http_error(
+                PipelineError(
+                    code=ErrorCode.RENDER_NOT_READY,
+                    message="Render artifact is not ready yet",
+                    details={"session_id": session_id},
+                )
+            )
+
+        file_path = Path(str(artifact_path))
+        media_type = "video/mp4" if file_path.suffix.lower() == ".mp4" else "video/quicktime"
+        return FileResponse(
+            path=str(file_path),
+            media_type=media_type,
+            filename=f"subtitles-{session_id}.mp4",
         )

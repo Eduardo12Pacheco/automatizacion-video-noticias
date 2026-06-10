@@ -251,3 +251,23 @@ class SubtitleStore:
     def finalize_render(self, session_id: str, job_id: str, artifact_path: str) -> None:
         self.update_job(job_id, status="succeeded", progress_pct=100, artifact_path=artifact_path)
         self.update_session(session_id, status="rendered")
+
+    def get_latest_job_for_session(self, session_id: str, kind: str) -> dict[str, Any] | None:
+        """Return the most recent job row of a given kind for the session.
+
+        Used by the render + download endpoints to surface real status
+        (running/queued/succeeded/failed) and the rendered artifact path
+        without having to plumb a separate job lookup through the worker.
+        """
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                """
+                SELECT * FROM jobs
+                WHERE session_id = ? AND kind = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (session_id, kind),
+            ).fetchone()
+            return dict(row) if row else None
