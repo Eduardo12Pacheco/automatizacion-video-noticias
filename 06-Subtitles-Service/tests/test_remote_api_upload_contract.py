@@ -98,11 +98,19 @@ def test_create_session_with_multipart_persists_file(
     assert on_disk.is_file(), f"expected saved file at {on_disk}"
     assert on_disk.read_bytes() == TINY_VIDEO_BYTES
 
-    # The DB row must reference the same file.
+    # Wait for the auto-triggered analyze (background thread) to finish so
+    # we can also assert that the snapshot ends up persisted and the
+    # session lands in 'analyzed' rather than just 'created'.
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, session_id)
+
+    # The DB row must reference the same file and the snapshot must exist.
     persisted = store.get_session(session_id)
     assert persisted is not None
     assert persisted["preview_video_path"] == str(on_disk)
     assert persisted["source_language"] == "de"
+    assert persisted["status"] == "analyzed"
+    assert int(persisted.get("current_snapshot_version") or 0) >= 1
 
 
 def test_create_session_respects_source_language(client, auth_headers) -> None:
@@ -229,10 +237,13 @@ def test_create_session_auto_triggers_analyze(client, auth_headers, store) -> No
     assert response.status_code == 200, response.text
     body = response.json()
 
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, body["session_id"])
+
     session = store.get_session(body["session_id"])
     assert session is not None
-    # The analyze stub marks the session as 'editing' and bumps the snapshot
-    # version, which is the signal the panel polls for to advance.
+    # The real analyze pipeline marks the session as 'analyzed' and bumps
+    # the snapshot version, which is the signal the panel polls for to advance.
     assert session["status"] in {"analyzed", "analyze_failed"}, (
         f"upload did not auto-trigger analyze; got status={session['status']!r}"
     )
@@ -241,9 +252,9 @@ def test_create_session_auto_triggers_analyze(client, auth_headers, store) -> No
     )
 
 
-def test_get_session_returns_flat_shape_panel_can_poll(client, auth_headers) -> None:
+def test_get_session_returns_flat_shape_panel_can_poll(client, auth_headers, store) -> None:
     """The panel reads `detail.status`, `detail.current_snapshot_version`,
-    `detail.preview.video_url`, and `detail.download.ready` directly off the
+    `detail.preview.video_url`, and `detail.download.ready` directamente off the
     response object. Earlier we wrapped the row in `{"session": ...}` and
     the polling fell back to defaults, leaving the UI stuck on
     'Procesando audio'. This test pins the new flat shape.
@@ -255,6 +266,9 @@ def test_get_session_returns_flat_shape_panel_can_poll(client, auth_headers) -> 
         files=make_upload("clip.mp4"),
     )
     session_id = create.json()["session_id"]
+
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, session_id)
 
     detail = client.get(
         f"/api/subtitles/sessions/{session_id}",
@@ -294,7 +308,7 @@ def test_list_sessions_returns_items_envelope(client, auth_headers) -> None:
     assert "sessions" not in payload
 
 
-def test_get_segments_returns_version_and_segments(client, auth_headers) -> None:
+def test_get_segments_returns_version_and_segments(client, auth_headers, store) -> None:
     """The panel reads `segments.version` and `segments.segments`."""
     create = client.post(
         "/api/subtitles/sessions",
@@ -304,6 +318,9 @@ def test_get_segments_returns_version_and_segments(client, auth_headers) -> None
     )
     session_id = create.json()["session_id"]
 
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, session_id)
+
     payload = client.get(
         f"/api/subtitles/sessions/{session_id}/segments",
         headers=auth_headers,
@@ -312,6 +329,9 @@ def test_get_segments_returns_version_and_segments(client, auth_headers) -> None
     assert "segments" in payload
     assert isinstance(payload["segments"], list)
     assert int(payload["version"]) >= 1
+    # The fake pipeline returned 2 segments, so the snapshot should have
+    # the same rows visible to the panel.
+    assert len(payload["segments"]) == 2
 
 
 def test_health_endpoint_under_api_prefix(client, auth_headers) -> None:
@@ -326,6 +346,47 @@ def test_health_endpoint_under_api_prefix(client, auth_headers) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body.get("status") == "ok"
+
+
+def test_analyze_pipeline_persists_normalized_segments(
+    client, auth_headers, store, fake_segments
+) -> None:
+    """End-to-end: upload -> auto-analyze -> snapshot has real segments.
+
+    The fake pipeline returns the fixture segments and the worker runs the
+    full normalize/translate/save dance on a background thread, so by the
+    time the polling endpoint replies, the panel-ready shape must include
+    those rows in the snapshot.
+    """
+    create = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": "en"},
+        files=make_upload("clip.mp4"),
+    )
+    session_id = create.json()["session_id"]
+
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, session_id)
+
+    detail = client.get(
+        f"/api/subtitles/sessions/{session_id}",
+        headers=auth_headers,
+    ).json()
+    assert detail["status"] == "analyzed"
+
+    payload = client.get(
+        f"/api/subtitles/sessions/{session_id}/segments",
+        headers=auth_headers,
+    ).json()
+    assert int(payload["version"]) == 1
+    assert len(payload["segments"]) == len(fake_segments)
+    # First segment sanity: starts at 0, has source + translated text.
+    first = payload["segments"][0]
+    assert first["start_ms"] == 0
+    assert first["end_ms"] == 1500
+    assert first["source_text"]
+    assert first["translated_text"]
 
 
 def test_render_status_returns_job_and_download_envelopes(client, auth_headers) -> None:
@@ -370,10 +431,12 @@ def test_render_409_when_no_snapshot(client, auth_headers, store) -> None:
     )
     session_id = create.json()["session_id"]
 
-    # Open a parallel store against the same workspace (the SQLite file is
-    # shared on disk) and clear the snapshot that the auto-trigger wrote.
+    from tests.conftest import _wait_for_analyze
+    _wait_for_analyze(store, session_id)
+
+    # Open a parallel connection against the same SQLite file and clear
+    # the snapshot that the auto-trigger wrote.
     import sqlite3
-    from subtitles_service.storage.sqlite_store import SubtitleStore
     from pathlib import Path
     db_path = Path(store.db_path)
     with sqlite3.connect(str(db_path)) as conn:

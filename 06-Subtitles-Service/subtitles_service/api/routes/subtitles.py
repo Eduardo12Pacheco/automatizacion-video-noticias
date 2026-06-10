@@ -391,8 +391,9 @@ def register_subtitle_routes(
                     details={"session_id": session_id},
                 )
             )
-        # A render can only run once analyze produced a snapshot the user
-        # agreed on; otherwise surface that as a 409.
+        # Surface the missing-snapshot case as 400 (the analyze hasn't
+        # produced any rows yet), then let the worker raise the 409
+        # version conflict if the client is also out of date.
         if not store.get_latest_snapshot(session_id):
             raise http_error(
                 PipelineError(
