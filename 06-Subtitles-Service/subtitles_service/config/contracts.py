@@ -25,6 +25,12 @@ SHARED_MODELS_DIR = _path_from_env("SUBS_MODELS_DIR", DEFAULT_SHARED_MODELS_DIR)
 ASR_MODEL_DIR = _path_from_env("SUBS_ASR_MODEL", SHARED_MODELS_DIR / "faster-whisper-large-v3")
 TRANSLATION_MODEL_DIR = _path_from_env("SUBS_MT_EN_ES_MODEL", SHARED_MODELS_DIR / "opus-mt-en-es")
 
+# M2M100 fallback model: handles the 6 languages with no Marian model on disk
+# (pt, cs, gd, tr, tzm, uz). Loaded lazily by `M2M100Translator` to keep the
+# route handler snappy and bound RAM under concurrent load.
+M2M100_MODEL_DIR = _path_from_env("SUBS_M2M100_MODEL", SHARED_MODELS_DIR / "m2m100_418M")
+M2M100_TARGET_LANG = "es"
+
 TRANSCRIPT_JSON_PATH = OUTPUT_DIR / "transcript.json"
 TRANSLATION_JSON_PATH = OUTPUT_DIR / "translation.json"
 SUBTITLES_JSON_PATH = OUTPUT_DIR / "subtitles.json"

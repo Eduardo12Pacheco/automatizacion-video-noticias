@@ -65,8 +65,15 @@ class WhisperTranscriber:
         self,
         audio_path: Path,
         language: str | None = None,
-    ) -> list[dict]:
-        """Run the ASR and return a list of {text, start_ms, end_ms} dicts.
+    ) -> tuple[list[dict], "WhisperTranscribeInfo"]:
+        """Run the ASR and return `(segments, info)`.
+
+        `segments` is a list of `{text, start_ms, end_ms}` dicts (one per cue).
+
+        `info` is a `WhisperTranscribeInfo` carrying at least `language`
+        (the BCP-47 code Whisper used — e.g. `"fr-FR"` — or `""` if it
+        could not detect). The analyze pipeline uses this to route
+        `source_language="auto"` to the right translator.
 
         `language` accepts 'en', 'de', 'auto' (or None for whisper auto-detect).
         """
@@ -74,7 +81,7 @@ class WhisperTranscriber:
         try:
             # whisper auto-detects when language is None
             whisper_language = None if not language or language == "auto" else language
-            segments_iter, _info = model.transcribe(
+            segments_iter, info = model.transcribe(
                 str(audio_path),
                 language=whisper_language,
                 beam_size=5,
@@ -99,7 +106,46 @@ class WhisperTranscriber:
                     "end_ms": int(round(float(seg.end) * 1000)),
                 }
             )
-        return out
+
+        # `info.language` is BCP-47 (`fr-FR`, `en-US`, ...). Capture it so
+        # the pipeline can route `auto` requests to the right translator.
+        info_out = WhisperTranscribeInfo(
+            language=str(getattr(info, "language", "") or ""),
+        )
+        return out, info_out
 
 
-__all__ = ["WhisperTranscriber"]
+def normalize_to_iso639_1(code: str | None) -> str:
+    """Normalize a Whisper BCP-47 / underscore code to bare ISO 639-1.
+
+    Examples:
+        ``"fr-FR" -> "fr"``     BCP-47 regional form
+        ``"pt_br" -> "pt"``     whisper sometimes uses underscores
+        ``"" / None / "None" -> ""``
+    """
+    if code is None:
+        return ""
+    raw = str(code).strip()
+    if not raw or raw.lower() == "none":
+        return ""
+    return raw.split("-")[0].split("_")[0].lower()
+
+
+class WhisperTranscribeInfo:
+    """Minimal shape for the info object `transcribe()` returns.
+
+    We avoid leaking the full `faster_whisper.TranscriptionInfo` to keep
+    the analyze pipeline's contract small and stable across faster-whisper
+    version bumps.
+    """
+
+    __slots__ = ("language",)
+
+    def __init__(self, language: str = "") -> None:
+        self.language = language
+
+    def __repr__(self) -> str:
+        return f"WhisperTranscribeInfo(language={self.language!r})"
+
+
+__all__ = ["WhisperTranscriber", "WhisperTranscribeInfo", "normalize_to_iso639_1"]

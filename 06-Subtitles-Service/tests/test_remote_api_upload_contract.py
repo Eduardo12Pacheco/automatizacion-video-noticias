@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from subtitles_service.infrastructure.translation import SUPPORTED_SOURCE_LANGUAGES
 from tests._upload_helpers import TINY_VIDEO_BYTES, make_upload
 
 
@@ -113,27 +114,78 @@ def test_create_session_with_multipart_persists_file(
     assert int(persisted.get("current_snapshot_version") or 0) >= 1
 
 
-def test_create_session_respects_source_language(client, auth_headers) -> None:
-    for requested, expected in (("en", "en"), ("de", "de"), ("auto", "auto")):
+def test_create_session_persists_every_supported_code_1to1(
+    client, auth_headers
+) -> None:
+    """REGRESSION GUARD: every code in `SUPPORTED_SOURCE_LANGUAGES` (the
+    single source of truth) must pass through the upload route unchanged.
+
+    Replaces the old bug-pin test that asserted `fr → auto` (silent
+    coercion). The new contract is: every Marian + M2M100 + "auto" code
+    is honored as-is.
+    """
+    for code in SUPPORTED_SOURCE_LANGUAGES:
         response = client.post(
             "/api/subtitles/sessions",
             headers=auth_headers,
-            data={"source_language": requested},
-            files=make_upload(f"clip-{requested}.mp4"),
+            data={"source_language": code},
+            files=make_upload(f"clip-{code}.mp4"),
         )
-        assert response.status_code == 200, response.text
+        assert response.status_code == 200, (
+            f"code={code!r} must be accepted; got {response.status_code}: "
+            f"{response.text}"
+        )
         body = response.json()
-        assert body["session"]["source_language"] == expected
+        assert body["session"]["source_language"] == code, (
+            f"code={code!r} must persist 1:1; got "
+            f"{body['session']['source_language']!r}"
+        )
 
-    # Anything outside the allowed set must fall back to "auto", not crash.
+
+@pytest.mark.parametrize("bad_code", ["xx", "qq", "zz"])
+def test_create_session_rejects_unknown_source_language(
+    client, auth_headers, bad_code
+) -> None:
+    """REGRESSION GUARD: any non-empty `source_language` not in
+    `SUPPORTED_SOURCE_LANGUAGES` MUST return HTTP 400 with the
+    `unsupported_source_language` error envelope (no silent coercion
+    to "auto", no 5xx).
+
+    The body is wrapped by FastAPI's `HTTPException(detail=...)` so the
+    envelope lives under `body["detail"]["code"]` (consistent with the
+    rest of the route's error contract, e.g. the
+    `video_input_contract_violation` test).
+    """
     response = client.post(
         "/api/subtitles/sessions",
         headers=auth_headers,
-        data={"source_language": "fr"},
-        files=make_upload("clip-fr.mp4"),
+        data={"source_language": bad_code},
+        files=make_upload("clip-bad.mp4"),
+    )
+    assert response.status_code == 400, response.text
+    body = response.json()
+    assert body["detail"]["code"] == "unsupported_source_language"
+    assert body["detail"]["details"]["received"] == bad_code
+    assert body["detail"]["details"]["supported"] == sorted(SUPPORTED_SOURCE_LANGUAGES)
+    # 17 codes total: 1 auto + 10 Marian + 6 M2M100.
+    assert len(body["detail"]["details"]["supported"]) == 17
+
+
+def test_create_session_empty_source_language_defaults_to_auto(
+    client, auth_headers
+) -> None:
+    """An empty `source_language` form field defaults to `"auto"` so
+    the analyze pipeline can use Whisper's detected language.
+    """
+    response = client.post(
+        "/api/subtitles/sessions",
+        headers=auth_headers,
+        data={"source_language": ""},
+        files=make_upload("clip-empty.mp4"),
     )
     assert response.status_code == 200, response.text
-    assert response.json()["session"]["source_language"] == "auto"
+    body = response.json()
+    assert body["session"]["source_language"] == "auto"
 
 
 def test_create_session_rejects_invalid_extension(client, auth_headers) -> None:

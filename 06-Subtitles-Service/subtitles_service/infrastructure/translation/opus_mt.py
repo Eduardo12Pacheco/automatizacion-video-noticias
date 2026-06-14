@@ -7,6 +7,21 @@ from typing import Iterable, Protocol
 from subtitles_service.domain.errors import ErrorCode, PipelineError
 
 
+class UNSUPPORTED_SOURCE_LANGUAGE(PipelineError):
+    """Raised when the effective source language has no Marian or M2M100 model.
+
+    Subclass of `PipelineError` so existing `try/except PipelineError` blocks
+    keep working; the route layer maps this to HTTP 400.
+    """
+
+    def __init__(self, message: str, details: dict | None = None) -> None:
+        super().__init__(
+            code=ErrorCode.MODEL_NOT_AVAILABLE,
+            message=message,
+            details={"hint": "UNSUPPORTED_SOURCE_LANGUAGE", **(details or {})},
+        )
+
+
 class TranslationModel(Protocol):
     def translate_batch(self, texts: list[str]) -> list[str]: ...
 
@@ -87,6 +102,40 @@ class OpusMtTranslator:
             ) from exc
         return [text.strip() for text in decoded]
 
+    def translate(
+        self,
+        segments: list[dict],
+        target: str = "es",
+    ) -> list[dict]:
+        """Unified translator interface (matches `M2M100Translator`).
+
+        Wraps the existing `translate_batch` and emits a list of dicts
+        with `text`, `translated_text`, `source_text`, `start_ms`,
+        `end_ms`. The pipeline uses this method regardless of which
+        translator is in play (Marian or M2M100).
+
+        `target` is accepted for interface compatibility with the M2M100
+        translator; Marian MT models are pinned to a single target
+        language (es) at construction time, so this argument is
+        effectively ignored.
+        """
+        if not segments:
+            return []
+        texts = [seg["text"] for seg in segments]
+        decoded = self.translate_batch(texts)
+        out: list[dict] = []
+        for raw, es in zip(segments, decoded):
+            out.append(
+                {
+                    "text": raw["text"],
+                    "translated_text": es,
+                    "source_text": raw["text"],
+                    "start_ms": int(raw.get("start_ms", 0)),
+                    "end_ms": int(raw.get("end_ms", 1)),
+                }
+            )
+        return out
+
 
 # Map the panel's source_language value to the local opus-mt model folder.
 # The workspace already ships opus-mt-{en,de,fr,it,ca,ko,ar,ber,pap,nl}-es.
@@ -104,9 +153,20 @@ _OPUS_MT_LANG_DIRS = {
 }
 
 
+# Public frozenset: the codes whose translations exist as Marian MT models
+# on disk. Exposed via `infrastructure/translation/__init__.py` together
+# with the M2M100 set so the route layer has a single source of truth.
+OPUS_MT_SUPPORTED: frozenset[str] = frozenset(_OPUS_MT_LANG_DIRS.keys())
+
+
 def resolve_translator_for_source(source_language: str) -> OpusMtTranslator:
     """Pick the right local opus-mt model based on the requested source
     language. Falls back to the en-es default for unknown values.
+
+    NOTE: callers that need a unified Marian-or-M2M100 resolver should use
+    `resolve_translator_for_source_v2` (defined in `__init__.py`) which
+    routes Marian first / M2M100 fallback / hard-fail otherwise. This thin
+    helper is preserved for legacy callers that only need Marian.
     """
     from subtitles_service.config.contracts import SHARED_MODELS_DIR
     folder = _OPUS_MT_LANG_DIRS.get((source_language or "").strip().lower())
@@ -119,4 +179,9 @@ def resolve_translator_for_source(source_language: str) -> OpusMtTranslator:
     return OpusMtTranslator.default()
 
 
-__all__ = ["OpusMtTranslator", "resolve_translator_for_source"]
+__all__ = [
+    "OpusMtTranslator",
+    "OPUS_MT_SUPPORTED",
+    "UNSUPPORTED_SOURCE_LANGUAGE",
+    "resolve_translator_for_source",
+]

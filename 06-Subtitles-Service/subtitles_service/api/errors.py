@@ -44,5 +44,8 @@ def _map_error_code_to_status(code: ErrorCode) -> int:
         ErrorCode.RENDER_FAILED: 500,
         ErrorCode.DURATION_MISMATCH: 400,
         ErrorCode.ARTIFACT_VALIDATION_FAILED: 500,
+        ErrorCode.UNSUPPORTED_SOURCE_LANGUAGE: 400,
+        ErrorCode.UNSUPPORTED_DETECTED_LANGUAGE: 400,
+        ErrorCode.M2M100_MODEL_NOT_FOUND: 503,
     }
     return mapping.get(code, 500)

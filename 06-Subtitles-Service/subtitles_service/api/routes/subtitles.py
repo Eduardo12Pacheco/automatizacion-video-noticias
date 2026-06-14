@@ -14,19 +14,38 @@ from subtitles_service.application.analyze_session import AnalyzeSessionService
 from subtitles_service.application.render_session import RenderSessionService
 from subtitles_service.config.contracts import ALLOWED_INPUT_EXTENSIONS, MAX_VIDEO_INPUT_BYTES
 from subtitles_service.domain.errors import ErrorCode, PipelineError
+from subtitles_service.infrastructure.translation import SUPPORTED_SOURCE_LANGUAGES
 from subtitles_service.storage.sqlite_store import SubtitleStore
 
 
 _SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
-_ALLOWED_SOURCE_LANGUAGES = {"auto", "en", "de"}
 
 
-def _sanitize_source_language(raw: str | None) -> str:
-    """Normalize the source language. Anything outside the allowed set becomes 'auto'."""
+def _validate_source_language(raw: str | None) -> str:
+    """Validate the source language against the single source of truth.
+
+    * Empty / missing -> `"auto"`.
+    * Any non-empty value not in `SUPPORTED_SOURCE_LANGUAGES` -> 400 with
+      `code="unsupported_source_language"` and a `details` payload listing
+      the supported set so the frontend can show the user the right list.
+
+    No silent coercion: this is the bug the new contract fixes.
+    """
     value = (raw or "").strip().lower()
-    if value in _ALLOWED_SOURCE_LANGUAGES:
+    if not value:
+        return "auto"
+    if value in SUPPORTED_SOURCE_LANGUAGES:
         return value
-    return "auto"
+    raise http_error(
+        PipelineError(
+            code=ErrorCode.UNSUPPORTED_SOURCE_LANGUAGE,
+            message=f"Unsupported source language: {raw!r}",
+            details={
+                "received": raw,
+                "supported": sorted(SUPPORTED_SOURCE_LANGUAGES),
+            },
+        )
+    )
 
 
 def _safe_filename(original: str) -> str:
@@ -136,7 +155,7 @@ def register_subtitle_routes(
             )
 
         # --- Persist session with the file path so downstream renderers can find it ---
-        normalized_source = _sanitize_source_language(source_language)
+        normalized_source = _validate_source_language(source_language)
         normalized_target = (target_language or "es").strip().lower() or "es"
 
         session = store.create_session(

@@ -23,6 +23,9 @@ class ErrorCode(str, Enum):
     RENDER_FAILED = "render_failed"
     DURATION_MISMATCH = "duration_mismatch"
     ARTIFACT_VALIDATION_FAILED = "artifact_validation_failed"
+    UNSUPPORTED_SOURCE_LANGUAGE = "unsupported_source_language"
+    UNSUPPORTED_DETECTED_LANGUAGE = "unsupported_detected_language"
+    M2M100_MODEL_NOT_FOUND = "m2m100_model_not_found"
 
 
 EXIT_CODES = {
@@ -42,7 +45,10 @@ EXIT_CODES = {
     ErrorCode.NVENC_REQUIRED_UNAVAILABLE: 11,
     ErrorCode.RENDER_FAILED: 11,
     ErrorCode.DURATION_MISMATCH: 11,
-    ErrorCode.ARTIFACT_VALIDATION_FAILED: 11,
+    ErrorCode.    ARTIFACT_VALIDATION_FAILED: 11,
+    ErrorCode.UNSUPPORTED_SOURCE_LANGUAGE: 2,
+    ErrorCode.UNSUPPORTED_DETECTED_LANGUAGE: 2,
+    ErrorCode.M2M100_MODEL_NOT_FOUND: 7,
 }
 
 
