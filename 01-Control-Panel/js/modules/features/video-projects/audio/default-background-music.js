@@ -51,6 +51,16 @@ export const DEFAULT_BACKGROUND_MUSIC_TRACKS = [
     label: 'On a Mission',
     fileName: 'On-A-Mission.wav',
   }),
+  buildDefaultTrack({
+    id: 'epic-motivacional-golazo',
+    label: 'Epic Motivacional Golazo',
+    fileName: 'epic-motivacional-golazo.wav',
+  }),
+  buildDefaultTrack({
+    id: 'debate-golazo-polemico',
+    label: 'Debate Golazo Polemico',
+    fileName: 'debate-golazo-polemico.wav',
+  }),
 ];
 
 export const DEFAULT_BACKGROUND_MUSIC_TRACK_ID = 'musica-golazo';
