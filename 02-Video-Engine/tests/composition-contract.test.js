@@ -396,6 +396,8 @@ test("adapter preserves final render fidelity contract for audio sync, alpha log
   for (const { dustAssetId, dustRenderPath, logoRenderPath } of [
     { dustAssetId: "particle-1", dustRenderPath: "overlays/particle-1.mp4", logoRenderPath: "overlays/logo-demo-co-alpha-frames" },
     { dustAssetId: "particle-2", dustRenderPath: "overlays/particle-2.mp4", logoRenderPath: "overlays/logo-ecuador-alpha-frames" },
+    { dustAssetId: "particle-3", dustRenderPath: "overlays/particle-3.mp4", logoRenderPath: "overlays/logo-demo-co-alpha-frames" },
+    { dustAssetId: "particle-4", dustRenderPath: "overlays/particle-4.mp4", logoRenderPath: "overlays/logo-ecuador-alpha-frames" },
   ]) {
     const snapshot = {
       contractVersion: "approval-editor-service-v1",
@@ -561,7 +563,7 @@ test("adapter maps Mundial static PNG logo and original outro render assets", ()
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
       "brand-logo-demo-cup": { assetId: "brand-logo-demo-cup", type: "logo", renderPath: "overlays/logo-demo-cup.png", status: "ready" },
-      "brand-outro-mundial": { assetId: "brand-outro-mundial", type: "outro", renderPath: "overlays/final-demo-cup.mp4", durationSeconds: 29.3, status: "ready" },
+      "brand-outro-mundial": { assetId: "brand-outro-mundial", type: "outro", renderPath: "overlays/final-demo-cup.mp4", durationSeconds: 30.12, status: "ready" },
     },
     audio: {
       totalDurationSeconds: 6,
@@ -592,7 +594,7 @@ test("adapter maps Mundial static PNG logo and original outro render assets", ()
   assert.equal(props.logo.enabled, true);
   assert.equal(props.outro.enabled, true);
   assert.equal(props.outro.src, "overlays/final-demo-cup.mp4");
-  assert.equal(props.outro.durationSeconds, 29.3);
+  assert.equal(props.outro.durationSeconds, 30.12);
   assert.equal(props.compositionDurationSeconds, 8);
 });
 
