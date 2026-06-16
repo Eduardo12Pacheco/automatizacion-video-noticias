@@ -18,6 +18,8 @@ export const COMPOSITION_DUST_PREVIEW_URL = './assets/particle-1.webm';
 export const COMPOSITION_DUST_PREVIEW_URLS = {
   'particle-1': './assets/particle-1.webm',
   'particle-2': './assets/particle-2.webm',
+  'particle-3': './assets/particle-3.webm',
+  'particle-4': './assets/particle-4.webm',
 };
 export const COMPOSITION_LOCAL_LOGO_URL = './assets/logo-demo-alpha.webm';
 export const COMPOSITION_LOCAL_GREEN_LOGO_URL = '../02-Video-Engine/assets/overlays/logo-green.mp4';

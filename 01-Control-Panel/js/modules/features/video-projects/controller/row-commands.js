@@ -113,7 +113,7 @@ function isImageDustRow(row = {}) {
 }
 
 function normalizeDustPatch(dustType = 'none') {
-  const cleanType = ['particle-1', 'particle-2'].includes(dustType) ? dustType : 'none';
+  const cleanType = ['particle-1', 'particle-2', 'particle-3', 'particle-4'].includes(dustType) ? dustType : 'none';
   return {
     enabled: cleanType !== 'none',
     type: cleanType === 'none' ? 'particle-1' : cleanType,

@@ -234,6 +234,8 @@ function buildDustControl({ row, detail }) {
         <option value="none" ${detail.dustType === 'none' ? 'selected' : ''}>Sin polvo</option>
         <option value="particle-1" ${detail.dustType === 'particle-1' ? 'selected' : ''}>Polvo 1</option>
         <option value="particle-2" ${detail.dustType === 'particle-2' ? 'selected' : ''}>Polvo 2</option>
+        <option value="particle-3" ${detail.dustType === 'particle-3' ? 'selected' : ''}>Polvo 3</option>
+        <option value="particle-4" ${detail.dustType === 'particle-4' ? 'selected' : ''}>Polvo 4</option>
       </select>
       ${applyAllButton}
     </div>

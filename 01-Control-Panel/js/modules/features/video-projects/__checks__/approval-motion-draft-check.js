@@ -455,6 +455,33 @@ function runApplyDustToImageRowsPureCheck() {
   );
 }
 
+function runApplyDustToImageRowsRoundTripsDust3AndDust4Check() {
+  const rows = [
+    { id: 'row-image-a', mediaMode: 'image', dust: { enabled: false, type: 'particle-1' } },
+    { id: 'row-image-b', mediaMode: 'image', dust: { enabled: true, type: 'particle-1' } },
+  ];
+
+  const nextRows3 = applyDustToImageRows(rows, 'particle-3');
+  assertDeepEqual(
+    nextRows3.map((row) => ({ id: row.id, dust: row.dust })),
+    [
+      { id: 'row-image-a', dust: { enabled: true, type: 'particle-3', assetId: 'particle-3' } },
+      { id: 'row-image-b', dust: { enabled: true, type: 'particle-3', assetId: 'particle-3' } },
+    ],
+    'Expected apply-all dust to round-trip particle-3 to image rows',
+  );
+
+  const nextRows4 = applyDustToImageRows(rows, 'particle-4');
+  assertDeepEqual(
+    nextRows4.map((row) => ({ id: row.id, dust: row.dust })),
+    [
+      { id: 'row-image-a', dust: { enabled: true, type: 'particle-4', assetId: 'particle-4' } },
+      { id: 'row-image-b', dust: { enabled: true, type: 'particle-4', assetId: 'particle-4' } },
+    ],
+    'Expected apply-all dust to round-trip particle-4 to image rows',
+  );
+}
+
 async function runApprovalApplyDustAllQueuesImageRowsOnlyCheck() {
   const timers = createFakeTimers();
   try {
@@ -1128,6 +1155,7 @@ export async function runApprovalMotionDraftCheck() {
   runPatchLocalRowsCheck();
   runCanonicalDraftProtectionCheck();
   runApplyDustToImageRowsPureCheck();
+  runApplyDustToImageRowsRoundTripsDust3AndDust4Check();
   await runApprovalRowImageSwapPreservesAssetUrlsCheck();
   await runApprovalApplyDustAllQueuesImageRowsOnlyCheck();
   await runApprovalUpdateRowOptimisticPatchCheck();

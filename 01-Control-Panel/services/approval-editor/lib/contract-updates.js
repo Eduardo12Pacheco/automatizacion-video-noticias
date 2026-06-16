@@ -20,8 +20,8 @@ function findRow(snapshot, rowId) {
 }
 
 function normalizeDustType(value) {
-  if (value === "particle-1" || value === "particle-2") return value;
-  throw Object.assign(new Error("dust type must be particle-1 or particle-2"), { code: "invalid_dust_type" });
+  if (value === "particle-1" || value === "particle-2" || value === "particle-3" || value === "particle-4") return value;
+  throw Object.assign(new Error("dust type must be one of: particle-1, particle-2, particle-3, particle-4"), { code: "invalid_dust_type" });
 }
 
 function rowPhraseDuration(row) {
@@ -283,4 +283,4 @@ function applyContractOperations(snapshot, operations = []) {
   return finalize(next);
 }
 
-module.exports = { applyContractOperations };
+module.exports = { applyContractOperations, normalizeDustType };
