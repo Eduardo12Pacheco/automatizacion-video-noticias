@@ -386,7 +386,7 @@ test("brand channel registry resolves preview and render assets with legacy Ecua
   assert.equal(mundial.outro.assetId, "brand-outro-mundial");
   assert.equal(mundial.outro.previewPath, "final-demo-cup.webm");
   assert.equal(mundial.outro.renderPath, "overlays/final-demo-cup.mp4");
-  assert.equal(mundial.outro.durationSeconds, 29.3);
+  assert.equal(mundial.outro.durationSeconds, 30.12);
   assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "final-demo-cup", kind: "logo" }), "./assets/logo-demo-cup.png");
   assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "final-demo-cup", kind: "outro" }), "./assets/final-demo-cup.webm");
 
@@ -447,6 +447,6 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
   assert.equal(mundial.assets["brand-logo-demo-cup"].renderPath, "overlays/logo-demo-cup.png");
   assert.equal(mundial.assets["brand-outro-mundial"].previewUrl, "./assets/final-demo-cup.webm");
   assert.equal(mundial.assets["brand-outro-mundial"].renderPath, "overlays/final-demo-cup.mp4");
-  assert.equal(mundial.assets["brand-outro-mundial"].durationSeconds, 29.3);
+  assert.equal(mundial.assets["brand-outro-mundial"].durationSeconds, 30.12);
   assert.notEqual(computeApprovalSnapshotHash(ecuador), computeApprovalSnapshotHash(mundial));
 });
