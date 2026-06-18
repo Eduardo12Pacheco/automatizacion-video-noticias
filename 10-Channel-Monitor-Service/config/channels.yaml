@@ -671,3 +671,34 @@ countries:
       - url: https://www.youtube.com/channel/UC0oIWmIpp-tPRSNwPIgOJfA
         label: PODCAST PRVAK
         enabled: true
+
+  - code: pt
+    name: Portugal
+    channels:
+      - url: https://www.youtube.com/@Canal11Oficial
+        label: Canal 11 Oficial
+        enabled: true
+      - url: https://www.youtube.com/@sporttvportugal
+        label: Sport TV Portugal
+        enabled: true
+      - url: https://www.youtube.com/@DAZNPortugal
+        label: DAZN Portugal
+        enabled: true
+      - url: https://www.youtube.com/@zerozero
+        label: Zero Zero
+        enabled: true
+      - url: https://www.youtube.com/@renascencavmais
+        label: Renascença VMais
+        enabled: true
+      - url: https://www.youtube.com/@ABOLA_PT
+        label: A Bola PT
+        enabled: true
+      - url: https://www.youtube.com/@PlayPTpt
+        label: Play PT
+        enabled: true
+      - url: https://www.youtube.com/@LiveModeTV_PT
+        label: Live Mode TV PT
+        enabled: true
+      - url: https://www.youtube.com/@OResto%C3%A9Bola
+        label: O Resto é Bola
+        enabled: true
