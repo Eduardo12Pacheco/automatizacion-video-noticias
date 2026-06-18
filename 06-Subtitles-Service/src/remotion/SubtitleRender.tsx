@@ -13,6 +13,7 @@ type SubtitleStyle = {
   font_size?: number;
   font_weight?: string | number;
   max_width_px?: number;
+  stripe_enabled?: boolean;
 };
 
 type SubtitleLayout = {
@@ -92,7 +93,7 @@ const SubtitleOverlay: React.FC<{cue: SubtitleCue}> = ({cue}) => {
       style={{
         display: 'flex',
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: align === 'center' ? 'flex-end' : 'center',
         justifyContent: justifyContentForAlign(align),
         paddingLeft: previewOverlayPaddingX,
         paddingRight: previewOverlayPaddingX,
@@ -112,8 +113,8 @@ const SubtitleOverlay: React.FC<{cue: SubtitleCue}> = ({cue}) => {
           lineHeight: previewLineHeight,
           textTransform: 'uppercase',
           textAlign: 'center',
-          borderTop: `${previewStripeThickness}px solid currentColor`,
-          borderBottom: `${previewStripeThickness}px solid currentColor`,
+          borderTop: style.stripe_enabled !== false ? `${previewStripeThickness}px solid currentColor` : 'none',
+          borderBottom: style.stripe_enabled !== false ? `${previewStripeThickness}px solid currentColor` : 'none',
           padding: `${previewPaddingY}px 0`,
           textShadow: 'none',
           whiteSpace: lines.length > 0 ? 'pre' : 'normal',

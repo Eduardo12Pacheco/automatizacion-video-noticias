@@ -113,6 +113,11 @@ def coerce_editor_row(raw_row: dict[str, Any]) -> dict[str, Any]:
     layout = sanitize_layout(raw_row.get("layout") or style.get("layout"))
     if layout is not None:
         row["layout"] = layout
+    stripe_enabled = style.get("stripe_enabled")
+    if stripe_enabled is None:
+        stripe_enabled = raw_row.get("stripe_enabled")
+    if stripe_enabled is not None:
+        row["stripe_enabled"] = bool(stripe_enabled)
     return row
 
 
@@ -139,6 +144,7 @@ def build_render_subtitles_payload(rows: list[dict[str, Any]]) -> list[dict[str,
                 "align": align,
                 "left_px": left_px_for_align(align),
                 "max_width_px": max_width_px,
+                "stripe_enabled": bool(row.get("stripe_enabled", True)),
             },
         }
         layout = sanitize_layout(row.get("layout"))
