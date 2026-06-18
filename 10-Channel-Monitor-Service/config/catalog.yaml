@@ -26,6 +26,8 @@ countries:
     terms:
       - Argentina
       - la albiceleste
+      - la Albiceleste
+      - Albiceleste
       - selección argentina
       - seleccion argentina
       - selección de Argentina
@@ -55,6 +57,7 @@ countries:
       - la albirroja
       - selección paraguaya
       - seleccion paraguaya
+      - Paraguai
   - code: mexico
     terms:
       - México
@@ -90,6 +93,7 @@ players:
       - Moises Caicedo
       - Moise Caicedo
       - Caicedo
+      - Moses Caicedo
   - name: Enner Valencia
     country: ecuador
     aliases:
@@ -145,6 +149,7 @@ players:
       - Lucho Diaz
       - Díaz
       - Diaz
+      - Louis Diaz
   - name: James Rodríguez
     country: colombia
     aliases:
@@ -205,6 +210,7 @@ players:
       - Julian Álvarez
       - La Araña
       - La Arana
+      - Julian Alvarez
   - name: Lautaro Martínez
     country: argentina
     aliases:
@@ -212,6 +218,7 @@ players:
       - Lautaro Martinez
       - Toro Martínez
       - Toro Martinez
+      - Lautaro
   - name: Emiliano Martínez
     country: argentina
     aliases:
@@ -254,6 +261,7 @@ players:
       - Federico Valverde
       - Fede Valverde
       - Valverde
+      - Frederico Valverde
   - name: Darwin Núñez
     country: uruguay
     aliases:
@@ -262,6 +270,7 @@ players:
       - Núñez
       - Nunez
       - Darwin
+      - Darwin Nunez
   - name: Manuel Ugarte
     country: uruguay
     aliases:
@@ -375,6 +384,7 @@ players:
       - Santi Gimenez
       - Giménez
       - Gimenez
+      - Santiago
   - name: Guillermo Ochoa
     country: mexico
     aliases:

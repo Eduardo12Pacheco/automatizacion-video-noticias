@@ -5,6 +5,15 @@ countries:
       - url: https://www.youtube.com/@lequipe
         label: L'Équipe
         enabled: true
+      - url: https://www.youtube.com/@beINSPORTSFrance
+        label: beIN SPORTS France
+        enabled: true
+      - url: https://www.youtube.com/@LImmigreparisien
+        label: L'immigré parisien
+        enabled: true
+      - url: https://www.youtube.com/@rtl_france
+        label: RTL France
+        enabled: true
 
   - code: ar
     name: Argentina
@@ -101,6 +110,9 @@ countries:
         enabled: true
       - url: https://www.youtube.com/@diarioole
         label: Olé
+        enabled: true
+      - url: https://www.youtube.com/@RugeTV2
+        label: RugeTV Dos
         enabled: true
 
   - code: es
@@ -508,6 +520,12 @@ countries:
       - url: https://www.youtube.com/@skysportsfootball
         label: Sky Sports Football
         enabled: true
+      - url: https://www.youtube.com/@ITVSport
+        label: ITV Sport
+        enabled: true
+      - url: https://www.youtube.com/@talkSPORT
+        label: talkSPORT
+        enabled: true
 
   - code: ca
     name: Canadá
@@ -620,4 +638,36 @@ countries:
         enabled: true
       - url: https://www.youtube.com/@servustvONsport
         label: ServusTV On Sport
+        enabled: true
+      - url: https://www.youtube.com/channel/UCu1FJLH2dp7dwKoCCGFkaMg
+        label: SPORT BILD Fußball
+        enabled: true
+      - url: https://www.youtube.com/@MAGENTASPORT
+        label: MAGENTA SPORT
+        enabled: true
+      - url: https://www.youtube.com/@hrRTL
+        label: hrRTL
+        enabled: true
+
+  - code: ec
+    name: Ecuador
+    channels:
+      - url: https://www.youtube.com/@marca90
+        label: marca90
+        enabled: true
+      - url: https://www.youtube.com/@diblutv
+        label: DIBLUTV
+        enabled: true
+      - url: https://www.youtube.com/@kchradio
+        label: KCH Radio 90.9FM
+        enabled: true
+      - url: https://www.youtube.com/@LaRedonda593
+        label: La Redonda Tv
+        enabled: true
+
+  - code: hr
+    name: Croacia
+    channels:
+      - url: https://www.youtube.com/channel/UC0oIWmIpp-tPRSNwPIgOJfA
+        label: PODCAST PRVAK
         enabled: true
