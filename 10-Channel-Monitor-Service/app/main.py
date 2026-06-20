@@ -245,8 +245,28 @@ def create_app(
             metadata = channel_resolver.resolve_channel(url)
             youtube_channel_id = metadata.channel_id
             uploads_playlist_id = metadata.uploads_playlist_id
+            # The resolver always returns metadata; baseline is stamped by the
+            # canonical sync path. We deliberately leave baseline_started_at
+            # untouched so the SQL coalesce preserves any prior baseline.
+            baseline_started_at = None
         else:
-            uploads_playlist_id = _optional_text(payload.get("uploads_playlist_id"))
+            explicit_playlist = _optional_text(payload.get("uploads_playlist_id"))
+            existing = store.find_channel_by_youtube_id(youtube_channel_id or "")
+            # Bypass path: mirror the resolver-bypass derivation in
+            # channel_bootstrap._metadata_for_channel so brand-new channels
+            # created via the API do not end up with uploads_playlist_id=NULL
+            # (which makes them invisible to the catchup worker).
+            if explicit_playlist:
+                uploads_playlist_id = explicit_playlist
+            elif existing and existing.uploads_playlist_id:
+                uploads_playlist_id = existing.uploads_playlist_id
+            else:
+                uploads_playlist_id = f"UU{youtube_channel_id[2:]}" if youtube_channel_id and youtube_channel_id.startswith("UC") else None
+            # Stamp baseline_started_at only for brand-new channels so the
+            # catchup worker only ingests content published from this moment
+            # forward. For existing channels, pass None and let
+            # upsert_channel coalesce preserve any baseline already set.
+            baseline_started_at = _utc_now_iso() if existing is None else None
         record = store.upsert_channel(
             ChannelRecord(
                 country=country,
@@ -255,6 +275,7 @@ def create_app(
                 youtube_channel_id=youtube_channel_id or "",
                 uploads_playlist_id=uploads_playlist_id,
                 enabled=enabled,
+                baseline_started_at=baseline_started_at,
             )
         )
         return _channel_to_dict(record)
@@ -266,6 +287,7 @@ def create_app(
             country=_optional_text(payload.get("country")),
             label=_optional_text(payload.get("label")),
             enabled=payload.get("enabled") if "enabled" in payload else None,
+            uploads_playlist_id=_optional_text(payload.get("uploads_playlist_id")),
         )
         if record is None:
             raise _error("channel_not_found", f"Channel {channel_id} was not found", 404)

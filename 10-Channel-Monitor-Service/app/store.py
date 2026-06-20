@@ -672,6 +672,7 @@ class MonitorStore:
         country: str | None = None,
         label: str | None = None,
         enabled: bool | None = None,
+        uploads_playlist_id: str | None = None,
     ) -> ChannelRecord | None:
         existing = self.find_channel_by_id(channel_id)
         if existing is None:
@@ -682,7 +683,9 @@ class MonitorStore:
             label=label if label is not None else existing.label,
             source_url=existing.source_url,
             youtube_channel_id=existing.youtube_channel_id,
-            uploads_playlist_id=existing.uploads_playlist_id,
+            uploads_playlist_id=(
+                uploads_playlist_id if uploads_playlist_id is not None else existing.uploads_playlist_id
+            ),
             enabled=enabled if enabled is not None else existing.enabled,
             important=existing.important,
             priority_tier=existing.priority_tier,

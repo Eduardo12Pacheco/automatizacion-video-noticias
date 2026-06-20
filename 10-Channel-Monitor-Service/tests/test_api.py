@@ -1417,6 +1417,184 @@ def test_channel_management_contract_rejects_add_without_channel_source(tmp_path
     assert response.json()["detail"]["code"] == "missing_channel_source"
 
 
+# ---------------------------------------------------------------------------
+# Regression tests for the POST/PATCH channel-management API fix.
+#
+# The `channel_id` (resolver-bypass) path used to create channels with
+# uploads_playlist_id=NULL and baseline_started_at=NULL, making them
+# invisible to the catchup worker. The PATCH endpoint also did not accept
+# `uploads_playlist_id`, so an operator could not repair a broken channel
+# without touching the DB. These tests pin the API contract in place.
+# ---------------------------------------------------------------------------
+
+
+def test_post_channels_with_channel_id_derives_uploads_playlist_id(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=ExplodingChannelResolver()))
+
+    response = client.post(
+        "/api/monitor/channels",
+        headers={"x-api-key": "monitor-secret"},
+        json={"country": "us", "label": "Soccer on ESPN", "channel_id": "UC4Ck2X1L_hhoeK1tojW8PXA"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["youtube_channel_id"] == "UC4Ck2X1L_hhoeK1tojW8PXA"
+    # YouTube convention: uploads playlist id is "UU" + channel_id[2:].
+    assert body["uploads_playlist_id"] == "UU4Ck2X1L_hhoeK1tojW8PXA"
+    # Brand-new channel must have a fresh baseline so the catchup worker
+    # only ingests content published from this moment forward.
+    stored = store.find_channel_by_youtube_id("UC4Ck2X1L_hhoeK1tojW8PXA")
+    assert stored is not None
+    assert stored.baseline_started_at is not None
+    assert stored.baseline_started_at.endswith("Z")
+
+
+def test_post_channels_with_channel_id_preserves_existing_uploads_playlist_id(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    # Seed an existing channel with a custom uploads_playlist_id and a
+    # pre-existing baseline (e.g. set by a prior radar reset).
+    store.upsert_channel(
+        ChannelRecord(
+            country="gb",
+            label="The Overlap",
+            source_url=None,
+            youtube_channel_id="UCjXIw1GlwaY1IzpW_jN9iCQ",
+            uploads_playlist_id="UUcustom-override",
+            baseline_started_at="2025-01-01T00:00:00Z",
+        )
+    )
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=ExplodingChannelResolver()))
+
+    response = client.post(
+        "/api/monitor/channels",
+        headers={"x-api-key": "monitor-secret"},
+        json={"country": "gb", "label": "The Overlap renamed", "channel_id": "UCjXIw1GlwaY1IzpW_jN9iCQ"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    # The pre-existing custom playlist id must NOT be clobbered by the
+    # derived "UU" + channel_id[2:] value.
+    assert body["uploads_playlist_id"] == "UUcustom-override"
+    # The pre-existing baseline must be preserved (no fresh stamp on
+    # existing channels).
+    stored = store.find_channel_by_youtube_id("UCjXIw1GlwaY1IzpW_jN9iCQ")
+    assert stored is not None
+    assert stored.baseline_started_at == "2025-01-01T00:00:00Z"
+
+
+def test_post_channels_with_explicit_uploads_playlist_id_uses_payload_value(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=ExplodingChannelResolver()))
+
+    response = client.post(
+        "/api/monitor/channels",
+        headers={"x-api-key": "monitor-secret"},
+        json={
+            "country": "br",
+            "label": "Custom playlist channel",
+            "channel_id": "UCcustom-1234",
+            "uploads_playlist_id": "UUcustom-override-explicit",
+        },
+    )
+
+    assert response.status_code == 201
+    # The explicit payload value wins over the derived "UU" + channel_id[2:].
+    assert response.json()["uploads_playlist_id"] == "UUcustom-override-explicit"
+
+
+def test_post_channels_with_url_still_calls_resolver(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    resolver = FakeChannelResolver()
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=resolver))
+
+    response = client.post(
+        "/api/monitor/channels",
+        headers={"x-api-key": "monitor-secret"},
+        json={"country": "fr", "label": "L'Équipe", "url": "https://www.youtube.com/@lequipe"},
+    )
+
+    assert response.status_code == 201
+    assert resolver.calls == ["https://www.youtube.com/@lequipe"]
+    # The resolver-derived playlist id (not the "UU" fallback) is used.
+    assert response.json()["uploads_playlist_id"] == "UUlequipeStable"
+    # The url path leaves baseline_started_at untouched (the sync path
+    # handles baseline stamping for resolver-created channels).
+    stored = store.find_channel_by_youtube_id("UClequipeStable")
+    assert stored is not None
+    assert stored.baseline_started_at is None
+
+
+def test_patch_channels_accepts_uploads_playlist_id(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    # Seed a channel with uploads_playlist_id=NULL (the broken state the
+    # operator would want to repair via the API).
+    channel = store.upsert_channel(
+        ChannelRecord(
+            country="ar",
+            label="Broken channel",
+            source_url=None,
+            youtube_channel_id="UCbroken",
+            uploads_playlist_id=None,
+        )
+    )
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=ExplodingChannelResolver()))
+
+    response = client.patch(
+        f"/api/monitor/channels/{channel.id}",
+        headers={"x-api-key": "monitor-secret"},
+        json={"uploads_playlist_id": "UUbroken-fixed"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["uploads_playlist_id"] == "UUbroken-fixed"
+    # Confirm the change landed in the store.
+    stored = store.find_channel_by_id(channel.id)
+    assert stored is not None
+    assert stored.uploads_playlist_id == "UUbroken-fixed"
+
+
+def test_patch_channels_preserves_existing_uploads_playlist_id_when_not_provided(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    channel = store.upsert_channel(
+        ChannelRecord(
+            country="ar",
+            label="Healthy channel",
+            source_url=None,
+            youtube_channel_id="UChealthy",
+            uploads_playlist_id="UUhealthy-existing",
+        )
+    )
+    client = TestClient(create_app(settings=settings, store=store, channel_resolver=ExplodingChannelResolver()))
+
+    response = client.patch(
+        f"/api/monitor/channels/{channel.id}",
+        headers={"x-api-key": "monitor-secret"},
+        json={"label": "Renamed healthy channel"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["label"] == "Renamed healthy channel"
+    # The pre-existing playlist id is preserved when the field is not in
+    # the PATCH payload.
+    assert body["uploads_playlist_id"] == "UUhealthy-existing"
+
+
 def test_preflight_reports_configured_channels_without_syncing_handle_urls(tmp_path):
     channels_path = tmp_path / "channels.yaml"
     channels_path.write_text(
