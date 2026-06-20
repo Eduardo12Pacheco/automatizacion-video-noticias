@@ -511,9 +511,10 @@ class MonitorStore:
                 """
                 insert into channels(
                     country, label, source_url, youtube_channel_id, uploads_playlist_id,
-                    enabled, important, priority_tier, algorithm_priority_rank, important_mode, important_rules_json
+                    enabled, important, priority_tier, algorithm_priority_rank, important_mode, important_rules_json,
+                    baseline_started_at
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 on conflict(youtube_channel_id) do update set
                     country = excluded.country,
                     label = excluded.label,
@@ -525,6 +526,7 @@ class MonitorStore:
                     algorithm_priority_rank = excluded.algorithm_priority_rank,
                     important_mode = excluded.important_mode,
                     important_rules_json = excluded.important_rules_json,
+                    baseline_started_at = coalesce(excluded.baseline_started_at, channels.baseline_started_at),
                     updated_at = current_timestamp
                 """,
                 (
@@ -539,6 +541,7 @@ class MonitorStore:
                     record.algorithm_priority_rank,
                     record.important_mode,
                     _json_dumps_compact([_plain_json_value(rule) for rule in record.important_rules]) if record.important_rules else None,
+                    record.baseline_started_at,
                 ),
             )
             self._remember_channel_importance(record)

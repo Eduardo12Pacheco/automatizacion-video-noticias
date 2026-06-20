@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
 from .settings import ConfigFinding, load_channel_config, validate_channel_config
 from .store import ChannelRecord, MonitorStore
 from .youtube_client import ChannelMetadata
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 class ChannelResolver(Protocol):
@@ -61,6 +66,12 @@ def sync_configured_channels(
                 )
                 continue
             seen_channel_ids.add(stable_key)
+            existing = store.find_channel_by_youtube_id(stable_id)
+            # Stamp baseline_started_at only for brand-new channels so the catchup
+            # worker only sees content published from this moment forward. For
+            # existing channels, pass None and let upsert_channel coalesce to
+            # preserve any baseline already set (e.g. by a radar reset).
+            baseline_started_at = _utc_now_iso() if existing is None else None
             store.upsert_channel(
                 ChannelRecord(
                     country=country.code,
@@ -74,6 +85,7 @@ def sync_configured_channels(
                     important_rules=channel.important_rules,
                     priority_tier=channel.priority_tier,
                     algorithm_priority_rank=channel.algorithm_priority_rank,
+                    baseline_started_at=baseline_started_at,
                 )
             )
             synced_count += 1
@@ -95,10 +107,15 @@ def channel_sync_report_to_dict(report: ChannelSyncReport) -> dict[str, object]:
 def _metadata_for_channel(channel_id: str | None, url: str | None, store: MonitorStore, resolver: ChannelResolver) -> ChannelMetadata:
     if channel_id:
         existing = store.find_channel_by_youtube_id(channel_id)
+        derived_playlist_id = f"UU{channel_id[2:]}"  # YouTube convention: UC -> UU
         return ChannelMetadata(
             channel_id=channel_id,
             title=existing.label if existing else channel_id,
-            uploads_playlist_id=existing.uploads_playlist_id if existing else None,
+            uploads_playlist_id=(
+                existing.uploads_playlist_id
+                if existing and existing.uploads_playlist_id
+                else derived_playlist_id
+            ),
         )
     if not url:
         raise ValueError("Channel source is missing")
