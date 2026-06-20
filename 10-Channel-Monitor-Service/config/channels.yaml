@@ -512,6 +512,10 @@ countries:
       - url: https://www.youtube.com/@espnbrasil
         label: ESPN Brasil
         enabled: true
+      - url: https://www.youtube.com/@jovempanesportes/videos
+        label: Jovem Pan Esportes
+        channel_id: UCv-Nx8pSfG_LxbViMz14RWQ
+        enabled: true
 
   - code: gb
     name: Reino Unido
