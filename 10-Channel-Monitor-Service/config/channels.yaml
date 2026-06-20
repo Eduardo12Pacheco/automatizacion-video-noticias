@@ -490,12 +490,20 @@ countries:
       - url: https://www.youtube.com/@cbssportsgolazo
         label: CBS Sports Golazo
         enabled: true
+      - url: https://www.youtube.com/@SocceronESPN
+        label: Soccer on ESPN
+        channel_id: UC4Ck2X1L_hhoeK1tojW8PXA
+        enabled: true
 
   - code: nl
     name: Países Bajos
     channels:
       - url: https://www.youtube.com/@ESPNnl
         label: ESPN NL
+        enabled: true
+      - url: https://www.youtube.com/@1amstelveen/videos
+        label: 1Amstelveen
+        channel_id: UC4dDBMiTs_OmUN0ypfoJiCQ
         enabled: true
 
   - code: br
@@ -525,6 +533,10 @@ countries:
         enabled: true
       - url: https://www.youtube.com/@talkSPORT
         label: talkSPORT
+        enabled: true
+      - url: https://www.youtube.com/@TheOverlap
+        label: The Overlap
+        channel_id: UCjXIw1GlwaY1IzpW_jN9iCQ
         enabled: true
 
   - code: ca
@@ -701,4 +713,12 @@ countries:
         enabled: true
       - url: https://www.youtube.com/@OResto%C3%A9Bola
         label: O Resto é Bola
+        enabled: true
+
+  - code: pk
+    name: Pakistán
+    channels:
+      - url: https://www.youtube.com/@SPORTSADDICT24455/videos
+        label: SPORTS ADDICT
+        channel_id: UC3wwixCSDlZPR7vUYfringQ
         enabled: true
