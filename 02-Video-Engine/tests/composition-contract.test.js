@@ -1,0 +1,1198 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const { adaptCompositionContractToRenderProps, buildWhipRenderEvents } = require("../scripts/lib/composition-contract");
+const { computeApprovalSnapshotHash } = require("../../03-Contracts-Core/approval-contract-pipeline");
+
+function loadCompositionMotionResolver() {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const start = source.indexOf("const resolveMotionRange = ");
+  assert.notEqual(start, -1, "Composition.tsx must define resolveMotionRange");
+  const end = source.indexOf(";\n\nconst DustOverlay", start);
+  assert.notEqual(end, -1, "Composition.tsx motion resolver extraction boundary changed");
+  const snippet = source
+    .slice(start, end + 1)
+    .replace(/\?: TimelineSegment\["motion"\] \| null/, "");
+  return Function(`${snippet}; return resolveMotionRange;`)();
+}
+
+function loadPreviewMotionResolver() {
+  const source = fs.readFileSync(
+    path.join(__dirname, "../../01-Control-Panel/js/modules/features/video-projects/composition/renderer/frame-math.js"),
+    "utf8",
+  );
+  const constantsStart = source.indexOf("const ZOOM_SLOW_IN = ");
+  assert.notEqual(constantsStart, -1, "frame-math.js must define ZOOM_SLOW_IN");
+  const constantsEnd = source.indexOf(";", constantsStart);
+  assert.notEqual(constantsEnd, -1, "frame-math.js must define ZOOM_SLOW_IN boundary");
+  const start = source.indexOf("export function resolveZoomRange", constantsEnd);
+  assert.notEqual(start, -1, "frame-math.js must define resolveZoomRange");
+  const end = source.indexOf("\n}\n\nfunction resolveComparableUrl", start);
+  assert.notEqual(end, -1, "frame-math.js preview motion resolver extraction boundary changed");
+  const constantsSnippet = source.slice(constantsStart, constantsEnd + 1);
+  const functionSnippet = source.slice(start, end + 3).replace("export function resolveZoomRange", "function resolveZoomRange");
+  return Function(`${constantsSnippet}${functionSnippet}; return resolveZoomRange;`)();
+}
+
+function normalizePreviewMotionRange(range) {
+  return {
+    fromScale: range.from,
+    toScale: range.to,
+    fromX: range.fromX,
+    fromY: range.fromY,
+    toX: range.toX,
+    toY: range.toY,
+  };
+}
+
+function makeFixture() {
+  return {
+    contract: {
+      fps: 30,
+      renderProfile: { fps: 30 },
+      audio: {
+        voiceAssetId: "voice-1",
+        musicAssetId: "music-1",
+        voice: { volume: 0.8, muted: false },
+        music: { volume: 0.25, muted: false, loop: true, fadeInSeconds: 0.5, fadeOutSeconds: 1 },
+      },
+      segments: [
+        {
+          rowId: "row-1",
+          phrase: "Hola",
+          startTime: 0,
+          endTime: 1,
+          effectiveEndTime: 1.3,
+          selectedAssetId: "img-1",
+          motion: "slow-zoom-in",
+          dust: { enabled: true },
+          logo: { enabled: true },
+          filter: { enabled: true, mode: "cover" },
+          transition: "none",
+        },
+      ],
+      globalLayers: { logoAssetId: "logo-1", dustDefault: true, filterDefault: true },
+      outro: { enabled: true, durationSeconds: 2, label: "Gracias por mirar" },
+    },
+    manifest: {
+      version: 1,
+      assets: {
+        "img-1": { renderPath: "generated/images/uno.jpg", status: "ready" },
+        "voice-1": { renderPath: "generated/audio/voice.wav", status: "ready" },
+        "music-1": { renderPath: "generated/audio/music.wav", status: "ready" },
+        "logo-1": { renderPath: "generated/logo.png", status: "ready" },
+      },
+    },
+  };
+}
+
+test("adapter maps contract + manifest to renderPropsV2 shape", () => {
+  const { contract, manifest } = makeFixture();
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.schemaVersion, 2);
+  assert.equal(props.audio.voiceSrc, "generated/audio/voice.wav");
+  assert.equal(props.audio.musicSrc, "generated/audio/music.wav");
+  assert.equal(props.audio.voice.volume, 0.8);
+  assert.equal(props.audio.music.volume, 0.25);
+  assert.equal(props.segments[0].image, "generated/images/uno.jpg");
+  assert.equal(props.logo.src, "generated/logo.png");
+  assert.equal(props.outro.enabled, true);
+});
+
+test("adapter passes row motion image and pan viewport metadata when asset dimensions are absent", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments[0].motion = {
+    fromX: 0,
+    fromY: 267,
+    toX: 0,
+    toY: 341,
+    fromScale: 1,
+    toScale: 1.27,
+    imageWidth: 951,
+    imageHeight: 1171,
+    panViewportWidth: 950.53125,
+    panViewportHeight: 533.796875,
+  };
+  delete manifest.assets["img-1"].imageWidth;
+  delete manifest.assets["img-1"].imageHeight;
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 951);
+  assert.equal(props.segments[0].imageHeight, 1171);
+  assert.equal(props.segments[0].panViewportWidth, 950.53125);
+  assert.equal(props.segments[0].panViewportHeight, 533.796875);
+});
+
+test("adapter keeps manifest asset dimensions ahead of row motion image metadata", () => {
+  const { contract, manifest } = makeFixture();
+  manifest.assets["img-1"].imageWidth = 2400;
+  manifest.assets["img-1"].imageHeight = 3200;
+  contract.segments[0].motion = {
+    fromX: 0,
+    fromY: 267,
+    toX: 0,
+    toY: 341,
+    fromScale: 1,
+    toScale: 1.27,
+    imageWidth: 951,
+    imageHeight: 1171,
+    panViewportWidth: 950.53125,
+    panViewportHeight: 533.796875,
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 2400);
+  assert.equal(props.segments[0].imageHeight, 3200);
+  assert.equal(props.segments[0].panViewportWidth, 950.53125);
+  assert.equal(props.segments[0].panViewportHeight, 533.796875);
+});
+
+test("adapter rejects manual image motion when rows 6 and 7 reach render without complete geometry", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments = Array.from({ length: 7 }, (_, index) => {
+    const rowNumber = index + 1;
+    const assetId = `img-${rowNumber}`;
+    manifest.assets[assetId] = { renderPath: `generated/images/${assetId}.jpg`, status: "ready" };
+    return {
+      rowId: `seg-00${rowNumber}`,
+      phrase: `Fila ${rowNumber}`,
+      startTime: index,
+      endTime: index + 1,
+      effectiveEndTime: index + 1,
+      selectedAssetId: assetId,
+      media: { kind: "image" },
+      motion: rowNumber <= 5
+        ? { fromX: 0, fromY: rowNumber * 10, toX: 0, toY: rowNumber * 12, fromScale: 1, toScale: 1.2, imageWidth: 900 + index, imageHeight: 1200 + index, panViewportWidth: 950.53125, panViewportHeight: 533.796875 }
+        : { fromX: 0, fromY: rowNumber * 10, toX: 0, toY: rowNumber * 12, fromScale: 1, toScale: 1.2 },
+    };
+  });
+
+  assert.throws(
+    () => adaptCompositionContractToRenderProps({ contract, manifest }),
+    /geometry.*seg-006, seg-007/i,
+  );
+});
+
+test("adapter maps active outgoing-row Whip boundaries to render overlay and SFX events without changing duration", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-whip-active",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 3,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "img-2": { assetId: "img-2", renderPath: "imagenes/dos.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    rows: [
+      {
+        rowId: "row-1",
+        phrase: "Hola",
+        startTime: 0,
+        endTime: 1.5,
+        effectiveEndTime: 1.5,
+        selectedAssetId: "img-1",
+        paragraphBoundaryAfter: true,
+        nextRowId: "row-2",
+        transition: "whip",
+        transitionConfig: { type: "whip", durationSeconds: 0.5, direction: "left-to-right" },
+        sfx: { type: "whip", assetId: "whip", src: "sfx/sound-demo.wav" },
+        media: { kind: "image" },
+      },
+      {
+        rowId: "row-2",
+        phrase: "Mundo",
+        startTime: 1.5,
+        endTime: 3,
+        effectiveEndTime: 3,
+        selectedAssetId: "img-2",
+        media: { kind: "image" },
+      },
+    ],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.compositionDurationSeconds, 5);
+  assert.deepEqual(
+    props.segments.map((segment) => [segment.rowId, segment.startTime, segment.endTime]),
+    [["row-1", 0, 1.5], ["row-2", 1.5, 5]],
+  );
+  assert.equal(props.segments[0].sfx, "whip");
+  assert.deepEqual(props.whipTransitions, [
+    {
+      id: "row-1->row-2:whip:1.5",
+      type: "whip",
+      rowId: "row-1",
+      nextRowId: "row-2",
+      cutTime: 1.5,
+      startTime: 1.285,
+      durationSeconds: 0.43,
+      startFrame: 39,
+      cutFrame: 45,
+      sfxStartTime: 1.285,
+      sfxStartFrame: 39,
+      durationInFrames: 13,
+      previousImage: "imagenes/uno.jpg",
+      nextImage: "imagenes/dos.jpg",
+      direction: "left-to-right",
+      sfx: "whip",
+      sfxSrc: "sfx/sound-demo.wav",
+    },
+  ]);
+});
+
+test("adapter leaves eligible inactive Whip metadata inert", () => {
+  const rows = [
+    { rowId: "row-1", startTime: 0, endTime: 1, paragraphBoundaryAfter: true, nextRowId: "row-2", transition: "none", sfx: "whip", image: "one.jpg" },
+    { rowId: "row-2", startTime: 1, endTime: 2, image: "two.jpg" },
+  ];
+
+  assert.deepEqual(buildWhipRenderEvents(rows, { fps: 30 }), []);
+});
+
+test("adapter clamps Whip render duration to the preview-effective 0.43s window", () => {
+  const events = buildWhipRenderEvents([
+    {
+      rowId: "row-1",
+      startTime: 0,
+      endTime: 1.5,
+      paragraphBoundaryAfter: true,
+      nextRowId: "row-2",
+      transition: "whip",
+      transitionConfig: { type: "whip", durationSeconds: 0.8, direction: "left-to-right" },
+      image: "one.jpg",
+    },
+    { rowId: "row-2", startTime: 1.5, endTime: 3, image: "two.jpg" },
+  ], { fps: 30 });
+
+  assert.equal(events[0].durationSeconds, 0.43);
+  assert.equal(events[0].startTime, 1.285);
+  assert.equal(events[0].durationInFrames, 13);
+});
+
+test("adapter maps active Transition boundaries to overlay video render events with audio", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-transition-active",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 3,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "img-2": { assetId: "img-2", renderPath: "imagenes/dos.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    rows: [
+      {
+        rowId: "row-1",
+        phrase: "Hola",
+        startTime: 0,
+        endTime: 1.5,
+        effectiveEndTime: 1.5,
+        selectedAssetId: "img-1",
+        paragraphBoundaryAfter: true,
+        nextRowId: "row-2",
+        transition: "transition-3",
+        transitionConfig: { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/efecto-transition-3.mp4", renderPath: "overlays/efecto-transition-3.mp4", previewUrl: "./assets/boundary-transitions/efecto-transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true },
+        media: { kind: "image" },
+      },
+      { rowId: "row-2", phrase: "Mundo", startTime: 1.5, endTime: 3, effectiveEndTime: 3, selectedAssetId: "img-2", media: { kind: "image" } },
+    ],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.deepEqual(props.whipTransitions, [
+    {
+      id: "row-1->row-2:transition-3:1.5",
+      type: "overlay-video",
+      rowId: "row-1",
+      nextRowId: "row-2",
+      cutTime: 1.5,
+      startTime: 1,
+      durationSeconds: 1,
+      startFrame: 30,
+      cutFrame: 45,
+      sfxStartTime: 1,
+      sfxStartFrame: 30,
+      durationInFrames: 30,
+      previousImage: "imagenes/uno.jpg",
+      nextImage: "imagenes/dos.jpg",
+      direction: "left-to-right",
+      sfx: null,
+      sfxSrc: null,
+      assetId: "transition-3",
+      src: "overlays/efecto-transition-3.mp4",
+      blendMode: "screen",
+      audio: true,
+    },
+  ]);
+});
+
+test("adapter throws useful error when referenced asset is missing", () => {
+  const { contract, manifest } = makeFixture();
+  delete manifest.assets["img-1"];
+
+  assert.throws(
+    () => adaptCompositionContractToRenderProps({ contract, manifest }),
+    /missing.*img-1/i,
+  );
+});
+
+test("adapter rejects out-of-order overlapping contract rows before final render props", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments = [
+    { ...contract.segments[0], rowId: "seg-018", startTime: 97.7, endTime: 98.7, effectiveEndTime: 98.7, selectedAssetId: "img-1" },
+    { ...contract.segments[0], rowId: "seg-019", startTime: 88.74, endTime: 93.64, effectiveEndTime: 93.64, selectedAssetId: "img-2" },
+  ];
+  manifest.assets["img-2"] = { renderPath: "generated/images/dos.jpg", status: "ready" };
+
+  assert.throws(
+    () => adaptCompositionContractToRenderProps({ contract, manifest }),
+    /Invalid timeline:.*row seg-019 starts at 88\.74 before previous row seg-018 endTime 98\.7/is,
+  );
+});
+
+test("adapter uses effectiveEndTime for segment render end", () => {
+  const { contract, manifest } = makeFixture();
+  contract.segments[0].endTime = 1;
+  contract.segments[0].effectiveEndTime = 1.75;
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].endTime, 3.75);
+});
+
+test("adapter maps mute controls to zero volume semantics", () => {
+  const { contract, manifest } = makeFixture();
+  contract.audio.voice.muted = true;
+  contract.audio.music.muted = true;
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.audio.voice.volume, 0);
+  assert.equal(props.audio.music.volume, 0);
+});
+
+test("adapter preserves final render fidelity contract for audio sync, alpha logo, dust, motion, and segment duration", () => {
+  for (const { dustAssetId, dustRenderPath, logoRenderPath } of [
+    { dustAssetId: "particle-1", dustRenderPath: "overlays/particle-1.mp4", logoRenderPath: "overlays/logo-demo-co-alpha-frames" },
+    { dustAssetId: "particle-2", dustRenderPath: "overlays/particle-2.mp4", logoRenderPath: "overlays/logo-ecuador-alpha-frames" },
+    { dustAssetId: "particle-3", dustRenderPath: "overlays/particle-3.mp4", logoRenderPath: "overlays/logo-demo-co-alpha-frames" },
+    { dustAssetId: "particle-4", dustRenderPath: "overlays/particle-4.mp4", logoRenderPath: "overlays/logo-ecuador-alpha-frames" },
+  ]) {
+    const snapshot = {
+      contractVersion: "approval-editor-service-v1",
+      snapshotHash: `hash-${dustAssetId}`,
+      fps: 30,
+      audio: {
+        totalDurationSeconds: 7.25,
+        voice: { assetId: "voice-1", volume: 0.82, muted: false },
+        music: { assetId: "music-1", volume: 0.18, muted: false, loop: true, fadeInSeconds: 0.3, fadeOutSeconds: 1.1 },
+      },
+      globalLayers: {
+        logo: { enabled: true, assetId: "brand-logo" },
+        logoAssetId: "brand-logo",
+        outro: { enabled: true, assetId: "brand-outro" },
+        outroAssetId: "brand-outro",
+      },
+      assets: {
+        "image-1": { assetId: "image-1", type: "image", renderPath: "generated/images/one.jpg", status: "ready" },
+        "voice-1": { assetId: "voice-1", type: "audio", renderPath: "generated/audio/audio-48khz.wav", status: "ready" },
+        "music-1": { assetId: "music-1", type: "music", renderPath: "generated/audio/music.wav", status: "ready" },
+        "brand-logo": { assetId: "brand-logo", type: "logo", renderPath: logoRenderPath, status: "ready" },
+        "brand-outro": { assetId: "brand-outro", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+        [dustAssetId]: { assetId: dustAssetId, type: "overlay", renderPath: dustRenderPath, status: "ready" },
+      },
+      rows: [{
+        rowId: "row-1",
+        phrase: "Linea final",
+        startTime: 0,
+        endTime: 5,
+        effectiveEndTime: 5,
+        selectedAssetId: "image-1",
+        motion: { fromX: -8, fromY: 3, toX: 8, toY: -3, fromScale: 1.02, toScale: 1.18, easing: "linear", imageWidth: 2400, imageHeight: 3200, panViewportWidth: 950.53125, panViewportHeight: 533.796875 },
+        dust: { enabled: true, type: dustAssetId, opacity: 0.41, blendMode: "screen" },
+        logo: { enabled: true },
+        media: { kind: "image" },
+      }],
+    };
+
+    const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+    assert.equal(props.audio.voiceSrc, "generated/audio/audio-48khz.wav");
+    assert.equal(props.audio.musicSrc, "generated/audio/music.wav");
+    assert.equal(props.audio.voice.volume, 0.82);
+    assert.equal(props.audio.music.volume, 0.18);
+    assert.equal(props.audio.music.fadeOutSeconds, 1.1);
+    assert.equal(props.compositionDurationSeconds, 9.25);
+    assert.equal(props.segments[0].endTime, 9.25);
+    assert.deepEqual(props.segments[0].motion, { fromX: -8, fromY: 3, toX: 8, toY: -3, fromScale: 1.02, toScale: 1.18, easing: "linear" });
+    assert.equal(props.segments[0].imageWidth, 2400);
+    assert.equal(props.segments[0].imageHeight, 3200);
+    assert.equal(props.segments[0].panViewportWidth, 950.53125);
+    assert.equal(props.segments[0].panViewportHeight, 533.796875);
+    assert.equal(props.logo.src, logoRenderPath);
+    assert.equal(props.logo.enabled, true);
+    assert.equal(props.overlays.dust.src, dustRenderPath);
+    assert.equal(props.overlays.dust.opacity, 0.41);
+    assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
+    assert.equal(props.outro.durationSeconds, 30.16);
+  }
+});
+
+test("adapter maps approval editor V1 canonical snapshot fields for final render", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-v1",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "particle-2": { assetId: "particle-2", renderPath: "overlays/particle-2.webm", status: "ready" },
+      "logo-demo-alpha": { assetId: "logo-demo-alpha", renderPath: "logo-demo-alpha.webm", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 0.9, muted: false },
+      music: { assetId: "music-1", volume: 0.12, muted: false, loop: true, fadeInSeconds: 0.25, fadeOutSeconds: 0.75 },
+    },
+    globalLayers: { logo: { enabled: true, assetId: "logo-demo-alpha", source: "logo-demo-alpha.webm" } },
+    rows: [{
+      rowId: "row-1",
+      phrase: "Hola",
+      caption: "Hola caption",
+      startTime: 0,
+      endTime: 1,
+      effectiveEndTime: 1.5,
+      selectedAssetId: "img-1",
+      motionPresetId: "Zoom-125",
+      motion: { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear", imageWidth: 2400, imageHeight: 3200, panViewportWidth: 950.53125, panViewportHeight: 533.796875 },
+      dust: { enabled: true, type: "particle-2", assetId: "particle-2", opacity: 0.4, blendMode: "screen" },
+      logo: { enabled: true },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.lastRenderedSnapshotHash, "hash-v1");
+  assert.equal(props.segments[0].image, "imagenes/uno.jpg");
+  assert.deepEqual(props.segments[0].motion, { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear" });
+  assert.equal(props.segments[0].imageWidth, 2400);
+  assert.equal(props.segments[0].imageHeight, 3200);
+  assert.equal(props.segments[0].panViewportWidth, 950.53125);
+  assert.equal(props.segments[0].panViewportHeight, 533.796875);
+  assert.equal(props.overlays.dust.src, "overlays/particle-2.webm");
+  assert.equal(props.logo.src, "logo-demo-alpha.webm");
+  assert.equal(props.audio.voiceSrc, "audio/voice.wav");
+  assert.equal(props.audio.music.fadeOutSeconds, 0.75);
+});
+
+test("adapter maps channel logo and outro render assets from safe overlay paths", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-brand",
+    brandChannel: "golazo-colombia",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-logo-demo-co": { assetId: "brand-logo-demo-co", type: "logo", renderPath: "overlays/logo-demo-co.mp4", status: "ready" },
+      "brand-outro-colombia": { assetId: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 3.5, status: "ready" },
+    },
+    audio: {
+      totalDurationSeconds: 6,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    globalLayers: {
+      logo: { enabled: true, assetId: "brand-logo-demo-co", source: "logo-demo-co.webm" },
+      logoAssetId: "brand-logo-demo-co",
+      outro: { enabled: true, assetId: "brand-outro-colombia" },
+      outroAssetId: "brand-outro-colombia",
+    },
+    rows: [{
+      rowId: "row-1",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 4,
+      effectiveEndTime: 4,
+      selectedAssetId: "img-1",
+      media: { kind: "image" },
+      logo: { enabled: true },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.logo.src, "overlays/logo-demo-co.mp4");
+  assert.equal(props.logo.enabled, true);
+  assert.equal(props.outro.enabled, true);
+  assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
+  assert.equal(props.outro.durationSeconds, 3.5);
+  assert.equal(props.compositionDurationSeconds, 8);
+});
+
+test("adapter maps Mundial static PNG logo and original outro render assets", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-brand-mundial",
+    brandChannel: "final-demo-cup",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-logo-demo-cup": { assetId: "brand-logo-demo-cup", type: "logo", renderPath: "overlays/logo-demo-cup.png", status: "ready" },
+      "brand-outro-mundial": { assetId: "brand-outro-mundial", type: "outro", renderPath: "overlays/final-demo-cup.mp4", durationSeconds: 30.12, status: "ready" },
+    },
+    audio: {
+      totalDurationSeconds: 6,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.8, muted: false },
+    },
+    globalLayers: {
+      logo: { enabled: true, assetId: "brand-logo-demo-cup", source: "logo-demo-cup.png" },
+      logoAssetId: "brand-logo-demo-cup",
+      outro: { enabled: true, assetId: "brand-outro-mundial" },
+      outroAssetId: "brand-outro-mundial",
+    },
+    rows: [{
+      rowId: "row-1",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 4,
+      effectiveEndTime: 4,
+      selectedAssetId: "img-1",
+      media: { kind: "image" },
+      logo: { enabled: true },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.logo.src, "overlays/logo-demo-cup.png");
+  assert.equal(props.logo.enabled, true);
+  assert.equal(props.outro.enabled, true);
+  assert.equal(props.outro.src, "overlays/final-demo-cup.mp4");
+  assert.equal(props.outro.durationSeconds, 30.12);
+  assert.equal(props.compositionDurationSeconds, 8);
+});
+
+test("adapter prefers channel outro asset duration over stale contract duration", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-stale-outro-duration",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 50.26,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-outro-colombia": { assetId: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+    },
+    globalLayers: { outroAssetId: "brand-outro-colombia", outro: { enabled: true, assetId: "brand-outro-colombia" } },
+    outro: { enabled: true, durationSeconds: 3.56, label: "stale" },
+    rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 50.26, effectiveEndTime: 50.26, selectedAssetId: "img-1", media: { kind: "image" } }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.compositionDurationSeconds, 52.26);
+  assert.equal(props.outro.durationSeconds, 30.16);
+  assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
+});
+
+test("adapter rejects unsafe channel overlay render paths with diagnostics", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-unsafe",
+    brandChannel: "golazo-colombia",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-logo-demo-co": { assetId: "brand-logo-demo-co", type: "logo", renderPath: "../secret/logo.mp4", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    globalLayers: { logoAssetId: "brand-logo-demo-co", logo: { enabled: true, assetId: "brand-logo-demo-co" } },
+    rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 1, effectiveEndTime: 1, selectedAssetId: "img-1", media: { kind: "image" } }],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  assert.throws(
+    () => adaptCompositionContractToRenderProps({ contract: snapshot }),
+    /unsafe.*global\.logo/i,
+  );
+});
+
+test("adapter passes optional image dimensions from asset metadata to render segments", () => {
+  const { contract, manifest } = makeFixture();
+  manifest.assets["img-1"].width = 4000;
+  manifest.assets["img-1"].height = 2000;
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 4000);
+  assert.equal(props.segments[0].imageHeight, 2000);
+});
+
+test("adapter passes optional image dimensions from nested selected asset metadata", () => {
+  const { contract, manifest } = makeFixture();
+  manifest.assets["img-1"].metadata = { imageWidth: 2400, imageHeight: 3200 };
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, 2400);
+  assert.equal(props.segments[0].imageHeight, 3200);
+});
+
+test("adapter omits image dimensions when asset metadata is unavailable", () => {
+  const { contract, manifest } = makeFixture();
+
+  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+
+  assert.equal(props.segments[0].imageWidth, undefined);
+  assert.equal(props.segments[0].imageHeight, undefined);
+});
+
+test("Remotion motion resolver keeps string preset parity with preview", () => {
+  const resolveMotionRange = loadCompositionMotionResolver();
+  const resolvePreviewMotionRange = loadPreviewMotionResolver();
+
+  for (const preset of [
+    "still",
+    "none",
+    "slow-zoom",
+    "slow-zoom-in",
+    "slow-zoom-out",
+    "pan-left",
+    "pan-right",
+    "unknown-motion",
+  ]) {
+    assert.deepEqual(
+      resolveMotionRange(preset),
+      normalizePreviewMotionRange(resolvePreviewMotionRange(preset)),
+      `Expected Remotion motion preset ${preset} to match preview semantics`,
+    );
+  }
+});
+
+test("adapter preserves image selectedAssetId while mapping explicit video segment media", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-v1",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "video-1": { assetId: "video-1", renderPath: "videos/source.mp4", status: "ready" },
+      "overlay-layer-01": { assetId: "overlay-layer-01", renderPath: "overlays/overlay-layer-01.mp4", status: "ready" },
+      "overlay-layer-02": { assetId: "overlay-layer-02", renderPath: "overlays/overlay-layer-02.mp4", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    rows: [{
+      rowId: "row-1",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 2.5,
+      effectiveEndTime: 2.5,
+      selectedAssetId: "img-1",
+      media: {
+        kind: "video-segment",
+        sourceVideoAssetId: "video-1",
+        sourceInSeconds: 4,
+        durationSeconds: 2.5,
+        overlayColor: "#3835AF",
+        overlayOpacity: 0.3,
+        effect1AssetId: "overlay-layer-01",
+        effect2AssetId: "overlay-layer-02",
+      },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(snapshot.rows[0].selectedAssetId, "img-1");
+  assert.equal(props.segments[0].image, "imagenes/uno.jpg");
+  assert.deepEqual(props.segments[0].media, {
+    kind: "video-segment",
+    sourceVideoSrc: "videos/source.mp4",
+    sourceInSeconds: 4,
+    durationSeconds: 4.5,
+    sourceOutSeconds: 8.5,
+    overlayColor: "#3835AF",
+    overlayOpacity: 0.3,
+    effect1Src: "overlays/overlay-layer-01.mp4",
+    effect1BlendMode: "screen",
+    effect2Src: "overlays/overlay-layer-02.mp4",
+    effect2BlendMode: "multiply",
+  });
+});
+
+test("adapter passes video segment foreground transform through render media", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-v1",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "video-1": { assetId: "video-1", renderPath: "videos/source.mp4", status: "ready" },
+      "overlay-layer-01": { assetId: "overlay-layer-01", renderPath: "overlays/overlay-layer-01.mp4", status: "ready" },
+      "overlay-layer-02": { assetId: "overlay-layer-02", renderPath: "overlays/overlay-layer-02.mp4", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    rows: [{
+      rowId: "row-video",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 2.5,
+      effectiveEndTime: 2.5,
+      selectedAssetId: "img-1",
+      media: {
+        kind: "video-segment",
+        sourceVideoAssetId: "video-1",
+        sourceInSeconds: 4,
+        durationSeconds: 2.5,
+        foregroundTransform: { x: -42, y: 18, scale: 1.35 },
+      },
+    }],
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.deepEqual(props.segments[0].media.foregroundTransform, { x: -42, y: 18, scale: 1.35 });
+});
+
+test("adapter preserves newspaper media mode as an image-driven render segment", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-newspaper",
+    fps: 30,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    rows: [{
+      rowId: "row-news",
+      phrase: "Recreación",
+      startTime: 0,
+      endTime: 3,
+      effectiveEndTime: 3,
+      selectedAssetId: "img-1",
+      mediaMode: "newspaper",
+      media: { kind: "image" },
+    }],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.segments[0].mediaMode, "newspaper");
+  assert.equal(props.segments[0].image, "imagenes/uno.jpg");
+  assert.equal(props.segments[0].media.kind, "image");
+  assert.deepEqual(props.segments[0].motion, { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" });
+});
+
+test("stable approval snapshot hash ignores video-segment key order", () => {
+  const base = {
+    contractVersion: "approval-editor-service-v1",
+    projectId: "video-demo",
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "video-1": { assetId: "video-1", renderPath: "videos/source.mp4", status: "ready" },
+    },
+    rows: [{
+      rowId: "row-1",
+      selectedAssetId: "img-1",
+      startTime: 0,
+      endTime: 2,
+      media: { kind: "video-segment", sourceVideoAssetId: "video-1", sourceInSeconds: 1, durationSeconds: 2 },
+    }],
+  };
+  const reordered = {
+    rows: [{
+      media: { durationSeconds: 2, sourceInSeconds: 1, sourceVideoAssetId: "video-1", kind: "video-segment" },
+      endTime: 2,
+      startTime: 0,
+      selectedAssetId: "img-1",
+      rowId: "row-1",
+    }],
+    assets: {
+      "video-1": { status: "ready", renderPath: "videos/source.mp4", assetId: "video-1" },
+      "img-1": { status: "ready", renderPath: "imagenes/uno.jpg", assetId: "img-1" },
+    },
+    projectId: "video-demo",
+    contractVersion: "approval-editor-service-v1",
+  };
+
+  assert.equal(computeApprovalSnapshotHash(base), computeApprovalSnapshotHash(reordered));
+  assert.equal(base.rows[0].selectedAssetId, "img-1");
+});
+
+test("adapter maps video-segment render props with gapless timeline through full audio duration", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-v1",
+    fps: 30,
+    totalDurationSeconds: 5.25,
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "img-2": { assetId: "img-2", renderPath: "imagenes/dos.jpg", status: "ready" },
+      "video-1": { assetId: "video-1", renderPath: "videos/source.mp4", status: "ready" },
+      "overlay-layer-01": { assetId: "overlay-layer-01", renderPath: "overlays/overlay-layer-01.mp4", status: "ready" },
+      "overlay-layer-02": { assetId: "overlay-layer-02", renderPath: "overlays/overlay-layer-02.mp4", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    audio: {
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    rows: [
+      {
+        rowId: "row-1",
+        phrase: "Hola",
+        startTime: 0,
+        endTime: 2.25,
+        effectiveEndTime: 2.25,
+        selectedAssetId: "img-1",
+        media: {
+          kind: "video-segment",
+          sourceVideoAssetId: "video-1",
+          sourceInSeconds: 7.5,
+          durationSeconds: 2.25,
+          overlayColor: "#3835AF",
+          overlayOpacity: 0.3,
+          effect1AssetId: "overlay-layer-01",
+          effect2AssetId: "overlay-layer-02",
+        },
+      },
+      {
+        rowId: "row-2",
+        phrase: "Mundo",
+        startTime: 2.25,
+        endTime: 5.25,
+        effectiveEndTime: 5.25,
+        selectedAssetId: "img-2",
+        media: { kind: "image" },
+      },
+    ],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.compositionDurationSeconds, 7.25);
+  assert.deepEqual(
+    props.segments.map((segment) => [segment.startTime, segment.endTime]),
+    [[0, 2.25], [2.25, 7.25]],
+  );
+  assert.equal(props.segments[1].endTime, props.compositionDurationSeconds);
+  assert.deepEqual(props.segments[0].media, {
+    kind: "video-segment",
+    sourceVideoSrc: "videos/source.mp4",
+    sourceInSeconds: 7.5,
+    durationSeconds: 2.25,
+    sourceOutSeconds: 9.75,
+    overlayColor: "#3835AF",
+    overlayOpacity: 0.3,
+    effect1Src: "overlays/overlay-layer-01.mp4",
+    effect1BlendMode: "screen",
+    effect2Src: "overlays/overlay-layer-02.mp4",
+    effect2BlendMode: "multiply",
+  });
+});
+
+test("adapter keeps composition duration aligned when audio is longer than visual rows", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-v1",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 6,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+    },
+    rows: [{
+      rowId: "row-1",
+      phrase: "Hola",
+      startTime: 0,
+      endTime: 4.5,
+      effectiveEndTime: 4.5,
+      selectedAssetId: "img-1",
+      media: { kind: "image" },
+    }],
+    outro: { enabled: false, durationSeconds: 0, label: "" },
+  };
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.segments[0].endTime, 8);
+  assert.equal(props.compositionDurationSeconds, 8);
+});
+
+test("adapter uses actual channel outro asset duration and starts it after official audio duration", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-full-outro",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 10,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/audio-48khz.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-outro-colombia": { assetId: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+    },
+    globalLayers: { outroAssetId: "brand-outro-colombia", outro: { enabled: true, assetId: "brand-outro-colombia" } },
+    rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 4.5, effectiveEndTime: 4.5, selectedAssetId: "img-1", media: { kind: "image" } }],
+  };
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.compositionDurationSeconds, 12);
+  assert.equal(props.segments[0].endTime, 12);
+  assert.equal(props.outro.durationSeconds, 30.16);
+  assert.match(source, /outroStartFrame = Math\.max\(0, Math\.round\(compositionEnd \* fps\)\)/);
+});
+
+test("adapter and metadata include full audio duration plus deterministic channel outro timing", () => {
+  const snapshot = {
+    contractVersion: "approval-editor-service-v1",
+    snapshotHash: "hash-outro-duration",
+    fps: 30,
+    audio: {
+      totalDurationSeconds: 6,
+      voice: { assetId: "voice-1", volume: 1, muted: false },
+      music: { assetId: "music-1", volume: 0.15, muted: false },
+    },
+    assets: {
+      "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
+      "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
+      "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
+      "brand-outro-ecuador": { assetId: "brand-outro-ecuador", type: "outro", renderPath: "overlays/final-demo-ec.mp4", durationSeconds: 4, status: "ready" },
+    },
+    globalLayers: { outroAssetId: "brand-outro-ecuador", outro: { enabled: true, assetId: "brand-outro-ecuador" } },
+    rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 4.5, effectiveEndTime: 4.5, selectedAssetId: "img-1", media: { kind: "image" } }],
+  };
+  const rootSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Root.tsx"), "utf8");
+
+  const props = adaptCompositionContractToRenderProps({ contract: snapshot });
+
+  assert.equal(props.compositionDurationSeconds, 8);
+  assert.equal(props.outro.src, "overlays/final-demo-ec.mp4");
+  assert.equal(props.outro.durationSeconds, 4);
+  assert.match(rootSource, /compositionDurationSeconds \+ outroSeconds/);
+});
+
+test("Remotion country outro video keeps embedded audio while music spans final composition", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const offthreadVideoTags = Array.from(source.matchAll(/<OffthreadVideo\b([\s\S]*?)\/>/g), (match) => match[1]);
+  const outroVideoSource = offthreadVideoTags.find((tag) => tag.includes('data-layer="channel-outro-video"'));
+  const effectLayerOneSource = source.match(/data-layer="overlay-layer-01"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
+  const effectLayerTwoSource = source.match(/data-layer="overlay-layer-02"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
+  const foregroundVideoSource = offthreadVideoTags.find((tag) => tag.includes('data-layer="foreground-video"'));
+
+  assert.ok(outroVideoSource, "country outro must render an OffthreadVideo layer");
+  assert.doesNotMatch(outroVideoSource, /\bmuted\b/, "country outro must not force-mute embedded audio");
+  assert.match(source, /outroStartFrame = Math\.max\(0, Math\.round\(compositionEnd \* fps\)\)/);
+  assert.match(source, /totalFrames[\s\S]*outroStartFrame \+ \(outro\?\.enabled === false \? 0 : outroFrames\)/);
+  assert.match(source, /getFadedMusicVolume\([\s\S]*totalFrames,/);
+  assert.match(effectLayerOneSource?.[1] || "", /\bmuted\b/, "effect layer 01 must remain muted");
+  assert.match(effectLayerTwoSource?.[1] || "", /\bmuted\b/, "effect layer 02 must remain muted");
+  assert.match(foregroundVideoSource || "", /\bmuted\b/, "foreground segment video must remain muted");
+});
+
+test("Remotion composition renders Whip overlay and independent SFX sequences from render props", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const assetPath = path.join(__dirname, "../public/sfx/sound-demo.wav");
+
+  assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/sound-demo.wav");
+  assert.match(source, /type WhipTransitionEvent = \{/);
+  assert.match(source, /const WhipOverlay = /);
+  assert.match(source, /const BoundaryVideoOverlay = /);
+  assert.match(source, /data-layer="boundary-video-transition"/);
+  assert.match(source, /data-layer="boundary-video-transition-video"/);
+  assert.match(source, /const WHIP_TRANSITION_DURATION_SECONDS = 0\.43/);
+  assert.match(source, /const WHIP_SMEAR_SAMPLE_COUNT = 7/);
+  assert.match(source, /const easeInOutCubic = /);
+  assert.match(source, /Math\.sin\(progress \* Math\.PI\)/);
+  assert.match(source, /eased \* 120/);
+  assert.match(source, /-35 \+ eased \* 35/);
+  assert.match(source, /intensity \* 10/);
+  assert.match(source, /buildWhipSmearSamples/);
+  assert.match(source, /data-layer="whip-previous"/);
+  assert.match(source, /data-layer="whip-next"/);
+  assert.doesNotMatch(source, /data-layer="whip-previous-image"/);
+  assert.doesNotMatch(source, /data-layer="whip-next-image"/);
+  assert.match(source, /filter: `blur\(\$\{blur\}px\)/);
+  assert.match(source, /whipTransitions\.map\(\(transition\) => \(/);
+  assert.match(source, /transition\.type === "overlay-video" \? <BoundaryVideoOverlay transition=\{transition\} \/> : <WhipOverlay transition=\{transition\} \/>/);
+  assert.match(source, /transition\.type === "overlay-video" && transition\.audio === true && Boolean\(transition\.src\)/);
+  assert.match(source, /<Audio src=\{staticFile\(transition\.src\)\} volume=\{0\.9\} \/>/);
+  assert.match(source, /whipTransitions\.filter\(\(transition\): transition is WhipTransitionEvent & \{ sfx: "whip"; sfxSrc: string \} => transition\.sfx === "whip" && Boolean\(transition\.sfxSrc\)\)/);
+  assert.match(source, /from=\{transition\.sfxStartFrame \?\? transition\.startFrame\}/);
+  assert.doesNotMatch(source, /from=\{transition\.cutFrame\}/);
+  assert.match(source, /<Audio src=\{staticFile\(transition\.sfxSrc\)\}/);
+});
+
+test("Remotion final image and overlay source keeps preview fidelity rules", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+
+  assert.match(source, /objectFit: "cover",\n\s*filter: segment\.filter/, "image render must preserve aspect ratio like preview, not stretch with object-fit fill");
+  assert.match(source, /panViewportWidth: segment\.panViewportWidth \?\? segment\.imageWidth/, "manual pan offsets must be scaled from the browser preview viewport before final render");
+  assert.match(source, /panViewportHeight: segment\.panViewportHeight \?\? \(segment\.imageWidth \? segment\.imageWidth \* \(VIEWPORT_HEIGHT \/ VIEWPORT_WIDTH\) : undefined\)/, "final render must infer the 16:9 preview pan basis when the contract has only image dimensions");
+  assert.match(source, /<DustOverlay layer=\{dustLayer\} startFrom=\{0\} \/>/, "dust video must start from local segment time so it remains visible on later rows");
+  assert.match(source, /<LogoOverlay logo=\{logo\} startFrom=\{0\} \/>/, "logo video must start from local segment time so it remains visible on later rows");
+  assert.doesNotMatch(source, /absoluteStartFrame/, "final render should not trim reusable overlay videos by absolute row time inside segment sequences");
+  assert.match(source, /data-layer="green-screen-logo-video"/, "green-screen brand logo must use the full-frame logo render path instead of shrinking the whole video into a small badge box");
+  assert.match(source, /isGreenScreenLogoSource/, "green-screen logo sources must have an explicit render branch");
+  assert.match(source, /logo-demo-co\(\?:-keyed\)\?/, "keyed Colombia logo must use the full-frame branch instead of badge sizing");
+  assert.match(source, /data-layer="alpha-logo-frame-sequence"/, "alpha PNG logo frame sequence must render full-frame with real transparency");
+  assert.match(source, /logo-\(\?:colombia\|ecuador\)-alpha-frames/, "both country logos must support alpha PNG frame sequences");
+  assert.match(source, /logoFrameSequenceSrc\(logo\.src, frame\)/, "alpha logo frame sequence must advance by Remotion frame");
+});
+
+test("Remotion composition source contains newspaper visual mode parity branch", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const localFontPath = path.join(__dirname, "../public/fonts/versa/Demo-Display.woff2");
+
+  assert.ok(fs.existsSync(localFontPath), "Remotion render must ship the local Versa Versa WOFF2 font asset");
+  assert.match(source, /mediaMode\?: "image" \| "newspaper"/);
+  assert.match(source, /const NewspaperScene = /);
+  assert.match(source, /data-layer="newspaper-background"/);
+  assert.match(source, /const NEWSPAPER_BACKGROUND_BLUR = 15/);
+  assert.match(source, /filter: `blur\(\$\{NEWSPAPER_BACKGROUND_BLUR\}px\)`/);
+  assert.match(source, /data-layer="newspaper-background"[\s\S]*objectFit: "cover",[\s\S]*objectPosition: "center top"/);
+  assert.match(source, /data-layer="newspaper-foreground"[\s\S]*objectFit: "contain",[\s\S]*objectPosition: "center center"/);
+  assert.match(source, /data-layer="newspaper-foreground"[\s\S]*transformOrigin: "center center"/);
+  assert.match(source, /toScale:\s*1\.1/);
+  assert.match(source, /const NEWSPAPER_LABEL_FONT_FAMILY = "\\\"Versa Versa\\\", Versa, VERSA, Inter, Arial, sans-serif"/);
+  assert.match(source, /staticFile\("fonts\/versa\/Demo-Display\.woff2"\)/);
+  assert.match(source, /@font-face[\s\S]*font-family: "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"[\s\S]*font-display: block/);
+  assert.match(source, /const NEWSPAPER_LABEL_FONT_SIZE = 40/);
+  assert.match(source, /delayRender\("Loading Versa Versa newspaper font"\)/);
+  assert.match(source, /new FontFace\(\s*NEWSPAPER_LOCAL_FONT_FAMILY/);
+  assert.match(source, /document\.fonts\.load\(`900 \$\{NEWSPAPER_LABEL_FONT_SIZE\}px "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"`\)/);
+  const renderScriptSource = fs.readFileSync(path.join(__dirname, "../scripts/render/render-video.js"), "utf8");
+  assert.match(renderScriptSource, /const projectFontsDir = path\.join\(publicDir, "fonts", "versa"\)/);
+  assert.match(renderScriptSource, /fs\.copyFileSync\(repoVersaFontPath, projectVersaFontPath\)/);
+  const previewFrameMathSource = fs.readFileSync(path.join(__dirname, "../../01-Control-Panel/js/modules/features/video-projects/composition/renderer/frame-math.js"), "utf8");
+  assert.match(previewFrameMathSource, /const NEWSPAPER_LABEL_FONT_SIZE = 18/, "preview keeps the 1280px editor label size while Remotion scales the label for the 1920px final output");
+  assert.match(source, /const NEWSPAPER_LABEL_LINE_HEIGHT = 1\.12/);
+  assert.match(source, /fontFamily: NEWSPAPER_LABEL_FONT_FAMILY/);
+  assert.match(source, /fontSize: NEWSPAPER_LABEL_FONT_SIZE/);
+  assert.match(source, /lineHeight: NEWSPAPER_LABEL_LINE_HEIGHT/);
+  assert.match(source, /const NEWSPAPER_LABEL_TOP = 40/);
+  assert.match(source, /const NEWSPAPER_LABEL_RIGHT = 40/);
+  assert.match(source, /left: "auto"/);
+  assert.match(source, /right: NEWSPAPER_LABEL_RIGHT/);
+  assert.match(source, /top: NEWSPAPER_LABEL_TOP/);
+  assert.match(source, /background: "transparent"/);
+  assert.match(source, /padding: 0/);
+  assert.match(source, /borderRadius: 0/);
+  assert.match(source, /transform: "none"/);
+  assert.match(source, /textAlign: "center"/);
+  assert.match(source, /RECREACIÓN/);
+  assert.match(source, /ARTÍSTICA/);
+});
+
+test("Remotion composition source contains deterministic five-layer VideoSegmentScene", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const rootSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Root.tsx"), "utf8");
+
+  assert.match(source, /type VideoSegmentMedia = \{/);
+  assert.match(source, /const VideoSegmentScene = /);
+  assert.match(source, /segment\.media\?\.kind === "video-segment"[\s\S]*?<VideoSegmentScene media=\{segment\.media\} fps=\{fps\} \/>[\s\S]*?segment\.logo\?\.enabled !== false \? <LogoOverlay logo=\{logo\} startFrom=\{0\} \/> : null/, "video segments must render the same active brand logo overlay as image and newspaper segments");
+  assert.match(source, /startFrom=\{Math\.round\(media\.sourceInSeconds \* fps\)\}/);
+  assert.match(source, /durationInFrames=\{durationInFrames\}/);
+  assert.match(source, /background-video/);
+  assert.match(source, /color-overlay/);
+  assert.match(source, /overlay-layer-01/);
+  assert.match(source, /overlay-layer-02/);
+  assert.match(source, /foreground-video/);
+  assert.match(source, /foregroundTransform\?: \{ x\?: number; y\?: number; scale\?: number \}/);
+  assert.match(source, /transform: `translate\(\$\{foregroundTransform\.x\}px, \$\{foregroundTransform\.y\}px\) scale\(\$\{foregroundTransform\.scale\}\)`/);
+  assert.match(source, /transformOrigin: "center center"/);
+  assert.match(source, /mixBlendMode: media\.effect1BlendMode \?\? "screen"/);
+  assert.match(source, /mixBlendMode: media\.effect2BlendMode \?\? "multiply"/);
+  assert.match(source, /backgroundColor: media\.overlayColor \?\? "#3835AF"/);
+  assert.match(source, /opacity: media\.overlayOpacity \?\? 0\.3/);
+  assert.match(rootSource, /compositionDurationSeconds/);
+});
+
+test("Remotion video-segment source stays lint and type compatible", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const segmentSceneStart = source.indexOf("const SegmentScene = ");
+  const segmentSceneEnd = source.indexOf(";\n\nexport const MyComposition", segmentSceneStart);
+  assert.notEqual(segmentSceneStart, -1, "Composition.tsx must define SegmentScene");
+  assert.notEqual(segmentSceneEnd, -1, "Composition.tsx SegmentScene extraction boundary changed");
+  const segmentSceneSource = source.slice(segmentSceneStart, segmentSceneEnd);
+  const frameHookIndex = segmentSceneSource.indexOf("const frame = useCurrentFrame();");
+  const videoBranchIndex = segmentSceneSource.indexOf("segment.media?.kind === \"video-segment\"");
+  const effectLayerOneSource = source.match(/data-layer="overlay-layer-01"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
+  const effectLayerTwoSource = source.match(/data-layer="overlay-layer-02"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
+
+  assert.notEqual(frameHookIndex, -1, "SegmentScene must read the current frame for image motion");
+  assert.notEqual(videoBranchIndex, -1, "SegmentScene must keep the video-segment branch");
+  assert.ok(
+    frameHookIndex < videoBranchIndex,
+    "useCurrentFrame must be called before the video-segment branch so hooks stay unconditional",
+  );
+  assert.doesNotMatch(source, /from=\{0\}/, "Sequence must omit default from={0}");
+  assert.ok(effectLayerOneSource, "overlay-layer-01 must render an OffthreadVideo");
+  assert.ok(effectLayerTwoSource, "overlay-layer-02 must render an OffthreadVideo");
+  assert.doesNotMatch(effectLayerOneSource[1], /\bloop\b/, "overlay-layer-01 OffthreadVideo must not use unsupported loop prop");
+  assert.doesNotMatch(effectLayerTwoSource[1], /\bloop\b/, "overlay-layer-02 OffthreadVideo must not use unsupported loop prop");
+});
