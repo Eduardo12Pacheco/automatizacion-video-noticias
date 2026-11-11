@@ -47,13 +47,14 @@ The inventory distinguishes repository-proven paths from `REQUIRES PRIVATE INVEN
 
 Never commit `.env` files, private keys, cookies, API tokens, or credential exports. The root `.gitignore` explicitly keeps `.env.example`, `.env.template`, and the reviewed sanitized n8n workflow exports eligible for version control while ignoring actual environment files and credential exports.
 
-The following sanitized workflow exports are versioned as importable operational fixtures. They contain no credentials and do not replace an n8n Docker-volume backup.
+One sanitized historical workflow export is versioned for reference during the
+local-first migration. It has placeholders instead of secrets and does not
+restore credentials, accounts or an n8n Docker-volume backup. See the
+[import limitations](examples/n8n/README.md) before using it.
 
 | Path | Purpose |
 |---|---|
-| `local/n8n/import/workflows.json` | Sanitized n8n workflow import file |
-| `local/n8n/files/workflows-clean.json` | Sanitized workflow export |
-| `local/n8n/files/workflows-final.json` | Sanitized workflow export |
+| `examples/n8n/workflows.json` | Single historical reference containing all 16 workflow definitions |
 
 The following local credential exports are intentionally untracked and must remain in an encrypted backup location:
 
@@ -81,7 +82,7 @@ Typical non-Git asset locations include `local/models/`, `05-Voice-TTS-Service/m
 |---|---|---|---|
 | n8n Docker volume | Docker volume `n8n_data` | Encrypted volume backup | Starting n8n when historical executions/settings matter |
 | n8n encryption key | Local `local/n8n/.env` | Encrypted secret backup | Importing or reading n8n credentials |
-| Sanitized n8n workflow exports | `local/n8n/import/workflows.json`, `local/n8n/files/workflows-clean.json`, `local/n8n/files/workflows-final.json` | Versioned operational fixtures; verify they remain credential-free | Importing reviewed workflow definitions |
+| Sanitized n8n workflow reference | `examples/n8n/workflows.json` | Versioned fixture; review placeholders and external adapters before importing | Inspecting historical workflow definitions |
 | n8n credential exports | `local/n8n/import/credentials.json`, `local/n8n/files/credentials-clean.json`, `local/n8n/files/credentials-final.json` | Encrypted backup; never Git | Importing or reading n8n credentials |
 | Approval Editor snapshots/audio/output | `01-Control-Panel/services/approval-editor/projects/` | Project-state backup | Opening existing video projects |
 | Video render project state/output | `02-Video-Engine/projects/` | Project-state and asset backup | Re-rendering existing projects |

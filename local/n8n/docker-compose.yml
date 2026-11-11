@@ -12,7 +12,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ./files:/files
-      - ./import:/import:ro
+      - ../../examples/n8n:/import:ro
 
 volumes:
   n8n_data:
