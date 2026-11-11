@@ -27,7 +27,7 @@ assembler:
     trim_trailing: true
 
 generation:
-  model_name: Qwen/Qwen3-TTS-12Hz-1.7B-Base
+  model_name: <WORKSPACE>\Desktop\n8n\local\models\qwen3-tts-12hz-1.7b-base
   language: Spanish
   use_flash_attention: false
   dtype: bfloat16

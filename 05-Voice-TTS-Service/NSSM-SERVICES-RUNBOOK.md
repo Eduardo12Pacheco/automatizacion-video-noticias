@@ -41,6 +41,15 @@ tts-worker (FastAPI, 127.0.0.1:8091)
 src/main.py + Qwen3-TTS (RTX local)
 ```
 
+Los scripts de servicio usan los entrypoints canónicos del paquete:
+
+```powershell
+python -m uvicorn voice_tts_service.api.worker_app:app --host 127.0.0.1 --port 8091
+python -m uvicorn voice_tts_service.api.orchestrator_app:app --host 127.0.0.1 --port 8088
+```
+
+`tts-worker/app.py`, `tts-orchestrator/app.py` y `src/main.py` siguen presentes solo como compatibilidad deprecada; no borrar sin aprobación manual de runtime.
+
 ---
 
 ## 3) Prerrequisitos
@@ -75,10 +84,10 @@ winget install --id ChrisBagwell.SoX -e
   Instala/actualiza servicios con NSSM, recovery policy, logs y auto-start.
 
 - `scripts/run-worker.ps1`  
-  Levanta worker con `.venv-qwen` en `127.0.0.1:8091`.
+  Levanta worker con `.venv-qwen` en `127.0.0.1:8091` usando `voice_tts_service.api.worker_app:app`.
 
 - `scripts/run-orchestrator.ps1`  
-  Levanta orchestrator en `127.0.0.1:8088`.
+  Levanta orchestrator en `127.0.0.1:8088` usando `voice_tts_service.api.orchestrator_app:app`.
 
 - `scripts/run-tunnel.ps1`  
   Levanta cloudflared con `--config`, `--origincert`, `--credentials-file` explícitos.
@@ -94,7 +103,7 @@ En PowerShell Admin:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass -Force
-& "<WORKSPACE>\Desktop\n8n\voice-lab-qwen\scripts\install-services.ps1"
+& "<WORKSPACE>\Desktop\n8n\05-Voice-TTS-Service\scripts\install-services.ps1"
 ```
 
 Servicios creados:
@@ -144,7 +153,7 @@ Invoke-WebRequest "https://tts-api.example.local/healthz" -UseBasicParsing
 ### Check rápido (script nuevo)
 
 ```powershell
-& "<WORKSPACE>\Desktop\n8n\voice-lab-qwen\scripts\check-services.ps1"
+& "<WORKSPACE>\Desktop\n8n\05-Voice-TTS-Service\scripts\check-services.ps1"
 ```
 
 ---

@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from .audio import FfmpegAudioExtractor
 from .catalog import get_catalog_summary
-from .downloader import YtDlpDownloader, validate_media_url
+from .downloader import RemoteFetcherDownloader, YtDlpDownloader, validate_media_url
 from .models import HealthResponse, HistoryResponse, JobCreateRequest, JobCreateResponse
 from .preflight import PreflightChecker, collect_preflight_failures
 from .settings import Settings, load_settings
@@ -29,6 +29,46 @@ def _authorize(settings: Settings, api_key: str | None) -> None:
         raise _error("unauthorized", "Invalid or missing API key", 401)
 
 
+def create_downloader(settings: Settings, *, remote_opener: Any | None = None):
+    mode = (settings.transcript_fetch_mode or "local").strip().casefold()
+    if mode == "local":
+        return YtDlpDownloader(
+            binary=settings.yt_dlp_binary,
+            timeout_seconds=settings.subprocess_timeout_seconds,
+            cookies_path=settings.yt_dlp_cookies_path,
+            js_runtime=settings.yt_dlp_js_runtime,
+            remote_components=settings.yt_dlp_remote_components,
+            max_filesize=settings.yt_dlp_max_filesize,
+            max_duration_seconds=settings.yt_dlp_max_duration_seconds,
+            socket_timeout_seconds=settings.yt_dlp_socket_timeout_seconds,
+            retries=settings.yt_dlp_retries,
+            fragment_retries=settings.yt_dlp_fragment_retries,
+            resolve_media_host=settings.media_url_dns_check,
+        )
+    if mode == "remote_only":
+        if not settings.transcript_remote_fetcher_url:
+            raise DependencyFailure(
+                "remote_fetcher_config_missing",
+                "TRANSCRIPT_REMOTE_FETCHER_URL is required when TRANSCRIPT_FETCH_MODE=remote_only",
+            )
+        if not settings.transcript_remote_fetcher_token:
+            raise DependencyFailure(
+                "remote_fetcher_config_missing",
+                "TRANSCRIPT_REMOTE_FETCHER_TOKEN is required when TRANSCRIPT_FETCH_MODE=remote_only",
+            )
+        return RemoteFetcherDownloader(
+            fetcher_url=settings.transcript_remote_fetcher_url,
+            token=settings.transcript_remote_fetcher_token,
+            opener=remote_opener,
+            timeout_seconds=settings.subprocess_timeout_seconds,
+            resolve_media_host=settings.media_url_dns_check,
+        )
+    raise DependencyFailure(
+        "invalid_transcript_fetch_mode",
+        "TRANSCRIPT_FETCH_MODE must be local or remote_only",
+    )
+
+
 def create_app(
     *,
     settings: Settings | None = None,
@@ -43,19 +83,7 @@ def create_app(
     worker = worker or TranscriptWorker(
         settings=settings,
         store=store,
-        downloader=YtDlpDownloader(
-            binary=settings.yt_dlp_binary,
-            timeout_seconds=settings.subprocess_timeout_seconds,
-            cookies_path=settings.yt_dlp_cookies_path,
-            js_runtime=settings.yt_dlp_js_runtime,
-            remote_components=settings.yt_dlp_remote_components,
-            max_filesize=settings.yt_dlp_max_filesize,
-            max_duration_seconds=settings.yt_dlp_max_duration_seconds,
-            socket_timeout_seconds=settings.yt_dlp_socket_timeout_seconds,
-            retries=settings.yt_dlp_retries,
-            fragment_retries=settings.yt_dlp_fragment_retries,
-            resolve_media_host=settings.media_url_dns_check,
-        ),
+        downloader=create_downloader(settings),
         audio_extractor=FfmpegAudioExtractor(binary=settings.ffmpeg_binary, timeout_seconds=settings.subprocess_timeout_seconds),
         transcriber=FasterWhisperTranscriber(settings=settings),
     )

@@ -210,10 +210,11 @@ class JobStore:
         return self._update_job(job_id, status=JobStatus.RUNNING, progress=10, stage="running")
 
     def mark_succeeded(self, job_id: str) -> JobRecord:
-        return self._update_job(job_id, status=JobStatus.SUCCEEDED, progress=100, error=None)
+        return self._update_job(job_id, status=JobStatus.SUCCEEDED, progress=100, stage="succeeded", error=None)
 
     def mark_failed(self, job_id: str, *, code: str, message: str) -> JobRecord:
-        return self._update_job(job_id, status=JobStatus.FAILED, progress=100, error={"code": code, "message": message})
+        current = self.get_job(job_id)
+        return self._update_job(job_id, status=JobStatus.FAILED, progress=current.progress, stage="failed", error={"code": code, "message": message})
 
     def update_metadata(self, job_id: str, **metadata: Any) -> JobRecord:
         return self._update_job(job_id, **metadata)

@@ -2,11 +2,16 @@
 
 API pública para que el frontend cree/consulte/descargue jobs de TTS usando el `tts-worker` interno.
 
+Entrypoint canónico primario: `voice_tts_service.api.orchestrator_app:app`.
+
+`app.py` se mantiene como compatibilidad deprecada y delega en `voice_tts_service.api.orchestrator_app`; no borrar sin aprobación manual de runtime.
+
 ## Alcance MVP (Fase 2)
 
 - Endpoints públicos:
   - `POST /api/tts/jobs`
   - `GET /api/tts/jobs/{job_id}`
+  - `GET /api/tts/jobs/{job_id}/events`
   - `GET /api/tts/jobs/{job_id}/download`
 - Basic Auth (`Authorization: Basic ...`) + API key en header `x-api-key`
 - Rate limit simple por usuario (sliding window)
@@ -15,7 +20,7 @@ API pública para que el frontend cree/consulte/descargue jobs de TTS usando el 
 
 ## Instalación
 
-Desde `voice-lab-qwen/tts-orchestrator`:
+Desde `05-Voice-TTS-Service/tts-orchestrator`:
 
 ```bash
 pip install -r requirements.txt
@@ -42,6 +47,14 @@ Opcionales:
 
 ## Ejecutar local
 
+Desde `05-Voice-TTS-Service/`:
+
+```bash
+uvicorn voice_tts_service.api.orchestrator_app:app --host 127.0.0.1 --port 8088
+```
+
+Fallback legacy de compatibilidad deprecada, desde `05-Voice-TTS-Service/tts-orchestrator`:
+
 ```bash
 uvicorn app:app --host 127.0.0.1 --port 8088
 ```
@@ -51,4 +64,5 @@ uvicorn app:app --host 127.0.0.1 --port 8088
 1. Frontend llama `POST /api/tts/jobs` con `x-api-key`.
 2. Orchestrator valida y envía job a worker interno.
 3. Frontend consulta estado con `GET /api/tts/jobs/{job_id}`.
-4. Cuando está `done`, descarga con `GET /api/tts/jobs/{job_id}/download`.
+4. Opcionalmente escucha eventos SSE en `GET /api/tts/jobs/{job_id}/events`.
+5. Cuando está `done`, descarga con `GET /api/tts/jobs/{job_id}/download`.

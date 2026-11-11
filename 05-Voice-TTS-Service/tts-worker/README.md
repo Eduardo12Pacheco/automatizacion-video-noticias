@@ -1,11 +1,16 @@
 # tts-worker (FastAPI local)
 
-Worker interno para ejecutar jobs de TTS en la GPU local (RTX 4060) usando el pipeline existente `voice-lab-qwen/src/main.py`.
+Worker interno para ejecutar jobs de TTS en la GPU local (RTX 4060) usando el pipeline existente `05-Voice-TTS-Service/src/main.py`.
+
+Entrypoint canónico primario: `voice_tts_service.api.worker_app:app`.
+
+`app.py` se mantiene como compatibilidad deprecada y delega en `voice_tts_service.api.worker_app`; no borrar sin aprobación manual de runtime.
 
 ## Alcance MVP (Fase 1)
 
 - Cola serial (`concurrency = 1`)
 - Persistencia de estado en SQLite (`runtime/jobs.db`)
+- Runtime por defecto preservado en `tts-worker/runtime`.
 - Endpoints internos:
   - `POST /internal/jobs`
   - `GET /internal/jobs/{job_id}`
@@ -13,7 +18,7 @@ Worker interno para ejecutar jobs de TTS en la GPU local (RTX 4060) usando el pi
 
 ## Instalación
 
-Desde `voice-lab-qwen/tts-worker`:
+Desde `05-Voice-TTS-Service/tts-worker`:
 
 ```bash
 pip install -r requirements.txt
@@ -39,7 +44,13 @@ Opcionales:
 
 ## Ejecutar
 
-Desde `voice-lab-qwen/tts-worker`:
+Desde `05-Voice-TTS-Service/`:
+
+```bash
+uvicorn voice_tts_service.api.worker_app:app --host 127.0.0.1 --port 8091
+```
+
+Fallback legacy de compatibilidad deprecada, desde `05-Voice-TTS-Service/tts-worker`:
 
 ```bash
 uvicorn app:app --host 127.0.0.1 --port 8091

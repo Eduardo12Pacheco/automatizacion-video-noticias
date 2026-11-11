@@ -1,12 +1,81 @@
+# Secrets / local env
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python envs / caches
+.venv/
+.venv-*/
+venv/
+env/
 .venv-qwen/
 __pycache__/
-*.pyc
-output/
-segments/
-*.wav
-*.report.json
-.env.local
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node, if added later
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime state
+runtime/
+**/runtime/
 runtime-logs/
+logs/
+*.log
+*.out
+*.err
+
+# Databases / queues
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.sqlite-journal
+
+# Generated TTS artifacts
+output/
+**/output/
+segments/
+**/segments/
+*.report.json
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.opus
+
+# Local inputs / voice references
+input/*
+!input/.gitkeep
+refs/*
+!refs/.gitkeep
+
+# Models / checkpoints / ML caches
+models/
+checkpoints/
+.cache/
+huggingface/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.bin
+
+# OS/editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

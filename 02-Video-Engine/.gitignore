@@ -1,38 +1,88 @@
-node_modules
-dist
-.DS_Store
-.env
-.atl
+# Dependencies
+node_modules/
 
-# Ignore the output video from Git but not videos you import into src/.
-out
-
-# Generated render/pipeline output.
+# Builds / bundles / Remotion outputs
+dist/
+build/
+out/
+output/
 public/generated/
-output/*.json
-output/*.mp4
+public/renders/
+public/exports/
 
-# Heavy local render assets. They are required at runtime but are not versioned
-# in this repository. See README.md for the expected local asset layout.
+# Runtime project workspaces
+/projects/
+/projects/**/output/
+/projects/**/audio/
+/projects/**/imagenes/
+/projects/**/guion/
+/projects/**/public/generated/
+/projects/**/composition-contract.json
+/projects/**/render-props.json
+/projects/**/status.json
+/projects/**/project.json
+
+# Heavy local render assets
 assets/overlays/*
 !assets/overlays/.gitkeep
 
-# Local approval/runtime workspaces. These are mutable local state, not source.
-projects/
-projects/**/public/generated/
-projects/**/output/
-projects/**/audio/
-projects/**/imagenes/
-projects/**/guion/
-projects/**/composition-contract.json
+# Media analysis / scratch outputs
+analysis/
+renders/
+exports/
+tmp/
+temp/
+.cache/
+.remotion/
 
-# Local caches.
+# Python caches
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Legacy/demo resources moved to resources/legacy-pipeline/ and are not ignored.
-# Keep ignoring runtime public/generated/ because renders may recreate it.
-# Revisit later if Vosk should become a local download/cache instead of archived data.
-# models/
+# Node/package caches
+.npm/
+.pnpm-store/
+.yarn/
+coverage/
 
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Secrets/local env
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Runtime DB/state
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# ML/STT model downloads
+models/
+*.onnx
+*.bin
+*.pt
+*.pth
+*.gguf
+*.tflite
+
+# Local agent/tooling
+.atl/
+.opencode/
 .opencode/package-lock.json
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

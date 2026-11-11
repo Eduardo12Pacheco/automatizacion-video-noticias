@@ -148,3 +148,36 @@ test("deleted high-confidence legacy pipeline paths stay absent while render ass
     );
   }
 });
+
+test("gitignore ignores only runtime projects while keeping source project helpers trackable", () => {
+  const ignoredRuntime = spawnGitCheckIgnore("projects/draft-42/output/video-final.mp4");
+  assert.equal(ignoredRuntime.status, 0, ignoredRuntime.stderr || ignoredRuntime.stdout);
+
+  const requiredSources = [
+    "scripts/lib/projects/editor-project.js",
+    "scripts/lib/projects/approval-project-store.js",
+  ];
+  for (const relativePath of requiredSources) {
+    const result = spawnGitCheckIgnore(relativePath);
+    assert.equal(result.status, 1, `${relativePath} must not be hidden by the runtime projects/ ignore rule`);
+
+    const absolutePath = path.join(videoEngineRoot, relativePath);
+    assert.equal(fs.existsSync(absolutePath), true, `${relativePath} should exist in clean checkout source`);
+  }
+});
+
+test("required project compatibility wrappers resolve from a clean checkout source tree", () => {
+  const editorProject = require(path.join(videoEngineRoot, "scripts", "lib", "editor-project"));
+  const approvalProjectStore = require(path.join(videoEngineRoot, "scripts", "lib", "approval-project-store"));
+
+  assert.equal(editorProject.stableId("Draft Luis Díaz!"), "draft-luis-diaz");
+  assert.equal(typeof editorProject.createEditorProject, "function");
+  assert.equal(typeof approvalProjectStore.createApprovalProjectStore, "function");
+});
+
+function spawnGitCheckIgnore(relativePath) {
+  return require("node:child_process").spawnSync("git", ["check-ignore", "--no-index", relativePath], {
+    cwd: videoEngineRoot,
+    encoding: "utf8",
+  });
+}

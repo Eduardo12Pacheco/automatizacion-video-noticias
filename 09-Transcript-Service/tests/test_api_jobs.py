@@ -229,6 +229,8 @@ def test_submit_job_exposes_status_history_transcript_and_mentions(tmp_path):
     detail = client.get(f"/api/radar/jobs/{job_id}", headers=_headers())
     assert detail.status_code == 200
     assert detail.json()["status"] == JobStatus.SUCCEEDED
+    assert detail.json()["stage"] == "succeeded"
+    assert detail.json()["progress"] == 100
     assert detail.json()["selected_countries"] == ["argentina"]
     assert detail.json()["artifacts"]["transcript"] is True
     assert detail.json()["artifacts"]["mentions"] is True

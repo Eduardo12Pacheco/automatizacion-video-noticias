@@ -74,8 +74,8 @@ test("approval editor service health is browser-safe and prepare returns canonic
     assert.equal(created.status, 201);
     assert.equal(created.body.data.snapshot.contractVersion, "approval-editor-service-v1");
     assert.equal(created.body.data.snapshot.rows.length, 2);
-    assert.equal(created.body.data.snapshot.rows[0].motionPresetId, "Zoom 125");
-    assert.equal(created.body.data.snapshot.rows[0].motionTransform.toScale, 1.25);
+    assert.equal(created.body.data.snapshot.rows[0].motionPresetId, "Zoom 150");
+    assert.equal(created.body.data.snapshot.rows[0].motionTransform.toScale, 1.5);
     assert.equal(created.body.data.snapshotHash, created.body.data.snapshot.snapshotHash);
     assert.equal(created.body.data.previewAssets.assets[created.body.data.snapshot.rows[0].selectedAssetId].type, "image");
   });
@@ -97,8 +97,11 @@ test("approval editor service preserves paragraph eligibility from raw guion_pip
     assert.equal(created.body.data.snapshot.rows[0].paragraphBoundaryAfter, undefined);
     assert.equal(created.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
     assert.equal(created.body.data.snapshot.rows[1].nextRowId, "row-3");
-    assert.equal(created.body.data.snapshot.rows[1].transition, "none");
+    assert.equal(created.body.data.snapshot.rows[1].transition, "transition-3");
+    assert.equal(created.body.data.snapshot.rows[1].transitionSource, "auto");
+    assert.deepEqual(created.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/efecto-transition-3.mp4", renderPath: "overlays/efecto-transition-3.mp4", previewUrl: "./assets/boundary-transitions/efecto-transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true });
     assert.equal(created.body.data.snapshot.rows[1].sfx, null);
+    assert.equal(created.body.data.snapshot.assets["transition-3"].renderPath, "overlays/efecto-transition-3.mp4");
     assert.equal(created.body.data.snapshot.rows[2].paragraphBoundaryAfter, undefined);
   });
 });
@@ -123,12 +126,15 @@ test("approval editor service merges raw guion paragraph metadata onto supplied 
     assert.equal(created.body.data.snapshot.rows[0].paragraphBoundaryAfter, undefined);
     assert.equal(created.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
     assert.equal(created.body.data.snapshot.rows[1].nextRowId, "custom-3");
-    assert.equal(created.body.data.snapshot.rows[1].transition, "none");
+    assert.equal(created.body.data.snapshot.rows[1].transition, "transition-3");
+    assert.equal(created.body.data.snapshot.rows[1].transitionSource, "auto");
+    assert.deepEqual(created.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/efecto-transition-3.mp4", renderPath: "overlays/efecto-transition-3.mp4", previewUrl: "./assets/boundary-transitions/efecto-transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true });
     assert.equal(created.body.data.snapshot.rows[1].sfx, null);
+    assert.equal(created.body.data.snapshot.assets["transition-3"].renderPath, "overlays/efecto-transition-3.mp4");
   });
 });
 
-test("approval editor service enables and disables Whip only for eligible paragraph boundaries", async () => {
+test("approval editor service enables and disables Transition only for eligible paragraph boundaries", async () => {
   await withService(async (baseUrl) => {
     const created = await api(baseUrl, "/api/projects/create-from-approval", {
       method: "POST",
@@ -146,7 +152,7 @@ test("approval editor service enables and disables Whip only for eligible paragr
       method: "PATCH",
       body: JSON.stringify({
         baseSnapshotHash: hashA,
-        operations: [{ type: "setBoundaryTransition", rowId: "row-2", nextRowId: "row-3", transition: "whip", direction: "left-to-right" }],
+        operations: [{ type: "setBoundaryTransition", rowId: "row-2", nextRowId: "row-3", transition: "transition-1" }],
       }),
     });
 
@@ -155,9 +161,10 @@ test("approval editor service enables and disables Whip only for eligible paragr
     assert.notEqual(hashB, hashA);
     assert.equal(enabled.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
     assert.equal(enabled.body.data.snapshot.rows[1].nextRowId, "row-3");
-    assert.equal(enabled.body.data.snapshot.rows[1].transition, "whip");
-    assert.deepEqual(enabled.body.data.snapshot.rows[1].transitionConfig, { type: "whip", durationSeconds: 0.5, direction: "left-to-right" });
-    assert.deepEqual(enabled.body.data.snapshot.rows[1].sfx, { type: "whip", assetId: "whip", src: "sfx/sound-demo.wav" });
+    assert.equal(enabled.body.data.snapshot.rows[1].transition, "transition-1");
+    assert.deepEqual(enabled.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-1", src: "./assets/boundary-transitions/TRANSITION 1 NUEVO.mp4", renderPath: "overlays/TRANSITION 1 NUEVO.mp4", previewUrl: "./assets/boundary-transitions/TRANSITION 1 NUEVO.mp4", blendMode: "screen", durationSeconds: 0.833333, audio: true });
+    assert.deepEqual(enabled.body.data.snapshot.rows[1].sfx, null);
+    assert.equal(enabled.body.data.snapshot.assets["transition-1"].renderPath, "overlays/TRANSITION 1 NUEVO.mp4");
     assert.equal(enabled.body.data.snapshot.rows[1].mediaMode, created.body.data.snapshot.rows[1].mediaMode);
     assert.equal(enabled.body.data.snapshot.rows[1].selectedAssetId, created.body.data.snapshot.rows[1].selectedAssetId);
     assert.equal(enabled.body.data.snapshot.rows[0].transition, "none");
@@ -180,7 +187,7 @@ test("approval editor service enables and disables Whip only for eligible paragr
       method: "PATCH",
       body: JSON.stringify({
         baseSnapshotHash: disabled.body.data.snapshotHash,
-        operations: [{ type: "setBoundaryTransition", rowId: "row-1", nextRowId: "row-2", transition: "whip" }],
+        operations: [{ type: "setBoundaryTransition", rowId: "row-1", nextRowId: "row-2", transition: "transition-1" }],
       }),
     });
 
@@ -242,6 +249,74 @@ test("approval editor service updates immutable snapshots and rejects stale upda
     assert.equal(download.headers.get("content-type"), "video/mp4");
     assert.match(download.headers.get("content-disposition"), /^attachment; filename="video-final\.mp4"/);
     assert.equal(download.text, "mock final mp4\n");
+  });
+});
+
+test("approval editor service records actor audit metadata, increments versions, and reports actionable conflicts", async () => {
+  await withService(async (baseUrl) => {
+    const created = await api(baseUrl, "/api/projects/create-from-approval", {
+      method: "POST",
+      headers: { "x-panel-actor-id": "creator-1", "x-panel-actor-email": "creator@example.test", "x-panel-actor-roles": "editor" },
+      body: JSON.stringify(basePayload()),
+    });
+    const projectId = created.body.data.projectId;
+    assert.equal(created.body.data.version, 1);
+    assert.equal(created.body.data.audit.actor.id, "creator-1");
+    assert.equal(created.body.data.audit.action, "snapshot.create");
+
+    const updated = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      headers: { "x-panel-actor-id": "editor-2", "x-panel-actor-email": "editor2@example.test", "x-panel-actor-roles": "editor" },
+      body: JSON.stringify({
+        baseSnapshotHash: created.body.data.snapshotHash,
+        lease_id: "lease-editor-2",
+        operations: [{ type: "setLogo", enabled: false }],
+      }),
+    });
+
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.data.version, 2);
+    assert.equal(updated.body.data.audit.actor.id, "editor-2");
+    assert.equal(updated.body.data.audit.action, "snapshot.update");
+    assert.equal(updated.body.data.audit.base_snapshot_hash, created.body.data.snapshotHash);
+    assert.equal(updated.body.data.audit.new_version, 2);
+    assert.equal(updated.body.data.audit.lease_id, "lease-editor-2");
+
+    const staleUpdate = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      body: JSON.stringify({ baseSnapshotHash: created.body.data.snapshotHash, operations: [{ type: "setLogo", enabled: true }] }),
+    });
+
+    assert.equal(staleUpdate.status, 409);
+    assert.equal(staleUpdate.body.error.code, "version_conflict");
+    assert.equal(staleUpdate.body.error.details.expected_version, 2);
+    assert.equal(staleUpdate.body.error.details.received_version, 1);
+    assert.equal(staleUpdate.body.error.details.expected_snapshot_hash, updated.body.data.snapshotHash);
+    assert.equal(staleUpdate.body.error.details.received_snapshot_hash, created.body.data.snapshotHash);
+  });
+});
+
+test("approval editor service blocks writes when another actor holds a live lease", async () => {
+  await withService(async (baseUrl) => {
+    const created = await api(baseUrl, "/api/projects/create-from-approval", { method: "POST", body: JSON.stringify(basePayload()) });
+    const projectId = created.body.data.projectId;
+    const first = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      headers: { "x-panel-actor-id": "editor-1", "x-panel-actor-email": "one@example.test", "x-panel-actor-roles": "editor" },
+      body: JSON.stringify({ baseSnapshotHash: created.body.data.snapshotHash, lease_id: "lease-one", operations: [{ type: "setLogo", enabled: false }] }),
+    });
+
+    const blocked = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      method: "PATCH",
+      headers: { "x-panel-actor-id": "editor-2", "x-panel-actor-email": "two@example.test", "x-panel-actor-roles": "editor" },
+      body: JSON.stringify({ baseSnapshotHash: first.body.data.snapshotHash, lease_id: "lease-two", operations: [{ type: "setLogo", enabled: true }] }),
+    });
+
+    assert.equal(blocked.status, 423);
+    assert.equal(blocked.body.error.code, "lease_held");
+    assert.equal(blocked.body.error.details.owner.id, "editor-1");
+    assert.equal(blocked.body.error.details.lease_id, "lease-one");
+    assert.match(blocked.body.error.details.expires_at, /^\d{4}-\d{2}-\d{2}T/);
   });
 });
 
@@ -463,6 +538,120 @@ test("video engine render adapter localizes remote render assets before final re
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "generated", "audio", "music-1.mp3"), "utf8"), "music mp3");
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "generated", "images", "image-1.webp"), "utf8"), "image one");
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "generated", "images", "image-2.jpg"), "utf8"), "image two");
+});
+
+test("video engine render adapter retries transient remote render asset download failures", async () => {
+  const videoEngineRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-engine-root-remote-retry-"));
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-engine-projects-remote-retry-"));
+  fs.mkdirSync(path.join(videoEngineRoot, "scripts"), { recursive: true });
+  fs.writeFileSync(path.join(videoEngineRoot, "scripts", "render-video.js"), "// fake render entrypoint\n", "utf8");
+
+  const imageUrl = "https://media.puntal.com.ar/p/example/dibu.jpg";
+  const fetchCalls = [];
+  const commands = [];
+  const adapter = createVideoEngineRenderAdapter({
+    videoEngineRoot,
+    projectsRoot,
+    renderAssetRetryDelaysMs: [0],
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      if (url === imageUrl && fetchCalls.filter((entry) => entry === imageUrl).length === 1) {
+        return { ok: false, status: 503, arrayBuffer: async () => Buffer.from("") };
+      }
+      return { ok: true, status: 200, arrayBuffer: async () => Buffer.from(url === imageUrl ? "image after retry" : "asset") };
+    },
+    runCommand: async (command) => {
+      commands.push(command);
+      fs.mkdirSync(path.dirname(command.outputPath), { recursive: true });
+      fs.writeFileSync(command.outputPath, "mock mp4\n", "utf8");
+      return { status: "success", exitCode: 0, stdout: "ok", stderr: "" };
+    },
+  });
+
+  const snapshot = baseCanonicalSnapshot();
+  snapshot.assets["image-1"] = { ...snapshot.assets["image-1"], renderPath: imageUrl, publicUrl: imageUrl };
+
+  await adapter({ projectId: "Draft Remote Retry", snapshot, snapshotHash: "hash-remote-retry" });
+
+  assert.equal(commands.length, 1);
+  assert.equal(fetchCalls.filter((entry) => entry === imageUrl).length, 2);
+  assert.equal(fs.readFileSync(path.join(commands[0].projectRoot, "public", "generated", "images", "image-1.jpg"), "utf8"), "image after retry");
+});
+
+test("video engine render adapter repairs legacy URL-keyed video segment assets before localization", async () => {
+  const videoEngineRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-engine-root-video-url-"));
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-engine-projects-video-url-"));
+  fs.mkdirSync(path.join(videoEngineRoot, "scripts"), { recursive: true });
+  fs.writeFileSync(path.join(videoEngineRoot, "scripts", "render-video.js"), "// fake render entrypoint\n", "utf8");
+
+  const sourceUrl = "https://cdn.test/projects/demo/videos/source.mp4";
+  const sourceSrcUrl = "https://cdn.test/projects/demo/videos/source-from-media.mp4";
+  const fetchCalls = [];
+  const commands = [];
+  const adapter = createVideoEngineRenderAdapter({
+    videoEngineRoot,
+    projectsRoot,
+    fetchImpl: async (url) => {
+      fetchCalls.push(url);
+      assert.ok([sourceUrl, sourceSrcUrl].includes(url), `unexpected video download url: ${url}`);
+      return { ok: true, status: 200, arrayBuffer: async () => Buffer.from("video mp4") };
+    },
+    runCommand: async (command) => {
+      commands.push(command);
+      const persisted = JSON.parse(fs.readFileSync(path.join(command.projectRoot, "composition-contract.json"), "utf8"));
+      const videoAsset = persisted.contract.assets[sourceUrl];
+      assert.match(videoAsset.renderPath, /^generated\/overlays\/.+\.mp4$/);
+      assert.equal(videoAsset.publicUrl, sourceUrl);
+      assert.equal(videoAsset.previewUrl, sourceUrl);
+      const renderProps = adaptCompositionContractToRenderProps({ contract: persisted.contract, manifest: persisted.manifest });
+      assert.equal(renderProps.segments[0].media.kind, "video-segment");
+      assert.equal(renderProps.segments[0].media.sourceVideoSrc, videoAsset.renderPath);
+      assert.equal(renderProps.segments[1].media.kind, "video-segment");
+      assert.match(renderProps.segments[1].media.sourceVideoSrc, /^generated\/overlays\/.+\.mp4$/);
+      fs.mkdirSync(path.dirname(command.outputPath), { recursive: true });
+      fs.writeFileSync(command.outputPath, "mock mp4\n", "utf8");
+      return { status: "success", exitCode: 0, stdout: "ok", stderr: "" };
+    },
+  });
+
+  const snapshot = baseCanonicalSnapshot();
+  snapshot.rows[0] = {
+    ...snapshot.rows[0],
+    media: {
+      kind: "video-segment",
+      sourceVideoAssetId: sourceUrl,
+      sourceInSeconds: 1.5,
+      durationSeconds: 1.2,
+      overlayColor: "#3835AF",
+      overlayOpacity: 0.3,
+      effect1AssetId: "overlay-layer-01",
+      effect2AssetId: "overlay-layer-02",
+    },
+  };
+  snapshot.rows[1] = {
+    ...snapshot.rows[1],
+    media: {
+      kind: "video-segment",
+      sourceVideoAssetId: "legacy-video-from-media-src",
+      sourceVideoSrc: sourceSrcUrl,
+      sourceInSeconds: 0,
+      durationSeconds: 1.6,
+      overlayColor: "#3835AF",
+      overlayOpacity: 0.3,
+      effect1AssetId: "overlay-layer-01",
+      effect2AssetId: "overlay-layer-02",
+    },
+  };
+  snapshot.assets[sourceUrl] = { assetId: sourceUrl, id: sourceUrl, type: "video", role: "video", publicUrl: null, previewUrl: null, renderPath: null, status: "ready" };
+  snapshot.assets["legacy-video-from-media-src"] = { assetId: "legacy-video-from-media-src", id: "legacy-video-from-media-src", type: "video", role: "video", publicUrl: null, previewUrl: null, renderPath: null, status: "ready" };
+  snapshot.assets["overlay-layer-01"] = { assetId: "overlay-layer-01", type: "video", role: "effect", renderPath: "overlays/overlay-layer-01.mp4", status: "ready" };
+  snapshot.assets["overlay-layer-02"] = { assetId: "overlay-layer-02", type: "video", role: "effect", renderPath: "overlays/overlay-layer-02.mp4", status: "ready" };
+
+  await adapter({ projectId: "Draft Video Url", snapshot, snapshotHash: "hash-video-url" });
+
+  assert.equal(commands.length, 1);
+  assert.deepEqual(fetchCalls.sort(), [sourceUrl, sourceSrcUrl].sort());
+  assert.equal(fs.readFileSync(path.join(commands[0].projectRoot, "public", "generated", "overlays", `${sourceUrl.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "")}.mp4`), "utf8"), "video mp4");
 });
 
 test("video engine scaffold keeps selected image and Ecuador brand asset references valid", () => {

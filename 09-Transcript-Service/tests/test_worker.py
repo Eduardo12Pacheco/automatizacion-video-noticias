@@ -54,6 +54,8 @@ def test_worker_transitions_job_and_uses_audio_16khz_wav_for_stt(tmp_path):
     worker.process(job.job_id)
 
     assert store.get_job(job.job_id).status == "succeeded"
+    assert store.get_job(job.job_id).stage == "succeeded"
+    assert store.get_job(job.job_id).progress == 100
     assert store.get_job(job.job_id).detected_language == "fr"
     assert transcriber.seen_audio_path == tmp_path / "jobs" / job.job_id / "audio" / "audio-16khz.wav"
     assert store.get_transcript(job.job_id).text == "(00:03) Lionel Messie gana."
@@ -124,6 +126,8 @@ def test_worker_records_typed_dependency_failure_without_partial_success(tmp_pat
 
     failed = store.get_job(job.job_id)
     assert failed.status == "failed"
+    assert failed.stage == "failed"
+    assert failed.progress == 10
     assert failed.error == {"code": "yt_dlp_unavailable", "message": "yt-dlp is not installed"}
     assert store.get_transcript(job.job_id).segments == []
 

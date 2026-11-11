@@ -1,9 +1,9 @@
-$ErrorActionPreference = 'Stop'
-
 param(
   [string]$PublicHealthUrl = 'https://tts-api.example.local/healthz',
   [int]$TimeoutSec = 10
 )
+
+$ErrorActionPreference = 'Stop'
 
 $services = @('tts-worker', 'tts-orchestrator', 'tts-tunnel')
 $allOk = $true
@@ -13,16 +13,16 @@ foreach ($serviceName in $services) {
   $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 
   if (-not $service) {
-    Write-Host "$serviceName: NOT FOUND" -ForegroundColor Red
+    Write-Host "${serviceName}: NOT FOUND" -ForegroundColor Red
     $allOk = $false
     continue
   }
 
   if ($service.Status -eq 'Running') {
-    Write-Host "$serviceName: RUNNING (StartType=$($service.StartType))" -ForegroundColor Green
+    Write-Host "${serviceName}: RUNNING (StartType=$($service.StartType))" -ForegroundColor Green
   }
   else {
-    Write-Host "$serviceName: $($service.Status) (StartType=$($service.StartType))" -ForegroundColor Yellow
+    Write-Host "${serviceName}: $($service.Status) (StartType=$($service.StartType))" -ForegroundColor Yellow
     $allOk = $false
   }
 }

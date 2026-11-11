@@ -1,7 +1,7 @@
 # MVP API Contract — Remote RTX TTS (Phase 0)
 
 Estado: **Draft v1**  
-Objetivo: habilitar generación TTS desde `approval-panel-web` usando siempre la GPU local RTX 4060.
+Objetivo: habilitar generación TTS desde `01-Control-Panel` usando siempre la GPU local RTX 4060.
 
 ---
 
@@ -20,7 +20,7 @@ Objetivo: habilitar generación TTS desde `approval-panel-web` usando siempre la
 - Corre en la PC con RTX 4060.
 - Responsable de:
   - cola serial (concurrencia = 1)
-  - ejecución de `voice-lab-qwen`
+  - ejecución de `05-Voice-TTS-Service`
   - persistencia de artefactos (wav/report)
   - exponer estado y descarga al Orchestrator
 

@@ -69,6 +69,37 @@ def test_store_reports_active_jobs_and_preserves_copyable_transcript_lines(tmp_p
     assert store.get_transcript(job.job_id).text == "(00:01) Arranca el partido\n(01:01) Luis Díaz ataca"
 
 
+def test_store_marks_success_with_terminal_stage_and_complete_progress(tmp_path):
+    store = JobStore(tmp_path)
+    job = store.create_job(url="https://video.example/success", countries=["argentina"], extra_keywords=[])
+    store.mark_running(job.job_id)
+
+    succeeded = store.mark_succeeded(job.job_id)
+
+    assert succeeded.status == "succeeded"
+    assert succeeded.stage == "succeeded"
+    assert succeeded.progress == 100
+    assert store.has_active_job() is False
+
+
+def test_store_marks_failure_with_terminal_stage_and_preserves_progress(tmp_path):
+    store = JobStore(tmp_path)
+    queued = store.create_job(url="https://video.example/queued-fail", countries=["argentina"], extra_keywords=[])
+    running = store.create_job(url="https://video.example/running-fail", countries=["colombia"], extra_keywords=[])
+    store.mark_running(running.job_id)
+
+    queued_failed = store.mark_failed(queued.job_id, code="queued_error", message="Queued failure")
+    running_failed = store.mark_failed(running.job_id, code="running_error", message="Running failure")
+
+    assert queued_failed.status == "failed"
+    assert queued_failed.stage == "failed"
+    assert queued_failed.progress == 0
+    assert running_failed.status == "failed"
+    assert running_failed.stage == "failed"
+    assert running_failed.progress == 10
+    assert store.has_active_job() is False
+
+
 def test_store_persists_country_job_metadata_summary_export_and_hard_delete(tmp_path):
     store = JobStore(tmp_path)
 

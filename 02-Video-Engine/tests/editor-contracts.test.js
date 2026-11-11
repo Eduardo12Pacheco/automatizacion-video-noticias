@@ -268,6 +268,28 @@ test("mocked render success writes mp4 output and done state without real Remoti
   assert.equal(projectConfig.phase, "done");
 });
 
+test("mocked render reports typed diagnostics when another render lock exists", () => {
+  const projectRoot = makeProject();
+  writeProjectConfig(projectRoot, "p-render-locked");
+  const editorProject = createEditorProject(projectRoot, { projectId: "p-render-locked", title: "P render locked", seedMedia: true });
+  writeEditorProject(projectRoot, editorProject);
+  fs.writeFileSync(path.join(projectRoot, "output", ".render.lock"), JSON.stringify({ pid: 999, createdAt: "2026-05-24T00:00:00.000Z" }));
+
+  const render = spawnSync(process.execPath, [path.join(repoRoot, "scripts", "render-video.js"), `--project-root=${projectRoot}`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: { ...process.env, REMOTION_EDITOR_MOCK_RENDER_SUCCESS: "1" },
+  });
+
+  assert.notEqual(render.status, 0);
+  const diagnostics = JSON.parse(fs.readFileSync(path.join(projectRoot, "output", "diagnostics.json"), "utf8"));
+  const persisted = JSON.parse(fs.readFileSync(path.join(projectRoot, "editor-project.json"), "utf8"));
+  assert.equal(persisted.renderStatus.status, "error");
+  assert.match(diagnostics.errors.join(";"), /already running/i);
+  assert.match(diagnostics.retry.stderr, /already running/i);
+  assert.equal(fs.existsSync(path.join(projectRoot, "output", "video-final.mp4")), false);
+});
+
 test("final profile fails with actionable error when composition contract is missing", () => {
   const projectRoot = makeProject();
   writeProjectConfig(projectRoot, "p-final-missing-contract");

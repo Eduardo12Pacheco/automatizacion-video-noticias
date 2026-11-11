@@ -1,0 +1,88 @@
+# Dependencies and tool caches
+**/node_modules/
+**/.pnpm-store/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.cache/
+**/.vite/
+**/.turbo/
+**/.next/
+**/.expo/
+**/.understand-anything/tmp/
+**/.understand-anything/intermediate/
+*.egg-info/
+
+# Local environment and secrets. Sanitized templates are intentionally versioned.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+!**/.env.template
+**/secrets/
+**/*-cookies.txt
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+10-Api-Gateway/users.json
+local/n8n/files/credentials-final.json
+local/n8n/files/credentials-clean.json
+local/n8n/import/credentials.json
+
+# Local service state, databases, generated media, and model downloads
+local/backups/
+local/models/
+local/default-music/
+# Private n8n exports remain ignored. The three reviewed workflow exports below
+# are sanitized operational fixtures and are intentionally versioned.
+local/n8n/files/*
+!local/n8n/files/workflows-clean.json
+!local/n8n/files/workflows-final.json
+local/n8n/import/*
+!local/n8n/import/workflows.json
+recovery-artifacts/
+# Root-anchored on purpose: a bare `runtime/` matches at any depth and silently
+# excluded real source under 01-Control-Panel/js/modules/features/*/runtime/.
+# Per-service nested .gitignore files still cover their own runtime state.
+/runtime/
+/runtime-logs/
+/logs/
+/temp/
+local/services/logs/
+profesor/data/runtime/
+subtitles-local-minimal/runtime-remote/
+01-Control-Panel/services/approval-editor/projects/
+02-Video-Engine/assets/overlays/
+02-Video-Engine/projects/
+02-Video-Engine/public/
+05-Voice-TTS-Service/output/
+05-Voice-TTS-Service/segments/
+05-Voice-TTS-Service/runtime/
+05-Voice-TTS-Service/models/
+06-Subtitles-Service/output/
+09-Transcript-Service/runtime/
+09-Transcript-Service/runtime-logs/
+10-Channel-Monitor-Service/runtime/
+10-Channel-Monitor-Service/runtime-logs/
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.db
+*.log
+
+# Build and coverage outputs
+**/dist/
+**/build/
+**/coverage/
+
+# Local agent and editor state
+.atl/
+.pi/
+**/.pi-agent/
+**/.pi-sessions/
+.playwright-mcp/
+
+# Windows reserved device-name artifact
+NUL
