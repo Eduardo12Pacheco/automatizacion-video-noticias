@@ -1,0 +1,82 @@
+segmenter:
+  mode: sentence_first
+  min_words_per_segment: 20
+  max_words_per_segment: 40
+  hard_max_words_per_segment: 50
+
+pauses_ms:
+  comma: 120
+  semicolon: 180
+  colon: 180
+  period: 260
+  question: 300
+  exclamation: 300
+  paragraph_break: 700
+  default: 220
+
+assembler:
+  crossfade_ms: 30
+  output_gain_db: 5.0
+  peak_protection: true
+  peak_target: 0.99
+  trim_silence:
+    enabled: true
+    threshold: 0.005
+    min_silence_ms: 180
+    trim_leading: true
+    trim_trailing: true
+
+generation:
+  model_name: Qwen/Qwen3-TTS-12Hz-1.7B-Base
+  language: Spanish
+  use_flash_attention: false
+  dtype: bfloat16
+  preset: balanced_default
+  # Parámetros opcionales. Si quedan null, Qwen usa defaults del checkpoint.
+  max_new_tokens: 2048
+  do_sample: null
+  top_k: null
+  top_p: null
+  temperature: null
+  repetition_penalty: null
+  subtalker_dosample: null
+  subtalker_top_k: null
+  subtalker_top_p: null
+  subtalker_temperature: null
+
+presets:
+  balanced_default:
+    do_sample: true
+    top_k: 50
+    top_p: 0.94
+    temperature: 0.82
+    repetition_penalty: 1.06
+    subtalker_dosample: true
+    subtalker_top_k: 50
+    subtalker_top_p: 0.95
+    subtalker_temperature: 0.84
+    max_new_tokens: 2048
+
+  golazo_informativo:
+    do_sample: true
+    top_k: 58
+    top_p: 0.96
+    temperature: 0.88
+    repetition_penalty: 1.05
+    subtalker_dosample: true
+    subtalker_top_k: 58
+    subtalker_top_p: 0.97
+    subtalker_temperature: 0.90
+    max_new_tokens: 2048
+
+  golazo_emotivo:
+    do_sample: true
+    top_k: 54
+    top_p: 0.95
+    temperature: 0.85
+    repetition_penalty: 1.06
+    subtalker_dosample: true
+    subtalker_top_k: 54
+    subtalker_top_p: 0.96
+    subtalker_temperature: 0.87
+    max_new_tokens: 2048

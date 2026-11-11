@@ -1,0 +1,12 @@
+.venv-qwen/
+__pycache__/
+*.pyc
+output/
+segments/
+*.wav
+*.report.json
+.env.local
+runtime-logs/
+*.db
+*.sqlite
+*.sqlite3
