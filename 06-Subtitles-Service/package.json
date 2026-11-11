@@ -1,0 +1,22 @@
+{
+  "name": "subtitles-service-remotion-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "render": "remotion render src/remotion/Root.tsx SubtitlesRender",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.381",
+    "@remotion/renderer": "^4.0.381",
+    "remotion": "^4.0.381",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.6.3"
+  }
+}

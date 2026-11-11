@@ -1,0 +1,65 @@
+# Secrets / local env
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Runtime state / DBs
+*.sqlite
+*.sqlite3
+*.db
+runtime-remote/
+runtime-logs/
+sessions/
+output/
+.readiness-check/
+
+# Remotion/browser artifacts
+public/.remotion-*/
+.remotion/
+.chromium/
+.cache/
+
+# Media/generated artifacts
+*.webm
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.srt
+*.vtt
+*.ass
+
+# Logs/temp
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
