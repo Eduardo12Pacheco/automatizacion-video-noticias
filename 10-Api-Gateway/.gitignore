@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Local auth / panel users
+users.json
+*users.local.json
+*users.private.json
+
+# Runtime logs and event stores
+runtime-logs/
+logs/
+*.log
+*.jsonl
+
+# Certificates / private keys
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+certs/
+certificates/
+
+# Runtime DB / local state
+*.db
+*.sqlite
+*.sqlite3
+data/
+tmp/
+temp/
+
+# Coverage / build artifacts
+coverage/
+dist/
+build/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
