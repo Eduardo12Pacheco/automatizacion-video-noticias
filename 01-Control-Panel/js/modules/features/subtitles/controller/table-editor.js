@@ -1,0 +1,607 @@
+import {
+  applySubtitleRowPatch,
+  createEmptySubtitleRow,
+} from '../../../subtitles-workflow.mjs';
+import {
+  formatSubtitleDisplayTimeRuntime,
+  getLastSubtitleNonDraftRowIndexRuntime,
+  hasSubtitleDraftRowsRuntime,
+  parseSubtitleTimeToMsRuntime,
+  resolveSubtitlePreviewDurationMsRuntime,
+  validateSubtitleTimingPatchRuntime,
+} from '../runtime/index.js';
+import { createSubtitleUndoHistory } from './undo-history.js';
+
+// Cohesive exception: row patching, timing validation, and draft drag/drop stay
+// together so each edit path shares the same row identity and dirty-state rules.
+
+const SUBTITLE_TIME_NUDGE_MS = 100;
+const SUBTITLE_TIMING_GAP_MS = 60;
+const SUBTITLE_DRAFT_INSERT_DURATION_MS = 1000;
+const SUBTITLE_NUMBER_HOLD_DELAY_MS = 320;
+const SUBTITLE_NUMBER_HOLD_INTERVAL_MS = 75;
+
+export function createSubtitleTableEditor(ctx, callbacks = {}) {
+  const { state, el, ui, timers, windowRef } = ctx;
+  const toast = ui.toast;
+  const renderWorkflow = callbacks.renderWorkflow || (() => ctx.renderCallbacks.renderWorkflow?.());
+  const renderTable = callbacks.renderTable || (() => ctx.renderCallbacks.renderTable?.());
+  const renderPreviewOverlay = callbacks.renderPreviewOverlay || (() => ctx.renderCallbacks.renderPreviewOverlay?.());
+  const updateButtonsByPhase = callbacks.updateButtonsByPhase || (() => ctx.renderCallbacks.updateButtonsByPhase?.());
+  const onRowsChanged = callbacks.onRowsChanged || (() => {});
+  const onSeekPreviewToRow = callbacks.onSeekPreviewToRow || (() => {});
+  const resolvePreviewDurationMs = callbacks.resolvePreviewDurationMs || (() => resolveSubtitlePreviewDurationMsRuntime({
+    audioDurationMs: state.subtitles2.audioDurationMs,
+    rows: state.subtitles2.rows,
+  }));
+  const undoHistory = createSubtitleUndoHistory(ctx, {
+    renderWorkflow,
+    renderPreviewOverlay,
+    updateButtonsByPhase,
+    onRowsChanged,
+  });
+
+  function patchRow(rowId, patch, options = {}) {
+    const rerender = options.rerender !== false;
+    if (options.captureUndo !== false) undoHistory.captureRowsSnapshot({ coalesceKey: options.coalesceKey || '' });
+    state.subtitles2.rows = state.subtitles2.rows.map((row) => (row.id === rowId ? applySubtitleRowPatch(row, patch) : row));
+    state.subtitles2.changeVersion += 1;
+    state.subtitles2.dirty = true;
+    onRowsChanged();
+    if (rerender) renderTable();
+    renderPreviewOverlay();
+    updateButtonsByPhase();
+  }
+
+  function patchAllRows(patch, options = {}) {
+    const rerender = options.rerender !== false;
+    if (options.captureUndo !== false) undoHistory.captureRowsSnapshot({ coalesceKey: options.coalesceKey || 'global' });
+    state.subtitles2.rows = state.subtitles2.rows.map((row) => applySubtitleRowPatch(row, patch));
+    state.subtitles2.changeVersion += 1;
+    state.subtitles2.dirty = true;
+    onRowsChanged();
+    if (rerender) renderTable();
+    renderPreviewOverlay();
+    updateButtonsByPhase();
+  }
+
+  function hasDraftRows() {
+    return hasSubtitleDraftRowsRuntime(state.subtitles2.rows);
+  }
+
+  function onTableInput(ev) {
+    const target = ev.target;
+    if (!target) return;
+    const rowId = target.dataset.rowId;
+    if (!rowId) return;
+    const isGlobal = rowId === 'global';
+    const patchFn = isGlobal
+      ? (patch, options) => patchAllRows(patch, options)
+      : (patch, options) => patchRow(rowId, patch, options);
+
+    if (target.dataset.field === 'start' || target.dataset.field === 'end') {
+      if (isGlobal) return;
+      applyTimingInput(rowId, target.dataset.field, target.value);
+      return;
+    }
+    if (target.dataset.field === 'phrase') {
+      if (isGlobal) return;
+      patchRow(rowId, { phrase: target.value }, { rerender: false, coalesceKey: `phrase:${rowId}` });
+      return;
+    }
+    if (target.dataset.field === 'showStripes') {
+      patchFn({ showStripes: target.checked }, { rerender: isGlobal, coalesceKey: isGlobal ? 'global:stripes' : `stripes:${rowId}` });
+      return;
+    }
+    if (target.dataset.field === 'maxWidthPx') {
+      patchFn({ maxWidthPx: target.value }, { rerender: false, coalesceKey: isGlobal ? 'global:maxWidth' : `maxWidth:${rowId}` });
+      return;
+    }
+    if (target.dataset.field === 'size') {
+      patchFn({ size: target.value }, { rerender: isGlobal, coalesceKey: isGlobal ? 'global:size' : `size:${rowId}` });
+      return;
+    }
+    if (target.dataset.field === 'color') {
+      patchFn({ color: target.value }, { rerender: isGlobal, coalesceKey: isGlobal ? 'global:color' : `color:${rowId}` });
+      return;
+    }
+    if (target.dataset.field === 'fontFamily') {
+      patchFn({ fontFamily: target.value }, { rerender: isGlobal, coalesceKey: isGlobal ? 'global:font' : `font:${rowId}` });
+      return;
+    }
+  }
+
+  function applyTimingInput(rowId, field, rawValue) {
+    const valueMs = parseSubtitleTimeToMsRuntime(rawValue);
+    const validation = validateSubtitleTimingPatchRuntime({ rows: state.subtitles2.rows, rowId, field, valueMs, gapMs: SUBTITLE_TIMING_GAP_MS });
+    if (!validation.accepted) {
+      toast(validation.reason || 'Timing inválido');
+      renderTable();
+      return;
+    }
+    const index = state.subtitles2.rows.findIndex((row) => row.id === rowId);
+    const row = state.subtitles2.rows[index];
+    if (!row) return;
+    undoHistory.captureRowsSnapshot();
+    if (field === 'start') {
+      patchRow(rowId, { start: formatSubtitleDisplayTimeRuntime(valueMs) }, { captureUndo: false });
+      return;
+    }
+    patchRow(rowId, { end: formatSubtitleDisplayTimeRuntime(valueMs) }, { captureUndo: false });
+    const nextRow = state.subtitles2.rows[index + 1];
+    if (nextRow) patchRow(nextRow.id, { start: formatSubtitleDisplayTimeRuntime(valueMs + SUBTITLE_TIMING_GAP_MS) }, { captureUndo: false });
+  }
+
+  function onTableClick(ev) {
+    const insertButton = closestFromEventTarget(ev.target, 'button[data-action="insert-subtitle-row"]');
+    if (insertButton) {
+      insertSubtitleNearRow(insertButton.dataset.rowId);
+      return;
+    }
+    const nudgeButton = closestFromEventTarget(ev.target, 'button[data-action="nudge-subtitle-time"]');
+    if (nudgeButton) {
+      if (nudgeButton.dataset.pointerHandled === 'true') {
+        delete nudgeButton.dataset.pointerHandled;
+        return;
+      }
+      runFieldStep(nudgeButton.dataset.rowId, nudgeButton.dataset.field, nudgeButton.dataset.direction);
+      return;
+    }
+    const numberStepButton = closestFromEventTarget(ev.target, 'button[data-action="step-subtitle-number"]');
+    if (numberStepButton) {
+      if (numberStepButton.dataset.pointerHandled === 'true') {
+        delete numberStepButton.dataset.pointerHandled;
+        return;
+      }
+      runFieldStep(numberStepButton.dataset.rowId, numberStepButton.dataset.field, numberStepButton.dataset.direction);
+      return;
+    }
+    const deleteButton = closestFromEventTarget(ev.target, 'button[data-action="delete-subtitle-row"]');
+    if (deleteButton) {
+      const rowId = deleteButton.dataset.rowId;
+      if (rowId) deleteRow(rowId);
+      return;
+    }
+    const button = closestFromEventTarget(ev.target, 'button[data-field="align"]');
+    if (button) {
+      const alignRowId = button.dataset.rowId;
+      const align = button.dataset.align;
+      if (!alignRowId || !align) return;
+      const isGlobal = alignRowId === 'global';
+      const alignPatchFn = isGlobal
+        ? (p, options) => patchAllRows(p, options)
+        : (p, options) => patchRow(alignRowId, p, options);
+      const patch = { align };
+      if (align === 'center') {
+        patch.size = '50';
+      }
+      alignPatchFn(patch, { rerender: isGlobal, coalesceKey: isGlobal ? 'global:align' : `align:${alignRowId}` });
+      return;
+    }
+    const rowEl = closestFromEventTarget(ev.target, 'tr[data-row-id]');
+    if (!rowEl) return;
+    if (closestFromEventTarget(ev.target, 'input, textarea, select, button')) return;
+    const rowId = rowEl.dataset.rowId;
+    if (!rowId) return;
+    const row = state.subtitles2.rows.find((item) => item.id === rowId);
+    if (!row || row.isDraft) return;
+    const hasVideo = Boolean((state.subtitles2.previewVideoObjectUrl || state.subtitles2.previewVideoUrl || '').toString().trim());
+    if (!hasVideo) return;
+    onSeekPreviewToRow(rowId);
+  }
+
+  function onTablePointerDown(ev) {
+    const button = closestFromEventTarget(ev.target, 'button[data-action="step-subtitle-number"], button[data-action="nudge-subtitle-time"]');
+    if (!button || button.disabled) return;
+    if (ev.button != null && ev.button !== 0) return;
+    ev.preventDefault();
+    button.dataset.pointerHandled = 'true';
+    startNumberHold(button, ev);
+  }
+
+  function startNumberHold(button, ev = {}) {
+    stopNumberHold();
+    const rowId = button.dataset.rowId;
+    const field = button.dataset.field;
+    const direction = button.dataset.direction;
+    if (!rowId || !field || !direction) return;
+    const holdState = {
+      active: true,
+      button,
+      listeners: [],
+      pointerId: ev.pointerId,
+      timer: null,
+    };
+    state.subtitles2.numberHoldState = holdState;
+    button.classList.add('is-holding');
+    try {
+      if (holdState.pointerId != null) button.setPointerCapture?.(holdState.pointerId);
+    } catch {
+      // Pointer capture is best-effort; global listeners still stop the hold.
+    }
+    runFieldStep(rowId, field, direction);
+
+    const scheduleRepeat = (delayMs) => {
+      holdState.timer = timers.setTimeout(runRepeat, delayMs);
+      state.subtitles2.numberHoldTimer = holdState.timer;
+    };
+    const runRepeat = () => {
+      if (!holdState.active || state.subtitles2.numberHoldState !== holdState) return;
+      runFieldStep(rowId, field, direction, { silent: true });
+      scheduleRepeat(SUBTITLE_NUMBER_HOLD_INTERVAL_MS);
+    };
+
+    const stop = () => stopNumberHold(holdState);
+    const addStopListener = (target, eventName) => {
+      if (typeof target?.addEventListener !== 'function') return;
+      target.addEventListener(eventName, stop);
+      holdState.listeners.push([target, eventName, stop]);
+    };
+    addStopListener(windowRef, 'pointerup');
+    addStopListener(windowRef, 'pointercancel');
+    addStopListener(windowRef, 'mouseup');
+    addStopListener(windowRef, 'blur');
+    addStopListener(button, 'pointerup');
+    addStopListener(button, 'pointercancel');
+    addStopListener(button, 'mouseleave');
+    addStopListener(button, 'lostpointercapture');
+
+    scheduleRepeat(SUBTITLE_NUMBER_HOLD_DELAY_MS);
+  }
+
+  function stopNumberHold(expectedHoldState) {
+    const holdState = state.subtitles2.numberHoldState;
+    if (expectedHoldState && holdState && holdState !== expectedHoldState) return;
+    if (holdState) {
+      holdState.active = false;
+      if (holdState.timer) timers.clearTimeout(holdState.timer);
+      holdState.button?.classList?.remove('is-holding');
+      for (const [target, eventName, listener] of holdState.listeners) {
+        target.removeEventListener?.(eventName, listener);
+      }
+      try {
+        if (holdState.pointerId != null) holdState.button?.releasePointerCapture?.(holdState.pointerId);
+      } catch {
+        // Ignore release failures; the hold is already stopped locally.
+      }
+      state.subtitles2.numberHoldTimer = null;
+      state.subtitles2.numberHoldState = null;
+      return;
+    }
+    if (!state.subtitles2.numberHoldTimer) return;
+    timers.clearTimeout(state.subtitles2.numberHoldTimer);
+    state.subtitles2.numberHoldTimer = null;
+  }
+
+  function runFieldStep(rowId, field, direction, options = {}) {
+    if (field === 'start' || field === 'end') {
+      nudgeTimingBoundary(rowId, field, direction, { silent: options.silent });
+      return;
+    }
+    stepNumberField(rowId, field, direction);
+  }
+
+  function stepNumberField(rowId, field, direction) {
+    if (field !== 'maxWidthPx') return;
+    const isGlobal = rowId === 'global';
+    const input = findRowInput(rowId, field);
+    const step = Math.max(1, Number(input?.step || 10) || 10);
+    const min = Number(input?.min || 1) || 1;
+    const individualRow = isGlobal ? null : state.subtitles2.rows.find((row) => row.id === rowId);
+    const fallbackValue = isGlobal
+      ? (state.subtitles2.rows[0]?.maxWidthPx ?? 1080)
+      : (individualRow?.maxWidthPx ?? 1080);
+    const currentRaw = input?.value ?? fallbackValue;
+    const current = Number(currentRaw);
+    const base = Number.isFinite(current) ? current : Number(fallbackValue || 1080);
+    const next = Math.max(min, Math.round(base + (direction === 'down' ? -step : step)));
+    if (input) input.value = String(next);
+    const patch = { [field]: next };
+    if (isGlobal) {
+      patchAllRows(patch, { rerender: false, coalesceKey: 'global:maxWidth' });
+    } else {
+      patchRow(rowId, patch, { rerender: false, coalesceKey: `${field}:${rowId}` });
+    }
+  }
+
+  function findRowInput(rowId, field) {
+    if (!el.subtitle2RowsBody?.querySelectorAll) return null;
+    return Array.from(el.subtitle2RowsBody.querySelectorAll('input[data-row-id][data-field]')).find((input) => (
+      input.dataset.rowId === rowId && input.dataset.field === field
+    )) || null;
+  }
+
+  function nudgeTimingBoundary(rowId, field, direction, options = {}) {
+    const index = state.subtitles2.rows.findIndex((row) => row.id === rowId);
+    const row = state.subtitles2.rows[index];
+    if (!row || row.isDraft) return;
+    if (field === 'end' && index === getLastNonDraftRowIndex()) {
+      if (!options.silent) toast('El END de la última frase debe durar hasta el final del video');
+      return;
+    }
+    const delta = direction === 'up' ? -SUBTITLE_TIME_NUDGE_MS : SUBTITLE_TIME_NUDGE_MS;
+    const currentStartMs = parseSubtitleTimeToMsRuntime(row.start);
+    const currentEndMs = parseSubtitleTimeToMsRuntime(row.end);
+
+    if (field === 'start') {
+      if (index === 0) {
+        if (!options.silent) toast('El START de la primera frase es fijo en 00:00.00');
+        return;
+      }
+      const previous = state.subtitles2.rows[index - 1];
+      const previousStartMs = parseSubtitleTimeToMsRuntime(previous.start);
+      const nextStartMs = currentStartMs + delta;
+      const previousEndMs = nextStartMs - SUBTITLE_TIMING_GAP_MS;
+      if (previousEndMs <= previousStartMs || nextStartMs >= currentEndMs - SUBTITLE_TIMING_GAP_MS) {
+        if (!options.silent) toast('No hay margen suficiente para mover el START');
+        return;
+      }
+      undoHistory.captureRowsSnapshot({ coalesceKey: `timing:${field}:${rowId}` });
+      state.subtitles2.rows = state.subtitles2.rows.map((item, itemIndex) => {
+        if (itemIndex === index - 1) return applySubtitleRowPatch(item, { end: formatSubtitleDisplayTimeRuntime(previousEndMs) });
+        if (itemIndex === index) return applySubtitleRowPatch(item, { start: formatSubtitleDisplayTimeRuntime(nextStartMs) });
+        return item;
+      });
+      markRowsChanged();
+      renderTable();
+      renderPreviewOverlay();
+      updateButtonsByPhase();
+      return;
+    }
+
+    if (field !== 'end') return;
+    const next = state.subtitles2.rows[index + 1] || null;
+    const nextEndMs = next ? parseSubtitleTimeToMsRuntime(next.end) : null;
+    const nextEndBoundaryMs = currentEndMs + delta;
+    const nextStartMs = nextEndBoundaryMs + SUBTITLE_TIMING_GAP_MS;
+    if (nextEndBoundaryMs <= currentStartMs + SUBTITLE_TIMING_GAP_MS || (next && nextStartMs >= nextEndMs)) {
+      if (!options.silent) toast('No hay margen suficiente para mover el END');
+      return;
+    }
+    undoHistory.captureRowsSnapshot({ coalesceKey: `timing:${field}:${rowId}` });
+    state.subtitles2.rows = state.subtitles2.rows.map((item, itemIndex) => {
+      if (itemIndex === index) return applySubtitleRowPatch(item, { end: formatSubtitleDisplayTimeRuntime(nextEndBoundaryMs) });
+      if (next && itemIndex === index + 1) return applySubtitleRowPatch(item, { start: formatSubtitleDisplayTimeRuntime(nextStartMs) });
+      return item;
+    });
+    markRowsChanged();
+    renderTable();
+    renderPreviewOverlay();
+    updateButtonsByPhase();
+  }
+
+  function deleteRow(rowId) {
+    const index = state.subtitles2.rows.findIndex((row) => row.id === rowId);
+    if (index <= 0) {
+      toast('La primera frase no se puede eliminar');
+      return;
+    }
+    const deletedRow = state.subtitles2.rows[index];
+    if (deletedRow?.isDraft) {
+      undoHistory.captureRowsSnapshot();
+      state.subtitles2.rows = state.subtitles2.rows.filter((row) => row.id !== rowId);
+      markRowsChanged();
+      renderWorkflow();
+      return;
+    }
+    const previousRow = state.subtitles2.rows[index - 1];
+    const nextRows = state.subtitles2.rows.filter((row) => row.id !== rowId);
+    nextRows[index - 1] = {
+      ...previousRow,
+      end: deletedRow.end,
+    };
+    undoHistory.captureRowsSnapshot();
+    state.subtitles2.rows = nextRows;
+    markRowsChanged();
+    renderWorkflow();
+  }
+
+  function onAddRowClicked() {
+    if (hasDraftRows()) {
+      toast('Ya hay un subtítulo fantasma para ubicar');
+      return;
+    }
+    const row = createEmptySubtitleRow({
+      id: `draft-${Date.now()}`,
+      start: '',
+      end: '',
+      phrase: '',
+      isDraft: true,
+    });
+    undoHistory.captureRowsSnapshot();
+    state.subtitles2.rows = [...state.subtitles2.rows, row];
+    markRowsChanged();
+    renderWorkflow();
+  }
+
+  function onDraftDragStart(ev) {
+    const rowEl = ev.target.closest('tr[data-row-id]');
+    if (!rowEl || rowEl.dataset.draft !== 'true') return;
+    state.subtitles2.draggingDraftRowId = rowEl.dataset.rowId;
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', rowEl.dataset.rowId);
+    rowEl.classList.add('is-dragging');
+  }
+
+  function onDraftDragOver(ev) {
+    const draftId = state.subtitles2.draggingDraftRowId;
+    if (!draftId) return;
+    const rowEl = ev.target.closest('tr[data-row-id]');
+    if (!rowEl || rowEl.dataset.draft === 'true') return;
+    const targetIndex = state.subtitles2.rows.findIndex((row) => row.id === rowEl.dataset.rowId);
+    if (targetIndex <= 0 || targetIndex >= getLastNonDraftRowIndex()) return;
+    ev.preventDefault();
+    clearDropTargets();
+    rowEl.classList.add('is-drop-before');
+  }
+
+  function onDraftDragLeave(ev) {
+    const rowEl = ev.target.closest('tr[data-row-id]');
+    if (!rowEl || rowEl.contains(ev.relatedTarget)) return;
+    rowEl.classList.remove('is-drop-before');
+  }
+
+  function onDraftDrop(ev) {
+    const draftId = state.subtitles2.draggingDraftRowId;
+    if (!draftId) return;
+    const rowEl = ev.target.closest('tr[data-row-id]');
+    if (!rowEl || rowEl.dataset.draft === 'true') return;
+    ev.preventDefault();
+    const targetIndex = state.subtitles2.rows.findIndex((row) => row.id === rowEl.dataset.rowId);
+    if (targetIndex <= 0 || targetIndex >= getLastNonDraftRowIndex()) {
+      toast('Soltá el subtítulo entre dos frases intermedias');
+      return;
+    }
+    placeDraftBetweenRows(draftId, targetIndex);
+  }
+
+  function getLastNonDraftRowIndex() {
+    return getLastSubtitleNonDraftRowIndexRuntime(state.subtitles2.rows);
+  }
+
+  function onDraftDragEnd() {
+    clearDropTargets();
+    state.subtitles2.draggingDraftRowId = null;
+  }
+
+  function clearDropTargets() {
+    el.subtitle2RowsBody?.querySelectorAll('.is-drop-before, .is-dragging').forEach((node) => {
+      node.classList.remove('is-drop-before', 'is-dragging');
+    });
+  }
+
+  function placeDraftBetweenRows(draftId, targetIndex) {
+    const rows = state.subtitles2.rows;
+    const draft = rows.find((row) => row.id === draftId && row.isDraft);
+    if (!draft) return;
+    const placedDraft = { ...draft, isDraft: false };
+    if (placeSubtitleBetweenRows(placedDraft, targetIndex, { renderOnNoSpace: true })) {
+      state.subtitles2.draggingDraftRowId = null;
+    }
+  }
+
+  function insertSubtitleNearRow(rowId) {
+    const rows = state.subtitles2.rows;
+    const rowIndex = rows.findIndex((row) => row.id === rowId);
+    const row = rows[rowIndex];
+    if (!row || row.isDraft) return;
+    const lastNonDraftIndex = getLastNonDraftRowIndex();
+    const targetIndex = rowIndex + 1;
+    if (targetIndex <= 0 || targetIndex > lastNonDraftIndex) {
+      toast('No hay espacio suficiente para insertar el subtítulo');
+      return;
+    }
+    const existingDraft = rows.find((item) => item.isDraft);
+    const insertedRow = existingDraft || createInsertedSubtitleRow();
+    placeSubtitleBetweenRows(insertedRow, targetIndex);
+  }
+
+  function createInsertedSubtitleRow() {
+    const counter = Number(state.subtitles2.insertRowCounter || 0) + 1;
+    state.subtitles2.insertRowCounter = counter;
+    return createEmptySubtitleRow({
+      id: `insert-${Date.now()}-${counter}`,
+      start: '',
+      end: '',
+      phrase: '',
+      isDraft: false,
+    });
+  }
+
+  function placeSubtitleBetweenRows(rowToPlace, targetIndex, options = {}) {
+    const rows = state.subtitles2.rows;
+    const previous = rows[targetIndex - 1];
+    const next = rows[targetIndex];
+    if (!rowToPlace || !previous || !next || previous.isDraft || next.isDraft) return false;
+    const previousEndMs = parseSubtitleTimeToMsRuntime(previous.end);
+    const nextStartMs = parseSubtitleTimeToMsRuntime(next.start);
+    const nextEndMs = parseSubtitleTimeToMsRuntime(next.end);
+    const draftStartMs = nextStartMs;
+    const draftEndMs = draftStartMs + SUBTITLE_DRAFT_INSERT_DURATION_MS;
+    const adjustedNextStartMs = draftEndMs + SUBTITLE_TIMING_GAP_MS;
+    if (draftStartMs < previousEndMs + SUBTITLE_TIMING_GAP_MS || adjustedNextStartMs >= nextEndMs) {
+      toast('No hay espacio suficiente para insertar el subtítulo');
+      if (options.renderOnNoSpace) renderWorkflow();
+      return false;
+    }
+    const placedRow = {
+      ...rowToPlace,
+      start: formatSubtitleDisplayTimeRuntime(draftStartMs),
+      end: formatSubtitleDisplayTimeRuntime(draftEndMs),
+      isDraft: false,
+    };
+    const withoutPlacedRow = rows.filter((row) => row.id !== rowToPlace.id);
+    const adjustedTargetIndex = withoutPlacedRow.findIndex((row) => row.id === next.id);
+    withoutPlacedRow[adjustedTargetIndex] = {
+      ...next,
+      start: formatSubtitleDisplayTimeRuntime(adjustedNextStartMs),
+    };
+    undoHistory.captureRowsSnapshot();
+    state.subtitles2.rows = [
+      ...withoutPlacedRow.slice(0, adjustedTargetIndex),
+      placedRow,
+      ...withoutPlacedRow.slice(adjustedTargetIndex),
+    ];
+    markRowsChanged();
+    renderWorkflow();
+    return true;
+  }
+
+  function ensureRowsCoverDuration(durationMs = resolvePreviewDurationMs()) {
+    const safeDurationMs = Math.max(0, Number(durationMs) || 0);
+    if (!safeDurationMs || hasDraftRows()) return false;
+    const lastIndex = state.subtitles2.rows.length - 1;
+    const lastRow = state.subtitles2.rows[lastIndex];
+    if (!lastRow) return false;
+    const lastEndMs = parseSubtitleTimeToMsRuntime(lastRow.end);
+    if (lastEndMs >= safeDurationMs) return false;
+    state.subtitles2.rows = state.subtitles2.rows.map((row, index) => (
+      index === lastIndex ? applySubtitleRowPatch(row, { end: formatSubtitleDisplayTimeRuntime(safeDurationMs) }) : row
+    ));
+    markRowsChanged();
+    return true;
+  }
+
+  function resolvePreviewDuration() {
+    return resolveSubtitlePreviewDurationMsRuntime({
+      audioDurationMs: state.subtitles2.audioDurationMs,
+      rows: state.subtitles2.rows,
+    });
+  }
+
+  function markRowsChanged() {
+    state.subtitles2.changeVersion += 1;
+    state.subtitles2.dirty = true;
+    onRowsChanged();
+  }
+
+  function closestFromEventTarget(target, selector) {
+    if (typeof target?.closest === 'function') return target.closest(selector);
+    return target?.parentElement?.closest?.(selector) || null;
+  }
+
+  return {
+    patchRow,
+    hasDraftRows,
+    onTableInput,
+    applyTimingInput,
+    onTableClick,
+    onTablePointerDown,
+    stopNumberHold,
+    undoLastRowsChange: () => undoHistory.undoLastRowsChange(),
+    clearUndoHistory: () => undoHistory.clearUndoHistory(),
+    nudgeTimingBoundary,
+    deleteRow,
+    onAddRowClicked,
+    onDraftDragStart,
+    onDraftDragOver,
+    onDraftDragLeave,
+    onDraftDrop,
+    getLastNonDraftRowIndex,
+    onDraftDragEnd,
+    clearDropTargets,
+    placeDraftBetweenRows,
+    ensureRowsCoverDuration,
+    resolvePreviewDuration,
+  };
+}

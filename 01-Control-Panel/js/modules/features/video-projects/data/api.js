@@ -1,0 +1,68 @@
+import { createApprovalPipelineClient as createApprovalPipelineClientBase } from './approval-pipeline-client.js';
+import { createRemotionClient as createRemotionClientBase } from './remotion-client.js';
+import { createSupabaseVideoProjectsClient } from './supabase-client.js';
+import { resolveServiceConfig } from '../../../core/state/app-store.js';
+import { resolveGatewayBaseUrl, resolveGatewayPresenceHeartbeatPath, resolveGatewayPresenceReadPath } from '../../../core/http/shared-read-models.js';
+
+const MANUAL_VIDEO_PROJECT_ENDPOINT = '/webhook/video-projects/manual-create/v1';
+
+async function parseResponseBody(response) {
+  const raw = await response.text();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { raw };
+  }
+}
+
+async function createManualVideoProject({ settings = {}, payload = {}, fetchImpl = fetch } = {}) {
+  const config = resolveServiceConfig(settings, 'n8n');
+  const baseUrl = (config.baseUrl || '').toString().trim();
+  if (!baseUrl) throw new Error('Falta configurar la URL base de n8n.');
+
+  const headers = { 'Content-Type': 'application/json' };
+  const shellVersion = (globalThis.__CONTROL_PANEL_BOOTSTRAP__?.app_version || '').toString().trim();
+  if (shellVersion) headers['x-control-panel-shell-version'] = shellVersion;
+
+  const response = await fetchImpl(`${baseUrl}${MANUAL_VIDEO_PROJECT_ENDPOINT}`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const data = await parseResponseBody(response);
+
+  if (!response.ok || data?.ok === false || data?.error) {
+    throw new Error(data?.message || data?.error || data?.raw || `Crear proyecto ${response.status}`);
+  }
+
+  return data;
+}
+
+async function readPresence({ settings = {}, fetchImpl = fetch } = {}) {
+  const response = await fetchImpl(`${resolveGatewayBaseUrl(settings)}${resolveGatewayPresenceReadPath()}`, { credentials: 'include', cache: 'no-store' });
+  return response.ok ? response.json() : { sessions: [], resources: [] };
+}
+
+async function reportPresence({ settings = {}, payload = {}, fetchImpl = fetch } = {}) {
+  const response = await fetchImpl(`${resolveGatewayBaseUrl(settings)}${resolveGatewayPresenceHeartbeatPath()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(`Presence heartbeat ${response.status}`);
+  return response.json();
+}
+
+export function createVideoProjectsApiClient({ fetchImpl = fetch, getSettings = () => ({}) } = {}) {
+  return {
+    ...createSupabaseVideoProjectsClient({ fetchImpl }),
+    createManualVideoProject: (options = {}) => createManualVideoProject({ fetchImpl, ...options }),
+    createRemotionClient: (options = {}) => createRemotionClientBase({ fetchImpl, ...options }),
+    createApprovalPipelineClient: (options = {}) => createApprovalPipelineClientBase({ fetchImpl, ...options }),
+    readPresence: () => readPresence({ settings: getSettings(), fetchImpl }),
+    reportPresence: (payload) => reportPresence({ settings: getSettings(), payload, fetchImpl }),
+  };
+}

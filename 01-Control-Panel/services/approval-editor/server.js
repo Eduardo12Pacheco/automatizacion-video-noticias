@@ -1,0 +1,753 @@
+const http = require("http");
+const os = require("os");
+const path = require("path");
+const fs = require("fs");
+const { buildApprovalContractPipeline, computeApprovalSnapshotHash, parseGuionSegments, validateApprovalTimeline } = require("../../../03-Contracts-Core/approval-contract-pipeline");
+const { createContractStore, safeProjectId } = require("./lib/contract-store");
+const { applyContractOperations } = require("./lib/contract-updates");
+const { findMotionPreset } = require("./lib/motion-presets");
+const { resolveAssetUrl } = require("./lib/asset-resolver");
+const { prepareRealVoiceAlignment } = require("./lib/real-alignment");
+const { prepareAudioPreviewDerivative, audioContentType } = require("./lib/audio-preview");
+const { extractVoiceAudioFromMp4, resolveVoiceExtractionErrorStatus } = require("./lib/voice-video-audio-extraction");
+const { createVideoEngineRenderAdapter } = require("./lib/video-engine-render-adapter");
+const { applyAlternatingBoundaryTransitionDefaults, addBoundaryTransitionAssets } = require("./lib/boundary-transitions");
+
+function sendJson(response, status, payload) {
+  response.writeHead(status, {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "content-type,range,x-control-panel-shell-version",
+    "access-control-expose-headers": "x-audio-filename,content-type",
+    "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
+    "content-type": "application/json; charset=utf-8",
+  });
+  response.end(JSON.stringify(payload));
+}
+
+function ok(response, data, status = 200) {
+  sendJson(response, status, { ok: true, data });
+}
+
+function fail(response, error, status = 500) {
+  sendJson(response, status, { ok: false, error: { code: error.code || "internal_error", message: error.message || String(error), details: error.details } });
+}
+
+function persistLatestSnapshot(store, projectId, latest) {
+  const snapshots = store.readSnapshots(projectId);
+  snapshots[snapshots.length - 1] = latest;
+  store.writeSnapshots(projectId, snapshots);
+  fs.writeFileSync(path.join(store.projectDir(projectId), "latest-snapshot.json"), JSON.stringify(latest, null, 2));
+}
+
+function assertValidSnapshotTimeline(snapshot, label) {
+  validateApprovalTimeline(Array.isArray(snapshot?.rows) ? snapshot.rows : snapshot?.segments, { label });
+  return snapshot;
+}
+
+function markRenderStatus(store, projectId, latest, renderPatch) {
+  latest.snapshot.render = { ...(latest.snapshot.render || {}), ...renderPatch, updatedAt: new Date().toISOString() };
+  persistLatestSnapshot(store, projectId, latest);
+  return latest.snapshot.render;
+}
+
+function errorStatus(error) {
+  if (["unsupported_voice_video", "voice_video_no_audio_stream", "voice_video_too_large", "voice_audio_output_too_large", "ffmpeg_unavailable", "voice_audio_extraction_failed"].includes(error.code)) return resolveVoiceExtractionErrorStatus(error);
+  if (["invalid_json", "missing_audio", "unsupported_operation", "invalid_dust_type", "invalid_asset", "invalid_video_segment", "invalid_video_segment_duration", "invalid_boundary_transition", "invalid_timeline", "missing_voice_audio", "invalid_remote_audio_url"].includes(error.code)) return 400;
+  if (["unknown_project", "unknown_row", "unknown_asset"].includes(error.code)) return 404;
+  if (["stale_snapshot", "version_conflict"].includes(error.code)) return 409;
+  if (["lease_held"].includes(error.code)) return 423;
+  return 500;
+}
+
+function readBody(request) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("error", reject);
+    request.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      if (!raw) return resolve({});
+      try { resolve(JSON.parse(raw)); } catch (error) { error.code = "invalid_json"; reject(error); }
+    });
+  });
+}
+
+function readBinaryBody(request, { maxBytes = 250 * 1024 * 1024 } = {}) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    request.on("data", (chunk) => {
+      total += chunk.length;
+      if (total > maxBytes) {
+        const error = new Error("El video de voz supera el límite de tamaño permitido.");
+        error.code = "voice_video_too_large";
+        request.destroy(error);
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("error", reject);
+    request.on("end", () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+function normalizeVoiceVideoSourceMetadata(source = {}) {
+  const publicUrl = String(source.publicUrl || source.public_url || source.url || source.storage_public_url || "").trim();
+  if (!/^https?:\/\//i.test(publicUrl)) {
+    const error = new Error("voice video source publicUrl is required");
+    error.code = "invalid_remote_audio_url";
+    throw error;
+  }
+  return {
+    publicUrl,
+    name: String(source.name || source.fileName || path.basename(new URL(publicUrl).pathname) || "camera.mp4").trim() || "camera.mp4",
+    mimeType: String(source.mimeType || source.mime_type || source.contentType || "video/mp4").trim() || "video/mp4",
+    size: Number(source.size || 0),
+    bucket: String(source.bucket || source.storage_bucket || "").trim(),
+    storagePath: String(source.storagePath || source.storage_path || "").trim(),
+  };
+}
+
+async function downloadVoiceVideoSource(source, { fetchImpl, maxBytes = 250 * 1024 * 1024 } = {}) {
+  const response = await fetchImpl(source.publicUrl);
+  if (!response?.ok) {
+    const error = new Error(`No se pudo descargar el MP4 de voz desde Storage (${response?.status || "network"}).`);
+    error.code = "invalid_remote_audio_url";
+    throw error;
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length > maxBytes) {
+    const error = new Error("El video de voz supera el límite de tamaño permitido.");
+    error.code = "voice_video_too_large";
+    error.details = { size: bytes.length, maxBytes };
+    throw error;
+  }
+  return {
+    sourceBytes: bytes,
+    sourceName: source.name,
+    sourceMimeType: source.mimeType || response.headers?.get?.("content-type") || "video/mp4",
+  };
+}
+
+async function resolveVoiceVideoExtractionInput(request, { fetchImpl } = {}) {
+  const contentType = String(request.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  if (contentType === "application/json") {
+    const body = await readBody(request);
+    const source = normalizeVoiceVideoSourceMetadata(body?.source || body);
+    return downloadVoiceVideoSource(source, { fetchImpl });
+  }
+  return {
+    sourceBytes: await readBinaryBody(request),
+    sourceName: "camera.mp4",
+    sourceMimeType: request.headers["content-type"] || "video/mp4",
+  };
+}
+
+function sendAudio(response, status, bytes, { fileName = "voice-from-video.m4a", contentType = "audio/mp4" } = {}) {
+  response.writeHead(status, {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "content-type,range,x-control-panel-shell-version",
+    "access-control-expose-headers": "x-audio-filename,content-type",
+    "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
+    "content-type": contentType,
+    "content-length": bytes.length,
+    "x-audio-filename": fileName,
+  });
+  response.end(bytes);
+}
+
+const ESTIMATED_SECONDS_PER_WORD = 0.55;
+const MIN_ESTIMATED_SEGMENT_SECONDS = 1.2;
+const WAV_DURATION_FETCH_TIMEOUT_MS = 2500;
+const REMOTION_OVERLAYS_DIR = path.resolve(__dirname, "..", "..", "..", "02-Video-Engine", "assets", "overlays");
+const PUBLIC_OVERLAY_FILES = new Set(["particle-1.mp4", "particle-2.mp4", "logo-demo-alpha.webm", "overlay-layer-01.mp4", "overlay-layer-02.mp4"]);
+
+function defaultZoom150Motion() {
+  const { category, name, ...motion } = findMotionPreset("Zoom 150") || {};
+  return Object.keys(motion).length ? motion : { fromScale: 1, toScale: 1.5, fromX: 0, fromY: 0, toX: 0, toY: 0, easing: "linear" };
+}
+
+function toFinitePositiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+function countWords(text) {
+  const words = String(text || '').trim().match(/\S+/g);
+  return words ? words.length : 1;
+}
+
+function pickAudioDurationSeconds(audio = {}) {
+  if (!audio || typeof audio !== "object") return 0;
+  return [
+    audio.durationSeconds,
+    audio.duration_seconds,
+    audio.duration,
+    audio.metadata?.durationSeconds,
+    audio.metadata?.duration_seconds,
+    audio.metadata?.duration,
+  ].map(toFinitePositiveNumber).find(Boolean) || 0;
+}
+
+function pickAudioUrl(audio = {}) {
+  return (audio?.public_url || audio?.publicUrl || audio?.url || audio?.storage_public_url || "").toString().trim();
+}
+
+function hasAlignedTimes(segment) {
+  const start = Number(segment?.startTime ?? segment?.start_time ?? segment?.start);
+  const end = Number(segment?.endTime ?? segment?.end_time ?? segment?.end);
+  return Number.isFinite(start) && Number.isFinite(end) && end > start;
+}
+
+function getSegmentStart(segment) {
+  return Number(segment?.startTime ?? segment?.start_time ?? segment?.start);
+}
+
+function getSegmentEnd(segment) {
+  return Number(segment?.endTime ?? segment?.end_time ?? segment?.end);
+}
+
+function distributeSegmentsByTextWeight(segments, totalDuration) {
+  const weights = segments.map((segment) => Math.max(1, countWords(segment.phrase)));
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0) || segments.length || 1;
+  const effectiveDuration = toFinitePositiveNumber(totalDuration)
+    || weights.reduce((sum, weight) => sum + Math.max(MIN_ESTIMATED_SEGMENT_SECONDS, weight * ESTIMATED_SECONDS_PER_WORD), 0);
+
+  let cursor = 0;
+  return segments.map((segment, index) => {
+    const isLast = index === segments.length - 1;
+    const rawDuration = effectiveDuration * (weights[index] / totalWeight);
+    const endTime = isLast ? effectiveDuration : cursor + rawDuration;
+    const timed = {
+      ...segment,
+      startTime: Number(cursor.toFixed(3)),
+      endTime: Number(endTime.toFixed(3)),
+    };
+    cursor = endTime;
+    return timed;
+  });
+}
+
+function mergeGuionParagraphMetadata(segments = [], rawGuion = "") {
+  if (!Array.isArray(segments) || !segments.length || !String(rawGuion || "").trim()) return segments;
+  let parsed = [];
+  try {
+    parsed = parseGuionSegments(rawGuion);
+  } catch {
+    return segments;
+  }
+  if (!parsed.length) return segments;
+  return segments.map((segment, index) => {
+    if (segment?.paragraphBoundaryAfter === true || parsed[index]?.paragraphBoundaryAfter !== true) return segment;
+    return { ...segment, paragraphBoundaryAfter: true };
+  });
+}
+
+function normalizeSegments(input = {}) {
+  const segments = Array.isArray(input.segments)
+    ? input.segments
+    : parseGuionSegments(input.guion_piped || "").map((segment, index) => ({ ...segment, id: `row-${index + 1}`, phrase: segment.phrase }));
+  const segmentsWithGuionMetadata = Array.isArray(input.segments)
+    ? mergeGuionParagraphMetadata(segments, input.guion_piped || "")
+    : segments;
+  const normalized = segmentsWithGuionMetadata.map((segment, index) => ({
+    ...segment,
+    id: String(segment.id || `row-${index + 1}`),
+    phrase: String(segment.phrase || segment.text || segment.caption || `Segmento ${index + 1}`).trim(),
+  }));
+  if (segmentsWithGuionMetadata.length && segmentsWithGuionMetadata.every(hasAlignedTimes)) {
+    return normalized.map((segment, index) => ({
+      ...segment,
+      startTime: getSegmentStart(segmentsWithGuionMetadata[index]),
+      endTime: getSegmentEnd(segmentsWithGuionMetadata[index]),
+      timingSource: "aligned",
+    }));
+  }
+
+  if (!input.allowEstimatedTimings) {
+    return normalized.map((segment) => ({
+      ...segment,
+      timingSource: "pending_alignment",
+    }));
+  }
+
+  const voiceDurationSeconds = pickAudioDurationSeconds(input.voice_audio || input.voiceAudio || input.audio?.voice || {});
+  return distributeSegmentsByTextWeight(normalized, voiceDurationSeconds).map((segment) => ({
+    ...segment,
+    timingSource: voiceDurationSeconds ? "voice-duration-weighted-text" : "estimated-text-weight",
+  }));
+}
+
+function parseWavDurationSeconds(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 44) return 0;
+  if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") return 0;
+  let offset = 12;
+  let byteRate = 0;
+  let dataSize = 0;
+  while (offset + 8 <= buffer.length) {
+    const chunkId = buffer.toString("ascii", offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const chunkDataStart = offset + 8;
+    if (chunkId === "fmt " && chunkDataStart + 12 <= buffer.length) byteRate = buffer.readUInt32LE(chunkDataStart + 8);
+    if (chunkId === "data") {
+      dataSize = chunkSize;
+      break;
+    }
+    offset = chunkDataStart + chunkSize + (chunkSize % 2);
+  }
+  return byteRate > 0 && dataSize > 0 ? dataSize / byteRate : 0;
+}
+
+async function resolveRemoteWavDurationSeconds(url) {
+  if (!/^https?:\/\//i.test(url || "") || !/\.wav(?:$|[?#])/i.test(url)) return 0;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), WAV_DURATION_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { headers: { range: "bytes=0-4095" }, signal: controller.signal });
+    if (!response.ok && response.status !== 206) return 0;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return toFinitePositiveNumber(parseWavDurationSeconds(buffer));
+  } catch {
+    return 0;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function buildRowSeeds(segments = []) {
+  const seeds = segments.map((segment, index) => ({
+    id: segment.id,
+    index,
+    phrase: segment.phrase,
+    caption: segment.phrase,
+    motionPresetId: "Zoom 150",
+    motion: defaultZoom150Motion(),
+    dust: { enabled: true, type: "particle-1", assetId: "particle-1", opacity: 0.36, blendMode: "screen" },
+    logo: { enabled: true, source: "logo-demo-alpha.webm" },
+    filter: { enabled: true, mode: "cover" },
+    transition: "none",
+    sfx: null,
+    ...(segment.paragraphBoundaryAfter === true ? { paragraphBoundaryAfter: true } : {}),
+    ...(segment.transition ? { transition: segment.transition } : {}),
+    ...(segment.transitionSource === "auto" || segment.transitionSource === "manual" ? { transitionSource: segment.transitionSource } : {}),
+    ...(segment.transitionConfig ? { transitionConfig: { ...segment.transitionConfig } } : {}),
+    ...(Object.prototype.hasOwnProperty.call(segment, "sfx") ? { sfx: segment.sfx } : {}),
+  }));
+  return applyAlternatingBoundaryTransitionDefaults(seeds.map((row, index) => {
+    if (row.paragraphBoundaryAfter !== true || !segments[index + 1]) return row;
+    return { ...row, nextRowId: String(segments[index + 1].id || `row-${index + 2}`) };
+  }));
+}
+
+function normalizeUrlAsset(item, index, role) {
+  const url = typeof item === "string" ? item : (item?.public_url || item?.publicUrl || item?.url || item?.storage_public_url || "");
+  const idSeed = (typeof item === "object" && (item.id || item.assetId || item.storage_path)) || url || `${role}-${index + 1}`;
+  const id = `${role}-${safeProjectId(idSeed)}`;
+  return {
+    id,
+    type: role === "music" ? "music" : role === "voice" ? "audio" : "image",
+    source: { kind: "approval-editor-service" },
+    localPath: url,
+    publicPath: url,
+    previewUrl: url,
+    renderPath: url,
+    status: "ready",
+  };
+}
+
+function previewFileUrl(projectId, relativePath) {
+  if (!relativePath) return "";
+  return `/api/projects/${encodeURIComponent(safeProjectId(projectId))}/files/${String(relativePath).replace(/^\/+/, "")}`;
+}
+
+function withAudioPreview(asset, previewUrl) {
+  if (!asset || !previewUrl) return asset;
+  return { ...asset, previewUrl };
+}
+
+function applyAudioPreviewUrls(pipeline, { voicePreviewUrl, musicPreviewUrl } = {}) {
+  const assets = pipeline?.contract?.assets || {};
+  const voiceAssetId = pipeline?.contract?.audio?.voice?.assetId;
+  const musicAssetId = pipeline?.contract?.audio?.music?.assetId;
+  if (voicePreviewUrl) {
+    if (assets[voiceAssetId]) assets[voiceAssetId].previewUrl = voicePreviewUrl;
+    if (pipeline.contract.audio?.voice) pipeline.contract.audio.voice.previewUrl = voicePreviewUrl;
+    if (pipeline.manifest?.assets?.[voiceAssetId]) pipeline.manifest.assets[voiceAssetId].previewUrl = voicePreviewUrl;
+  }
+  if (musicPreviewUrl) {
+    if (assets[musicAssetId]) assets[musicAssetId].previewUrl = musicPreviewUrl;
+    if (pipeline.contract.audio?.music) pipeline.contract.audio.music.previewUrl = musicPreviewUrl;
+    if (pipeline.manifest?.assets?.[musicAssetId]) pipeline.manifest.assets[musicAssetId].previewUrl = musicPreviewUrl;
+  }
+  if (voicePreviewUrl || musicPreviewUrl) pipeline.contract.snapshotHash = computeApprovalSnapshotHash(pipeline.contract);
+  return pipeline;
+}
+
+function resolveSafeProjectFile(projectDir, relativePath) {
+  const normalized = path.normalize(String(relativePath || "").replace(/^[/\\]+/, ""));
+  if (!normalized || normalized.startsWith("..") || path.isAbsolute(normalized)) return "";
+  const filePath = path.resolve(projectDir, normalized);
+  const projectRoot = path.resolve(projectDir);
+  if (filePath !== projectRoot && !filePath.startsWith(`${projectRoot}${path.sep}`)) return "";
+  return filePath;
+}
+
+function safeDownloadName(fileName) {
+  return path.basename(String(fileName || "download")).replace(/["\\\r\n]/g, "_");
+}
+
+function sendFile(request, response, filePath, { downloadName = "" } = {}) {
+  const stat = fs.statSync(filePath);
+  const headers = {
+    "access-control-allow-origin": "*",
+    "accept-ranges": "bytes",
+    "content-type": audioContentType(filePath),
+  };
+  if (downloadName) headers["content-disposition"] = `attachment; filename="${safeDownloadName(downloadName)}"`;
+  if (!downloadName) headers["cache-control"] = "public, max-age=86400";
+  const range = request.headers.range;
+  if (range) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+    if (match) {
+      const start = match[1] ? Number(match[1]) : 0;
+      const end = match[2] ? Number(match[2]) : stat.size - 1;
+      if (Number.isFinite(start) && Number.isFinite(end) && start <= end && start < stat.size) {
+        const cappedEnd = Math.min(end, stat.size - 1);
+        response.writeHead(206, { ...headers, "content-length": cappedEnd - start + 1, "content-range": `bytes ${start}-${cappedEnd}/${stat.size}` });
+        return fs.createReadStream(filePath, { start, end: cappedEnd }).pipe(response);
+      }
+    }
+    response.writeHead(416, { ...headers, "content-range": `bytes */${stat.size}` });
+    return response.end();
+  }
+  response.writeHead(200, { ...headers, "content-length": stat.size });
+  return fs.createReadStream(filePath).pipe(response);
+}
+
+function resolvePublicOverlayFile(fileName = '') {
+  const safeName = path.basename(String(fileName || ''));
+  if (!PUBLIC_OVERLAY_FILES.has(safeName)) return '';
+  const filePath = path.join(REMOTION_OVERLAYS_DIR, safeName);
+  return fs.existsSync(filePath) && fs.statSync(filePath).isFile() ? filePath : '';
+}
+
+async function tryPrepareAudioPreview(prepareAudioPreview, options) {
+  try {
+    return await prepareAudioPreview(options);
+  } catch {
+    return null;
+  }
+}
+
+function readActor(request) {
+  const roles = String(request.headers["x-panel-actor-roles"] || "")
+    .split(",")
+    .map((role) => role.trim())
+    .filter(Boolean);
+  const bodyActor = request.bodyActor && typeof request.bodyActor === "object" ? request.bodyActor : {};
+  return {
+    id: String(request.headers["x-panel-actor-id"] || bodyActor.actor || bodyActor.id || ""),
+    email: String(request.headers["x-panel-actor-email"] || bodyActor.email || ""),
+    displayName: String(request.headers["x-panel-actor-display-name"] || bodyActor.display_name || bodyActor.displayName || ""),
+    roles: roles.length ? roles : (Array.isArray(bodyActor.roles) ? bodyActor.roles.map(String) : []),
+    sessionId: String(request.headers["x-panel-session-id"] || bodyActor.session_id || bodyActor.sessionId || ""),
+  };
+}
+
+function buildAudit({ request, action, targetId, targetType = "approval_snapshot", baseSnapshotHash = "", baseVersion = null, newVersion = null, leaseId = "" }) {
+  const actor = readActor(request);
+  return {
+    actor,
+    role: actor.roles[0] || "",
+    action,
+    target_type: targetType,
+    target_id: targetId,
+    base_snapshot_hash: baseSnapshotHash || "",
+    base_version: baseVersion,
+    new_version: newVersion,
+    lease_id: leaseId || "",
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function toResponseSnapshot(record) {
+  return { snapshot: record.snapshot, snapshotId: record.snapshotId, snapshotHash: record.snapshotHash, version: record.version || 1, audit: record.audit || null };
+}
+
+function createVersionConflict({ latest, receivedHash }) {
+  const error = new Error("version conflict");
+  error.code = "version_conflict";
+  error.details = {
+    expected_version: latest.version || 1,
+    received_version: Math.max(1, (latest.version || 1) - 1),
+    expected_snapshot_hash: latest.snapshotHash,
+    received_snapshot_hash: receivedHash || "",
+    latest: toResponseSnapshot(latest),
+  };
+  return error;
+}
+
+const DEFAULT_LEASE_TTL_MS = 2 * 60 * 1000;
+
+function isLeaseExpired(lease) {
+  return !lease?.expires_at || Date.parse(lease.expires_at) <= Date.now();
+}
+
+function assertLeaseAvailable(store, projectId, leaseId, actor) {
+  if (!leaseId) return null;
+  const current = store.readLease(projectId);
+  if (current && !isLeaseExpired(current) && current.lease_id !== leaseId && current.owner?.id !== actor.id) {
+    const error = new Error("lease held by another editor");
+    error.code = "lease_held";
+    error.details = { lease_id: current.lease_id, owner: current.owner, expires_at: current.expires_at };
+    throw error;
+  }
+  const lease = {
+    lease_id: leaseId,
+    owner: actor,
+    acquired_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + DEFAULT_LEASE_TTL_MS).toISOString(),
+  };
+  store.writeLease(projectId, lease);
+  return lease;
+}
+
+function createMissingRenderAdapterError() {
+  const error = new Error("Remotion render adapter is not configured for Approval Editor final export. Configure APPROVAL_EDITOR_RENDER_ADAPTER with the 02-Video-Engine render adapter, or inject renderAdapter when creating the service.");
+  error.code = "render_adapter_not_configured";
+  return error;
+}
+
+async function missingRenderAdapter() {
+  throw createMissingRenderAdapterError();
+}
+
+function createRenderAdapterFromEnv(env = process.env, renderCommandRunner, fetchImpl = globalThis.fetch) {
+  const adapterName = String(env.APPROVAL_EDITOR_RENDER_ADAPTER || "").trim().toLowerCase();
+  if (["02-video-engine", "video-engine", "remotion"].includes(adapterName)) {
+    return createVideoEngineRenderAdapter({ env, runCommand: renderCommandRunner, fetchImpl });
+  }
+  return missingRenderAdapter;
+}
+
+function resolveRenderedOutputPath(rendered) {
+  const candidates = [rendered?.finalPath, rendered?.outputPath, rendered?.finalUrl];
+  const outputPath = candidates.find((candidate) => typeof candidate === "string" && candidate.trim());
+  if (outputPath) return outputPath.trim();
+  const error = new Error("Final render adapter completed without a downloadable output path. Check the 02-Video-Engine render adapter configuration and logs.");
+  error.code = "render_output_missing";
+  return error;
+}
+
+function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "projects"), renderAdapter, renderCommandRunner, alignVoiceAudio = prepareRealVoiceAlignment, prepareAudioPreview = prepareAudioPreviewDerivative, extractVoiceAudio = extractVoiceAudioFromMp4, env = process.env, fetchImpl = globalThis.fetch } = {}) {
+  const store = createContractStore({ projectsRoot });
+  const finalRenderAdapter = renderAdapter || createRenderAdapterFromEnv(env, renderCommandRunner, fetchImpl);
+  const renderJobs = new Map();
+
+  async function runAsyncFinalRender(projectId, latest) {
+    const jobKey = `${projectId}:${latest.snapshotHash}`;
+    if (renderJobs.has(jobKey)) return renderJobs.get(jobKey);
+    const markIfStillLatest = (renderPatch) => {
+      const currentLatest = store.latest(projectId);
+      if (!currentLatest || currentLatest.snapshotHash !== latest.snapshotHash) return null;
+      return markRenderStatus(store, projectId, currentLatest, renderPatch);
+    };
+    const job = (async () => {
+      try {
+        const rendered = await finalRenderAdapter({ projectId, snapshot: latest.snapshot, snapshotHash: latest.snapshotHash });
+        const outputPath = resolveRenderedOutputPath(rendered);
+        if (outputPath instanceof Error) throw outputPath;
+        markIfStillLatest({ status: "rendered", lastRenderedSnapshotHash: latest.snapshotHash, outputPath, error: null });
+      } catch (error) {
+        markIfStillLatest({ status: "error", lastRenderedSnapshotHash: latest.snapshotHash, error: { code: error.code || "render_command_failed", message: error.message || String(error), details: error.details } });
+      } finally {
+        renderJobs.delete(jobKey);
+      }
+    })();
+    renderJobs.set(jobKey, job);
+    return job;
+  }
+
+  return http.createServer(async (request, response) => {
+    try {
+      if (request.method === "OPTIONS") return sendJson(response, 204, null);
+      const url = new URL(request.url, "http://127.0.0.1");
+
+      if (request.method === "GET" && url.pathname === "/health") {
+        return ok(response, { ok: true, status: "ready", service: "approval-editor-service", contractVersion: "approval-editor-service-v1", capabilities: ["prepare", "snapshot", "update", "final-render", "download"] });
+      }
+
+      if (request.method === "GET" && url.pathname.startsWith("/api/overlays/")) {
+        const filePath = resolvePublicOverlayFile(decodeURIComponent(url.pathname.split("/").pop() || ""));
+        if (!filePath) throw Object.assign(new Error("unknown overlay"), { code: "unknown_asset" });
+        return sendFile(request, response, filePath);
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/audio/extract-voice") {
+        const extractionInput = await resolveVoiceVideoExtractionInput(request, { fetchImpl });
+        const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "approval-voice-video-"));
+        try {
+          const extracted = await extractVoiceAudio({
+            ...extractionInput,
+            workDir,
+            env,
+          });
+          const bytes = fs.readFileSync(extracted.outputPath);
+          return sendAudio(response, 200, bytes, { fileName: extracted.fileName, contentType: extracted.contentType });
+        } finally {
+          fs.rmSync(workDir, { recursive: true, force: true });
+        }
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/projects/create-from-approval") {
+        const body = await readBody(request);
+        request.bodyActor = body.audit_actor;
+        if (!body?.voice_audio?.public_url || !body?.background_audio?.public_url) throw Object.assign(new Error("approval payload requires voice and background audio"), { code: "missing_audio" });
+        const projectId = safeProjectId(body.project_id || body.draft_id || body.title);
+        const allowEstimatedTimings = String(env.ALLOW_ESTIMATED_TIMINGS || body.allowEstimatedTimings || "").toLowerCase() === "true";
+        let segments = normalizeSegments({ ...body, allowEstimatedTimings: false });
+        let alignedTimings = null;
+        let alignmentPaths = null;
+        let alignmentStatus = {
+          status: "pending_alignment",
+          source: "whisper-alignment",
+          details: "Whisper alignment has not completed yet",
+          generatedAt: null,
+        };
+        try {
+          const projectDir = store.projectDir(projectId);
+          const aligned = await alignVoiceAudio({ projectDir, projectId, voiceAudio: body.voice_audio, segments, env, fetchImpl });
+          segments = aligned.segments;
+          alignedTimings = aligned.alignedTimings;
+          alignmentStatus = aligned.alignmentStatus;
+          alignmentPaths = aligned.paths || null;
+        } catch (error) {
+          alignmentStatus = {
+            status: allowEstimatedTimings ? "ready" : "failed",
+            source: allowEstimatedTimings ? "estimated-text-weight" : "whisper-alignment",
+            warning: allowEstimatedTimings ? "ALLOW_ESTIMATED_TIMINGS=true; timings are not Whisper aligned" : "timing_fallback_not_whisper_aligned",
+            details: error.message,
+            generatedAt: new Date().toISOString(),
+          };
+          if (allowEstimatedTimings) {
+            const wavDurationSeconds = pickAudioDurationSeconds(body.voice_audio) || await resolveRemoteWavDurationSeconds(pickAudioUrl(body.voice_audio));
+            segments = normalizeSegments({ ...body, allowEstimatedTimings: true, voice_audio: { ...(body.voice_audio || {}), durationSeconds: wavDurationSeconds || body.voice_audio?.durationSeconds } });
+            alignedTimings = { phrases: segments.map((segment) => ({ startTime: segment.startTime, endTime: segment.endTime })) };
+          }
+        }
+        const projectDir = store.projectDir(projectId);
+        const [voicePreview, musicPreview] = await Promise.all([
+          tryPrepareAudioPreview(prepareAudioPreview, { projectDir, projectId, audio: body.voice_audio, role: "voice", outputName: "voice-preview.mp3", existingInputPath: alignmentPaths?.originalVoicePath, env, fetchImpl }),
+          tryPrepareAudioPreview(prepareAudioPreview, { projectDir, projectId, audio: body.background_audio, role: "music", outputName: "music-preview.mp3", env, fetchImpl }),
+        ]);
+        const voicePreviewUrl = previewFileUrl(projectId, voicePreview?.relativePath);
+        const musicPreviewUrl = previewFileUrl(projectId, musicPreview?.relativePath);
+        const imageAssets = (Array.isArray(body.selected_images) ? body.selected_images : []).map((item, index) => normalizeUrlAsset(item, index, "image"));
+        const voiceAsset = withAudioPreview(normalizeUrlAsset(body.voice_audio, 0, "voice"), voicePreviewUrl);
+        const musicAsset = withAudioPreview(normalizeUrlAsset(body.background_audio, 0, "music"), musicPreviewUrl);
+        const pipeline = buildApprovalContractPipeline({
+          projectId,
+          title: body.title || projectId,
+          draftId: body.draft_id || null,
+          rowsSeed: buildRowSeeds(segments),
+          segments,
+          alignedTimings,
+          alignmentStatus,
+          imageAssets,
+          voiceAsset,
+          musicAsset,
+          nowIso: new Date().toISOString(),
+          brandChannel: body.brandChannel || body.brand_channel,
+        });
+        applyAudioPreviewUrls(pipeline, { voicePreviewUrl, musicPreviewUrl });
+        pipeline.contract = addBoundaryTransitionAssets(pipeline.contract);
+        pipeline.contract.snapshotHash = computeApprovalSnapshotHash(pipeline.contract);
+        assertValidSnapshotTimeline(pipeline.contract, `project ${projectId} create-from-approval snapshot`);
+        for (const [assetId, asset] of Object.entries(pipeline.contract.assets || {})) {
+          if (asset?.role === "boundary-transition") pipeline.manifest.assets[assetId] = asset;
+        }
+        const audit = buildAudit({ request, action: "snapshot.create", targetId: projectId, newVersion: store.readSnapshots(projectId).length + 1 });
+        const record = store.saveSnapshot(pipeline.contract, { audit });
+        return ok(response, { projectId, ...toResponseSnapshot(record), previewAssets: pipeline.manifest, manifest: pipeline.manifest, alignmentStatus: pipeline.alignmentStatus }, alignmentStatus.status === "ready" ? 201 : 202);
+      }
+
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts[0] === "api" && parts[1] === "projects" && parts[2]) {
+        const projectId = decodeURIComponent(parts[2]);
+        const latest = store.latest(projectId);
+        if (!latest) throw Object.assign(new Error(`unknown project: ${projectId}`), { code: "unknown_project" });
+
+        if (request.method === "GET" && parts[3] === "snapshot") return ok(response, toResponseSnapshot(latest));
+        if (request.method === "GET" && parts[3] === "files") {
+          const relativePath = parts.slice(4).map(decodeURIComponent).join("/");
+          const filePath = resolveSafeProjectFile(store.projectDir(projectId), relativePath);
+          if (!filePath || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw Object.assign(new Error(`unknown project file: ${relativePath}`), { code: "unknown_asset" });
+          return sendFile(request, response, filePath);
+        }
+        if (request.method === "PATCH" && parts[3] === "snapshot") {
+          const body = await readBody(request);
+          request.bodyActor = body.audit_actor;
+          const baseSnapshotHash = body.baseSnapshotHash || body.base_snapshot_hash;
+          if (baseSnapshotHash !== latest.snapshotHash) throw createVersionConflict({ latest, receivedHash: baseSnapshotHash });
+          const actor = readActor(request);
+          assertLeaseAvailable(store, projectId, body.lease_id || body.leaseId, actor);
+          const nextSnapshot = applyContractOperations(latest.snapshot, Array.isArray(body.operations) ? body.operations : []);
+          assertValidSnapshotTimeline(nextSnapshot, `project ${projectId} snapshot update`);
+          const audit = buildAudit({ request, action: "snapshot.update", targetId: projectId, baseSnapshotHash, baseVersion: latest.version || 1, newVersion: (latest.version || 1) + 1, leaseId: body.lease_id || body.leaseId || "" });
+          const record = store.saveSnapshot(nextSnapshot, { audit });
+          return ok(response, toResponseSnapshot(record));
+        }
+        if (request.method === "POST" && parts[3] === "render-final") {
+          const body = await readBody(request);
+          request.bodyActor = body.audit_actor;
+          if (body.snapshotHash !== latest.snapshotHash) throw createVersionConflict({ latest, receivedHash: body.snapshotHash });
+          assertValidSnapshotTimeline(latest.snapshot, `project ${projectId} final render snapshot`);
+          if (body.async === true) {
+            const currentRender = latest.snapshot.render || {};
+            if (currentRender.status === "rendering" && currentRender.lastRenderedSnapshotHash === latest.snapshotHash) {
+              return ok(response, { projectId, snapshotHash: latest.snapshotHash, lastRenderedSnapshotHash: currentRender.lastRenderedSnapshotHash, render: currentRender }, 202);
+            }
+            const render = markRenderStatus(store, projectId, latest, { status: "rendering", lastRenderedSnapshotHash: latest.snapshotHash, outputPath: null, error: null });
+            void runAsyncFinalRender(projectId, latest);
+            return ok(response, { projectId, snapshotHash: latest.snapshotHash, lastRenderedSnapshotHash: latest.snapshotHash, render }, 202);
+          }
+          const rendered = await finalRenderAdapter({ projectId, snapshot: latest.snapshot, snapshotHash: latest.snapshotHash });
+          const outputPath = resolveRenderedOutputPath(rendered);
+          if (outputPath instanceof Error) throw outputPath;
+          markRenderStatus(store, projectId, latest, { status: "rendered", lastRenderedSnapshotHash: latest.snapshotHash, outputPath, error: null });
+          return ok(response, { projectId, snapshotHash: latest.snapshotHash, lastRenderedSnapshotHash: latest.snapshotHash, render: latest.snapshot.render }, 202);
+        }
+        if (request.method === "GET" && parts[3] === "status") return ok(response, { projectId, ...toResponseSnapshot(latest), render: latest.snapshot.render || {} });
+        if (request.method === "GET" && parts[3] === "download" && parts[4] === "final") {
+          const finalPath = latest.snapshot.render?.outputPath || "";
+          if (url.searchParams.get("download") === "1") {
+            if (!finalPath || !fs.existsSync(finalPath) || !fs.statSync(finalPath).isFile()) throw Object.assign(new Error("Final render output is not available for download"), { code: "final_output_missing" });
+            return sendFile(request, response, finalPath, { downloadName: "video-final.mp4" });
+          }
+          return ok(response, { projectId, snapshotHash: latest.snapshotHash, finalUrl: finalPath || null });
+        }
+      }
+
+      if (request.method === "GET" && parts[0] === "api" && parts[1] === "assets" && parts[2]) {
+        for (const record of fs.readdirSync(projectsRoot).flatMap((id) => store.readSnapshots(id))) {
+          const found = resolveAssetUrl(record.snapshot, decodeURIComponent(parts[2]));
+          if (found) return response.writeHead(302, { location: found }).end();
+        }
+        throw Object.assign(new Error(`unknown asset: ${parts[2]}`), { code: "unknown_asset" });
+      }
+
+      throw Object.assign(new Error("Not found"), { code: "not_found" });
+    } catch (error) {
+      return fail(response, error, errorStatus(error));
+    }
+  });
+}
+
+if (require.main === module) {
+  const port = Number(process.env.APPROVAL_EDITOR_SERVICE_PORT || 3042);
+  createApprovalEditorService().listen(port, "127.0.0.1", () => {
+    console.log(`approval-editor-service listening on http://127.0.0.1:${port}`);
+  });
+}
+
+module.exports = { createApprovalEditorService, normalizeSegments, pickAudioDurationSeconds, parseWavDurationSeconds, createRenderAdapterFromEnv };

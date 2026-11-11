@@ -1,0 +1,367 @@
+const DEFAULT_REMOTION_API_URL = 'https://remotion-api.example.local';
+const DEFAULT_APPROVAL_EDITOR_SERVICE_URL = 'https://api.example.local/approval';
+const DEFAULT_TRANSCRIPT_SERVICE_URL = 'http://127.0.0.1:8765';
+const DEFAULT_CHANNEL_MONITOR_SERVICE_URL = 'http://127.0.0.1:8775';
+const DEFAULT_SUBTITLES_SERVICE_URL = 'http://127.0.0.1:8092';
+const DEFAULT_API_ORIGIN = 'https://api.example.local';
+const DEFAULT_BRAND_CHANNEL = 'golazo-ecuador';
+const DEFAULT_SERVICE_OVERRIDES = Object.freeze({
+  n8n: false,
+  tts: false,
+  subtitles: false,
+  radar: false,
+  monitor: false,
+  remotion: false,
+  approvalPipeline: true,
+});
+const UNIFIED_SERVICE_PREFIX = Object.freeze({
+  n8n: 'n8n',
+  tts: 'tts',
+  subtitles: 'subtitles',
+  radar: 'radar',
+  monitor: 'monitor',
+  remotion: 'remotion',
+});
+const BOOTSTRAP_ROUTE_TO_SERVICE = Object.freeze({
+  n8n: 'n8n',
+  tts: 'tts',
+  subtitles: 'subtitles',
+  radar: 'radar',
+  monitor: 'monitor',
+  remotion: 'remotion',
+});
+const LEGACY_LOCAL_REMOTION_URLS = new Set([
+  'http://127.0.0.1:3037',
+  'http://127.0.0.1:3037/',
+  'http://localhost:3037',
+  'http://localhost:3037/',
+]);
+
+export function isRemoteBrowserContext(locationLike = globalThis?.location) {
+  const hostname = (locationLike?.hostname || '').toLowerCase();
+  if (!hostname) return false;
+  return !new Set(['localhost', '127.0.0.1', '::1']).has(hostname);
+}
+
+export function isLocalServiceUrl(rawValue) {
+  const value = (rawValue || '').toString().trim();
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return new Set(['localhost', '127.0.0.1', '[::1]', '::1']).has(url.hostname.toLowerCase());
+  } catch {
+    return /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\]|::1)(?::\d+)?(?:\/|$)/i.test(value);
+  }
+}
+
+export function shouldSkipApprovalBackgroundRefresh({ baseUrl, locationLike = globalThis?.location } = {}) {
+  return isRemoteBrowserContext(locationLike) && isLocalServiceUrl(baseUrl);
+}
+
+export function shouldSkipApprovalInitialBootRefresh({ baseUrl, locationLike = globalThis?.location, refreshOptions = {} } = {}) {
+  return refreshOptions?.silent === true
+    && refreshOptions?.source === 'boot'
+    && shouldSkipApprovalBackgroundRefresh({ baseUrl, locationLike });
+}
+
+function normalizeRemotionApiUrl(rawValue, { fallback = DEFAULT_REMOTION_API_URL, locationLike = globalThis?.location } = {}) {
+  const value = (rawValue || '').toString().trim();
+  if (!value) return fallback;
+  if (LEGACY_LOCAL_REMOTION_URLS.has(value) && isRemoteBrowserContext(locationLike)) {
+    return fallback;
+  }
+  return value;
+}
+
+function normalizeApprovalPipelineBaseUrl(rawValue) {
+  return (rawValue || '').toString().trim();
+}
+
+function trimTrailingSlash(rawValue) {
+  return (rawValue || '').toString().trim().replace(/\/+$/, '');
+}
+
+function trimSlashes(rawValue) {
+  return (rawValue || '').toString().trim().replace(/^\/+|\/+$/g, '');
+}
+
+function normalizeApiProfileMode(rawValue) {
+  return rawValue === 'legacy' ? 'legacy' : 'unified';
+}
+
+function normalizeServiceOverrides(rawValue = {}) {
+  return {
+    ...DEFAULT_SERVICE_OVERRIDES,
+    ...(rawValue && typeof rawValue === 'object' ? rawValue : {}),
+  };
+}
+
+function deriveBootstrapRouteBaseUrl(apiOrigin, routePrefix) {
+  const origin = trimTrailingSlash(apiOrigin);
+  const prefix = trimSlashes(routePrefix);
+  if (!origin || !prefix) return '';
+  return `${origin}/${prefix}`;
+}
+
+function shouldPreserveLocalServiceOverride(settings, service, locationLike) {
+  const field = SERVICE_BASE_FIELD[service];
+  if (!field || isRemoteBrowserContext(locationLike)) return false;
+  return settings.serviceOverrides?.[service] === true && isLocalServiceUrl(settings[field]);
+}
+
+function bootstrapApprovalRoute(bootstrap = {}) {
+  return bootstrap?.routes?.approval || bootstrap?.routes?.approvalPipeline || '';
+}
+
+function isLegacyStoredSettings(rawValue = {}) {
+  return rawValue
+    && typeof rawValue === 'object'
+    && !Object.prototype.hasOwnProperty.call(rawValue, 'apiProfileMode')
+    && !Object.prototype.hasOwnProperty.call(rawValue, 'serviceOverrides');
+}
+
+function normalizeBrandChannel(rawValue) {
+  const value = (rawValue || '').toString().trim().toLowerCase();
+  return ['golazo-colombia', 'final-demo-cup'].includes(value) ? value : DEFAULT_BRAND_CHANNEL;
+}
+
+export function defaultSettingsFactory() {
+  return {
+    apiProfileMode: 'unified',
+    apiOrigin: DEFAULT_API_ORIGIN,
+    sharedApiKey: '',
+    sharedBasicUser: '',
+    sharedBasicPass: '',
+    serviceOverrides: { ...DEFAULT_SERVICE_OVERRIDES },
+    baseUrl: 'http://localhost:5678',
+    secret: '',
+    ttsBaseUrl: 'http://localhost:8088',
+    ttsApiKey: '',
+    ttsBasicUser: '',
+    ttsBasicPass: '',
+    subtitlesBaseUrl: DEFAULT_SUBTITLES_SERVICE_URL,
+    subtitlesApiKey: '',
+    subtitlesBasicUser: '',
+    subtitlesBasicPass: '',
+    remotionApiUrl: DEFAULT_REMOTION_API_URL,
+    approvalPipelineBaseUrl: DEFAULT_APPROVAL_EDITOR_SERVICE_URL,
+    brandChannel: DEFAULT_BRAND_CHANNEL,
+    transcriptServiceBaseUrl: DEFAULT_TRANSCRIPT_SERVICE_URL,
+    transcriptServiceApiKey: '',
+    channelMonitorBaseUrl: DEFAULT_CHANNEL_MONITOR_SERVICE_URL,
+    channelMonitorApiKey: '',
+  };
+}
+
+export function normalizeSettings(settings = {}, { defaultsFactory = defaultSettingsFactory } = {}) {
+  const defaults = defaultsFactory();
+  const merged = { ...defaults, ...(settings || {}) };
+  merged.apiProfileMode = normalizeApiProfileMode(merged.apiProfileMode);
+  merged.apiOrigin = trimTrailingSlash(merged.apiOrigin) || defaults.apiOrigin;
+  merged.sharedApiKey = fallbackCredential(merged.sharedApiKey, merged.subtitlesApiKey || merged.ttsApiKey || merged.transcriptServiceApiKey || merged.channelMonitorApiKey).trim();
+  merged.sharedBasicUser = fallbackCredential(merged.sharedBasicUser, merged.subtitlesBasicUser || merged.ttsBasicUser).trim();
+  merged.sharedBasicPass = fallbackCredential(merged.sharedBasicPass, merged.subtitlesBasicPass || merged.ttsBasicPass);
+  merged.serviceOverrides = normalizeServiceOverrides(merged.serviceOverrides);
+  merged.remotionApiUrl = normalizeRemotionApiUrl(merged.remotionApiUrl, { fallback: defaults.remotionApiUrl });
+  merged.approvalPipelineBaseUrl = normalizeApprovalPipelineBaseUrl(merged.approvalPipelineBaseUrl);
+  merged.brandChannel = normalizeBrandChannel(merged.brandChannel);
+  return merged;
+}
+
+export function mergeSettingsForSave(currentSettings = {}, nextSettings = {}) {
+  return normalizeSettings({ ...(currentSettings || {}), ...(nextSettings || {}) });
+}
+
+export function hydrateSettingsFromServerBootstrap(currentSettings = {}, bootstrap = {}, { locationLike = globalThis?.location } = {}) {
+  const normalized = normalizeSettings(currentSettings);
+  const apiOrigin = trimTrailingSlash(bootstrap?.api_origin || normalized.apiOrigin || DEFAULT_API_ORIGIN);
+  const nextServiceOverrides = { ...normalized.serviceOverrides };
+
+  for (const [routeName, service] of Object.entries(BOOTSTRAP_ROUTE_TO_SERVICE)) {
+    const serverControlsService = Boolean(bootstrap?.routes?.[routeName] || apiOrigin);
+    if (serverControlsService && !shouldPreserveLocalServiceOverride(normalized, service, locationLike)) {
+      nextServiceOverrides[service] = false;
+    }
+  }
+
+  const approvalRouteBaseUrl = deriveBootstrapRouteBaseUrl(apiOrigin, bootstrapApprovalRoute(bootstrap));
+
+  return normalizeSettings({
+    ...normalized,
+    apiProfileMode: 'unified',
+    apiOrigin,
+    serviceOverrides: nextServiceOverrides,
+    ...(approvalRouteBaseUrl ? { approvalPipelineBaseUrl: approvalRouteBaseUrl } : {}),
+  });
+}
+
+export function loadSettingsFromStorage({ storage, storageKey, defaultsFactory = defaultSettingsFactory }) {
+  const defaults = defaultsFactory();
+  let raw = null;
+  try {
+    raw = storage.getItem(storageKey);
+  } catch {
+    return defaults;
+  }
+  if (!raw) return defaults;
+  try {
+    const parsed = JSON.parse(raw);
+    return normalizeSettings({
+      ...defaults,
+      ...parsed,
+      ...(isLegacyStoredSettings(parsed) ? { serviceOverrides: Object.fromEntries(
+        Object.keys(DEFAULT_SERVICE_OVERRIDES).map((service) => [service, true]),
+      ) } : {}),
+    }, { defaultsFactory });
+  } catch {
+    return defaults;
+  }
+}
+
+export function saveSettingsToStorage({ storage, storageKey, nextSettings }) {
+  const normalized = normalizeSettings(nextSettings);
+  try {
+    storage.setItem(storageKey, JSON.stringify(normalized));
+  } catch {
+    return nextSettings;
+  }
+  return normalized;
+}
+
+const SERVICE_BASE_FIELD = Object.freeze({
+  n8n: 'baseUrl',
+  tts: 'ttsBaseUrl',
+  subtitles: 'subtitlesBaseUrl',
+  radar: 'transcriptServiceBaseUrl',
+  monitor: 'channelMonitorBaseUrl',
+  remotion: 'remotionApiUrl',
+});
+
+function hasPartialLegacyBaseOverride(rawSettings, service, { locationLike = globalThis?.location } = {}) {
+  const field = SERVICE_BASE_FIELD[service];
+  if (!field || !rawSettings || typeof rawSettings !== 'object') return false;
+  const storedValue = (rawSettings[field] || '').toString().trim();
+  if (service === 'subtitles' && isRemoteBrowserContext(locationLike) && isLocalServiceUrl(storedValue)) return false;
+  return !Object.prototype.hasOwnProperty.call(rawSettings, 'apiProfileMode')
+    && !Object.prototype.hasOwnProperty.call(rawSettings, 'serviceOverrides')
+    && Object.prototype.hasOwnProperty.call(rawSettings, field)
+    && Boolean(storedValue);
+}
+
+function shouldUseUnifiedService(settings, service, rawSettings = {}) {
+  return settings.apiProfileMode === 'unified'
+    && service !== 'approvalPipeline'
+    && !hasPartialLegacyBaseOverride(rawSettings, service)
+    && settings.serviceOverrides?.[service] === false;
+}
+
+function deriveUnifiedBaseUrl(settings, service) {
+  const origin = trimTrailingSlash(settings.apiOrigin);
+  const prefix = UNIFIED_SERVICE_PREFIX[service];
+  return origin && prefix ? `${origin}/${prefix}` : '';
+}
+
+function fallbackCredential(primary, shared) {
+  const value = (primary || '').toString();
+  return value.trim() ? value : (shared || '').toString();
+}
+
+function resolveUniversalCredentials(settings = {}) {
+  return {
+    apiKey: fallbackCredential(settings.sharedApiKey, settings.ttsApiKey || settings.subtitlesApiKey || settings.transcriptServiceApiKey || settings.channelMonitorApiKey).trim(),
+    basicUser: fallbackCredential(settings.sharedBasicUser, settings.ttsBasicUser || settings.subtitlesBasicUser).trim(),
+    basicPass: fallbackCredential(settings.sharedBasicPass, settings.subtitlesBasicPass || settings.ttsBasicPass),
+  };
+}
+
+export function resolveServiceConfig(rawSettings = {}, service) {
+  const settings = normalizeSettings(rawSettings);
+  const unifiedBaseUrl = shouldUseUnifiedService(settings, service, rawSettings) ? deriveUnifiedBaseUrl(settings, service) : '';
+  const universalCredentials = resolveUniversalCredentials(settings);
+
+  if (service === 'n8n') {
+    return { baseUrl: unifiedBaseUrl || trimTrailingSlash(settings.baseUrl), secret: settings.secret || '' };
+  }
+  if (service === 'tts') {
+    return {
+      baseUrl: unifiedBaseUrl || trimTrailingSlash(settings.ttsBaseUrl),
+      apiKey: universalCredentials.apiKey,
+      basicUser: universalCredentials.basicUser,
+      basicPass: universalCredentials.basicPass,
+    };
+  }
+  if (service === 'subtitles') {
+    return {
+      baseUrl: unifiedBaseUrl || trimTrailingSlash(settings.subtitlesBaseUrl || settings.ttsBaseUrl),
+      apiKey: universalCredentials.apiKey,
+      basicUser: universalCredentials.basicUser,
+      basicPass: universalCredentials.basicPass,
+    };
+  }
+  if (service === 'radar') {
+    return {
+      baseUrl: unifiedBaseUrl || trimTrailingSlash(settings.transcriptServiceBaseUrl),
+      apiKey: universalCredentials.apiKey,
+    };
+  }
+  if (service === 'monitor') {
+    return {
+      baseUrl: unifiedBaseUrl || trimTrailingSlash(settings.channelMonitorBaseUrl),
+      apiKey: unifiedBaseUrl
+        ? universalCredentials.apiKey
+        : fallbackCredential(settings.channelMonitorApiKey, universalCredentials.apiKey).trim(),
+    };
+  }
+  if (service === 'remotion') {
+    return { baseUrl: unifiedBaseUrl || trimTrailingSlash(settings.remotionApiUrl) };
+  }
+  if (service === 'approvalPipeline') {
+    const hasExplicitApprovalPipeline = Object.prototype.hasOwnProperty.call(rawSettings || {}, 'approvalPipelineBaseUrl');
+    return { baseUrl: hasExplicitApprovalPipeline ? trimTrailingSlash(rawSettings.approvalPipelineBaseUrl) : '' };
+  }
+  return { baseUrl: '' };
+}
+
+export function hydrateSettingsFormValues({ el, settings }) {
+  const normalized = normalizeSettings(settings);
+  if (el.apiProfileModeSelect) {
+    el.apiProfileModeSelect.value = normalized.apiProfileMode;
+  }
+  if (el.apiOriginInput) {
+    el.apiOriginInput.value = normalized.apiOrigin;
+  }
+  if (el.sharedApiKeyInput) el.sharedApiKeyInput.value = '';
+  if (el.sharedBasicUserInput) el.sharedBasicUserInput.value = '';
+  if (el.sharedBasicPassInput) el.sharedBasicPassInput.value = '';
+  if (el.advancedSettingsSection) {
+    el.advancedSettingsSection.hidden = true;
+    el.advancedSettingsSection.setAttribute?.('aria-hidden', 'true');
+  }
+  if (el.baseUrlInput) {
+    el.baseUrlInput.value = normalized.baseUrl;
+  }
+  if (el.secretInput) {
+    el.secretInput.value = normalized.secret;
+  }
+  if (el.ttsBaseUrlInput) {
+    el.ttsBaseUrlInput.value = normalized.ttsBaseUrl;
+  }
+  if (el.subtitlesBaseUrlInput) {
+    el.subtitlesBaseUrlInput.value = normalized.subtitlesBaseUrl || DEFAULT_SUBTITLES_SERVICE_URL;
+  }
+  if (el.remotionApiUrlInput) {
+    el.remotionApiUrlInput.value = normalizeRemotionApiUrl(normalized.remotionApiUrl, { fallback: DEFAULT_REMOTION_API_URL });
+  }
+  if (el.approvalPipelineBaseUrlInput) {
+    el.approvalPipelineBaseUrlInput.value = normalizeApprovalPipelineBaseUrl(normalized.approvalPipelineBaseUrl);
+  }
+  if (el.brandChannelSelect) {
+    el.brandChannelSelect.value = normalizeBrandChannel(normalized.brandChannel);
+  }
+  if (el.transcriptServiceBaseUrlInput) {
+    el.transcriptServiceBaseUrlInput.value = normalized.transcriptServiceBaseUrl || DEFAULT_TRANSCRIPT_SERVICE_URL;
+  }
+  if (el.channelMonitorBaseUrlInput) {
+    el.channelMonitorBaseUrlInput.value = normalized.channelMonitorBaseUrl || DEFAULT_CHANNEL_MONITOR_SERVICE_URL;
+  }
+}

@@ -1,0 +1,607 @@
+import subprocess
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _run_node(script: str):
+    return subprocess.run(
+        ["node", "--experimental-default-type=module", "-e", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_settings_load_returns_defaults_when_storage_get_item_throws():
+    script = r"""
+import { defaultSettingsFactory, loadSettingsFromStorage } from './js/modules/core/state/app-store.js';
+
+const defaults = defaultSettingsFactory();
+const loaded = loadSettingsFromStorage({
+  storage: { getItem() { throw new Error('storage blocked'); } },
+  storageKey: 'approval-panel-settings-v1',
+});
+
+if (JSON.stringify(loaded) !== JSON.stringify(defaults)) {
+  throw new Error(`expected defaults when storage is unavailable, got ${JSON.stringify(loaded)}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_settings_save_returns_next_settings_when_storage_set_item_throws():
+    script = r"""
+import { saveSettingsToStorage } from './js/modules/core/state/app-store.js';
+
+const nextSettings = { baseUrl: 'https://example.test', secret: 'keep-in-memory' };
+const saved = saveSettingsToStorage({
+  storage: { setItem() { throw new Error('quota exceeded'); } },
+  storageKey: 'approval-panel-settings-v1',
+  nextSettings,
+});
+
+if (saved !== nextSettings) {
+  throw new Error('expected save to preserve the in-memory next settings object');
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_remote_pages_context_skips_background_local_approval_refreshes():
+    script = r"""
+import { shouldSkipApprovalBackgroundRefresh } from './js/modules/core/state/app-store.js';
+
+const remotePages = { hostname: 'panel.example.local' };
+
+if (!shouldSkipApprovalBackgroundRefresh({
+  baseUrl: 'http://localhost:5678',
+  locationLike: remotePages,
+})) {
+  throw new Error('remote Pages context should skip background localhost n8n refreshes');
+}
+
+if (!shouldSkipApprovalBackgroundRefresh({
+  baseUrl: 'http://127.0.0.1:5678',
+  locationLike: remotePages,
+})) {
+  throw new Error('remote Pages context should skip background 127.0.0.1 n8n refreshes');
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_local_and_remote_approval_urls_keep_background_refreshes_enabled():
+    script = r"""
+import { shouldSkipApprovalBackgroundRefresh } from './js/modules/core/state/app-store.js';
+
+if (shouldSkipApprovalBackgroundRefresh({
+  baseUrl: 'http://localhost:5678',
+  locationLike: { hostname: 'localhost' },
+})) {
+  throw new Error('local app context must keep background localhost n8n refreshes enabled');
+}
+
+if (shouldSkipApprovalBackgroundRefresh({
+  baseUrl: 'https://n8n.example.test',
+  locationLike: { hostname: 'panel.example.local' },
+})) {
+  throw new Error('remote n8n base URL must keep background refreshes enabled');
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_remote_pages_context_skips_initial_boot_local_approval_refreshes_only_when_silent():
+    script = r"""
+import { shouldSkipApprovalInitialBootRefresh } from './js/modules/core/state/app-store.js';
+
+const remotePages = { hostname: 'panel.example.local' };
+
+if (!shouldSkipApprovalInitialBootRefresh({
+  baseUrl: 'http://localhost:5678',
+  locationLike: remotePages,
+  refreshOptions: { silent: true, source: 'boot' },
+})) {
+  throw new Error('remote Pages silent boot should skip localhost n8n refreshes');
+}
+
+if (shouldSkipApprovalInitialBootRefresh({
+  baseUrl: 'http://localhost:5678',
+  locationLike: remotePages,
+  refreshOptions: {},
+})) {
+  throw new Error('manual refreshAll calls must keep localhost n8n refreshes enabled');
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_initial_boot_refresh_marks_refresh_all_as_silent_boot_context():
+    script = r"""
+import { createAppShellLifecycle } from './js/modules/app-shell/lifecycle.js';
+
+const refreshCalls = [];
+const el = {
+  authGate: { classList: { add() {}, remove() {} } },
+  appShell: { classList: { add() {}, remove() {} } },
+  runQueueBtn: { textContent: '' },
+};
+
+const lifecycle = createAppShellLifecycle({
+  bindEvents() {},
+  customDropdowns: { mountAll() {} },
+  hydrateSettingsForm() {},
+  el,
+  readSessionStatus() { return 'ok'; },
+  storage: {},
+  cookieJar: {},
+  sessionKey: 'approval-panel-session-v1',
+  setView() {},
+  refreshAll(options) { refreshCalls.push(options); },
+  renderSearchRefreshState() {},
+  renderSelectedScriptEditor() {},
+  renderSelectedVideoProject() {},
+});
+
+lifecycle.bootCompatibilityShell();
+
+if (JSON.stringify(refreshCalls) !== JSON.stringify([{ silent: true, source: 'boot' }])) {
+  throw new Error(`expected initial boot refresh to be marked silent boot, got ${JSON.stringify(refreshCalls)}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_lifecycle_hydrates_and_restores_session_when_event_binding_throws():
+    script = r"""
+import { createAppShellLifecycle } from './js/modules/app-shell/lifecycle.js';
+
+const calls = [];
+const el = {
+  authGate: { classList: { add(name) { calls.push(['authGate.add', name]); }, remove(name) { calls.push(['authGate.remove', name]); } } },
+  appShell: { classList: { add(name) { calls.push(['appShell.add', name]); }, remove(name) { calls.push(['appShell.remove', name]); } } },
+  runQueueBtn: { textContent: '' },
+};
+
+const lifecycle = createAppShellLifecycle({
+  bindEvents() { calls.push(['bindEvents']); throw new Error('missing optional node'); },
+  customDropdowns: { mountAll() { calls.push(['mountAll']); } },
+  hydrateSettingsForm() { calls.push(['hydrateSettingsForm']); },
+  el,
+  readSessionStatus() { calls.push(['readSessionStatus']); return 'ok'; },
+  storage: {},
+  cookieJar: {},
+  sessionKey: 'approval-panel-session-v1',
+  setView(view) { calls.push(['setView', view]); },
+  refreshAll() { calls.push(['refreshAll']); },
+  renderSearchRefreshState() { calls.push(['renderSearchRefreshState']); },
+  renderSelectedScriptEditor() { calls.push(['renderSelectedScriptEditor']); },
+  renderSelectedVideoProject() { calls.push(['renderSelectedVideoProject']); },
+});
+
+lifecycle.bootCompatibilityShell();
+
+const names = calls.map((entry) => entry[0]);
+for (const name of ['hydrateSettingsForm', 'readSessionStatus', 'setView', 'refreshAll', 'bindEvents']) {
+  if (!names.includes(name)) {
+    throw new Error(`expected ${name} to be called, got ${JSON.stringify(calls)}`);
+  }
+}
+if (names.indexOf('hydrateSettingsForm') > names.indexOf('bindEvents')) {
+  throw new Error(`expected settings hydration before non-critical event binding, got ${JSON.stringify(calls)}`);
+}
+if (names.indexOf('readSessionStatus') > names.indexOf('bindEvents')) {
+  throw new Error(`expected session restore before non-critical event binding, got ${JSON.stringify(calls)}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_settings_migrates_legacy_storage_with_additive_unified_defaults():
+    script = r"""
+import { loadSettingsFromStorage } from './js/modules/core/state/app-store.js';
+
+const legacySettings = {
+  baseUrl: 'https://legacy-n8n.example.test',
+  secret: 'legacy-secret',
+  ttsBaseUrl: 'https://legacy-tts.example.test',
+  ttsApiKey: 'tts-key',
+  ttsBasicUser: 'tts-user',
+  ttsBasicPass: 'tts-pass',
+  subtitlesBaseUrl: 'https://legacy-subtitles.example.test',
+  subtitlesApiKey: 'subs-key',
+  transcriptServiceBaseUrl: 'https://legacy-radar.example.test',
+  transcriptServiceApiKey: 'radar-key',
+};
+
+const loaded = loadSettingsFromStorage({
+  storage: { getItem() { return JSON.stringify(legacySettings); } },
+  storageKey: 'approval-panel-settings-v1',
+});
+
+if (loaded.apiProfileMode !== 'unified') throw new Error(`expected unified mode, got ${loaded.apiProfileMode}`);
+if (loaded.apiOrigin !== 'https://api.example.local') throw new Error(`unexpected api origin ${loaded.apiOrigin}`);
+if (loaded.sharedApiKey !== 'subs-key' || loaded.sharedBasicUser !== 'tts-user' || loaded.sharedBasicPass !== 'tts-pass') {
+  throw new Error(`legacy credentials must hydrate universal shared credentials, got ${JSON.stringify({ apiKey: loaded.sharedApiKey, user: loaded.sharedBasicUser, pass: loaded.sharedBasicPass })}`);
+}
+for (const [service, expected] of Object.entries({ n8n: true, tts: true, subtitles: true, radar: true, remotion: true, approvalPipeline: true })) {
+  if (loaded.serviceOverrides?.[service] !== expected) {
+    throw new Error(`expected ${service} override ${expected}, got ${loaded.serviceOverrides?.[service]}`);
+  }
+}
+for (const [key, expected] of Object.entries(legacySettings)) {
+  if (loaded[key] !== expected) throw new Error(`legacy ${key} drift: ${loaded[key]} !== ${expected}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_resolve_service_config_derives_unified_origin_and_preserves_override_precedence():
+    script = r"""
+import { resolveServiceConfig } from './js/modules/core/state/app-store.js';
+
+const settings = {
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://api.example.test///',
+  sharedApiKey: 'shared-key',
+  sharedBasicUser: 'shared-user',
+  sharedBasicPass: 'shared-pass',
+  serviceOverrides: { n8n: false, tts: false, subtitles: true, radar: false, remotion: false, approvalPipeline: false },
+  baseUrl: 'https://legacy-n8n.example.test',
+  secret: 'approval-secret',
+  ttsBaseUrl: 'https://legacy-tts.example.test',
+  ttsApiKey: '',
+  ttsBasicUser: '',
+  ttsBasicPass: '',
+  subtitlesBaseUrl: 'https://override-subtitles.example.test',
+  subtitlesApiKey: 'subs-key',
+  subtitlesBasicUser: 'subs-user',
+  subtitlesBasicPass: 'subs-pass',
+  transcriptServiceBaseUrl: 'https://legacy-radar.example.test',
+  transcriptServiceApiKey: '',
+  remotionApiUrl: 'https://legacy-remotion.example.test',
+  approvalPipelineBaseUrl: 'https://api.example.local/approval',
+};
+
+const n8n = resolveServiceConfig(settings, 'n8n');
+if (n8n.baseUrl !== 'https://api.example.test/n8n') throw new Error(`n8n derivation drift: ${n8n.baseUrl}`);
+if (n8n.secret !== 'approval-secret') throw new Error('n8n approval secret must remain service-specific');
+
+const tts = resolveServiceConfig(settings, 'tts');
+if (tts.baseUrl !== 'https://api.example.test/tts') throw new Error(`tts derivation drift: ${tts.baseUrl}`);
+if (tts.apiKey !== 'shared-key' || tts.basicUser !== 'shared-user' || tts.basicPass !== 'shared-pass') {
+  throw new Error(`tts shared credential fallback drift: ${JSON.stringify(tts)}`);
+}
+
+const subtitles = resolveServiceConfig(settings, 'subtitles');
+if (subtitles.baseUrl !== 'https://override-subtitles.example.test') throw new Error(`subtitles override drift: ${subtitles.baseUrl}`);
+if (subtitles.apiKey !== 'shared-key' || subtitles.basicUser !== 'shared-user' || subtitles.basicPass !== 'shared-pass') {
+  throw new Error(`subtitles shared credential drift: ${JSON.stringify(subtitles)}`);
+}
+
+const radar = resolveServiceConfig(settings, 'radar');
+if (radar.apiKey !== 'shared-key') throw new Error(`radar shared credential drift: ${JSON.stringify(radar)}`);
+
+const approvalPipeline = resolveServiceConfig(settings, 'approvalPipeline');
+if (approvalPipeline.baseUrl !== 'https://api.example.local/approval') {
+  throw new Error(`approval pipeline must remain gateway-routed, got ${approvalPipeline.baseUrl}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_service_specific_credentials_migrate_to_one_universal_legacy_fallback_when_shared_credentials_are_blank():
+    script = r"""
+import { resolveServiceConfig } from './js/modules/core/state/app-store.js';
+
+const settings = {
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://api.example.test',
+  sharedApiKey: '',
+  sharedBasicUser: '',
+  sharedBasicPass: '',
+  serviceOverrides: { n8n: false, tts: false, subtitles: false, radar: false, remotion: false, approvalPipeline: true },
+  ttsApiKey: 'legacy-tts-key',
+  ttsBasicUser: 'legacy-tts-user',
+  ttsBasicPass: 'stale-tts-pass',
+  subtitlesApiKey: 'legacy-subtitles-key',
+  subtitlesBasicUser: 'legacy-subtitles-user',
+  subtitlesBasicPass: 'legacy-subtitles-pass',
+  transcriptServiceApiKey: 'legacy-radar-key',
+};
+
+const tts = resolveServiceConfig(settings, 'tts');
+if (tts.apiKey !== 'legacy-subtitles-key' || tts.basicUser !== 'legacy-subtitles-user' || tts.basicPass !== 'legacy-subtitles-pass') {
+  throw new Error(`tts legacy fallback drift: ${JSON.stringify(tts)}`);
+}
+
+const subtitles = resolveServiceConfig(settings, 'subtitles');
+if (subtitles.apiKey !== 'legacy-subtitles-key' || subtitles.basicUser !== 'legacy-subtitles-user' || subtitles.basicPass !== 'legacy-subtitles-pass') {
+  throw new Error(`subtitles universal legacy fallback drift: ${JSON.stringify(subtitles)}`);
+}
+
+const radar = resolveServiceConfig(settings, 'radar');
+if (radar.apiKey !== 'legacy-subtitles-key') throw new Error(`radar universal legacy fallback drift: ${JSON.stringify(radar)}`);
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_simple_settings_save_persists_universal_credentials_and_clears_service_specific_credentials():
+    script = r"""
+import { loadSettingsFromStorage, mergeSettingsForSave, saveSettingsToStorage } from './js/modules/core/state/app-store.js';
+
+let stored = '';
+const storage = {
+  getItem() { return stored; },
+  setItem(_key, value) { stored = value; },
+};
+
+const saved = saveSettingsToStorage({
+  storage,
+  storageKey: 'approval-panel-settings-v1',
+  nextSettings: mergeSettingsForSave({}, {
+    apiProfileMode: 'unified',
+    apiOrigin: 'https://api.example.local',
+    sharedApiKey: 'universal-key',
+    sharedBasicUser: 'universal-user',
+    sharedBasicPass: 'universal-pass',
+    ttsApiKey: '',
+    ttsBasicUser: '',
+    ttsBasicPass: '',
+    subtitlesApiKey: '',
+    subtitlesBasicUser: '',
+    subtitlesBasicPass: '',
+    transcriptServiceApiKey: '',
+  }),
+});
+
+const loaded = loadSettingsFromStorage({ storage, storageKey: 'approval-panel-settings-v1' });
+for (const candidate of [saved, loaded]) {
+  if (candidate.sharedApiKey !== 'universal-key') throw new Error(`shared api key did not persist: ${JSON.stringify(candidate)}`);
+  if (candidate.sharedBasicUser !== 'universal-user') throw new Error(`shared basic user did not persist: ${JSON.stringify(candidate)}`);
+  if (candidate.sharedBasicPass !== 'universal-pass') throw new Error(`shared basic pass did not persist: ${JSON.stringify(candidate)}`);
+  if (candidate.ttsApiKey || candidate.subtitlesApiKey || candidate.transcriptServiceApiKey) {
+    throw new Error(`service-specific api keys should be cleared on simple save: ${JSON.stringify(candidate)}`);
+  }
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_remote_pages_context_routes_legacy_local_subtitles_through_gateway():
+    script = r"""
+import { resolveServiceConfig } from './js/modules/core/state/app-store.js';
+
+const legacySettings = {
+  baseUrl: 'https://n8n.example.local',
+  ttsBaseUrl: 'https://tts-api.example.local',
+  subtitlesBaseUrl: 'http://127.0.0.1:8092',
+};
+
+const originalLocation = globalThis.location;
+Object.defineProperty(globalThis, 'location', {
+  value: { hostname: 'panel.example.local' },
+  configurable: true,
+});
+
+try {
+  const subtitles = resolveServiceConfig(legacySettings, 'subtitles');
+  if (subtitles.baseUrl !== 'https://api.example.local/subtitles') {
+    throw new Error(`remote legacy local subtitles should use gateway, got ${subtitles.baseUrl}`);
+  }
+} finally {
+  Object.defineProperty(globalThis, 'location', { value: originalLocation, configurable: true });
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_deployed_shared_reads_ignore_stale_browser_api_origin():
+    script = r"""
+import { resolveSharedReadModelUrl } from './js/modules/core/http/shared-read-models.js';
+
+Object.defineProperty(globalThis, 'location', {
+  value: { hostname: 'panel.example.local' },
+  configurable: true,
+});
+globalThis.__CONTROL_PANEL_BOOTSTRAP__ = { api_origin: 'https://gateway.example.test' };
+
+const url = resolveSharedReadModelUrl('/panel/read-models/approval/pending', {
+  apiOrigin: 'https://stale-local-browser.example.test',
+});
+
+if (url !== 'https://gateway.example.test/panel/read-models/approval/pending') {
+  throw new Error(`deployed read model used stale browser origin: ${url}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_server_bootstrap_hydrates_routes_and_preserves_local_ui_preferences():
+    script = r"""
+import { hydrateSettingsFromServerBootstrap } from './js/modules/core/state/app-store.js';
+
+const current = {
+  apiProfileMode: 'legacy',
+  apiOrigin: 'https://stale-api.example.test',
+  serviceOverrides: { n8n: true, tts: true, subtitles: true, radar: true, monitor: true, remotion: true, approvalPipeline: true },
+  baseUrl: 'http://localhost:5678',
+  ttsBaseUrl: 'http://127.0.0.1:8088',
+  subtitlesBaseUrl: 'http://127.0.0.1:8092',
+  transcriptServiceBaseUrl: 'http://127.0.0.1:8765',
+  channelMonitorBaseUrl: 'http://127.0.0.1:8775',
+  remotionApiUrl: 'http://127.0.0.1:3037',
+  approvalPipelineBaseUrl: 'http://127.0.0.1:3042',
+  brandChannel: 'golazo-colombia',
+};
+
+const hydrated = hydrateSettingsFromServerBootstrap(current, {
+  api_origin: 'https://gateway.example.test/',
+  settings_version: 'server-v2',
+  routes: {
+    n8n: '/n8n',
+    tts: '/tts',
+    subtitles: '/subtitles',
+    radar: '/radar',
+    monitor: '/monitor',
+    remotion: '/remotion',
+    approval: '/approval',
+  },
+}, { locationLike: { hostname: 'panel.example.local' } });
+
+if (hydrated.apiProfileMode !== 'unified') throw new Error(`expected unified mode, got ${hydrated.apiProfileMode}`);
+if (hydrated.apiOrigin !== 'https://gateway.example.test') throw new Error(`expected server api origin, got ${hydrated.apiOrigin}`);
+for (const service of ['n8n', 'tts', 'subtitles', 'radar', 'monitor', 'remotion']) {
+  if (hydrated.serviceOverrides[service] !== false) throw new Error(`${service} should be server-routed`);
+}
+if (hydrated.approvalPipelineBaseUrl !== 'https://gateway.example.test/approval') {
+  throw new Error(`approval route drift: ${hydrated.approvalPipelineBaseUrl}`);
+}
+if (hydrated.brandChannel !== 'golazo-colombia') throw new Error('local brand channel preference must be preserved');
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_server_bootstrap_ignores_dangerous_remote_local_origins_but_keeps_local_dev_origins():
+    script = r"""
+import { hydrateSettingsFromServerBootstrap, resolveServiceConfig } from './js/modules/core/state/app-store.js';
+
+const current = {
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://stale-api.example.test',
+  serviceOverrides: { n8n: true, tts: true, subtitles: true, radar: true, monitor: true, remotion: true, approvalPipeline: true },
+  baseUrl: 'http://localhost:5678',
+  ttsBaseUrl: 'http://127.0.0.1:8088',
+  subtitlesBaseUrl: 'http://127.0.0.1:8092',
+  transcriptServiceBaseUrl: 'http://127.0.0.1:8765',
+  channelMonitorBaseUrl: 'http://127.0.0.1:8775',
+  remotionApiUrl: 'http://127.0.0.1:3037',
+};
+
+const bootstrap = { api_origin: 'https://api.example.local' };
+const remote = hydrateSettingsFromServerBootstrap(current, bootstrap, { locationLike: { hostname: 'panel.example.local' } });
+const local = hydrateSettingsFromServerBootstrap(current, bootstrap, { locationLike: { hostname: 'localhost' } });
+
+if (resolveServiceConfig(remote, 'tts').baseUrl !== 'https://api.example.local/tts') {
+  throw new Error(`remote stale local tts origin should be ignored, got ${resolveServiceConfig(remote, 'tts').baseUrl}`);
+}
+if (resolveServiceConfig(remote, 'monitor').baseUrl !== 'https://api.example.local/monitor') {
+  throw new Error(`remote stale local monitor origin should be ignored, got ${resolveServiceConfig(remote, 'monitor').baseUrl}`);
+}
+if (resolveServiceConfig(local, 'tts').baseUrl !== 'http://127.0.0.1:8088') {
+  throw new Error(`local operator tts origin should be preserved, got ${resolveServiceConfig(local, 'tts').baseUrl}`);
+}
+if (resolveServiceConfig(local, 'monitor').baseUrl !== 'http://127.0.0.1:8775') {
+  throw new Error(`local operator monitor origin should be preserved, got ${resolveServiceConfig(local, 'monitor').baseUrl}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_saving_simple_profile_preserves_existing_service_overrides():
+    script = r"""
+import { defaultSettingsFactory, mergeSettingsForSave } from './js/modules/core/state/app-store.js';
+
+const current = {
+  ...defaultSettingsFactory(),
+  apiProfileMode: 'unified',
+  ttsBaseUrl: 'https://custom-tts.example.test',
+  ttsApiKey: 'service-key',
+  ttsBasicUser: 'service-user',
+  ttsBasicPass: 'service-pass',
+  serviceOverrides: { n8n: true, tts: true, subtitles: true, radar: true, remotion: true, approvalPipeline: true },
+};
+const saved = mergeSettingsForSave(current, {
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://api.example.test/',
+  sharedApiKey: 'shared-key',
+  sharedBasicUser: 'shared-user',
+  sharedBasicPass: 'shared-pass',
+});
+
+if (saved.apiOrigin !== 'https://api.example.test') throw new Error(`api origin should be trimmed, got ${saved.apiOrigin}`);
+if (saved.ttsBaseUrl !== 'https://custom-tts.example.test') throw new Error('simple save must preserve ttsBaseUrl override');
+if (saved.sharedApiKey !== 'shared-key' || saved.sharedBasicUser !== 'shared-user' || saved.sharedBasicPass !== 'shared-pass') {
+  throw new Error('simple save must preserve universal credentials');
+}
+if (saved.serviceOverrides.tts !== true) throw new Error('simple save must preserve explicit override flags');
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_default_settings_use_gateway_routes_after_smoke_gate_passes():
+    script = r"""
+import { defaultSettingsFactory, resolveServiceConfig } from './js/modules/core/state/app-store.js';
+
+const defaults = defaultSettingsFactory();
+if (defaults.apiProfileMode !== 'unified') throw new Error(`default profile must be unified, got ${defaults.apiProfileMode}`);
+
+const expectedBaseUrls = {
+  n8n: 'https://api.example.local/n8n',
+  tts: 'https://api.example.local/tts',
+  subtitles: 'https://api.example.local/subtitles',
+  radar: 'https://api.example.local/radar',
+  remotion: 'https://api.example.local/remotion',
+};
+for (const [service, expected] of Object.entries(expectedBaseUrls)) {
+  const resolved = resolveServiceConfig(defaults, service);
+  if (resolved.baseUrl !== expected) throw new Error(`${service} default derivation drift: ${resolved.baseUrl}`);
+}
+const approvalPipeline = resolveServiceConfig(defaults, 'approvalPipeline');
+if (approvalPipeline.baseUrl !== 'https://api.example.local/approval') {
+  throw new Error(`approval pipeline default must use gateway route, got ${approvalPipeline.baseUrl}`);
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_simple_settings_save_flips_safe_services_to_gateway_and_keeps_approval_pipeline_local_only():
+    script = r"""
+import { mergeSettingsForSave, resolveServiceConfig } from './js/modules/core/state/app-store.js';
+
+const saved = mergeSettingsForSave({
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://api.example.local',
+  serviceOverrides: { n8n: true, tts: true, subtitles: true, radar: true, remotion: true, approvalPipeline: true },
+  baseUrl: 'http://localhost:5678',
+  ttsBaseUrl: 'http://localhost:8088',
+  subtitlesBaseUrl: 'http://127.0.0.1:8092',
+  transcriptServiceBaseUrl: 'http://127.0.0.1:8765',
+  remotionApiUrl: 'https://remotion-api.example.local',
+  approvalPipelineBaseUrl: 'https://api.example.local/approval',
+}, {
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://api.example.local',
+  serviceOverrides: { n8n: false, tts: false, subtitles: false, radar: false, remotion: false, approvalPipeline: true },
+});
+
+for (const service of ['n8n', 'tts', 'subtitles', 'radar', 'remotion']) {
+  if (saved.serviceOverrides[service] !== false) throw new Error(`${service} should use gateway after simple save`);
+  if (!resolveServiceConfig(saved, service).baseUrl.startsWith('https://api.example.local/')) {
+    throw new Error(`${service} did not resolve through gateway`);
+  }
+}
+if (saved.serviceOverrides.approvalPipeline !== true) throw new Error('approvalPipeline must remain explicit override');
+if (resolveServiceConfig(saved, 'approvalPipeline').baseUrl !== 'https://api.example.local/approval') throw new Error('approvalPipeline gateway base drift');
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr

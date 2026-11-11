@@ -1,0 +1,144 @@
+/* Font faces are in styles/fonts.css — loaded via <link> in index.html.
+   font-display: optional eliminates CLS from webfont swap. */
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg-elevated);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #2a2a2a;
+  background: var(--surface-soft);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+
+input,
+select {
+  min-width: 0;
+  min-height: 48px;
+  padding: 13px 15px;
+}
+
+textarea {
+  min-width: 0;
+}
+
+svg {
+  display: block;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.panel-shell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
+}
+
+.section-counter {
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.section-counter--news {
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.86rem;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-heading h2,
+.section-heading h3 {
+  margin-bottom: 6px;
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.section-heading h2 {
+  font-size: clamp(1.45rem, 1.15rem + 0.8vw, 1.9rem);
+}
+
+.section-heading h3 {
+  font-size: 1.45rem;
+}
+
+.section-heading--tight p,
+.section-heading--compact p,
+.audio-queue-header p {
+  max-width: 48ch;
+}
+
+.control-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted-2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.legacy-only {
+  display: none !important;
+}
+
+.approval-stats-sr {
+  display: none !important;
+}

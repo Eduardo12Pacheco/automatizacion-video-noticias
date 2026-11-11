@@ -1,0 +1,58 @@
+#viewSubtitulos2 .subtitle-centered-card {
+  background: #0D0D0D;
+  border-color: #262626;
+}
+
+#viewSubtitulos2 .subtitle-processing-card .subtitle-phase-icon {
+  border-color: #F7B95555;
+  border-radius: 0;
+  background: #151515;
+  color: #F7B955;
+}
+
+#viewSubtitulos2 .subtitle-progress-track {
+  border-color: #2A2A2A;
+  border-radius: 0;
+  background: #121212;
+}
+
+#viewSubtitulos2 .subtitle-progress-fill {
+  border-radius: 0;
+  background: #00E88F;
+}
+
+#viewSubtitulos2 .subtitle-render-card {
+  display: grid;
+  grid-column: 1;
+  justify-self: stretch;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  gap: 14px;
+  margin-top: 32px;
+  padding: 18px 24px 20px;
+  border: 1px solid #262626;
+  background: #0A0A0A;
+}
+
+#viewSubtitulos2 .subtitle-render-card h3 {
+  margin: 4px 0 6px;
+}
+
+#viewSubtitulos2 .subtitle-render-card #subtitle2DoneMessage {
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+#viewSubtitulos2 .subtitle-render-card .subtitle-finish-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: 0;
+  padding: 0 0 14px;
+  border-bottom: 1px solid #262626;
+  justify-content: flex-end;
+  background: transparent;
+}

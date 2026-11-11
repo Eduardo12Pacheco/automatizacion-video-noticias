@@ -1,0 +1,154 @@
+@media (max-width: 1180px) {
+  :root {
+    --sidebar-collapsed: 76px;
+    --sidebar-expanded: min(236px, calc(100vw - 32px));
+  }
+
+  .approval-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .approval-controls__actions {
+    margin-left: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "button"
+      "window"
+      "note"
+      "status";
+  }
+
+  .news-panel__filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .approval-shell-grid,
+  .audio-screen__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar--rail,
+  .sidebar--rail:hover,
+  .sidebar--rail:focus-within {
+    position: static;
+    width: auto;
+  }
+
+  .sidebar-brand__copy,
+  .nav-item__copy,
+  .sidebar-foot,
+  .sidebar-quick-label {
+    opacity: 1;
+    visibility: visible;
+    max-height: none;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .sidebar-brand,
+  .nav-item {
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .sidebar-brand__copy,
+  .nav-item__copy {
+    width: auto;
+    max-width: none;
+    white-space: normal;
+  }
+
+  .app-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 18px;
+  }
+
+  .sidebar-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats,
+  .stats--compact,
+  .stats--approval,
+  .approval-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-controls__actions,
+  .audio-actions,
+  .editor-actions,
+  .queue-actions,
+  .card-actions {
+    width: 100%;
+  }
+
+  .approval-control--search-refresh {
+    min-width: 0;
+  }
+
+  .approval-search-refresh__button {
+    min-width: 0;
+  }
+
+  .approval-controls__actions button,
+  .audio-actions button,
+  .editor-actions button,
+  .queue-actions button,
+  .card-actions button {
+    flex: 1;
+  }
+
+  .cards--news,
+  .queue-list--integrated,
+  .script-selection-list,
+  .audio-queue-list {
+    max-height: none;
+  }
+
+  .approval-side-panel {
+    position: static;
+    max-height: none;
+    grid-template-rows: auto auto auto;
+  }
+
+  .source-item {
+    flex-direction: column;
+  }
+
+  .source-actions {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .source-actions button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar,
+  .dialog-header,
+  .section-heading,
+  .topic-detail-sources__header,
+  .audio-queue-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .script-area--workspace,
+  .script-area--audio {
+    min-height: 260px;
+  }
+
+  input,
+  select {
+    width: 100%;
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Demo Sports News">
+  <rect width="64" height="64" rx="14" fill="#0b0f14" />
+  <circle cx="32" cy="32" r="5" fill="#00e88f" />
+  <path d="M22 24a14 14 0 0 1 0 16M42 24a14 14 0 0 0 0 16" fill="none" stroke="#00e88f" stroke-linecap="round" stroke-width="3" />
+  <path d="M15 17a24 24 0 0 1 0 30M49 17a24 24 0 0 0 0 30" fill="none" stroke="#7ee8c0" stroke-linecap="round" stroke-width="2.4" opacity="0.7" />
+</svg>

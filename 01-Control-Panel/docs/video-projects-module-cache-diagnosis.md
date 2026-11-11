@@ -1,0 +1,220 @@
+# Video Projects module/cache failure diagnosis
+
+> **⚠️ HISTORICAL CONTEXT — Phase 6 transition (2026-05-26)**
+>
+> This document describes a diagnosis methodology from **before** Phase 6 of
+> `control-panel-cache-unification`. As of Phase 6:
+> - `versionedModule()` and `versionedAsset()` are **no-ops** — they return clean URLs with no `?v=` appended.
+> - Cloudflare Pages `_headers` is the **sole** freshness mechanism (`Cache-Control: no-store, max-age=0`).
+> - `APP_CACHE_VERSION` is retained for traceability only and does **NOT** affect any URL.
+> - The "bump", "`?v=`", and manual versioning guidance in this document is **historical**.
+> - **Do NOT reintroduce query-versioning or manual `APP_CACHE_VERSION` bumps.** See `AGENTS.md#cache-strategy` for the current policy.
+
+This document records the exact production failure where **Video Projects showed `0 PROYECTOS` even though the API returned one ready project**. Use this as the first checklist if the same symptom returns.
+
+## Quick path
+
+1. Open the deployed panel and go to **Proyectos de video**.
+2. Check the browser console for an ESM error like:
+   ```text
+   Uncaught (in promise) SyntaxError: The requested module '../domain/status-labels.js' does not provide an export named 'getProjectPhaseLabel'
+   ```
+3. Verify the read model directly:
+   ```js
+   await fetch('https://api.example.local/panel/read-models/video-projects?limit=50', {
+     credentials: 'include',
+     cache: 'no-store'
+   }).then(r => r.json())
+   ```
+4. If the API returns projects but the UI stays at `0 PROYECTOS`, inspect module loading before debugging n8n/Supabase again.
+
+## What happened
+
+| Area | Finding |
+|------|---------|
+| Backend data | n8n publish execution succeeded and Supabase/Gateway returned one ready video project. |
+| Browser API | Manual `fetch('/panel/read-models/video-projects?limit=50')` returned `count: 1`. |
+| UI state | The Video Projects view stayed at `0 PROYECTOS`. |
+| Console error | `project-list-markup.js` imported `getProjectPhaseLabel` from `../domain/status-labels.js`, but the browser module graph resolved a `status-labels.js` version without that export. |
+| Real failure | The feature failed during ESM module initialization, so the internal video projects refresh never ran. |
+
+## Why it happened
+
+The panel is a no-bundler browser ESM app. At the time of this incident, some lazy entrypoints were versioned with `APP_CACHE_VERSION` (now neutralized — see Phase 6 note above). The root cause was that **static child imports were not rewritten by a bundler**.
+
+That means this can happen after deploys:
+
+1. A lazy parent module is loaded with a new `?v=...` cache key.
+2. A static child import inside that module points to an unversioned path like `../domain/status-labels.js`.
+3. The browser, CDN, or an intermediate cache can resolve an older copy of that child module.
+4. If the parent expects a newly-added named export, ESM fails hard at parse/link time.
+5. The entire lazy feature fails before it can fetch or render data.
+
+This is why manual API tests looked healthy while the UI still showed zero projects. The data was fine; the module graph was broken.
+
+## Evidence from the incident
+
+The user's console diagnostic showed:
+
+```json
+{
+  "sharedHasBadHeader": false,
+  "sharedReturnsSimpleHeaders": true,
+  "videoFetchCalls": [],
+  "dom": {
+    "textHasProjectTitle": false,
+    "projectCounterText": "0 proyectos"
+  },
+  "moduleApi": {
+    "ok": true,
+    "count": 1,
+    "projectsLen": 1,
+    "firstTitle": "El mensaje del Bayern Munich para tranquilizar a Luis Díaz sobre el interés de Barcelona en Harry Kane"
+  }
+}
+```
+
+Interpretation:
+
+- `moduleApi.count: 1` proved the shared read model worked.
+- `videoFetchCalls: []` proved the app's Video Projects refresh did not even reach the fetch call.
+- The console ESM error identified the module-linking failure.
+
+## What was changed
+
+Commit:
+
+```text
+44351 fix: stabilize video project list module
+```
+
+Files changed during that historical incident:
+
+| File | Change |
+|------|--------|
+| `js/modules/features/video-projects/render/project-list-markup.js` | Removed the fragile named import from `../domain/status-labels.js` and made the project-card phase label helper local to the list markup module. |
+| `js/modules/core/versioning/asset-version.js` | Bumped `APP_CACHE_VERSION` to `20260525-video-projects-module-v3` (historical — `APP_CACHE_VERSION` is now neutralized as a no-op). |
+| `index.html` | Historically bumped the root `js/main.js` query string to `20260525-video-projects-module-v3`. Current source no longer uses a root `js/main.js?v=...` query string. |
+
+Focused verification run:
+
+```powershell
+python -m pytest tests/test_phase6_runtime_parity_and_boundaries.py::test_video_projects_read_model_hydrates_list_and_detail_from_bff_without_supabase_read_secret_headers -q
+```
+
+Result:
+
+```text
+1 passed
+```
+
+Deployed verification:
+
+```js
+{
+  htmlMain: 'js/main.js?v=20260525-video-projects-module-v3',
+  assetVersion: '20260525-video-projects-module-v3',
+  listImportsStatusLabels: false,
+  listHasLocalPhaseHelper: true
+}
+```
+
+## Why this fix worked at the time
+
+The card phase label is presentation-specific. Keeping it local avoids a named-export mismatch from breaking the entire lazy Video Projects feature.
+
+The historical version bump forced the root app shell and lazy module graph to be requested under a new cache key, reducing mixed-version module loads for that deployment. **This approach is now obsolete.** The current policy relies solely on Cloudflare Pages `_headers` (`Cache-Control: no-store, max-age=0`) for all app HTML/JS/CSS freshness.
+
+## If this happens again
+
+Use this console probe first:
+
+```js
+(async () => {
+  const out = {};
+  out.location = location.href;
+
+  const html = await fetch('/', { cache: 'no-store' }).then(r => r.text());
+  out.htmlMain = html.match(/js\/main\.js[^"]*/)?.[0] || null;
+
+  const versionSrc = await fetch('/js/modules/core/versioning/asset-version.js?diag=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
+  out.assetVersion = versionSrc.match(/APP_CACHE_VERSION\s*=\s*['"]([^'"]+)/)?.[1] || 'not found';
+
+  const listSrc = await fetch('/js/modules/features/video-projects/render/project-list-markup.js?diag=' + Date.now(), { cache: 'no-store' }).then(r => r.text());
+  out.listImportsStatusLabels = listSrc.includes('../domain/status-labels.js');
+  out.listHasLocalPhaseHelper = listSrc.includes('function getProjectCardPhaseLabel');
+
+  const apiData = await fetch('https://api.example.local/panel/read-models/video-projects?limit=50', {
+    credentials: 'include',
+    cache: 'no-store'
+  }).then(r => r.json());
+  out.api = { ok: apiData.ok, count: apiData.count, firstTitle: apiData.projects?.[0]?.title || null };
+
+  out.dom = {
+    projectCounterText: [...document.querySelectorAll('*')]
+      .map(el => el.textContent?.trim())
+      .find(text => /^\d+\s+PROYECTO/i.test(text)) || null,
+    textHasFirstTitle: apiData.projects?.[0]?.title ? document.body.innerText.includes(apiData.projects[0].title) : false,
+  };
+
+  console.log('VIDEO_PROJECTS_MODULE_DIAG ' + JSON.stringify(out, null, 2));
+})();
+```
+
+Expected healthy result:
+
+```json
+{
+  "listImportsStatusLabels": false,
+  "listHasLocalPhaseHelper": true,
+  "api": { "ok": true, "count": 1 },
+  "dom": { "projectCounterText": "1 PROYECTO", "textHasFirstTitle": true }
+}
+```
+
+## Prevention checklist
+
+- [ ] Keep `_headers`, tests, and docs aligned on the current app-code policy: `Cache-Control: no-store, max-age=0` for `/`, `/index.html`, root JS, nested JS/MJS modules, root CSS, and nested CSS.
+- [x] ~~Verify the real Cloudflare Pages deployment before treating `APP_CACHE_VERSION` as removable~~ — DONE (Phase 6, 2026-05-26). Production headers confirmed.
+- [x] ~~Keep `APP_CACHE_VERSION` as a temporary fallback~~ — DONE. `APP_CACHE_VERSION` is now neutralized (no-op). Do NOT reintroduce manual query-versioning or `?v=` bumps.
+- [ ] Avoid adding fragile named imports to critical lazy-render modules unless a focused runtime import test covers the deployed module path.
+- [ ] If API data is healthy but the UI shows empty state, check console ESM errors before debugging n8n/Supabase.
+- [ ] For live read models, keep browser GET requests simple: no unnecessary custom request headers.
+- [ ] Prefer visible/render diagnostics over assuming backend failure when `moduleApi` can read data successfully.
+
+## Production header verification checklist
+
+Run these checks against the real public panel URL after deploy and before removing or neutralizing `APP_CACHE_VERSION`:
+
+```powershell
+curl -I https://<panel-url>/
+curl -I https://<panel-url>/index.html
+curl -I https://<panel-url>/js/main.js
+curl -I https://<panel-url>/js/modules/app-shell/runtime.js
+curl -I https://<panel-url>/js/modules/app-shell/composition.js
+curl -I https://<panel-url>/js/modules/subtitles-workflow.mjs
+curl -I https://<panel-url>/styles/eager.css
+curl -I https://<panel-url>/styles/features/approval.css
+```
+
+Each app-code response should include:
+
+```text
+Cache-Control: no-store, max-age=0
+```
+
+Also verify the Cloudflare Pages production branch, publish/output directory, `_headers` presence in the deployed output, custom-domain Cache Rules, Transform Rules, Workers/Pages Functions, and query-string cache-key behavior.
+
+## Immutable media note
+
+`_headers` currently treats `/assets/*.webm` and `/favicon.svg` as long-lived immutable assets. That is safe only when those files are content-addressed or never replaced under the same filename. If semantic media filenames are replaced in-place, handle that as a separate asset cache-policy change rather than mixing it with app-code freshness.
+
+## Related prior fix
+
+Before this module failure, another issue was fixed:
+
+```text
+c2c2a fix: avoid preflight on shared reads
+```
+
+That removed the custom `x-control-panel-shell-version` request header from shared-read GETs. That was a real CORS/preflight risk, but it was not the final reason for `0 PROYECTOS`. The final blocker was the ESM named-export mismatch described above.

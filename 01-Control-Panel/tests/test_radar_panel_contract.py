@@ -1,0 +1,251 @@
+import subprocess
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+INDEX_HTML_PATH = ROOT / "index.html"
+RADAR_TEMPLATE_PATH = ROOT / "js" / "modules" / "app-shell" / "views" / "templates" / "radar-view.js"
+APP_SHELL_PATH = ROOT / "js" / "modules" / "app-shell.js"
+BOOTSTRAP_PATH = ROOT / "js" / "modules" / "core" / "bootstrap.js"
+SELECTORS_PATH = ROOT / "js" / "modules" / "shared" / "dom" / "selectors.js"
+APP_STORE_PATH = ROOT / "js" / "modules" / "core" / "state" / "app-store.js"
+RADAR_CHECK_PATH = ROOT / "js" / "modules" / "features" / "radar" / "__checks__" / "radar-panel-check.js"
+RADAR_CSS_PATH = ROOT / "styles" / "features" / "radar.css"
+
+
+def _run_node_file(path: Path):
+    return subprocess.run(
+        ["node", "--experimental-default-type=module", str(path)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _run_node(script: str):
+    return subprocess.run(
+        ["node", "--experimental-default-type=module", "-e", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_radar_static_shell_contract_adds_view_navigation_settings_and_selectors():
+    index_source = INDEX_HTML_PATH.read_text(encoding="utf-8") + "\n" + RADAR_TEMPLATE_PATH.read_text(encoding="utf-8")
+    selectors_source = SELECTORS_PATH.read_text(encoding="utf-8")
+    app_store_source = APP_STORE_PATH.read_text(encoding="utf-8")
+    bootstrap_source = BOOTSTRAP_PATH.read_text(encoding="utf-8")
+    app_shell_source = APP_SHELL_PATH.read_text(encoding="utf-8")
+
+    for expected in [
+        'data-view="radar"',
+        'id="viewRadar"',
+        'id="radarUrlInput"',
+        'id="radarNewJobDialog"',
+        'id="radarCountryColombia"',
+        'id="radarCountryEcuador"',
+        'id="radarCountryArgentina"',
+        'id="radarCountryParaguay"',
+        'id="radarCountryUruguay"',
+        'id="radarCountryMexico"',
+        'id="radarExtraKeywordsInput"',
+        'id="radarSummaryDialog"',
+        'id="radarConfirmDialog"',
+        'aria-labelledby="radarConfirmTitle"',
+        'aria-describedby="radarConfirmMessage"',
+        'id="radarSubmitBtn"',
+        'id="radarMonitorStatus"',
+        'id="radarMonitorRefreshBtn"',
+        'id="radarBasuraBtn"',
+        'id="radarBasuraCount"',
+        'id="radarBasuraDialog"',
+        'id="radarBasuraList"',
+        'id="radarCountryBar"',
+        'id="radarMonitorList"',
+        'id="transcriptServiceBaseUrlInput"',
+    ]:
+        assert expected in index_source
+
+    assert 'id="radarCountryFilter"' not in index_source
+
+    assert 'id="channelMonitorBaseUrlInput"' not in index_source
+    assert "Base URL Channel Monitor" not in index_source
+
+    assert '<option value="manual">Manual</option>' not in index_source
+
+    for expected in [
+        "viewRadar",
+        "radarUrlInput",
+        "radarNewJobBtn",
+        "radarNewJobDialog",
+        "radarCountryColombia",
+        "radarCountryParaguay",
+        "radarCountryUruguay",
+        "radarCountryMexico",
+        "radarQueueList",
+        "radarSummaryDialog",
+        "radarConfirmDialog",
+        "transcriptServiceBaseUrlInput",
+        "radarMonitorStatus",
+        "radarMonitorRefreshBtn",
+        "radarBasuraBtn",
+        "radarBasuraCount",
+        "radarBasuraDialog",
+        "radarBasuraList",
+        "radarCountryBar",
+        "radarMonitorList",
+        "channelMonitorBaseUrlInput",
+    ]:
+        assert expected in selectors_source
+
+    assert "radarCountryFilter" not in selectors_source
+
+    assert "transcriptServiceBaseUrl" in app_store_source
+    assert "transcriptServiceApiKey" in app_store_source
+    assert "channelMonitorBaseUrl" in app_store_source
+    assert "channelMonitorApiKey" in app_store_source
+    assert "http://127.0.0.1:8765" in app_store_source
+    assert "http://127.0.0.1:8775" in app_store_source
+    assert "http://127.0.0.1:8091" not in app_store_source
+    assert 'placeholder="http://127.0.0.1:8765"' in index_source
+    assert 'placeholder="http://127.0.0.1:8775"' not in index_source
+    assert "transcriptServiceApiKeyInput.value" not in app_store_source
+    assert "transcriptServiceApiKey: ''" in bootstrap_source
+    assert "channelMonitorApiKey: ''" in bootstrap_source
+    assert "channelMonitorBaseUrlInput" not in bootstrap_source
+    assert "./features/radar/api-client.js" in app_shell_source
+    assert "./features/radar/controller.js" in app_shell_source
+    assert "setView('radar')" not in app_shell_source
+    assert "'radar'" in app_shell_source
+
+
+def test_radar_runtime_contract_uses_injected_fetch_clipboard_and_thin_client_modules():
+    result = _run_node_file(RADAR_CHECK_PATH)
+    assert result.returncode == 0, result.stderr
+
+
+def test_ai_rescue_is_not_exposed_as_a_shell_view():
+    index_source = INDEX_HTML_PATH.read_text(encoding="utf-8")
+    script = r"""
+import { normalizeShellView } from './js/modules/app-shell/navigation.js';
+
+if (normalizeShellView('ai-rescue') !== 'approval') {
+  throw new Error('AI Rescue must normalize to the safe default view');
+}
+"""
+    result = _run_node(script)
+
+    assert 'data-view="ai-rescue"' not in index_source
+    assert 'Prensa IA' not in index_source
+    assert result.returncode == 0, result.stderr
+
+
+def test_radar_gateway_requests_include_session_credentials():
+    script = r"""
+import { createRadarApiClient } from './js/modules/features/radar/api-client.js';
+
+const settings = {
+  apiProfileMode: 'unified',
+  apiOrigin: 'https://api.example.test',
+  sharedApiKey: '',
+  serviceOverrides: { radar: false, monitor: false },
+  transcriptServiceBaseUrl: 'https://direct-radar.example.test',
+  channelMonitorBaseUrl: 'https://direct-monitor.example.test',
+};
+const calls = [];
+const fetchImpl = async (url, options = {}) => {
+  calls.push({ url, options });
+  return { ok: true, status: 200, text: async () => JSON.stringify({ ok: true, items: [] }) };
+};
+
+const radar = createRadarApiClient({ getSettings: () => settings, fetchImpl, locationLike: { hostname: 'panel.example.local' } });
+await radar.monitorCards();
+await radar.health();
+
+
+for (const call of calls) {
+  if (call.options.credentials !== 'include') {
+    throw new Error(`missing session credentials for ${call.url}: ${JSON.stringify(call.options)}`);
+  }
+}
+"""
+    result = _run_node(script)
+    assert result.returncode == 0, result.stderr
+
+
+def test_radar_new_job_dialog_uses_compact_single_panel_layout():
+    source = RADAR_CSS_PATH.read_text(encoding="utf-8")
+
+    assert "#viewRadar #radarNewJobDialog {" in source
+    assert "width: min(760px, calc(100vw - 48px));" in source
+    assert "#viewRadar #radarNewJobDialog article" in source
+    assert "width: auto;" in source
+    assert "box-sizing: border-box;" in source
+    assert "#viewRadar dialog article {" not in source
+
+
+def test_radar_monitor_card_layout_has_wide_cards_filters_and_mention_columns():
+    source = RADAR_CSS_PATH.read_text(encoding="utf-8")
+    template = RADAR_TEMPLATE_PATH.read_text(encoding="utf-8")
+
+    previous = -1
+    for country in ["Ecuador", "Colombia", "Argentina", "Uruguay", "Paraguay", "M\\u00e9xico", "IMPORTANTES"]:
+        assert country in template
+        current = template.index(country)
+        assert current > previous
+        previous = current
+    assert "data-radar-country-option" in template
+    assert "00 / Todos" in template
+    assert 'data-radar-country-option="important"' in template
+    assert "07 / IMPORTANTES" in template
+    assert "Buscador de Prensa." in template
+    assert "Monitoreo" not in template
+    assert "MONITOREO" not in template
+
+    for expected in [
+        ".radar-monitor-toolbar",
+        ".radar-country-bar",
+        ".radar-country-card",
+        ".radar-monitor-card",
+        "grid-template-columns: minmax(0, 1fr) 152px minmax(420px, 40%);",
+        'grid-template-areas: "main actions mentions";',
+        ".radar-monitor-card__meta",
+        ".radar-monitor-card__mentions",
+        ".radar-monitor-card__mentions-title",
+        ".radar-monitor-card__mentions-grid",
+        ".radar-mention-row",
+        ".radar-monitor-empty",
+        ".radar-monitor-error",
+        ".radar-basura-list",
+        ".radar-basura-item",
+    ]:
+        assert expected in source
+
+
+def test_radar_view_exposes_only_monitor_area_as_visible_ui():
+    template = RADAR_TEMPLATE_PATH.read_text(encoding="utf-8")
+    source = RADAR_CSS_PATH.read_text(encoding="utf-8")
+
+    for removed_copy in [
+        "PANEL / RADAR / CHANNEL MONITOR",
+        "Radar de menciones",
+        "Canales monitoreados, videos candidatos",
+        "+ Nuevo",
+        "Servicio sin verificar",
+        "Cola de jobs",
+        "Transcripciones",
+    ]:
+        assert removed_copy not in template
+
+    for removed_selector in [
+        "radar-screen__header",
+        "radar-queue-panel",
+        "radarProgressStatus",
+        "radarQueueList",
+        "radarHistoryList",
+    ]:
+        assert removed_selector not in template
+
+    assert "grid-template-columns: minmax(0, 1fr) 400px;" not in source
+    assert "#viewRadar .radar-layout" in source

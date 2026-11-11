@@ -1,0 +1,351 @@
+import { formatSeconds } from '../domain/formatters.js';
+import { findMotionPreset, MOTION_PRESET_CATEGORIES, MOTION_PRESETS } from '../domain/motion-presets.js';
+import { resolveVideoProjectTitle } from '../domain/project-identity.js';
+import { resolveRowImageUrl } from '../composition/composition-view-model.js';
+import { resolveCandidateImageUrl, resolveCandidateDimensions } from '../domain/image-candidates.js';
+import { DEFAULT_MUSIC_VOLUME } from '../domain/editor-state.js';
+import { resolveProjectVideoLibrary } from '../domain/video-assets.js';
+
+const EDITOR_EFFECT_TAB_IDS = new Set(['content', 'framing', 'layers', 'audio']);
+const LEGACY_EFFECT_TAB_MAP = {
+  assets: 'content',
+  videos: 'content',
+  motion: 'framing',
+  newspaper: 'framing',
+  global: 'layers',
+};
+const MOTION_EDITOR_TAB_IDS = new Set(['presets', 'manual']);
+const DEFAULT_MOTION_PRESET_NAME = 'Zoom 150';
+const DEFAULT_BRAND_CHANNEL = 'golazo-ecuador';
+
+function normalizeBrandChannel(value = DEFAULT_BRAND_CHANNEL) {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  return ['golazo-colombia', 'final-demo-cup'].includes(normalized) ? normalized : DEFAULT_BRAND_CHANNEL;
+}
+
+function normalizeLegacyMotionName(value = '', { defaultEmpty = false } = {}) {
+  const normalized = value.toString().trim().toLowerCase();
+  if (!normalized) return defaultEmpty ? DEFAULT_MOTION_PRESET_NAME : '';
+  if (normalized === 'slow-zoom-in' || normalized === 'slow-zoom' || normalized === 'zoom-110') {
+    return DEFAULT_MOTION_PRESET_NAME;
+  }
+  return value.toString().trim();
+}
+
+function resolveEditorEffectTab(value = '') {
+  const tab = value.toString();
+  const normalizedTab = LEGACY_EFFECT_TAB_MAP[tab] || tab;
+  return EDITOR_EFFECT_TAB_IDS.has(normalizedTab) ? normalizedTab : 'content';
+}
+
+function resolveMotionEditorTab(value = '') {
+  const tab = value.toString();
+  return MOTION_EDITOR_TAB_IDS.has(tab) ? tab : 'presets';
+}
+
+function resolveRowContentType(row = null) {
+  if (row?.media?.kind === 'video-segment') return 'video';
+  if (row?.mediaMode === 'newspaper') return 'newspaper';
+  return 'image';
+}
+
+function resolveEditorContentType({ row = null, project = {} } = {}) {
+  const rowId = row?.id || row?.rowId || '';
+  const draftByRow = project?._editorContentTypeByRow && typeof project._editorContentTypeByRow === 'object'
+    ? project._editorContentTypeByRow
+    : {};
+  const draft = rowId ? draftByRow[rowId] : '';
+  if (draft === 'image' || draft === 'video' || draft === 'newspaper') return draft;
+  return resolveRowContentType(row);
+}
+
+function resolveMotionPresetName(row = {}) {
+  const explicit = normalizeLegacyMotionName(row.motionPresetId || row.motion_preset_id || row.motionPreset || '');
+  if (explicit) return explicit;
+  const motion = row.motion;
+  if (typeof motion === 'string') return normalizeLegacyMotionName(motion, { defaultEmpty: true });
+  const presetName = normalizeLegacyMotionName(motion?.name || motion?.presetName || '');
+  if (presetName) return presetName;
+  const match = MOTION_PRESETS.find((preset) => (
+    Number(preset.fromX ?? 0) === Number(motion?.fromX ?? 0)
+    && Number(preset.fromY ?? 0) === Number(motion?.fromY ?? 0)
+    && Number(preset.toX ?? 0) === Number(motion?.toX ?? 0)
+    && Number(preset.toY ?? 0) === Number(motion?.toY ?? 0)
+    && Number(preset.fromScale ?? 1) === Number(motion?.fromScale ?? 1)
+    && Number(preset.toScale ?? 1) === Number(motion?.toScale ?? 1)
+  ));
+  return match?.name || DEFAULT_MOTION_PRESET_NAME;
+}
+
+function resolveMotionNumber(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function resolveManualMotionViewModel(row = {}) {
+  const presetName = resolveMotionPresetName(row);
+  const preset = findMotionPreset(presetName) || findMotionPreset(DEFAULT_MOTION_PRESET_NAME) || {};
+  const motion = row?.motion && typeof row.motion === 'object' ? row.motion : {};
+  const fromScale = resolveMotionNumber(motion.fromScale, resolveMotionNumber(preset.fromScale, 1));
+  const toScale = resolveMotionNumber(motion.toScale, resolveMotionNumber(preset.toScale, 1));
+
+  return {
+    presetName,
+    fromX: resolveMotionNumber(motion.fromX, resolveMotionNumber(preset.fromX, 0)),
+    fromY: resolveMotionNumber(motion.fromY, resolveMotionNumber(preset.fromY, 0)),
+    toX: resolveMotionNumber(motion.toX, resolveMotionNumber(preset.toX, 0)),
+    toY: resolveMotionNumber(motion.toY, resolveMotionNumber(preset.toY, 0)),
+    fromScalePercent: Math.round(fromScale * 100),
+    toScalePercent: Math.round(toScale * 100),
+  };
+}
+
+function resolveNewspaperViewModel(row = {}) {
+  const newspaper = row?.newspaper && typeof row.newspaper === 'object' ? row.newspaper : {};
+  const motion = newspaper.foregroundMotion && typeof newspaper.foregroundMotion === 'object' ? newspaper.foregroundMotion : {};
+  const fromScale = resolveMotionNumber(motion.fromScale, 1);
+  const toScale = resolveMotionNumber(motion.toScale, 1.1);
+  return {
+    labelEnabled: newspaper.labelEnabled !== false,
+    fromX: resolveMotionNumber(motion.fromX, 0),
+    fromY: resolveMotionNumber(motion.fromY, 0),
+    toX: resolveMotionNumber(motion.toX, 0),
+    toY: resolveMotionNumber(motion.toY, 0),
+    fromScalePercent: Math.round(fromScale * 100),
+    toScalePercent: Math.round(toScale * 100),
+  };
+}
+
+function buildMotionPresetGroups() {
+  return MOTION_PRESET_CATEGORIES.map((category) => ({
+    category,
+    presets: MOTION_PRESETS.filter((preset) => preset.category === category),
+  })).filter((group) => group.presets.length);
+}
+
+function resolveSelectedImageEntryUrl(entry = null) {
+  if (!entry) return '';
+  if (typeof entry === 'string') return entry.trim();
+  if (typeof entry === 'object') return resolveCandidateImageUrl(entry);
+  return '';
+}
+
+function isUserUploadCandidate(candidate = {}) {
+  const provider = (candidate.provider || candidate.source || '').toString().toLowerCase();
+  return provider === 'user-upload';
+}
+
+function normalizeAssetKey(url = '') {
+  return url.toString().trim().toLowerCase();
+}
+
+function createAssetViewModel({ url, title, source, dimensions, currentImageUrl, selectedAssetId, index }) {
+  const normalizedUrl = normalizeAssetKey(url);
+  return {
+    id: normalizedUrl || `asset-${index + 1}`,
+    url,
+    title: title || `Asset ${index + 1}`,
+    source,
+    dimensions,
+    isSelected: Boolean(normalizedUrl && (
+      normalizedUrl === normalizeAssetKey(selectedAssetId)
+      || normalizedUrl === normalizeAssetKey(currentImageUrl)
+    )),
+  };
+}
+
+function createVideoViewModel(video = {}, index = 0) {
+  const src = (video.src || video.previewUrl || video.public_url || video.storage_public_url || video.url || '').toString().trim();
+  return {
+    id: (video.id || video.assetId || src || `video-${index + 1}`).toString(),
+    src,
+    title: (video.title || video.name || video.file_name || `Video ${index + 1}`).toString(),
+    durationSeconds: Number(video.durationSeconds ?? video.duration_seconds ?? 0) || 0,
+    file_size: Number(video.file_size || video.size || 0),
+  };
+}
+
+export function buildEditorVideosViewModel({ project = {} } = {}) {
+  return resolveProjectVideoLibrary(project)
+    .map(createVideoViewModel)
+    .filter((video) => video.src);
+}
+
+export function buildEditorAssetsViewModel({ project = {}, row = null, rowIndex = 0 } = {}) {
+  const selectedImages = Array.isArray(project.selected_images) ? project.selected_images : [];
+  const candidates = Array.isArray(project.image_candidates) ? project.image_candidates : [];
+  const currentImageUrl = row ? resolveRowImageUrl(row, rowIndex, project) : '';
+  const selectedAssetId = row?.selectedAssetId || '';
+  const seen = new Set();
+  const assets = [];
+
+  const addAsset = ({ url, title, source, dimensions }) => {
+    const cleanUrl = (url || '').toString().trim();
+    const key = normalizeAssetKey(cleanUrl);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    assets.push(createAssetViewModel({
+      url: cleanUrl,
+      title,
+      source,
+      dimensions,
+      currentImageUrl,
+      selectedAssetId,
+      index: assets.length,
+    }));
+  };
+
+  selectedImages.forEach((entry, index) => {
+    const url = resolveSelectedImageEntryUrl(entry);
+    const title = typeof entry === 'object'
+      ? (entry.title || entry.file_name || `Imagen seleccionada ${index + 1}`).toString()
+      : `Imagen seleccionada ${index + 1}`;
+    const dimensions = typeof entry === 'object' ? resolveCandidateDimensions(entry) : '';
+    addAsset({ url, title, source: 'Seleccionada', dimensions });
+  });
+
+  candidates.filter(isUserUploadCandidate).forEach((candidate, index) => {
+    addAsset({
+      url: resolveCandidateImageUrl(candidate),
+      title: (candidate.title || candidate.file_name || `Upload ${index + 1}`).toString(),
+      source: 'Upload',
+      dimensions: resolveCandidateDimensions(candidate),
+    });
+  });
+
+  return assets;
+}
+
+function resolveFinitePositiveDuration(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
+function resolveTimelineRowEnd(row = {}) {
+  const effectiveEnd = Number(row.effectiveEndTime);
+  if (Number.isFinite(effectiveEnd) && effectiveEnd > 0) return effectiveEnd;
+  return Number(row.endTime || 0);
+}
+
+export function buildPreviewTimelineViewModel(rows = [], selectedRowId = null, { totalDurationSeconds } = {}) {
+  const latestRowEnd = Math.max(...rows.map(resolveTimelineRowEnd), 0);
+  const configuredDuration = resolveFinitePositiveDuration(totalDurationSeconds);
+  const totalDuration = Math.max(configuredDuration, latestRowEnd, 1);
+  const markers = rows.map((row, index) => {
+    const start = Math.max(0, Number(row.startTime || 0));
+    return {
+      row,
+      index,
+      start,
+      position: Math.min((start / totalDuration) * 100, 100),
+      isSelected: selectedRowId === row.id,
+      title: `${formatSeconds(start)} · ${(row.phrase || '').toString()}`,
+    };
+  });
+
+  return {
+    totalDuration,
+    totalDurationLabel: formatSeconds(totalDuration),
+    markers,
+  };
+}
+
+export function buildEditorRowsTableViewModel(rows = [], { selectedRowId, rowImageUploading, project = {} } = {}) {
+  return rows.map((row, index) => {
+    const isSelected = selectedRowId === row.id;
+    const uploadingThisRow = rowImageUploading === row.id;
+    const videoSrc = row?.media?.kind === 'video-segment'
+      ? (row.media.sourceVideoSrc || row.media.src || '').toString()
+      : '';
+    return {
+      row,
+      index,
+      isSelected,
+      selectedClass: isSelected ? 'is-selected' : '',
+      uploadingThisRow,
+      imageUrl: resolveRowImageUrl(row, index, project),
+      imageSwapAssetId: row?.selectedAssetId || resolveRowImageUrl(row, index, project),
+      startTimeValue: String(Number(row.startTime || 0)),
+      startTimeLabel: formatSeconds(row.startTime),
+      endTimeLabel: formatSeconds(row.endTime),
+      phrase: (row.phrase || '').toString(),
+      thumbAlt: `Imagen de la fila ${index + 1}`,
+      uploadLabel: uploadingThisRow ? 'Subiendo…' : 'Cambiar imagen',
+      mediaKind: row?.media?.kind === 'video-segment' ? 'video-segment' : 'image',
+      videoSrc,
+      boundaryConnector: row?.paragraphBoundaryAfter === true && row?.nextRowId
+        ? {
+          rowId: row.id,
+          nextRowId: row.nextRowId.toString(),
+          activeTransition: ['transition-1', 'transition-2', 'transition-3'].includes(row.transition) ? row.transition : null,
+        }
+        : null,
+    };
+  });
+}
+
+export function buildEditorDetailRailViewModel({ row, globalAudio, project = {}, rowIndex = 0 } = {}) {
+  const voice = globalAudio?.voice || { volume: 1, muted: false };
+  const music = globalAudio?.music || { volume: DEFAULT_MUSIC_VOLUME, muted: false };
+  const detailImageUrl = row ? resolveRowImageUrl(row, rowIndex, project) : '';
+  const snapshot = project?.editor_state?.approval_contract_snapshot || {};
+  const brandChannel = normalizeBrandChannel(
+    project?.editor_state?.brandChannel
+      || project?.editor_state?.brand_channel
+      || snapshot?.brandChannel,
+  );
+
+  return {
+    row,
+    voice,
+    music,
+    detailImageUrl,
+    phraseLabel: row ? (row.phrase || 'Fila').toString().slice(0, 64) : '',
+    timeLabel: row ? `${formatSeconds(row.startTime)} → ${formatSeconds(row.endTime)}` : '',
+    missingAssetLabel: row ? (row.selectedAssetId || 'Sin imagen asignada').toString().slice(0, 40) : '',
+    voiceVolumePercent: Math.round((voice.volume ?? 1) * 100),
+    voiceVolumeValue: voice.volume ?? 1,
+    musicVolumePercent: Math.round((music.volume ?? DEFAULT_MUSIC_VOLUME) * 100),
+    musicVolumeValue: music.volume ?? DEFAULT_MUSIC_VOLUME,
+    activeEffectTab: resolveEditorEffectTab(project._editorEffectTab),
+    activeMotionEditorTab: resolveMotionEditorTab(project._motionEditorTab),
+    activeContentType: resolveEditorContentType({ row, project }),
+    assets: buildEditorAssetsViewModel({ project, row, rowIndex }),
+    assetsUploading: Boolean(project._rowImageUploading && row?.id && project._rowImageUploading === row.id),
+    videos: buildEditorVideosViewModel({ project }),
+    videosUploading: Boolean(project._rowVideoUploading && row?.id && project._rowVideoUploading === row.id),
+    videoSelector: project._videoSelector || null,
+    previewViewport: project._videoPreviewViewport || null,
+    editorRows: Array.isArray(project._editorRows) ? project._editorRows : [],
+    newspaper: row ? resolveNewspaperViewModel(row) : null,
+    motion: resolveMotionPresetName(row),
+    manualMotion: row ? resolveManualMotionViewModel(row) : null,
+    motionPresetGroups: buildMotionPresetGroups(),
+    dustEnabled: Boolean(row?.dust?.enabled),
+    dustType: row?.dust?.enabled ? (row?.dust?.type || 'particle-1') : 'none',
+    logoEnabled: row?.logo?.enabled !== false,
+    brandChannel,
+  };
+}
+
+export function buildEditorShellViewModel(project = {}, { editorRows = [], selectedRowId = null } = {}) {
+  const requestedSelectedRow = selectedRowId ? editorRows.find((row) => row.id === selectedRowId) : null;
+  const previewSeekTime = Number(project?._previewSeekTime);
+  const rowAtPreviewTime = Number.isFinite(previewSeekTime)
+    ? editorRows.find((row) => {
+      const start = Number(row?.startTime ?? 0);
+      const end = Number(row?.effectiveEndTime ?? row?.endTime ?? 0);
+      return previewSeekTime >= start && (!Number.isFinite(end) || end <= start || previewSeekTime < end);
+    })
+    : null;
+  const selectedRow = requestedSelectedRow || rowAtPreviewTime || editorRows[0] || null;
+  const activeSelectedRowId = selectedRow?.id || null;
+  const selectedRowIndex = Math.max(0, editorRows.findIndex((row) => row.id === activeSelectedRowId));
+
+  return {
+    title: resolveVideoProjectTitle(project),
+    activeSelectedRowId,
+    selectedRow,
+    selectedRowIndex,
+  };
+}

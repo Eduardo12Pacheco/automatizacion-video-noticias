@@ -1,0 +1,207 @@
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 12px;
+  text-align: left;
+  background: #0d0d0d;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 0;
+  overflow: hidden;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.sidebar--rail:hover .nav-item,
+.sidebar--rail:focus-within .nav-item {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.nav-item:hover {
+  background: #101010;
+  border-color: #2d2d2d;
+  transform: translateY(-1px);
+}
+
+.nav-item.active {
+  background: var(--accent-soft);
+  border-color: rgba(0, 232, 143, 0.45);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.nav-item__icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  margin-inline: 0;
+  border: 0;
+  color: var(--accent);
+  background: transparent;
+  font-size: 1rem;
+}
+
+.nav-item__icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.nav-item:not(.active) .nav-item__icon {
+  color: #7b8086;
+}
+
+.nav-item.active .nav-item__icon {
+  background: transparent;
+  border-color: transparent;
+}
+
+.nav-item__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  text-align: left;
+}
+
+.nav-item__title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.sidebar-foot__action,
+.sidebar-rail__label {
+  color: var(--muted);
+}
+
+button {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #03120c;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+button.secondary {
+  background: #121212;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+button.reject {
+  background: var(--danger-soft);
+  border-color: rgba(217, 87, 100, 0.45);
+  color: #ffced5;
+}
+
+button.approve {
+  background: var(--accent);
+  border-color: rgba(0, 232, 143, 0.4);
+  color: #04110c;
+}
+
+button.script-download-button:disabled {
+  opacity: 1;
+  background: rgba(0, 232, 143, 0.12);
+  border-color: rgba(0, 232, 143, 0.32);
+  color: rgba(185, 255, 224, 0.62);
+}
+
+button.script-remove-button {
+  border-color: rgba(217, 87, 100, 0.5);
+  background: rgba(43, 11, 16, 0.34);
+  color: #ffb4bf;
+}
+
+button.script-remove-button:hover:not(:disabled) {
+  border-color: rgba(255, 149, 166, 0.78);
+  background: rgba(78, 18, 28, 0.62);
+  filter: brightness(1.06);
+}
+
+button.script-remove-button:disabled {
+  border-color: rgba(217, 87, 100, 0.24);
+  background: rgba(43, 11, 16, 0.18);
+  color: rgba(255, 180, 191, 0.56);
+}
+
+.button-icon {
+  gap: 8px;
+}
+
+.button-icon__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+.button-icon__glyph svg {
+  width: 28px;
+  height: 28px;
+}
+
+.card-actions button,
+.queue-actions button,
+.audio-queue-actions button,
+.source-actions button {
+  min-height: 36px;
+  padding: 9px 12px;
+  font-size: 0.66rem;
+}
+
+.audio-card-close {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 0;
+  background: #121212;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.subtitle-align-group .selected-green {
+  background: var(--accent-soft);
+  border: 1px solid rgba(0, 232, 143, 0.45);
+  color: #b9ffe0;
+}
+
+.subtitle-align-group .muted {
+  background: #121212;
+  border: 1px solid var(--border-strong);
+  color: var(--muted);
+}

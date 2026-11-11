@@ -1,0 +1,236 @@
+.audio-screen {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+
+.audio-screen__header {
+  padding: 18px 20px;
+}
+
+.audio-screen__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 20px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.audio-panel--main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 220px);
+  min-width: 0;
+}
+
+.audio-field--grow {
+  flex: 1;
+}
+
+.script-area--audio {
+  min-height: 468px;
+}
+
+.audio-panel--queue {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 220px);
+  min-width: 0;
+}
+
+.audio-queue-header h3 {
+  margin-bottom: 6px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+}
+
+.audio-queue-header p {
+  white-space: normal;
+}
+
+.audio-queue-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.audio-queue-header > div {
+  min-width: 0;
+}
+
+.audio-queue-header .section-counter {
+  flex: 0 0 auto;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.audio-queue-header .section-counter:empty {
+  display: none;
+}
+
+.audio-queue-list {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding-right: 4px;
+  align-content: start;
+  min-width: 0;
+}
+
+.audio-queue-list.is-empty {
+  min-height: 260px;
+  padding-right: 0;
+  place-items: center;
+  align-content: stretch;
+}
+
+.audio-queue-empty {
+  margin: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.audio-queue-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(10, 10, 10, 0.96));
+  padding: 14px;
+  border-radius: 0;
+  min-width: 0;
+}
+
+.audio-queue-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audio-queue-card-title {
+  font-weight: 700;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.audio-card-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(217, 87, 100, 0.46);
+  border-radius: 0;
+  background: rgba(43, 11, 16, 0.9);
+  color: #ff8f9b;
+  cursor: pointer;
+}
+
+.audio-card-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.audio-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  width: fit-content;
+  max-width: fit-content;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.audio-status-pill--processing {
+  color: #9ed0ff;
+  border-color: #2f5b87;
+  background: #102435;
+}
+
+.audio-status-pill--done {
+  color: #bff8dc;
+  border-color: rgba(0, 232, 143, 0.34);
+  background: #0e241c;
+}
+
+.audio-status-pill--error {
+  color: #ffd0d6;
+  border-color: rgba(217, 87, 100, 0.4);
+  background: #30161b;
+}
+
+.audio-progress-meta {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.66rem;
+  color: var(--muted-2);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.audio-progress-track {
+  width: 100%;
+  height: 7px;
+  border: 1px solid var(--border-strong);
+  background: #121212;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.audio-progress-fill {
+  height: 100%;
+  width: 0;
+  transition: width 0.25s ease;
+}
+
+.audio-progress-fill--processing {
+  background: #3f8cff;
+}
+
+.audio-progress-fill--done {
+  background: var(--accent);
+}
+
+.audio-progress-fill--error {
+  background: var(--danger);
+}
+
+.audio-queue-actions {
+  margin-top: 4px;
+  display: flex;
+}
+
+.audio-queue-actions .approve {
+  width: 100%;
+}
+
+.audio-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: auto;
+}

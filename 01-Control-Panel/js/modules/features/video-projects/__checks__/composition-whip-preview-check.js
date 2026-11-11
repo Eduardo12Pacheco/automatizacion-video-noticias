@@ -1,0 +1,241 @@
+import { fileURLToPath } from 'node:url';
+import {
+  WHIP_BROWSER_SFX_URL,
+  WHIP_SMEAR_SAMPLE_COUNT,
+  WHIP_TRANSITION_DURATION_SECONDS,
+  applyBoundaryVideoOverlayLayer,
+  applyWhipOverlayLayers,
+  buildBoundaryVideoPreviewEvents,
+  buildWhipPreviewEvents,
+  createBoundaryVideoAudioScheduler,
+  createWhipSfxScheduler,
+  resolveBoundaryVideoPreviewFrame,
+  resolveWhipPreviewFrame,
+} from '../composition/renderer/whip-transition.js';
+
+function assertEqual(actual, expected, message) {
+  if (actual !== expected) {
+    throw new Error(`${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
+}
+
+function assertOk(value, message) {
+  if (!value) throw new Error(message);
+}
+
+function createLayer() {
+  const layer = {
+    src: '',
+    draggable: true,
+    style: {
+      visibility: '',
+      transform: '',
+      filter: '',
+      opacity: '',
+    },
+    children: [],
+  };
+  for (let index = 0; index < WHIP_SMEAR_SAMPLE_COUNT; index += 1) {
+    layer.children.push({
+      src: '',
+      draggable: true,
+      style: { visibility: '', transform: '', filter: '', opacity: '' },
+    });
+  }
+  return layer;
+}
+
+function testWhipEventMathKeepsSegmentTimingUntouched() {
+  const rows = [
+    {
+      id: 'row-a',
+      startTime: 0,
+      endTime: 1,
+      image: 'previous.jpg',
+      paragraphBoundaryAfter: true,
+      nextRowId: 'row-b',
+      transition: 'whip',
+      transitionConfig: { type: 'whip', durationSeconds: 0.5, direction: 'left-to-right' },
+      sfx: 'whip',
+    },
+    { id: 'row-b', startTime: 1, endTime: 3, image: 'next.jpg' },
+  ];
+
+  const events = buildWhipPreviewEvents(rows);
+
+  assertEqual(events.length, 1, 'Expected one active Whip preview event');
+  assertEqual(events[0].cutTime, 1, 'Expected Whip cut to use the next row start time');
+  assertEqual(events[0].durationSeconds, WHIP_TRANSITION_DURATION_SECONDS, 'Expected browser preview to use the tighter reference-matched Whip duration');
+  assertEqual(events[0].startTime, 0.785, 'Expected Whip to be centered before the cut');
+  assertEqual(events[0].endTime, 1.215, 'Expected Whip to keep a short reference-matched visual window');
+  assertEqual(events[0].previousImage, 'previous.jpg', 'Expected outgoing row image in the event');
+  assertEqual(events[0].nextImage, 'next.jpg', 'Expected incoming row image in the event');
+  assertEqual(events[0].sfxUrl, WHIP_BROWSER_SFX_URL, 'Expected browser preview to use the local Control Panel SFX asset');
+  assertEqual(rows[0].endTime, 1, 'Expected event building not to shorten outgoing segment timing');
+  assertEqual(rows[1].startTime, 1, 'Expected event building not to shift incoming segment timing');
+}
+
+function testWhipEventMathIgnoresInactiveAndIneligibleRows() {
+  const rows = [
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'a.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'none' },
+    { id: 'row-b', startTime: 1, endTime: 2, image: 'b.jpg' },
+    { id: 'row-c', startTime: 2, endTime: 3, image: 'c.jpg', transition: 'whip', nextRowId: 'row-d' },
+    { id: 'row-d', startTime: 3, endTime: 4, image: 'd.jpg' },
+  ];
+
+  assertEqual(buildWhipPreviewEvents(rows).length, 0, 'Expected inactive or ineligible rows to produce no Whip events');
+}
+
+function testWhipFrameStylesMoveOutgoingRightAndIncomingSettles() {
+  const [event] = buildWhipPreviewEvents([
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'whip', transitionConfig: { durationSeconds: 0.5 } },
+    { id: 'row-b', startTime: 1, endTime: 2, image: 'next.jpg' },
+  ]);
+
+  const frame = resolveWhipPreviewFrame(1, [event]);
+
+  assertOk(frame, 'Expected frame at the cut to resolve an active Whip frame');
+  assertEqual(frame.progress, 0.5, 'Expected cut-centered Whip frame to be halfway through');
+  assertEqual(frame.previous.src, 'previous.jpg', 'Expected previous layer source');
+  assertEqual(frame.next.src, 'next.jpg', 'Expected next layer source');
+  assertOk(frame.previous.transform.includes('translate3d(60'), 'Expected outgoing image to move right at the cut');
+  assertOk(frame.previous.filter.includes('blur('), 'Expected outgoing image to blur during Whip');
+  assertOk(frame.next.transform.includes('translate3d(-17.5'), 'Expected incoming image to enter from the left during the same rightward move');
+  assertEqual(frame.previous.samples.length, WHIP_SMEAR_SAMPLE_COUNT, 'Expected outgoing Whip smear samples');
+  assertEqual(frame.next.samples.length, WHIP_SMEAR_SAMPLE_COUNT, 'Expected incoming Whip smear samples');
+  assertOk(frame.previous.samples[0].transform.includes('translate3d(-16'), 'Expected outgoing smear to fan horizontally');
+  assertOk(frame.previous.samples[3].opacity > frame.previous.samples[0].opacity, 'Expected center smear sample to be strongest');
+}
+
+function testWhipOverlayDomWiringAppliesAndHidesLayers() {
+  const layers = { whipPrevious: createLayer(), whipNext: createLayer() };
+  const frame = resolveWhipPreviewFrame(1, buildWhipPreviewEvents([
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'whip' },
+    { id: 'row-b', startTime: 1, endTime: 2, image: 'next.jpg' },
+  ]));
+
+  applyWhipOverlayLayers(layers, frame);
+
+  assertEqual(layers.whipPrevious.style.visibility, 'visible', 'Expected previous Whip layer to be visible');
+  assertEqual(layers.whipNext.style.visibility, 'visible', 'Expected next Whip layer to be visible');
+  assertEqual(layers.whipPrevious.src, 'previous.jpg', 'Expected previous Whip layer src to update');
+  assertEqual(layers.whipNext.src, 'next.jpg', 'Expected next Whip layer src to update');
+  assertEqual(layers.whipPrevious.draggable, false, 'Expected Whip image layers to remain non-draggable');
+  assertEqual(layers.whipPrevious.children[0].src, 'previous.jpg', 'Expected previous Whip sample src to update');
+  assertEqual(layers.whipNext.children[0].src, 'next.jpg', 'Expected next Whip sample src to update');
+  assertEqual(layers.whipPrevious.children[0].style.visibility, 'visible', 'Expected previous Whip sample to be visible');
+
+  applyWhipOverlayLayers(layers, null);
+
+  assertEqual(layers.whipPrevious.style.visibility, 'hidden', 'Expected previous Whip layer to hide after event');
+  assertEqual(layers.whipNext.style.visibility, 'hidden', 'Expected next Whip layer to hide after event');
+  assertEqual(layers.whipPrevious.children[0].style.visibility, 'hidden', 'Expected previous Whip sample to hide after event');
+}
+
+function testWhipSfxSchedulerStartsWithOverlayAndReplaysAfterRewind() {
+  const calls = [];
+  const scheduler = createWhipSfxScheduler({
+    audioFactory(src) {
+      calls.push({ type: 'create', src });
+      return {
+        currentTime: 99,
+        volume: 0,
+        play() {
+          calls.push({ type: 'play', currentTime: this.currentTime, volume: this.volume });
+          return Promise.resolve();
+        },
+      };
+    },
+  });
+  const [event] = buildWhipPreviewEvents([
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'whip', sfx: 'whip' },
+    { id: 'row-b', startTime: 1, endTime: 2, image: 'next.jpg' },
+  ]);
+
+  assertEqual(scheduler.schedule({ event, currentTime: 0.78, playing: true }), false, 'Expected SFX not to play before the visual Whip starts');
+  assertEqual(scheduler.schedule({ event, currentTime: 0.785, playing: true }), true, 'Expected SFX to play when the visual Whip starts');
+  assertEqual(scheduler.schedule({ event, currentTime: 1.01, playing: true }), false, 'Expected SFX not to replay for the same forward pass');
+  assertEqual(scheduler.schedule({ event, currentTime: 0.5, playing: false }), false, 'Expected paused rewind not to schedule SFX');
+  assertEqual(scheduler.schedule({ event, currentTime: 0.785, playing: true }), true, 'Expected SFX to replay after rewinding before the boundary');
+  assertEqual(scheduler.schedule({ event, currentTime: 1, playing: false }), false, 'Expected paused preview not to schedule SFX');
+  assertEqual(calls.length, 4, 'Expected two audio element creations and two play calls');
+  assertEqual(calls[0].src, WHIP_BROWSER_SFX_URL, 'Expected SFX scheduler to use local Whip asset');
+  assertEqual(calls[1].currentTime, 0, 'Expected SFX playback to start from the beginning');
+  assertEqual(calls[1].volume, 0.85, 'Expected SFX playback to use safe preview volume');
+  assertEqual(calls[3].currentTime, 0, 'Expected replayed SFX playback to restart from the beginning');
+}
+
+function testTransitionPreviewEventAndVideoLayerWiring() {
+  const [event] = buildBoundaryVideoPreviewEvents([
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-3', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/efecto-transition-3.mp4', blendMode: 'screen', durationSeconds: 1, audio: true } },
+    { id: 'row-b', startTime: 1, endTime: 2, image: 'next.jpg' },
+  ]);
+  const video = {
+    _src: '',
+    currentTime: 0,
+    paused: true,
+    style: { visibility: '', mixBlendMode: '' },
+    getAttribute(name) { return name === 'src' ? this._src : ''; },
+    set src(value) { this._src = value; },
+    get src() { return this._src; },
+    load() { this.loaded = true; },
+    play() { this.paused = false; return Promise.resolve(); },
+    pause() { this.paused = true; },
+  };
+
+  assertEqual(event.startTime, 0.5, 'Expected Transition 3 video to be centered on the boundary cut');
+  assertEqual(event.endTime, 1.5, 'Expected Transition 3 video to keep its full asset duration');
+  const frame = resolveBoundaryVideoPreviewFrame(1, [event]);
+  applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, frame, { playing: false });
+  assertEqual(video.style.visibility, 'visible', 'Expected Transition preview video layer to become visible');
+  assertEqual(video.src, './assets/boundary-transitions/efecto-transition-3.mp4', 'Expected Transition preview video to use the browser asset');
+  assertEqual(video.style.mixBlendMode, 'screen', 'Expected Transition preview video to use screen blend mode');
+  assertEqual(video.paused, true, 'Expected paused preview to avoid free-running the transition video');
+  applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, frame, { playing: true });
+  assertEqual(video.paused, false, 'Expected playing preview to play the transition video');
+  applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, null);
+  assertEqual(video.style.visibility, 'hidden', 'Expected Transition preview video layer to hide after event');
+}
+
+function testTransitionAudioSchedulerStartsWithOverlay() {
+  const calls = [];
+  const scheduler = createBoundaryVideoAudioScheduler({
+    audioFactory(src) {
+      calls.push({ type: 'create', src });
+      return {
+        currentTime: 99,
+        volume: 0,
+        play() {
+          calls.push({ type: 'play', currentTime: this.currentTime, volume: this.volume });
+          return Promise.resolve();
+        },
+      };
+    },
+  });
+  const [event] = buildBoundaryVideoPreviewEvents([
+    { id: 'row-a', startTime: 0, endTime: 1, paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-2', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/TRANSITION 2 NUEVO.mp4', blendMode: 'screen', durationSeconds: 1.4, audio: true } },
+    { id: 'row-b', startTime: 1, endTime: 2 },
+  ]);
+
+  assertEqual(scheduler.schedule({ event, currentTime: event.startTime - 0.01, playing: true }), false, 'Expected Transition audio not to play before the transition starts');
+  assertEqual(scheduler.schedule({ event, currentTime: event.startTime, playing: true }), true, 'Expected Transition audio to play at transition start');
+  assertEqual(scheduler.schedule({ event, currentTime: event.startTime + 0.2, playing: true }), false, 'Expected Transition audio not to replay in the same forward pass');
+  assertEqual(calls[0].src, './assets/boundary-transitions/TRANSITION 2 NUEVO.mp4', 'Expected Transition audio scheduler to use the MP4 audio source');
+  assertEqual(calls[1].currentTime, 0, 'Expected Transition audio to start from the beginning');
+  assertEqual(calls[1].volume, 0.9, 'Expected Transition audio to use safe preview volume');
+}
+
+export async function runCompositionWhipPreviewCheck() {
+  testWhipEventMathKeepsSegmentTimingUntouched();
+  testWhipEventMathIgnoresInactiveAndIneligibleRows();
+  testWhipFrameStylesMoveOutgoingRightAndIncomingSettles();
+  testWhipOverlayDomWiringAppliesAndHidesLayers();
+  testWhipSfxSchedulerStartsWithOverlayAndReplaysAfterRewind();
+  testTransitionPreviewEventAndVideoLayerWiring();
+  testTransitionAudioSchedulerStartsWithOverlay();
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  await runCompositionWhipPreviewCheck();
+  console.log('composition-whip-preview-check: ok');
+}
