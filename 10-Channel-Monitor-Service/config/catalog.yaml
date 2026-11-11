@@ -1,0 +1,436 @@
+countries:
+  - code: ecuador
+    terms:
+      - Ecuador
+      - La Tri
+      - seleccion ecuatoriana
+      - selección ecuatoriana
+      - selección de Ecuador
+      - seleccion de Ecuador
+      - Tri ecuatoriana
+      - Équateur
+      - Equateur
+      - Equador
+  - code: colombia
+    terms:
+      - Colombia
+      - Selección Colombia
+      - Seleccion Colombia
+      - cafeteros
+      - Los Cafeteros
+      - Tricolor colombiano
+      - Colombie
+      - Kolumbien
+      - Colômbia
+  - code: argentina
+    terms:
+      - Argentina
+      - la albiceleste
+      - la Albiceleste
+      - Albiceleste
+      - selección argentina
+      - seleccion argentina
+      - selección de Argentina
+      - seleccion de Argentina
+      - La Scaloneta
+      - Argentine
+      - Argentinien
+      - Argentinië
+      - Argentinie
+  - code: uruguay
+    terms:
+      - Uruguay
+      - uruguayo
+      - charrúa
+      - charrua
+      - la celeste
+      - selección uruguaya
+      - seleccion uruguaya
+      - Oeroegwaj
+      - Uruguai
+  - code: paraguay
+    terms:
+      - Paraguay
+      - paraguayo
+      - guaraní
+      - guarani
+      - la albirroja
+      - selección paraguaya
+      - seleccion paraguaya
+      - Paraguai
+  - code: mexico
+    terms:
+      - México
+      - Mexico
+      - mexicano
+      - El Tri
+      - Tricolor
+      - selección mexicana
+      - seleccion mexicana
+      - Mejico
+      - Mexique
+      - Messico
+      - Mexiko
+
+players:
+  - name: Piero Hincapié
+    country: ecuador
+    aliases:
+      - Piero Hincapié
+      - Piero Hincapie
+      - Hincapié
+      - Hincapie
+  - name: Willian Pacho
+    country: ecuador
+    aliases:
+      - Willian Pacho
+      - William Pacho
+      - Pacho
+  - name: Moisés Caicedo
+    country: ecuador
+    aliases:
+      - Moisés Caicedo
+      - Moises Caicedo
+      - Moise Caicedo
+      - Caicedo
+      - Moses Caicedo
+  - name: Enner Valencia
+    country: ecuador
+    aliases:
+      - Enner Valencia
+      - Enner
+      - Supermán Valencia
+      - Superman Valencia
+  - name: Gonzalo Plata
+    country: ecuador
+    aliases:
+      - Gonzalo Plata
+      - Plata
+  - name: Kendry Páez
+    country: ecuador
+    aliases:
+      - Kendry Páez
+      - Kendry Paez
+      - Páez
+      - Paez
+  - name: Pervis Estupiñán
+    country: ecuador
+    aliases:
+      - Pervis Estupiñán
+      - Pervis Estupinan
+      - Estupiñán
+      - Estupinan
+  - name: Alan Franco
+    country: ecuador
+    aliases:
+      - Alan Franco
+  - name: Kevin Rodríguez
+    country: ecuador
+    aliases:
+      - Kevin Rodríguez
+      - Kevin Rodriguez
+  - name: Angelo Preciado
+    country: ecuador
+    aliases:
+      - Angelo Preciado
+      - Ángelo Preciado
+      - Preciado
+  - name: John Yeboah
+    country: ecuador
+    aliases:
+      - John Yeboah
+      - Yeboah
+  - name: Luis Díaz
+    country: colombia
+    aliases:
+      - Luis Díaz
+      - Luis Diaz
+      - Lucho Díaz
+      - Lucho Diaz
+      - Díaz
+      - Diaz
+      - Louis Diaz
+  - name: James Rodríguez
+    country: colombia
+    aliases:
+      - James Rodríguez
+      - James Rodriguez
+      - James Rodrigue
+      - James
+  - name: Daniel Muñoz
+    country: colombia
+    aliases:
+      - Daniel Muñoz
+      - Daniel Munoz
+      - Muñoz
+      - Munoz
+  - name: Davinson Sánchez
+    country: colombia
+    aliases:
+      - Davinson Sánchez
+      - Davinson Sanchez
+      - Davinson
+  - name: Jefferson Lerma
+    country: colombia
+    aliases:
+      - Jefferson Lerma
+      - Lerma
+  - name: Richard Ríos
+    country: colombia
+    aliases:
+      - Richard Ríos
+      - Richard Rios
+      - Ríos
+      - Rios
+  - name: Juan Fernando Quintero
+    country: colombia
+    aliases:
+      - Juan Fernando Quintero
+      - Juanfer Quintero
+      - Quintero
+  - name: Jhon Arias
+    country: colombia
+    aliases:
+      - Jhon Arias
+      - Arias
+  - name: Lionel Messi
+    country: argentina
+    aliases:
+      - Lionel Messi
+      - Leo Messi
+      - Messi
+      - Lionel Messie
+      - LM10
+  - name: Julián Álvarez
+    country: argentina
+    aliases:
+      - Julián Álvarez
+      - Julian Alvarez
+      - Julián Alvarez
+      - Julian Álvarez
+      - La Araña
+      - La Arana
+      - Julian Alvarez
+  - name: Lautaro Martínez
+    country: argentina
+    aliases:
+      - Lautaro Martínez
+      - Lautaro Martinez
+      - Toro Martínez
+      - Toro Martinez
+      - Lautaro
+  - name: Emiliano Martínez
+    country: argentina
+    aliases:
+      - Emiliano Martínez
+      - Emiliano Martinez
+      - Dibu Martínez
+      - Dibu Martinez
+  - name: Enzo Fernández
+    country: argentina
+    aliases:
+      - Enzo Fernández
+      - Enzo Fernandez
+  - name: Alexis Mac Allister
+    country: argentina
+    aliases:
+      - Alexis Mac Allister
+      - Mac Allister
+      - MacAllister
+  - name: Rodrigo De Paul
+    country: argentina
+    aliases:
+      - Rodrigo De Paul
+      - Rodrigo de Paul
+      - De Paul
+  - name: Cristian Romero
+    country: argentina
+    aliases:
+      - Cristian Romero
+      - Cuti Romero
+      - Romero
+  - name: Nicolás Otamendi
+    country: argentina
+    aliases:
+      - Nicolás Otamendi
+      - Nicolas Otamendi
+      - Otamendi
+  - name: Federico Valverde
+    country: uruguay
+    aliases:
+      - Federico Valverde
+      - Fede Valverde
+      - Valverde
+      - Frederico Valverde
+  - name: Darwin Núñez
+    country: uruguay
+    aliases:
+      - Darwin Núñez
+      - Darwin Nunez
+      - Núñez
+      - Nunez
+      - Darwin
+      - Darwin Nunez
+  - name: Manuel Ugarte
+    country: uruguay
+    aliases:
+      - Manuel Ugarte
+      - Ugarte
+  - name: Rodrigo Bentancur
+    country: uruguay
+    aliases:
+      - Rodrigo Bentancur
+      - Bentancur
+  - name: Ronald Araujo
+    country: uruguay
+    aliases:
+      - Ronald Araujo
+      - Ronald Araújo
+      - Araújo
+      - Araujo
+  - name: Giorgian De Arrascaeta
+    country: uruguay
+    aliases:
+      - Giorgian De Arrascaeta
+      - Giorgian de Arrascaeta
+      - De Arrascaeta
+      - Arrascaeta
+  - name: Facundo Pellistri
+    country: uruguay
+    aliases:
+      - Facundo Pellistri
+      - Pellistri
+  - name: Sergio Rochet
+    country: uruguay
+    aliases:
+      - Sergio Rochet
+      - Rochet
+  - name: Matías Viña
+    country: uruguay
+    aliases:
+      - Matías Viña
+      - Matias Vina
+      - Viña
+      - Vina
+  - name: José María Giménez
+    country: uruguay
+    aliases:
+      - José María Giménez
+      - Jose Maria Gimenez
+      - Josema Giménez
+      - Josema Gimenez
+  - name: Nicolás De La Cruz
+    country: uruguay
+    aliases:
+      - Nicolás De La Cruz
+      - Nicolas De La Cruz
+      - De La Cruz
+      - De la Cruz
+  - name: Miguel Almirón
+    country: paraguay
+    aliases:
+      - Miguel Almirón
+      - Miguel Almiron
+      - Almirón
+      - Almiron
+  - name: Julio Enciso
+    country: paraguay
+    aliases:
+      - Julio Enciso
+      - Enciso
+  - name: Antonio Sanabria
+    country: paraguay
+    aliases:
+      - Antonio Sanabria
+      - Tony Sanabria
+      - Sanabria
+  - name: Gustavo Gómez
+    country: paraguay
+    aliases:
+      - Gustavo Gómez
+      - Gustavo Gomez
+  - name: Ramón Sosa
+    country: paraguay
+    aliases:
+      - Ramón Sosa
+      - Ramon Sosa
+      - Ramoncito Sosa
+  - name: Diego Gómez
+    country: paraguay
+    aliases:
+      - Diego Gómez
+      - Diego Gomez
+  - name: Omar Alderete
+    country: paraguay
+    aliases:
+      - Omar Alderete
+      - Alderete
+  - name: Damián Bobadilla
+    country: paraguay
+    aliases:
+      - Damián Bobadilla
+      - Damian Bobadilla
+      - Bobadilla
+  - name: Junior Alonso
+    country: paraguay
+    aliases:
+      - Junior Alonso
+  - name: Santiago Giménez
+    country: mexico
+    aliases:
+      - Santiago Giménez
+      - Santiago Gimenez
+      - Santi Giménez
+      - Santi Gimenez
+      - Giménez
+      - Gimenez
+      - Santiago
+  - name: Guillermo Ochoa
+    country: mexico
+    aliases:
+      - Guillermo Ochoa
+      - Memo Ochoa
+      - Ochoa
+  - name: Raúl Jiménez
+    country: mexico
+    aliases:
+      - Raúl Jiménez
+      - Raul Jimenez
+      - Raúl Jimenez
+      - Jiménez
+      - Jimenez
+  - name: Edson Álvarez
+    country: mexico
+    aliases:
+      - Edson Álvarez
+      - Edson Alvarez
+  - name: Orbelín Pineda
+    country: mexico
+    aliases:
+      - Orbelín Pineda
+      - Orbelin Pineda
+      - Orbelín
+      - Orbelin
+  - name: Luis Chávez
+    country: mexico
+    aliases:
+      - Luis Chávez
+      - Luis Chavez
+  - name: César Montes
+    country: mexico
+    aliases:
+      - César Montes
+      - Cesar Montes
+      - Cachorro Montes
+  - name: Johan Vásquez
+    country: mexico
+    aliases:
+      - Johan Vásquez
+      - Johan Vasquez
+  - name: Julián Quiñones
+    country: mexico
+    aliases:
+      - Julián Quiñones
+      - Julian Quinones
+      - Quiñones
+      - Quinones
