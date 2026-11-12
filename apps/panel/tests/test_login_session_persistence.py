@@ -331,7 +331,7 @@ if (classCalls.length) throw new Error(`remote gateway rejection opened shell: $
     assert result.returncode == 0, result.stderr
 
 
-def test_local_login_keeps_operator_fallback_when_gateway_is_unavailable():
+def test_login_never_falls_back_to_a_hardcoded_password():
     script = r"""
 import { bindCoreEvents } from './js/modules/core/bootstrap.js';
 
@@ -363,9 +363,6 @@ const el = {
 
 bindCoreEvents({
   el,
-  authUser: 'paneladmin',
-  authPass: 'Guiones2026!',
-  isValidCredentials: () => true,
   persistSessionStatus() { events.push(['persist']); },
   clearSessionStatus() {},
   async loginGatewaySession() {
@@ -387,8 +384,8 @@ bindCoreEvents({
 submitted[0]({ preventDefault() {} });
 await new Promise((resolve) => setTimeout(resolve, 0));
 
-if (!events.some((event) => event[0] === 'persist')) throw new Error(`local fallback did not persist: ${JSON.stringify(events)}`);
-if (!events.some((event) => event[0] === 'toast' && event[1] === 'Sesión iniciada')) throw new Error(`local fallback did not log in: ${JSON.stringify(events)}`);
+if (events.some((event) => event[0] === 'persist')) throw new Error(`hardcoded fallback still logs in: ${JSON.stringify(events)}`);
+if (!events.some((event) => event[0] === 'toast' && event[1] === 'Usuario o contraseña incorrectos')) throw new Error(`unexpected toast flow: ${JSON.stringify(events)}`);
 """
     result = _run_node(script)
     assert result.returncode == 0, result.stderr

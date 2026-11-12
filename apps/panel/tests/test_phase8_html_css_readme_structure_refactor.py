@@ -59,7 +59,7 @@ def test_index_html_adds_readability_block_delimiters_without_contract_drift():
         "viewScripts",
         "viewAudio",
         "viewSubtitulos2",
-        "queueDialog",
+        "viewAdminUsers",
         "settingsDialog",
     ]:
         assert f'id="{selector_id}"' in source
@@ -217,7 +217,7 @@ def test_settings_presents_single_unified_config_and_hides_legacy_compatibility_
     ]:
         assert f'id="{selector_id}"' in source
 
-    visible_settings = source.split('<div class="settings-form">', 1)[1].split('<div class="settings-actions">', 1)[0]
+    visible_settings = source.split('<div class="settings-form">', 1)[1].split('<footer class="dialog-actions">', 1)[0]
     compatibility_markup = visible_settings.split('id="advancedSettingsSection"', 1)[1]
     assert "Endpoint del proyecto" in visible_settings
     assert "Las API keys y Basic Auth ya no se configuran en el navegador" in visible_settings
@@ -229,7 +229,8 @@ def test_settings_presents_single_unified_config_and_hides_legacy_compatibility_
     assert "Modo avanzado" not in visible_settings
     assert "Futuro gateway" not in visible_settings
     assert '<section class="settings-section"' in visible_settings
-    assert visible_settings.count('<section class="settings-section"') == 1
+    assert visible_settings.count('<section class="settings-section"') == 2
+    assert 'id="languageSelect"' in visible_settings
     assert 'id="advancedSettingsSection"' in visible_settings
     assert 'hidden' in compatibility_markup.split('>', 1)[0]
     assert 'aria-hidden="true"' in compatibility_markup.split('>', 1)[0]

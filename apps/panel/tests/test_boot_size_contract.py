@@ -14,10 +14,11 @@ class TestEagerCssBootSize:
         assert eager_path.exists(), "eager.css must exist"
         source = eager_path.read_text(encoding="utf-8")
         imports = [line.strip() for line in source.splitlines() if line.strip().startswith("@import")]
-        # Expected: tokens, base, layout, buttons, dialogs, cards, forms, toast,
-        #   auth, responsive, scrollbars = 11
-        assert len(imports) == 11, (
-            f"eager.css should have exactly 11 @import statements, found {len(imports)}: {imports}"
+        # Expected: fonts, tokens, base, layout, buttons, dialogs, cards, forms,
+        #   toast, auth, responsive, scrollbars = 12. A single stylesheet link
+        #   keeps the boot contract simple (S5.1/S5.3).
+        assert len(imports) == 12, (
+            f"eager.css should have exactly 12 @import statements, found {len(imports)}: {imports}"
         )
 
     def test_eager_css_only_contains_imports(self):

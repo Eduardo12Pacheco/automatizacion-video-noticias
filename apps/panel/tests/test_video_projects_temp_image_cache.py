@@ -207,8 +207,8 @@ def test_video_project_card_delete_and_hero_actions_keep_intended_visual_contrac
     assert "./layout.css" in index_css
     assert "./project-list.css" in index_css
     assert ".video-project-card button.video-project-card__delete" in card_css
-    assert "#2d2424 !important" in card_css
-    assert "color: #ffb7b7 !important" in card_css
+    assert "var(--c-2d2424) !important" in card_css
+    assert "color: var(--c-ffb7b7) !important" in card_css
     assert "max-width: max-content;" in card_css
     assert "background: var(--accent);" not in card_css.split(".video-project-card button.video-project-card__delete", 1)[1].split("}", 1)[0]
     assert "width: 128px;" in layout_css

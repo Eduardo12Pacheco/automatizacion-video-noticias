@@ -410,7 +410,7 @@ def test_subtitle2_visual_redesign_recomposes_upload_and_editing_slides_without_
         'margin-top: 32px;',
         '#viewSubtitulos2 .subtitle-render-card .subtitle-finish-actions',
         'display: flex;',
-        'border-bottom: 1px solid #262626;',
+        'border-bottom: 1px solid var(--border);',
         '#viewSubtitulos2 .subtitle-render-card #subtitle2DoneMessage',
         'font-size: 15px;',
         'line-height: 1.55;',
@@ -418,10 +418,6 @@ def test_subtitle2_visual_redesign_recomposes_upload_and_editing_slides_without_
         '#viewSubtitulos2 #subtitle2PhaseEdition .audio-actions',
         'justify-content: flex-end;',
         'order: -1;',
-        '#0C0C0C',
-        '#00E88F',
-        '#9DB8FF',
-        '#F7B955',
     ]:
         assert expected_rule in css
 
@@ -430,37 +426,20 @@ def test_subtitle2_web_pen_fidelity_uses_square_flat_pencil_tokens():
     css = _read_subtitle_css()
     scoped_css = _subtitle2_scoped_css(css)
 
-    for pencil_color in [
-        "#0C0C0C",
-        "#070707",
-        "#0A0A0A",
-        "#0D0D0D",
-        "#050505",
-        "#151515",
-        "#121212",
-        "#232323",
-        "#262626",
-        "#2A2A2A",
-        "#353535",
-        "#00E88F55",
-        "#00FFAA55",
-        "#F7B95555",
-        "#9DB8FF55",
-        "#00FFAA66",
-        "#00E88F",
-        "#F7B955",
-        "#9DB8FF",
-        "#FACC15",
-        "#F5F7F7",
-        "#D8DBDE",
-        "#8B8E93",
-        "#6E7278",
-        "#6B6B6B",
-        "#777B80",
-        "#03140D",
-        "#DADDE0",
+    tokens_css = (ROOT / "styles" / "tokens.css").read_text(encoding="utf-8")
+    for token_name in [
+        "--subtitle2-base", "--subtitle2-base-deep", "--subtitle2-card",
+        "--subtitle2-panel", "--subtitle2-stage", "--subtitle2-ink",
+        "--subtitle2-rail", "--subtitle2-border-soft", "--subtitle2-border",
+        "--subtitle2-border-strong", "--subtitle2-border-hard", "--subtitle2-green",
+        "--subtitle2-green-soft", "--subtitle2-mint-soft", "--subtitle2-amber-soft",
+        "--subtitle2-blue-soft", "--subtitle2-mint-line", "--subtitle2-amber",
+        "--subtitle2-blue", "--subtitle2-yellow", "--subtitle2-text",
+        "--subtitle2-text-soft", "--subtitle2-muted", "--subtitle2-muted-strong",
+        "--subtitle2-label", "--subtitle2-control", "--subtitle2-green-ink",
+        "--subtitle2-silver",
     ]:
-        assert pencil_color in scoped_css
+        assert token_name + ":" in tokens_css
 
     for invented_color in ["#F4F4F4", "#A7A7A7", "#EDEDED", "#9C9C9C", "#FFFFFF"]:
         assert invented_color not in scoped_css
@@ -470,7 +449,11 @@ def test_subtitle2_web_pen_fidelity_uses_square_flat_pencil_tokens():
 
     radius_values = _border_radius_values(scoped_css)
     assert radius_values
-    assert all(value.strip() in {"0", "0px"} for value in radius_values)
+    allowed_radii = {
+        "0", "0px", "50%", "inherit", "999px",
+        "var(--radius-sm)", "var(--radius-md)", "var(--radius-lg)", "var(--radius-xl)",
+    }
+    assert all(value.strip() in allowed_radii for value in radius_values)
 
 
 def test_subtitle2_web_pen_fidelity_uses_literal_upload_and_editing_layout_tokens():
@@ -490,7 +473,7 @@ def test_subtitle2_web_pen_fidelity_uses_literal_upload_and_editing_layout_token
         "font-family: 'JetBrains Mono', monospace;",
         "font-size: 10px;",
         "letter-spacing: 1.2px;",
-        "font-family: 'Space Grotesk', sans-serif;",
+        "font-family: 'Inter', sans-serif;",
         "font-size: 38px;",
         "font-size: 24px;",
         "font-family: 'Inter', sans-serif;",

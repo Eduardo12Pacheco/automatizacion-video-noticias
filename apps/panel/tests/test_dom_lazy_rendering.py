@@ -225,9 +225,11 @@ class TestIndexHtmlHiddenViewContainers:
         html = INDEX_HTML.read_text(encoding="utf-8")
         # All dialogs must stay in index.html
         dialog_ids = [
-            "queueDialog", "topicDialog", "settingsDialog",
-            "scriptEditorDialog", "scriptOriginalDialog",
-            "publishConfirmDialog", "voicePresetDialog",
+            "topicDialog", "settingsDialog", "scriptOriginalDialog",
+            "publishConfirmDialog", "manualVideoProjectDialog", "voicePresetDialog",
         ]
         for did in dialog_ids:
             assert f'id="{did}"' in html, f"Dialog {did} must stay in index.html"
+        # S5.5 removes the dead queue and script-editor fallback dialogs.
+        for removed in ["queueDialog", "scriptEditorDialog"]:
+            assert f'id="{removed}"' not in html, f"Dead dialog {removed} must be gone"
