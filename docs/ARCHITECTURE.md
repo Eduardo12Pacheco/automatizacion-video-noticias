@@ -88,11 +88,11 @@ for sessions and CSRF checks.
 | `apps/panel` | Editorial UI in vanilla ES modules | The HTTP API only |
 | `services/asr-worker` | faster-whisper HTTP service, GPU slot, CUDA→CPU fallback | Shared worker package |
 | `services/tts-worker` | Qwen TTS (GPU) and Piper (CPU) engine selection | Shared worker package |
-| `services/renderer` | Remotion composition and final render service | Contracts, generated brand assets |
+| `services/renderer` | Remotion composition and render-only HTTP service; the approval editor calls it through the renderer port | Contracts, generated brand assets |
 | `services/subtitles` | Caption alignment and burn-in renderer | ASR worker via HTTP |
 | `services/channel-monitor` | Public RSS channel polling and catch-up | Postgres/SQLite runtime state |
 | `services/demo-worker` | Deterministic keyless worker for the demo profile | None external |
-| `apps/panel/services/approval-editor` | Approval editor HTTP service started by Compose on port 3042 | `packages/contracts` |
+| `services/approval-editor` | Approval editor HTTP service started by Compose on port 3042; calls the renderer over HTTP | `packages/contracts` |
 
 Dependencies point inward: `apps/api` depends on `packages/core`; the core never
 imports an adapter, a database client or a browser module.
@@ -322,3 +322,4 @@ current tree:
 - [ADR 0005 — Two real run modes](adr/0005-two-run-modes.md)
 - [ADR 0006 — Connectors as first-class ports](adr/0006-connectors.md)
 - [ADR 0007 — History privacy policy](adr/0007-history-privacy.md)
+- [ADR 0008 — File-size exceptions above 600 lines](adr/0008-file-size-exceptions.md)
