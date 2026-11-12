@@ -2,6 +2,51 @@ import { DomainError, buildReadModels } from '@newsroom/core';
 
 const JSON_LIMIT = 1024 * 1024;
 
+export const LOCAL_MUTATION_ROUTES = Object.freeze([
+  {
+    id: 'local-decision',
+    methods: ['POST'],
+    path: '/webhook/approval/decision/supabase/v2',
+    examplePath: '/webhook/approval/decision/supabase/v2',
+  },
+  {
+    id: 'local-search-refresh',
+    methods: ['POST'],
+    path: '/webhook/approval/search-refresh/supabase/v2',
+    examplePath: '/webhook/approval/search-refresh/supabase/v2',
+  },
+  {
+    id: 'local-save-draft',
+    methods: ['POST'],
+    path: '/webhook/mvp-script-draft-save/supabase/v2',
+    examplePath: '/webhook/mvp-script-draft-save/supabase/v2',
+  },
+  {
+    id: 'local-publish',
+    methods: ['POST'],
+    path: '/webhook/mvp-script-publish/supabase/v2',
+    examplePath: '/webhook/mvp-script-publish/supabase/v2',
+  },
+  {
+    id: 'local-publish-status',
+    methods: ['POST'],
+    path: '/webhook/mvp-script-publish-status/supabase/v1',
+    examplePath: '/webhook/mvp-script-publish-status/supabase/v1',
+  },
+  {
+    id: 'local-download-document',
+    methods: ['POST'],
+    path: '/webhook/mvp-script-download-doc/supabase/v1',
+    examplePath: '/webhook/mvp-script-download-doc/supabase/v1',
+  },
+  {
+    id: 'local-manual-create',
+    methods: ['POST'],
+    path: '/webhook/video-projects/manual-create/v1',
+    examplePath: '/webhook/video-projects/manual-create/v1',
+  },
+]);
+
 const ROUTES = Object.freeze([
   '/webhook/approval/pending/supabase/v2',
   '/webhook/approval/queue/supabase/v2',
@@ -235,13 +280,7 @@ export function createLocalRouter({
     matches,
     handle,
     isMutation(pathname = '') {
-      return pathname === '/webhook/approval/decision/supabase/v2'
-        || pathname === '/webhook/approval/search-refresh/supabase/v2'
-        || pathname === '/webhook/mvp-script-draft-save/supabase/v2'
-        || pathname === '/webhook/mvp-script-publish/supabase/v2'
-        || pathname === '/webhook/mvp-script-publish-status/supabase/v1'
-        || pathname === '/webhook/mvp-script-download-doc/supabase/v1'
-        || pathname === '/webhook/video-projects/manual-create/v1';
+      return LOCAL_MUTATION_ROUTES.some((route) => route.path === pathname);
     },
   };
 }

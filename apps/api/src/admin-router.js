@@ -2,6 +2,21 @@ import { DomainError } from '@newsroom/core';
 
 const JSON_LIMIT = 1024 * 1024;
 
+export const ADMIN_MUTATION_ROUTES = Object.freeze([
+  {
+    id: 'admin-create-user',
+    methods: ['POST'],
+    pattern: /^\/panel\/admin\/users$/,
+    examplePath: '/panel/admin/users',
+  },
+  {
+    id: 'admin-update-user',
+    methods: ['PATCH', 'PUT'],
+    pattern: /^\/panel\/admin\/users\/[^/]+$/,
+    examplePath: '/panel/admin/users/user-1',
+  },
+]);
+
 function json(status, body) {
   return { status, headers: { 'content-type': 'application/json' }, body };
 }

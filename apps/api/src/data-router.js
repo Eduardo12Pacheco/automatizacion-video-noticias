@@ -5,6 +5,52 @@ const ALLOWED_BUCKETS = new Set([
 ]);
 
 const MAX_JSON_BODY_BYTES = 1024 * 1024;
+
+export const DATA_MUTATION_ROUTES = Object.freeze([
+  {
+    id: 'data-selections',
+    action: 'selections',
+    methods: ['POST'],
+    pattern: /^\/panel\/video-projects\/[^/]+\/selections$/,
+    examplePath: '/panel/video-projects/draft-1/selections',
+  },
+  {
+    id: 'data-editor-state',
+    action: 'editor-state',
+    methods: ['PUT'],
+    pattern: /^\/panel\/video-projects\/[^/]+\/editor-state$/,
+    examplePath: '/panel/video-projects/draft-1/editor-state',
+  },
+  {
+    id: 'data-audio',
+    action: 'audio',
+    methods: ['POST'],
+    pattern: /^\/panel\/video-projects\/[^/]+\/audio$/,
+    examplePath: '/panel/video-projects/draft-1/audio',
+  },
+  {
+    id: 'data-custom-images',
+    action: 'custom-images',
+    methods: ['POST'],
+    pattern: /^\/panel\/video-projects\/[^/]+\/custom-images$/,
+    examplePath: '/panel/video-projects/draft-1/custom-images',
+  },
+  {
+    id: 'data-disable',
+    action: 'disable',
+    methods: ['POST'],
+    pattern: /^\/panel\/video-projects\/[^/]+\/disable$/,
+    examplePath: '/panel/video-projects/draft-1/disable',
+  },
+  {
+    id: 'data-upload',
+    action: 'upload',
+    methods: ['POST'],
+    pattern: /^\/panel\/uploads\/[^/]+\/.+$/,
+    examplePath: '/panel/uploads/video-project-audio/projects/draft-1/voice.m4a',
+  },
+]);
+
 const DEFAULT_MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 
 function jsonResponse(status, body) {
@@ -76,15 +122,17 @@ export function createDataRouter({
   if (!blobStorage) throw new Error('blobStorage is required');
 
   async function handleMutations(method, pathname, readBody) {
-    const match = pathname.match(/^\/panel\/video-projects\/([^/]+)\/(selections|editor-state|audio|custom-images|disable)$/);
-    if (!match) return null;
-    const draftId = decodeSegment(match[1]);
-    if (!draftId) return jsonResponse(400, { ok: false, error: 'invalid_draft_id' });
-    const action = match[2];
-    const expectedMethod = action === 'editor-state' ? 'PUT' : 'POST';
-    if (method !== expectedMethod) {
+    const route = DATA_MUTATION_ROUTES.find(
+      (candidate) => candidate.action !== 'upload' && candidate.pattern.test(pathname),
+    );
+    if (!route) return null;
+    if (!route.methods.includes(method)) {
       return jsonResponse(405, { ok: false, error: 'method_not_allowed' });
     }
+    const match = pathname.match(/^\/panel\/video-projects\/([^/]+)\//);
+    const draftId = decodeSegment(match?.[1]);
+    if (!draftId) return jsonResponse(400, { ok: false, error: 'invalid_draft_id' });
+    const action = route.action;
 
     try {
       if (action === 'selections') {
@@ -217,6 +265,5 @@ export function createDataRouter({
 }
 
 export function isMutationDataRequest(pathname = '') {
-  return pathname.startsWith('/panel/uploads/')
-    || /^\/panel\/video-projects\/[^/]+\/(selections|audio|custom-images|disable)$/.test(pathname);
+  return DATA_MUTATION_ROUTES.some((route) => route.pattern.test(pathname));
 }

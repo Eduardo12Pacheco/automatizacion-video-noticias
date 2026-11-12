@@ -1,6 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { isIP } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -9,7 +10,8 @@ import { DEFAULT_EVENT_RETENTION, JsonlEventRecorder, sanitizeEventContext, sele
 import { createRuntimeDataRouter } from './composition.js';
 import { createLocalRouter } from './local-router.js';
 import { createAdminRouter } from './admin-router.js';
-import { createAuthService } from './auth.js';
+import { matchPanelMutation } from './route-table.js';
+import { createAuthService, normalizeEmail } from './auth.js';
 import { createCoreRuntime } from './core-runtime.js';
 import { createAdaptersFromEnv } from '@newsroom/adapters';
 import { normalizePresencePayload, presenceSessionEntry, presenceSnapshot, presenceTtlSeconds } from './presence.js';
@@ -516,26 +518,6 @@ export function readServiceCredentialsFromEnv(env = process.env) {
   return credentials;
 }
 
-export function readPanelAuthFromEnv(env = process.env) {
-  const user = String(env.API_GATEWAY_PANEL_USER || '').trim();
-  const pass = String(env.API_GATEWAY_PANEL_PASS || '');
-  if (!user || !pass) return null;
-  const email = String(env.API_GATEWAY_PANEL_EMAIL || `${user}@control-panel.local`).trim();
-  const displayName = String(env.API_GATEWAY_PANEL_DISPLAY_NAME || email || user).trim();
-  return {
-    user,
-    pass,
-    profile: {
-      user: {
-        user_id: user,
-        email,
-        display_name: displayName,
-      },
-      roles: ['editor'],
-    },
-  };
-}
-
 function cleanupExpiredSessions(options) {
   options.panelSessions.cleanup(options.now());
 }
@@ -611,8 +593,7 @@ export function readPanelUsersFromEnv(env = process.env) {
     if (Array.isArray(parsed?.users)) return parsed.users;
     throw new GatewayConfigError('API_GATEWAY_PANEL_USERS must contain an array or { users: [] }');
   }
-  const fallback = readPanelAuthFromEnv(env);
-  return fallback ? [{ user: fallback.user, pass: fallback.pass, ...(fallback.profile.user || {}), roles: fallback.profile.roles }] : [];
+  return [];
 }
 
 async function getVerifiedSession(req, options) {
@@ -704,15 +685,6 @@ async function handlePanelLogin(req, res, options) {
     return;
   }
 
-  const clientKey = req.socket.remoteAddress || 'unknown';
-  const nowMs = options.now();
-  const attempt = options.loginAttempts.get(clientKey, nowMs) || { count: 0, lockedUntil: 0 };
-  if (attempt.lockedUntil > nowMs) {
-    const waitSeconds = Math.ceil((attempt.lockedUntil - nowMs) / 1000);
-    writeJson(res, 429, { error: 'too_many_attempts', code: 'too_many_attempts', retry_after_seconds: waitSeconds });
-    return;
-  }
-
   let body = {};
   try {
     body = await readJsonBody(req, { maxBodyBytes: options.maxBodyBytes });
@@ -735,6 +707,16 @@ async function handlePanelLogin(req, res, options) {
   }
   const user = String(body.user || body.username || '').trim();
   const pass = String(body.pass || body.password || '');
+  const clientIp = resolveClientIp(req, options);
+  const clientKey = loginThrottleKey(user, clientIp);
+  const nowMs = options.now();
+  const attempt = options.loginAttempts.get(clientKey, nowMs) || { count: 0, lockedUntil: 0 };
+  if (attempt.lockedUntil > nowMs) {
+    const waitSeconds = Math.ceil((attempt.lockedUntil - nowMs) / 1000);
+    writeJson(res, 429, { error: 'too_many_attempts', code: 'too_many_attempts', retry_after_seconds: waitSeconds });
+    return;
+  }
+
   let authenticated = null;
   if (options.authService) {
     try {
@@ -772,7 +754,7 @@ async function handlePanelLogin(req, res, options) {
     session = await options.authService.createSession({
       user: authenticated.user,
       roles: authenticated.roles,
-      ipAddress: req.socket.remoteAddress || '',
+      ipAddress: clientIp,
       userAgent: String(req.headers['user-agent'] || ''),
     });
     token = session.token;
@@ -838,23 +820,19 @@ async function handlePanelDataRequest(req, res, options) {
   const parsed = new URL(req.url || '/', 'http://gateway.local');
   const pathname = parsed.pathname;
   const method = String(req.method || 'GET').toUpperCase();
-  const mutating = pathname.startsWith('/panel/uploads/')
-    || /^\/panel\/video-projects\/[^/]+\/(selections|audio|custom-images|disable)$/.test(pathname);
+  const mutation = matchPanelMutation(method, pathname);
 
   const session = await getVerifiedSession(req, options);
-  if (!session) {
-    rejectUnauthenticated(req, res, options, { action: 'panel.data.authorization' });
+  if (!requireRole(req, res, options, {
+    session,
+    role: mutation?.role || null,
+    action: 'panel.data.authorization',
+  })) {
     return;
   }
-  if (mutating) {
-    if (!session.roles.includes(PROTECTED_MUTATION_ROLE)) {
-      rejectForbidden(req, res, options, { session });
-      return;
-    }
-    if (!isTrustedMutationRequest(req, options)) {
-      rejectCsrf(req, res, options, { action: 'panel.data.csrf', session });
-      return;
-    }
+  if (mutation && !isTrustedMutationRequest(req, options)) {
+    rejectCsrf(req, res, options, { action: 'panel.data.csrf', session });
+    return;
   }
 
   let result;
@@ -902,20 +880,15 @@ async function handleLocalRouterRequest(req, res, options, router, { admin = fal
   const pathname = parsed.pathname;
   const method = String(req.method || 'GET').toUpperCase();
   const safeRead = method === 'GET' || method === 'HEAD';
-  const mutating = admin ? !safeRead : Boolean(router.isMutation?.(pathname));
+  const mutation = admin ? null : matchPanelMutation(method, pathname);
+  const mutating = admin ? !safeRead : Boolean(mutation);
 
   const session = await getVerifiedSession(req, options);
-  if (!session) {
-    rejectUnauthenticated(req, res, options, { action: admin ? 'panel.admin.authorization' : 'panel.local.authorization' });
-    return;
-  }
-  if (admin) {
-    if (!session.roles.includes('admin')) {
-      rejectForbidden(req, res, options, { session });
-      return;
-    }
-  } else if (mutating && !session.roles.includes(PROTECTED_MUTATION_ROLE) && !session.roles.includes('admin')) {
-    rejectForbidden(req, res, options, { session });
+  if (!requireRole(req, res, options, {
+    session,
+    role: admin ? 'admin' : mutation?.role || null,
+    action: admin ? 'panel.admin.authorization' : 'panel.local.authorization',
+  })) {
     return;
   }
   if (mutating && !isTrustedMutationRequest(req, options)) {
@@ -1205,20 +1178,26 @@ function rejectUnauthenticated(req, res, options, { action = 'proxy.authorizatio
   writeJson(res, 401, { error: 'unauthenticated', code: 'unauthenticated' });
 }
 
-function rejectForbidden(req, res, options, { route = null, session = null } = {}) {
+function rejectForbidden(req, res, options, {
+  route = null,
+  session = null,
+  action = 'proxy.authorization',
+  requiredRole = PROTECTED_MUTATION_ROLE,
+} = {}) {
   applyCorsHeaders(res, req.headers.origin, options);
+  const role = requiredRole || PROTECTED_MUTATION_ROLE;
   emitGatewayEvent(req, options, {
     kind: 'audit',
     severity: 'warning',
     route_service: route?.service,
-    action: 'proxy.authorization',
+    action,
     outcome: 'rejected',
     status_code: 403,
     reason_code: 'forbidden',
     safe_message: 'Required role missing',
-    context: requestBaseContext(req, { required_role: PROTECTED_MUTATION_ROLE }),
+    context: requestBaseContext(req, { required_role: role }),
   }, session);
-  writeJson(res, 403, { error: 'forbidden', code: 'forbidden', required_role: PROTECTED_MUTATION_ROLE });
+  writeJson(res, 403, { error: 'forbidden', code: 'forbidden', required_role: role });
 }
 
 function rejectCsrf(req, res, options, { action = 'proxy.csrf', route = null, session = null } = {}) {
@@ -1288,6 +1267,99 @@ function isTrustedMutationRequest(req, options) {
   if (!isMutationMethod(req.method)) return true;
   const origin = String(req.headers.origin || '').trim();
   return isTrustedMutationOrigin(origin, options.trustedMutationOrigins);
+}
+
+export const DEFAULT_TRUSTED_PROXY_CIDRS = Object.freeze(['172.16.0.0/12']);
+
+function ipv4ToInt(value) {
+  const parts = String(value || '').split('.');
+  if (parts.length !== 4) return null;
+  let result = 0;
+  for (const part of parts) {
+    if (!/^\d{1,3}$/.test(part)) return null;
+    const octet = Number(part);
+    if (octet > 255) return null;
+    result = ((result << 8) | octet) >>> 0;
+  }
+  return result;
+}
+
+export function normalizeIp(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const mapped = raw.toLowerCase().startsWith('::ffff:') ? raw.slice('::ffff:'.length) : raw;
+  return isIP(mapped) ? mapped : '';
+}
+
+export function isIpInCidrs(value, cidrs = []) {
+  const ip = normalizeIp(value);
+  if (!ip) return false;
+  for (const cidr of cidrs) {
+    const text = String(cidr || '').trim();
+    if (!text) continue;
+    const [network, prefixText] = text.split('/');
+    const networkIp = normalizeIp(network);
+    if (!networkIp) continue;
+    if (prefixText === undefined) {
+      if (networkIp === ip) return true;
+      continue;
+    }
+    const prefix = Number.parseInt(prefixText, 10);
+    if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) continue;
+    const networkInt = ipv4ToInt(networkIp);
+    const ipInt = ipv4ToInt(ip);
+    if (networkInt == null || ipInt == null) continue;
+    const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+    if ((ipInt & mask) === (networkInt & mask)) return true;
+  }
+  return false;
+}
+
+/**
+ * Resolve the client address without trusting a spoofed X-Forwarded-For.
+ * Forwarded headers are honoured only when the TCP peer is the bundled panel
+ * proxy (TRUSTED_PROXY_CIDRS, default the private Compose network).
+ */
+export function resolveClientIp(req = {}, { trustedProxyCidrs = DEFAULT_TRUSTED_PROXY_CIDRS } = {}) {
+  const peer = normalizeIp(req.socket?.remoteAddress || req.connection?.remoteAddress);
+  if (!peer) return 'unknown';
+  if (!isIpInCidrs(peer, trustedProxyCidrs)) return peer;
+  const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
+  return normalizeIp(forwarded) || peer;
+}
+
+function loginThrottleKey(user, clientIp) {
+  return `${normalizeEmail(user)}|${clientIp}`;
+}
+
+export function sessionHasRole(session, role) {
+  if (!session) return false;
+  if (!role) return true;
+  if (role === 'admin') return Array.isArray(session.roles) && session.roles.includes('admin');
+  return Array.isArray(session.roles)
+    && (session.roles.includes(role) || session.roles.includes('admin'));
+}
+
+/**
+ * The single role gate used by every panel mutation (route table rows) and by
+ * the generic proxy policy. Returns the session when allowed, null after the
+ * 401/403 response has been written.
+ */
+export function requireRole(req, res, options, {
+  role = null,
+  session = null,
+  action = 'authorization',
+  route = null,
+} = {}) {
+  if (!session) {
+    rejectUnauthenticated(req, res, options, { action, route });
+    return null;
+  }
+  if (!sessionHasRole(session, role)) {
+    rejectForbidden(req, res, options, { action, route, session, requiredRole: role });
+    return null;
+  }
+  return session;
 }
 
 function sanitizeProtectedHeaders(headers = {}) {
@@ -1553,8 +1625,11 @@ function gatewayEventsFilters(rawUrl) {
 async function handleGatewayEventsReadModel(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
   const session = await getVerifiedSession(req, options);
-  if (!session) {
-    rejectUnauthenticated(req, res, options, { action: 'gateway.events.read' });
+  if (!requireRole(req, res, options, {
+    session,
+    role: 'admin',
+    action: 'gateway.events.read',
+  })) {
     return;
   }
   try {
@@ -1625,8 +1700,11 @@ async function handlePresenceHeartbeat(req, res, options) {
 async function handlePresenceReadModel(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
   const session = await getVerifiedSession(req, options);
-  if (!session) {
-    rejectUnauthenticated(req, res, options, { action: 'gateway.presence.read' });
+  if (!requireRole(req, res, options, {
+    session,
+    role: 'admin',
+    action: 'gateway.presence.read',
+  })) {
     return;
   }
   writeJson(res, 200, presenceSnapshot(options), {
@@ -1658,6 +1736,7 @@ export function createGatewayServer({
   maxPanelSessions = 1_000,
   maxLoginAttempts = 1_000,
   loginAttemptTtlMs = 15 * 60 * 1000,
+  trustedProxyCidrs = DEFAULT_TRUSTED_PROXY_CIDRS,
   maxPresenceSessions = 1_000,
   presenceTtlMs = DEFAULT_PRESENCE_TTL_MS,
   readinessChecks = null,
@@ -1674,7 +1753,7 @@ export function createGatewayServer({
 } = {}) {
   const normalizedPanelUsers = normalizePanelUsers(panelUsers, panelAuth);
   if (!normalizedPanelUsers.size && !authService) {
-    throw new GatewayConfigError('API Gateway panel auth requires configured panel users or API_GATEWAY_PANEL_USER and API_GATEWAY_PANEL_PASS fallback');
+    throw new GatewayConfigError('API Gateway panel auth requires an auth service or configured panel users');
   }
   if (!Array.isArray(allowedOrigins)) {
     throw new GatewayConfigError('allowedOrigins must be an array of non-empty origin strings');
@@ -1689,6 +1768,10 @@ export function createGatewayServer({
   validateHeaderNames(exposedHeaders, 'exposedHeaders');
   validateTrustedMutationOrigins(trustedMutationOrigins);
   validateRoutePrefixes(routes);
+
+  if (!Array.isArray(trustedProxyCidrs) || trustedProxyCidrs.some((cidr) => typeof cidr !== 'string' || !cidr.trim())) {
+    throw new GatewayConfigError('trustedProxyCidrs must be an array of CIDR strings');
+  }
 
   // Validate numeric limits — must be positive safe integers
   if (!Number.isSafeInteger(maxBodyBytes) || maxBodyBytes <= 0) {
@@ -1769,6 +1852,7 @@ export function createGatewayServer({
     upstreamTimeoutMs,
     panelSessionMaxAgeSeconds,
     loginAttemptTtlMs,
+    trustedProxyCidrs,
     readinessChecks,
     now,
     createSessionToken,
@@ -1983,12 +2067,12 @@ export function createGatewayServer({
     let session = null;
     if (policy.requiresSession) {
       session = await getVerifiedSession(req, options);
-      if (!session) {
-        rejectUnauthenticated(req, res, options, { route });
-        return;
-      }
-      if (policy.requiresEditor && !session.roles.includes(PROTECTED_MUTATION_ROLE)) {
-        rejectForbidden(req, res, options, { route, session });
+      if (!requireRole(req, res, options, {
+        session,
+        role: policy.requiresEditor ? PROTECTED_MUTATION_ROLE : null,
+        action: 'proxy.authorization',
+        route,
+      })) {
         return;
       }
       if (policy.requiresCsrf && !isTrustedMutationRequest(req, options)) {
@@ -2051,6 +2135,14 @@ function readTrustedMutationOrigins() {
     .filter(Boolean);
 }
 
+function readTrustedProxyCidrs() {
+  const configured = (process.env.TRUSTED_PROXY_CIDRS || '')
+    .split(',')
+    .map((cidr) => cidr.trim())
+    .filter(Boolean);
+  return configured.length ? configured : DEFAULT_TRUSTED_PROXY_CIDRS;
+}
+
 function defaultGatewayEventsFilePath() {
   return join(dirname(fileURLToPath(import.meta.url)), '..', 'runtime-logs', 'gateway-events.jsonl');
 }
@@ -2067,6 +2159,7 @@ export function startGateway({
 } = {}) {
   const allowedOrigins = readAllowedOrigins();
   const trustedMutationOrigins = readTrustedMutationOrigins();
+  const trustedProxyCidrs = readTrustedProxyCidrs();
   const eventRecorder = new JsonlEventRecorder({
     filePath: process.env.API_GATEWAY_EVENTS_FILE || defaultGatewayEventsFilePath(),
     retention: {
@@ -2076,19 +2169,10 @@ export function startGateway({
     },
     logger: console,
   });
-  const panelAuth = readPanelAuthFromEnv();
   const panelUsers = readPanelUsersFromEnv();
-  const normalizedLegacyUsers = normalizePanelUsers(panelUsers, panelAuth);
 
   if (repository && !authService) {
-    authService = createAuthService({
-      repository,
-      fallbackAuthenticate: async ({ user, password }) => {
-        const legacy = normalizedLegacyUsers.get(user);
-        if (!legacy || !verifyPanelUserPassword(legacy, password)) return null;
-        return { user: legacy.profile.user, roles: legacy.profile.roles };
-      },
-    });
+    authService = createAuthService({ repository });
   }
   let runtimeScheduler = null;
   if (repository && !localRouter) {
@@ -2124,7 +2208,7 @@ export function startGateway({
     panelBootstrap,
     allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
     trustedMutationOrigins: trustedMutationOrigins.length ? trustedMutationOrigins : undefined,
-    panelAuth,
+    trustedProxyCidrs,
     panelUsers,
     authService,
     localRouter,

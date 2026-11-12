@@ -1593,7 +1593,7 @@ test('gateway returns one correlation ID per request and forwards it to proxied 
   const baseUrl = await createGateway({
     routes: { n8n: { prefix: '/n8n', target: upstream.target } },
     serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
-    panelSessions: { 'valid-token': panelSession() },
+    panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
     createCorrelationId: () => 'generated-correlation-1',
   });
@@ -1678,7 +1678,7 @@ test('gateway emits proxy failure events with safe context without changing upst
   const baseUrl = await createGateway({
     routes: { n8n: { prefix: '/n8n', target: 'http://127.0.0.1:1' } },
     serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
-    panelSessions: { 'valid-token': panelSession() },
+    panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
   });
 
@@ -1703,7 +1703,7 @@ test('authenticated gateway events read model filters events and rejects unauthe
     },
   });
   const baseUrl = await createGateway({
-    panelSessions: { 'valid-token': panelSession() },
+    panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
   });
 
@@ -1728,7 +1728,7 @@ test('authenticated gateway events read model filters events and rejects unauthe
 test('gateway events read-model failure returns safe error and records sanitized failure event', async () => {
   const recorder = createRecordingEventRecorder({ queryError: new Error('database password=raw-secret offline') });
   const baseUrl = await createGateway({
-    panelSessions: { 'valid-token': panelSession() },
+    panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
   });
 
@@ -1910,7 +1910,7 @@ test('configured user proxy and audit events keep per-person session attribution
 
 test('presence heartbeat requires an authenticated panel session and leaves read model empty when rejected', async () => {
   const baseUrl = await createGateway({
-    panelSessions: { 'valid-token': panelSession() },
+    panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
   });
 
   const rejected = await fetch(`${baseUrl}/panel/presence/heartbeat`, {
@@ -1933,14 +1933,14 @@ test('presence heartbeat stores verified actor/session and groups same-resource 
   const baseUrl = await createGateway({
     panelSessions: {
       'alice-token': {
-        user: { user_id: 'alice', email: 'alice@example.com', display_name: 'Alice Editor' },
-        roles: ['editor'],
+        user: { user_id: 'alice', email: 'alice@example.com', display_name: 'Alice Admin' },
+        roles: ['admin'],
         session_id: 'alice-session',
         expires_at: Date.now() + 60_000,
       },
       'bob-token': {
-        user: { user_id: 'bob', email: 'bob@example.com', display_name: 'Bob Editor' },
-        roles: ['editor'],
+        user: { user_id: 'bob', email: 'bob@example.com', display_name: 'Bob Admin' },
+        roles: ['admin'],
         session_id: 'bob-session',
         expires_at: Date.now() + 60_000,
       },
@@ -1996,14 +1996,14 @@ test('presence read model excludes expired sessions by TTL without changing rout
   const baseUrl = await createGateway({
     panelSessions: {
       'alice-token': {
-        user: { user_id: 'alice', email: 'alice@example.com', display_name: 'Alice Editor' },
-        roles: ['editor'],
+        user: { user_id: 'alice', email: 'alice@example.com', display_name: 'Alice Admin' },
+        roles: ['admin'],
         session_id: 'alice-session',
         expires_at: Date.now() + 60_000,
       },
       'bob-token': {
-        user: { user_id: 'bob', email: 'bob@example.com', display_name: 'Bob Editor' },
-        roles: ['editor'],
+        user: { user_id: 'bob', email: 'bob@example.com', display_name: 'Bob Admin' },
+        roles: ['admin'],
         session_id: 'bob-session',
         expires_at: Date.now() + 60_000,
       },
@@ -2039,7 +2039,7 @@ test('presence read model excludes expired sessions by TTL without changing rout
 test('routine presence heartbeats are memory-only and do not pollute audit/error events', async () => {
   const recorder = createRecordingEventRecorder();
   const baseUrl = await createGateway({
-    panelSessions: { 'valid-token': panelSession() },
+    panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
   });
 

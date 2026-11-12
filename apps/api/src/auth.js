@@ -67,17 +67,17 @@ function sessionView(record) {
 /**
  * Local auth service (S9): users, roles and sessions live in the repository
  * (Postgres or in-memory). Passwords are bcrypt hashes; session tokens are
- * random, only their SHA-256 hash is stored. A legacy callback keeps the
- * gateway's env-configured panel user working for existing deployments.
+ * random, only their SHA-256 hash is stored. There is deliberately no
+ * plaintext environment fallback: the installer seeds the first admin through
+ * the bootstrap, and every later login must match an active database user.
  */
 export function createAuthService({
   repository = null,
-  fallbackAuthenticate = null,
   now = () => Date.now(),
   sessionMaxAgeSeconds = 60 * 60 * 24 * 7,
   rounds = DEFAULT_ROUNDS,
 } = {}) {
-  if (!repository && !fallbackAuthenticate) throw new Error('repository or fallbackAuthenticate is required');
+  if (!repository) throw new Error('repository is required');
 
   async function authenticate({ user = '', password = '' } = {}) {
     const email = normalizeEmail(user);
@@ -95,10 +95,6 @@ export function createAuthService({
           source: 'repository',
         };
       }
-    }
-    if (fallbackAuthenticate) {
-      const fallback = await fallbackAuthenticate({ user, password });
-      if (fallback) return { ...fallback, source: 'legacy' };
     }
     throw new AuthError('Invalid credentials');
   }
