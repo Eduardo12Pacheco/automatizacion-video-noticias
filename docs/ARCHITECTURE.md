@@ -224,38 +224,94 @@ See [data-model.md](data-model.md) for tables, keys and the RPC mapping.
 - The default bind address is loopback; opening the panel to a LAN is an
   explicit, documented choice.
 
-## Runtime profiles
+## Runtime profiles and run modes
 
 `NEWSROOM_MODE` selects the adapter set, and the gateway derives the media
-proxy targets from it: `demo` routes TTS/subtitles/render to `demo-worker`;
-`local` routes them to the real workers.
+proxy targets from it. **Demo mode** (`demo`) routes TTS/subtitles/render to
+`demo-worker` and forces the deterministic LLM, extraction, translation and
+renderer adapters. **Local mode** (`local`) routes the same prefixes to the real
+workers and uses the local model adapters. The panel reads `run_mode` from
+`/panel/bootstrap` and labels a demo run in the header.
 
-| Profile | Services | Use |
+| Mode | Services | Use |
 |---|---|---|
-| default (CPU, no keys) | `api`, `panel`, `demo-worker`, `postgres`, `searxng`, `mailpit`, `seed` | Demo and evaluation |
-| `local` | `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` | Real local AI on CPU |
-| `gpu` | the local workers with GPU access | Real local AI with an NVIDIA card |
-| `n8n` | `n8n` | Optional external trigger adapter |
+| `demo` (default) | `api`, `panel`, `demo-worker`, `postgres`, `searxng`, `mailpit`, `seed` | Click-through and evaluation with no models or keys |
+| `local` | `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` (CPU) | Real local AI and real media |
+| `local` + `gpu` overlay | the local workers with GPU access | Real local AI on an NVIDIA card |
+| `n8n` | `n8n` | Optional trigger/notification connector |
 | `tools` | `migrate`, `model-init` | One-shot migrations and model download |
+| `debug` | debug port overrides for Postgres, SearXNG, Mailpit, Ollama and n8n | Local inspection only |
 
-The installers select the `gpu` profile automatically when an NVIDIA GPU and
-the container toolkit are available, and otherwise stay on CPU. See
-[docs/INSTALL.md](INSTALL.md) for the operational contract.
+The installers select the GPU overlay automatically when an NVIDIA GPU and the
+container toolkit are available, and otherwise stay on CPU. Model downloads
+happen only in the explicit installer/`newsroom models pull` step; no container
+`command:` pulls a model at start-up. See [docs/INSTALL.md](INSTALL.md) for the
+operational contract.
+
+## Connectors
+
+Every external capability is a port with a local default and an optional
+adapter selected from `.env`:
+
+| Connector | Port | Selection | Default |
+|---|---|---|---|
+| Ollama / OpenAI-compatible endpoint | `LLMPort` | `LLM=ollama\|openai` | Ollama |
+| trafilatura | `ArticleExtractorPort` | `ARTICLE_EXTRACTOR=trafilatura` | trafilatura |
+| SearXNG + Wikimedia | `ImageSearchPort` | `IMAGE_SEARCH=searxng` | SearXNG |
+| yt-dlp | `MediaDownloadPort` | `MEDIA_DOWNLOAD=worker` | ASR worker |
+| python-docx + Markdown | `DocumentExportPort` | `DOCUMENT_EXPORT=local` | local CLI |
+| Console / SMTP | `NotificationPort` | `NOTIFY=console\|smtp` | console |
+| Filesystem / S3 | `BlobStoragePort` | `STORAGE=fs\|s3` | filesystem |
+| n8n | `WorkflowTriggerPort` | `WORKFLOW=disabled\|n8n` | disabled |
+| Local repository / HTTP split | `AuthPort` | `AUTH=local\|http` | local repository |
+
+`GET /panel/connectors` returns the catalogue with `local`, `configured`,
+`disabled` or `error` status and never returns credentials.
+`POST /panel/connectors/:id/test` runs one bounded probe. The full environment
+contract and examples are in [CONNECTORS.md](CONNECTORS.md).
+
+
+## Privacy and history
+
+The public repository carries the real commit history of the original
+repositories, so privacy is a property of every reachable commit, not just the
+current tree:
+
+- Personal Windows profile prefixes, the personal domain and preview hosts were
+  replaced with `<WORKSPACE>` / `example.local` in every ref (authorized history
+  scrub; see [ADR 0007](adr/0007-history-privacy.md)).
+- API keys, JWTs, credential exports, cookies, `.env` files, production audit
+  logs, owner brand media and unlicensed overlays are absent from the history.
+- Commit author/committer identities use public noreply addresses; dates and
+  author names from the source repositories are preserved.
+- `gitleaks` runs over all refs, the largest blob stays under 5 MB and a
+  content deny-list test guards the current tree against real people, clubs and
+  tournaments. The final gate is re-run from a fresh clone before publication.
+- No personal data is allowed in screenshots or videos: they are captured from
+  the app viewport with a scratch `HOME`, never from a desktop or terminal
+  prompt.
 
 ## Testing strategy
 
 - **Contract tests** for `RepositoryPort` run the same suite against in-memory
-  and Postgres adapters.
+  and Postgres adapters; the worker ports have one contract suite for their HTTP
+  and demo adapters.
 - **Use-case tests** in `packages/core` inject mock ports and assert domain
   behaviour without I/O.
-- **HTTP tests** in `apps/api` exercise auth, sessions, routes and the
+- **HTTP tests** in `apps/api` exercise auth, sessions, roles, routes and the
   composition root with the in-memory adapter.
 - **Service tests** per Python/Node worker, with opt-in live tests behind
   environment flags.
 - **Structural tests** in `tools/tests` guard the Compose stack, the generated
-  brand assets, repository hygiene and the portfolio documentation.
+  brand assets, repository hygiene, the content policy and the portfolio
+  documentation.
+- **Visual QA** `e2e/visual-qa.spec.js` checks every view in ES/EN at desktop and
+  mobile sizes for overflow, console errors, failed requests, debug copy,
+  foreign-language strings and serious axe-core violations.
 - **End-to-end** `e2e/happy-path.spec.js` logs in, approves a topic, publishes a
-  script, renders audio, subtitles and a final MP4 against the keyless stack.
+  script, renders audio, subtitles and a final MP4 against the keyless demo
+  stack. `e2e/local-mode.spec.js` runs the real local models and asserts the
+  media with `ffprobe`.
 
 ## Decisions
 
@@ -263,3 +319,6 @@ the container toolkit are available, and otherwise stay on CPU. See
 - [ADR 0002 — Local-first defaults](adr/0002-local-first-defaults.md)
 - [ADR 0003 — Optional n8n](adr/0003-optional-n8n.md)
 - [ADR 0004 — Vanilla UI](adr/0004-vanilla-ui.md)
+- [ADR 0005 — Two real run modes](adr/0005-two-run-modes.md)
+- [ADR 0006 — Connectors as first-class ports](adr/0006-connectors.md)
+- [ADR 0007 — History privacy policy](adr/0007-history-privacy.md)

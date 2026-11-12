@@ -9,6 +9,15 @@ The installer supports Windows 10/11 (PowerShell 5.1+ and PowerShell 7+) and
 Linux (tested on Ubuntu 24.04 and Arch). macOS works with the bash installer on
 a best-effort basis.
 
+**What was actually exercised:** the Linux installer and CLI suites run on
+`ubuntu-latest` in CI and on the author's Arch/CachyOS machine, including a
+fresh-clone demo install and a real CPU local-mode render. The Windows
+installer is covered by the `windows-latest` CI job (parser, prerequisite check
+and dry-run) and by PowerShell 7 behaviour tests on Linux; it has not been run on
+a physical Windows 10/11 desktop. The GPU path is covered structurally and by
+Compose tests, but the development machine has no NVIDIA container toolkit, so
+it is not benchmarked here.
+
 ![Linux guided demo install](images/installer-linux.png)
 
 ![Windows installer prerequisite check](images/installer-windows.png)
@@ -29,7 +38,7 @@ The installer checks all of these before touching the host. `--check` /
 ## Quick start (Linux)
 
 ```bash
-git clone https://github.com/EDUARDO/newsroom-video-automation.git
+git clone https://github.com/<your-account>/newsroom-video-automation.git
 cd newsroom-video-automation
 ./install.sh
 ```

@@ -6,6 +6,12 @@ composition root in `packages/adapters/src/composition.js` (API runtime) and
 environment variables. Local adapters are the default, and every optional
 connector is off unless you configure it.
 
+In `NEWSROOM_MODE=demo` the composition root forces the deterministic demo
+adapters (LLM, extraction, TTS, ASR, translation and renderer) regardless of
+the values below, so the panel badge cannot lie about a run. The connector
+registry still reports the configured adapters for inspection. In
+`NEWSROOM_MODE=local` the values below select the real adapters.
+
 The panel shows the active adapter and status for each port under
 **Administración → Conectores** (admin only). `GET /panel/connectors` returns
 the catalogue without credentials, and `POST /panel/connectors/:id/test` runs
