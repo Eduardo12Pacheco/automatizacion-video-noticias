@@ -23,7 +23,7 @@ export async function createRuntimeDataRouter({ env = process.env } = {}) {
       bucket: env.S3_BUCKET || 'newsroom',
       region: env.S3_REGION || 'us-east-1',
       accessKey: env.S3_ACCESS_KEY || '',
-      secretKey: env.S3_SECRET_KEY || '',
+      secretKey: env.S3_SECRET_KEY || '', // gitleaks:allow — read from env; empty default
       publicPath: '/panel/blobs',
     })
     : new FsBlobStorage({
