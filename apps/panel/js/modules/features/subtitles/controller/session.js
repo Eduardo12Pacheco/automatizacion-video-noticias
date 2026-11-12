@@ -174,6 +174,8 @@ export function createSubtitleSessionController(ctx, callbacks = {}) {
   }
 
   async function refreshRemoteStatus() {
+    state.subtitles2.sessionHistoryLoading = true;
+    renderSessionHistory();
     try {
       const [health, sessions] = await Promise.all([ttsApi.getSubtitlesHealth(), ttsApi.listSubtitleSessions(20)]);
       state.subtitles2.serviceHealth = { status: (health?.status || 'online').toString(), message: 'Servicio remoto disponible.' };
@@ -182,6 +184,8 @@ export function createSubtitleSessionController(ctx, callbacks = {}) {
     } catch (error) {
       state.subtitles2.sessionHistoryError = error;
       state.subtitles2.serviceHealth = { status: 'offline', message: getErrorMessage(error, 'No se pudo alcanzar el servicio remoto.') };
+    } finally {
+      state.subtitles2.sessionHistoryLoading = false;
     }
     renderHealthBanner();
     renderSessionHistory();

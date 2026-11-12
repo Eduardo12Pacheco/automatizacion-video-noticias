@@ -1,3 +1,4 @@
+import { renderErrorState, renderLoadingState } from '../../../core/ui/screen-state.js';
 import {
   SUBTITLES_PHASES,
   SUBTITLE_FONT_PRESETS,
@@ -63,6 +64,10 @@ export function createSubtitleWorkflowRenderer(ctx, collaborators = {}) {
     if (!el.subtitle2SessionHistory) return;
     const historyError = state.subtitles2.sessionHistoryError;
     const items = state.subtitles2.sessionHistory;
+    if (state.subtitles2.sessionHistoryLoading && !(Array.isArray(items) && items.length)) {
+      el.subtitle2SessionHistory.innerHTML = renderLoadingState({ rows: 3, variant: 'rows' });
+      return;
+    }
     if (historyError && !(Array.isArray(items) && items.length)) {
       el.subtitle2SessionHistory.innerHTML = renderErrorState({
         error: historyError,

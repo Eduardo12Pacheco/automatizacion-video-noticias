@@ -12,6 +12,10 @@ export function createAudioQueueRenderer({ context, callbacks }) {
     if (!visibleJobs.length) {
       el.audioQueueMeta.textContent = '';
       el.audioQueueList.classList.add('is-empty');
+      if (state.audioRunning) {
+        el.audioQueueList.innerHTML = renderLoadingState({ rows: 2, variant: 'cards' });
+        return;
+      }
       el.audioQueueList.innerHTML = renderEmptyState({
         icon: 'audio',
         titleKey: 'audio.emptyTitle',

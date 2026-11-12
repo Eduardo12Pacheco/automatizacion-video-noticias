@@ -26,6 +26,7 @@ export function createAudioCommands({ context, callbacks }) {
       state.audioRunning = true;
       state.audioPollingErrorStreak = 0;
       el.audioRunBtn.disabled = true;
+      callbacks.renderAudioQueue();
 
       const data = await ttsPost('/api/tts/jobs', {
         text: normalizedText,
@@ -55,6 +56,7 @@ export function createAudioCommands({ context, callbacks }) {
     } finally {
       state.audioRunning = false;
       el.audioRunBtn.disabled = false;
+      callbacks.renderAudioQueue();
     }
   }
 

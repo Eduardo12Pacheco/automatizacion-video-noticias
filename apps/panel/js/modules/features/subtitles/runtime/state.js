@@ -25,6 +25,7 @@ export function createRemoteSubtitlesState() {
     sessionId: null,
     sessionHistory: [],
     sessionHistoryError: null,
+    sessionHistoryLoading: false,
     serviceHealth: { status: 'pending', message: 'Estado remoto pendiente.' },
     previewVideoUrl: '',
     previewVideoObjectUrl: '',

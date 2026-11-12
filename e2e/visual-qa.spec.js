@@ -225,7 +225,7 @@ test('loading skeletons appear while data is in flight', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('newsroom-panel-language-v1', 'es'));
   await page.goto('/?showcase=1&state=slow');
   await expect(page.locator('#appShell')).toBeVisible();
-  for (const view of VIEWS.filter((item) => item.data)) {
+  for (const view of VIEWS.filter((item) => item.data || item.key === 'subtitulos2')) {
     await page.locator(`.nav-item[data-view="${view.key}"]`).click({ force: true });
     const skeleton = page.locator(`${view.container} .skeleton-block`).first();
     await expect(skeleton, `${view.key} should show a loading skeleton`).toBeVisible({ timeout: 5_000 });

@@ -160,6 +160,8 @@ def test_every_data_view_has_an_empty_loading_and_error_path():
         "js/modules/features/active-users/render.js": ("renderLoadingState", "renderEmptyState", "renderErrorState"),
         "js/modules/features/errors-audit/render.js": ("renderLoadingState", "renderEmptyState", "renderErrorState"),
         "js/modules/features/video-projects/render/project-list-view.js": ("renderLoadingState", "renderEmptyState", "renderErrorState"),
+        "js/modules/features/audio/controller/queue-renderer.js": ("renderLoadingState", "renderEmptyState"),
+        "js/modules/features/subtitles/controller/render-workflow.js": ("renderLoadingState", "renderErrorState"),
         "js/modules/app-shell/runtime-renderers.js": ("renderLoadingState", "renderEmptyState", "renderErrorState"),
     }
     for relative, functions in expectations.items():
