@@ -41,3 +41,44 @@ were removed. The gateway still enforces the panel session, editor role and
 CSRF origin on mutations.
 
 `POST /panel/uploads/...` accepts up to `MAX_UPLOAD_BYTES` (default 500 MiB).
+
+## Core use cases and local workflow endpoints (T4)
+
+`packages/core` ports the 16 n8n workflows into use cases: DiscoverNews,
+ClusterTopics, DecideApproval, DraftScript, PublishScript,
+CreateVideoProject, ManualCreateVideoProject, RefreshSearch, read models and
+ExportDocument. Adapters are injected through ports; T5 supplies the local
+Ollama/trafilatura/SearXNG/python-docx implementations.
+
+The gateway composes them in `src/core-runtime.js` and serves the existing
+panel paths through `src/local-router.js`:
+
+- `GET /webhook/approval/pending|queue|topic/supabase/...`
+- `POST /webhook/approval/decision|search-refresh/supabase/...`
+- `GET /webhook/mvp-script-drafts-pending/supabase/v2`
+- `POST /webhook/mvp-script-draft-save|publish|publish-status|download-doc/...`
+- `POST /webhook/video-projects/manual-create/v1`
+- matching `/panel/read-models/approval/*` and
+  `/panel/read-models/scripts/drafts` read models.
+
+Mutations still require an authenticated `editor` session and a trusted
+origin. Search refresh, publish and manual-project work run through the
+in-process `JobQueue`; the `Scheduler` periodically deletes expired sessions.
+
+## Local users and sessions (S9)
+
+Users, roles and sessions live in the repository (`users`, `user_roles`,
+`sessions`). Passwords are bcrypt hashes and only session-token hashes are
+stored. `POST /panel/login` uses the repository first and keeps the legacy
+env-configured panel user as a fallback. Admin endpoints are mounted only for
+the `admin` role:
+
+- `GET|POST /panel/admin/users`
+- `PATCH /panel/admin/users/:id`
+- `GET /panel/admin/roles`
+
+The gateway modules are now split by concern: `auth.js` (users/passwords),
+`sessions.js` (cookie/session shape), `presence.js`, `local-router.js`
+(workflow endpoints), `admin-router.js`, `core-runtime.js` (composition),
+`data-router.js`, and `gateway-events.js`. `gateway.js` remains the HTTP
+composition point and protected proxy.
