@@ -25,8 +25,10 @@ Commands:
   status             Show container status
   logs [service]     Follow logs (use --no-follow to print and exit)
   update             Pull the checkout, rebuild images and apply migrations
+  mode <demo|local>  Switch the run mode and restart the stack
   doctor             Check Docker, GPU, models, ports and disk
-  models             Download the local models if they are missing
+  models [pull]      Download the local models (pull forces a refresh)
+  test               Run the same suites as CI
   version            Print the CLI version
   help               Show this help
 
@@ -71,7 +73,7 @@ while ($index -lt $tokens.Count) {
         $command = 'help'
     } elseif ($token -match '^(version|--version)$') {
         $command = 'version'
-    } elseif ($token -match '^(up|down|status|logs|update|doctor|models|help)$') {
+    } elseif ($token -match '^(up|down|status|logs|update|mode|doctor|models|test|help)$') {
         $command = $token
     } elseif ($token.StartsWith('-')) {
         Stop-NrInstall "unknown option: $token (use --help)"
@@ -85,9 +87,14 @@ if (-not $command) {
     if ($positional.Count -gt 0) { Stop-NrInstall "unknown command: $($positional[0]) (use --help)" }
     $command = 'help'
 }
+$modeValue = ''
 if ($positional.Count -gt 0) {
     if ($command -eq 'logs') {
         $service = $positional[0]
+    } elseif ($command -eq 'models' -and $positional[0] -eq 'pull' -and $positional.Count -eq 1) {
+        # handled below
+    } elseif ($command -eq 'mode' -and $positional.Count -eq 1) {
+        $modeValue = $positional[0]
     } else {
         Stop-NrInstall "unexpected argument: $($positional[0])"
     }
@@ -151,7 +158,47 @@ try {
         'models' {
             Assert-NrEnv
             Assert-NrCompose
-            Install-NrModels
+            if ($positional.Count -gt 0 -and $positional[0] -eq 'pull') {
+                Install-NrModels -Force
+            } else {
+                Install-NrModels
+            }
+        }
+        'mode' {
+            Assert-NrEnv
+            Assert-NrCompose
+            if ($modeValue -ne 'demo' -and $modeValue -ne 'local') {
+                Stop-NrInstall 'usage: newsroom mode <demo|local>'
+            }
+            Set-NrEnvValue -Key 'NEWSROOM_MODE' -Value $modeValue
+            if ($modeValue -eq 'local') {
+                Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'
+                Install-NrModels
+            } else {
+                Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value ''
+                Write-NrInfo 'demo mode needs no models'
+            }
+            Write-NrInfo "restarting the stack in $modeValue mode"
+            Invoke-NrCompose -Arguments @('down', '--remove-orphans') | Out-Null
+            $code = Invoke-NrCompose -Arguments @('up', '-d', '--build')
+            if ($code -ne 0) { Stop-NrInstall 'the stack failed to start' }
+            Write-NrOk "run mode set to $modeValue"
+        }
+        'test' {
+            $runner = Join-Path $config.RepoRoot 'tools/run-all-tests.mjs'
+            if (-not (Test-Path -LiteralPath $runner -PathType Leaf)) {
+                Stop-NrInstall "test runner not found: $runner"
+            }
+            if (-not (Test-NrCommand 'node')) { Stop-NrInstall 'node is required to run the test suite' }
+            Write-NrInfo 'running the same suites as CI (tools/run-all-tests.mjs)'
+            Push-Location -LiteralPath $config.RepoRoot
+            try {
+                $code = Invoke-NrExternal -FilePath 'node' -Arguments @('tools/run-all-tests.mjs')
+            } finally {
+                Pop-Location
+            }
+            if ($code -ne 0) { Stop-NrInstall 'test suite failed' }
+            Write-NrOk 'test suite passed'
         }
         'update' {
             Assert-NrEnv

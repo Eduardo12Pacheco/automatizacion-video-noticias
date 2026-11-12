@@ -23,8 +23,10 @@ Commands:
   status             Show container status
   logs [service]     Follow logs (use --no-follow to print and exit)
   update             Pull the checkout, rebuild images and apply migrations
+  mode <demo|local>  Switch the run mode and restart the stack
   doctor             Check Docker, GPU, models, ports and disk
-  models [pull]      Download the local models if they are missing
+  models [pull]      Download the local models (pull forces a refresh)
+  test               Run the same suites as CI
   version            Print the CLI version
   help               Show this help
 
@@ -51,7 +53,7 @@ while [ "$#" -gt 0 ]; do
     --no-follow) FOLLOW=0 ;;
     -h|--help) COMMAND=help ;;
     version|--version) COMMAND=version ;;
-    up|down|status|logs|update|doctor|models|help) COMMAND="$1" ;;
+    up|down|status|logs|update|mode|doctor|models|test|help) COMMAND="$1" ;;
     -*) nr_die "unknown option: $1 (use --help)" ;;
     *) POSITIONAL+=("$1") ;;
   esac
@@ -66,11 +68,14 @@ if [ -z "$COMMAND" ]; then
   exit 0
 fi
 
+MODE_VALUE=""
 if [ "${#POSITIONAL[@]}" -gt 0 ]; then
   if [ "$COMMAND" = "logs" ]; then
     SERVICE="${POSITIONAL[0]}"
-  elif [ "$COMMAND" = "models" ] && [ "${POSITIONAL[0]}" = "pull" ]; then
+  elif [ "$COMMAND" = "models" ] && [ "${POSITIONAL[0]}" = "pull" ] && [ "${#POSITIONAL[@]}" -eq 1 ]; then
     :
+  elif [ "$COMMAND" = "mode" ] && [ "${#POSITIONAL[@]}" -eq 1 ]; then
+    MODE_VALUE="${POSITIONAL[0]}"
   else
     nr_die "unexpected argument: ${POSITIONAL[0]}"
   fi
@@ -94,6 +99,11 @@ require_env() {
 
 require_compose_or_die() {
   [ -f "$NR_COMPOSE_FILE" ] || nr_die "compose file not found: $NR_COMPOSE_FILE"
+}
+
+require_repo_runner() {
+  [ -f "$NR_REPO_ROOT/tools/run-all-tests.mjs" ] || nr_die "test runner not found: $NR_REPO_ROOT/tools/run-all-tests.mjs"
+  nr_command_exists node || nr_die "node is required to run the test suite"
 }
 
 case "$COMMAND" in
@@ -140,7 +150,35 @@ case "$COMMAND" in
   models)
     require_env
     require_compose_or_die
-    nr_download_models
+    FORCE_MODELS=0
+    [ "${POSITIONAL[0]:-}" = "pull" ] && FORCE_MODELS=1
+    nr_download_models "$FORCE_MODELS"
+    ;;
+  mode)
+    require_env
+    require_compose_or_die
+    case "$MODE_VALUE" in
+      demo|local) ;;
+      *) nr_die "usage: newsroom mode <demo|local>" ;;
+    esac
+    nr_env_set NEWSROOM_MODE "$MODE_VALUE"
+    if [ "$MODE_VALUE" = "local" ]; then
+      nr_env_set COMPOSE_PROFILES "local"
+      nr_download_models
+    else
+      nr_env_set COMPOSE_PROFILES ""
+      nr_info "demo mode needs no models"
+    fi
+    nr_info "restarting the stack in $MODE_VALUE mode"
+    nr_run_compose down --remove-orphans
+    nr_run_compose up -d --build
+    nr_ok "run mode set to $MODE_VALUE"
+    ;;
+  test)
+    require_repo_runner
+    nr_info "running the same suites as CI (tools/run-all-tests.mjs)"
+    ( cd "$NR_REPO_ROOT" && node tools/run-all-tests.mjs )
+    nr_ok "test suite passed"
     ;;
   update)
     require_env

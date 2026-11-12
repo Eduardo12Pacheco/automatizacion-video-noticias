@@ -28,10 +28,23 @@ class NewsroomCliTests(InstallerTestCase):
     def project_args(self, *args):
         return ("--project-dir", str(self.project), *args)
 
+    def set_env(self, key, value):
+        path = self.project / ".env"
+        lines = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith(key + "="):
+                lines.append(f"{key}={value}")
+            else:
+                lines.append(line)
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
     def test_help_lists_every_command(self):
         result = self.run_cli("help")
         self.assertEqual(result.returncode, 0, result.stderr)
-        for command in ("up", "down", "status", "logs", "update", "doctor", "models", "version"):
+        for command in (
+            "up", "down", "status", "logs", "update", "mode", "doctor",
+            "models", "test", "version",
+        ):
             self.assertIn(command, result.stdout)
 
     def test_version_is_printed_without_docker(self):
@@ -102,6 +115,51 @@ class NewsroomCliTests(InstallerTestCase):
         result = self.run_cli(*self.project_args("models"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn("MODEL_INIT", self.read_log())
+
+    def test_models_pull_forces_the_download(self):
+        self.installed()
+        self.set_env("NEWSROOM_MODE", "local")
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_cli(*self.project_args("models", "pull"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("MODEL_INIT", self.read_log())
+        self.assertIn("OLLAMA_PULL", self.read_log())
+        state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
+        self.assertIn("MODELS_DOWNLOADED=1", state)
+
+    def test_mode_switches_between_demo_and_local(self):
+        self.installed()
+        self.log.write_text("", encoding="utf-8")
+        local = self.run_cli(*self.project_args("mode", "local"))
+        self.assertEqual(local.returncode, 0, local.stdout + local.stderr)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_MODE"], "local")
+        self.assertEqual(values["COMPOSE_PROFILES"], "local")
+        log = self.read_log()
+        self.assertIn("MODEL_INIT", log)
+        self.assertIn("STACK_DOWN", log)
+        self.assertIn("STACK_UP", log)
+
+        demo = self.run_cli(*self.project_args("mode", "demo"))
+        self.assertEqual(demo.returncode, 0, demo.stdout + demo.stderr)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_MODE"], "demo")
+        self.assertEqual(values["COMPOSE_PROFILES"], "")
+        self.assertIn("run mode set to demo", demo.stdout)
+
+    def test_mode_rejects_an_unknown_value(self):
+        self.installed()
+        result = self.run_cli(*self.project_args("mode", "production"))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("usage: newsroom mode", result.stdout + result.stderr)
+
+    def test_test_command_runs_the_ci_runner(self):
+        self.installed()
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_cli(*self.project_args("test"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("tools/run-all-tests.mjs", self.read_log())
+        self.assertIn("test suite passed", result.stdout)
 
     def test_dry_run_prints_without_calling_docker(self):
         self.installed()
