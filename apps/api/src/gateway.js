@@ -7,6 +7,10 @@ import { dirname, join } from 'node:path';
 
 import { DEFAULT_EVENT_RETENTION, JsonlEventRecorder, sanitizeEventContext, selectCorrelationId } from './gateway-events.js';
 import { createRuntimeDataRouter } from './composition.js';
+import { createLocalRouter } from './local-router.js';
+import { createAdminRouter } from './admin-router.js';
+import { createAuthService } from './auth.js';
+import { createCoreRuntime } from './core-runtime.js';
 
 export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8099;
@@ -704,10 +708,14 @@ export function readPanelUsersFromEnv(env = process.env) {
   return fallback ? [{ user: fallback.user, pass: fallback.pass, ...(fallback.profile.user || {}), roles: fallback.profile.roles }] : [];
 }
 
-function getVerifiedSession(req, options) {
+async function getVerifiedSession(req, options) {
   cleanupExpiredSessions(options);
   const token = readPanelSessionToken(req);
   if (!token) return null;
+  if (options.authService) {
+    const stored = await options.authService.getSession(token);
+    if (stored) return { token, ...normalizePanelSession(stored) };
+  }
   const session = options.panelSessions.get(token, options.now());
   if (!session) return null;
   return { token, ...normalizePanelSession(session) };
@@ -768,9 +776,9 @@ function readRawBody(req, { maxBodyBytes = DEFAULT_MAX_BODY_BYTES } = {}) {
   });
 }
 
-function handlePanelSession(req, res, options) {
+async function handlePanelSession(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
-  const session = getVerifiedSession(req, options);
+  const session = await getVerifiedSession(req, options);
   if (!session) {
     writeJson(res, 401, { error: 'unauthenticated', code: 'unauthenticated' }, {
       'cache-control': 'no-store, no-cache, max-age=0, must-revalidate',
@@ -820,8 +828,20 @@ async function handlePanelLogin(req, res, options) {
   }
   const user = String(body.user || body.username || '').trim();
   const pass = String(body.pass || body.password || '');
-  const auth = options.panelUsers.get(user);
-  if (!verifyPanelUserPassword(auth, pass)) {
+  let authenticated = null;
+  if (options.authService) {
+    try {
+      authenticated = await options.authService.authenticate({ user, password: pass });
+    } catch {
+      authenticated = null;
+    }
+  } else {
+    const legacy = options.panelUsers.get(user);
+    if (verifyPanelUserPassword(legacy, pass)) {
+      authenticated = { user: legacy.profile.user, roles: legacy.profile.roles, source: 'legacy' };
+    }
+  }
+  if (!authenticated) {
     const next = { count: attempt.count + 1, lockedUntil: nowMs + Math.min(1000 * 2 ** attempt.count, 60000) };
     options.loginAttempts.set(clientKey, next, { ttlMs: options.loginAttemptTtlMs, nowMs });
     emitGatewayEvent(req, options, {
@@ -838,14 +858,28 @@ async function handlePanelLogin(req, res, options) {
     return;
   }
   options.loginAttempts.delete(clientKey);
-  const token = options.createSessionToken();
-  const profile = auth.profile;
-  const session = normalizePanelSession({
-    ...profile,
-    session_id: options.createSessionId(),
-    expires_at: new Date(options.now() + options.panelSessionMaxAgeSeconds * 1000).toISOString(),
-  });
-  options.panelSessions.set(token, session, { ttlMs: options.panelSessionMaxAgeSeconds * 1000, nowMs: options.now() });
+
+  let session;
+  let token;
+  if (options.authService && authenticated.source === 'repository') {
+    session = await options.authService.createSession({
+      user: authenticated.user,
+      roles: authenticated.roles,
+      ipAddress: req.socket.remoteAddress || '',
+      userAgent: String(req.headers['user-agent'] || ''),
+    });
+    token = session.token;
+  }
+  if (!session) {
+    token = options.createSessionToken();
+    session = normalizePanelSession({
+      user: authenticated.user,
+      roles: authenticated.roles,
+      session_id: options.createSessionId(),
+      expires_at: new Date(options.now() + options.panelSessionMaxAgeSeconds * 1000).toISOString(),
+    });
+    options.panelSessions.set(token, session, { ttlMs: options.panelSessionMaxAgeSeconds * 1000, nowMs: options.now() });
+  }
   emitGatewayEvent(req, options, {
     kind: 'audit',
     action: 'panel.login',
@@ -863,7 +897,7 @@ async function handlePanelLogin(req, res, options) {
   });
 }
 
-function handlePanelLogout(req, res, options) {
+async function handlePanelLogout(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
   if (!isTrustedMutationRequest(req, options)) {
     rejectCsrf(req, res, options, { action: 'panel.logout' });
@@ -871,7 +905,10 @@ function handlePanelLogout(req, res, options) {
   }
   const token = readPanelSessionToken(req);
   const session = token ? options.panelSessions.get(token, options.now()) : null;
-  if (token) options.panelSessions.delete(token);
+  if (token) {
+    options.panelSessions.delete(token);
+    if (options.authService) await options.authService.revokeSession(token);
+  }
   emitGatewayEvent(req, options, {
     kind: 'audit',
     action: 'panel.logout',
@@ -897,7 +934,7 @@ async function handlePanelDataRequest(req, res, options) {
   const mutating = pathname.startsWith('/panel/uploads/')
     || /^\/panel\/video-projects\/[^/]+\/(selections|audio|custom-images|disable)$/.test(pathname);
 
-  const session = getVerifiedSession(req, options);
+  const session = await getVerifiedSession(req, options);
   if (!session) {
     rejectUnauthenticated(req, res, options, { action: 'panel.data.authorization' });
     return;
@@ -936,6 +973,73 @@ async function handlePanelDataRequest(req, res, options) {
       status_code: 400,
       reason_code: 'invalid_request',
       safe_message: 'Panel data request failed',
+      context: requestBaseContext(req, { error: error.message }),
+    }, session);
+    if (!res.headersSent) writeJson(res, 400, { ok: false, error: 'invalid_request' });
+    return;
+  }
+
+  const headers = result.headers || {};
+  const contentType = String(headers['content-type'] || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    writeJson(res, result.status, result.body, headers);
+    return;
+  }
+  res.writeHead(result.status, headers);
+  res.end(result.body ?? undefined);
+}
+
+async function handleLocalRouterRequest(req, res, options, router, { admin = false } = {}) {
+  applyCorsHeaders(res, req.headers.origin, options);
+  const parsed = new URL(req.url || '/', 'http://gateway.local');
+  const pathname = parsed.pathname;
+  const method = String(req.method || 'GET').toUpperCase();
+  const safeRead = method === 'GET' || method === 'HEAD';
+  const mutating = admin ? !safeRead : Boolean(router.isMutation?.(pathname));
+
+  const session = await getVerifiedSession(req, options);
+  if (!session) {
+    rejectUnauthenticated(req, res, options, { action: admin ? 'panel.admin.authorization' : 'panel.local.authorization' });
+    return;
+  }
+  if (admin) {
+    if (!session.roles.includes('admin')) {
+      rejectForbidden(req, res, options, { session });
+      return;
+    }
+  } else if (mutating && !session.roles.includes(PROTECTED_MUTATION_ROLE) && !session.roles.includes('admin')) {
+    rejectForbidden(req, res, options, { session });
+    return;
+  }
+  if (mutating && !isTrustedMutationRequest(req, options)) {
+    rejectCsrf(req, res, options, { session, action: admin ? 'panel.admin.csrf' : 'panel.local.csrf' });
+    return;
+  }
+
+  let result;
+  try {
+    result = await router.handle({
+      method,
+      pathname,
+      searchParams: parsed.searchParams,
+      headers: req.headers,
+      actor: { ...session.user, roles: session.roles },
+      readBody: (limits = {}) => readRawBody(req, {
+        maxBodyBytes: limits.maxBodyBytes || options.maxBodyBytes,
+      }),
+    });
+  } catch (error) {
+    if (error?.code === 'payload_too_large') {
+      rejectPayloadTooLarge(req, res, options, { session, action: admin ? 'panel.admin.payload' : 'panel.local.payload' });
+      return;
+    }
+    emitGatewayEvent(req, options, {
+      kind: 'error',
+      action: admin ? 'panel.admin.request' : 'panel.local.request',
+      outcome: 'failure',
+      status_code: 400,
+      reason_code: 'invalid_request',
+      safe_message: 'Panel request failed',
       context: requestBaseContext(req, { error: error.message }),
     }, session);
     if (!res.headersSent) writeJson(res, 400, { ok: false, error: 'invalid_request' });
@@ -1540,7 +1644,7 @@ function gatewayEventsFilters(rawUrl) {
 
 async function handleGatewayEventsReadModel(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
-  const session = getVerifiedSession(req, options);
+  const session = await getVerifiedSession(req, options);
   if (!session) {
     rejectUnauthenticated(req, res, options, { action: 'gateway.events.read' });
     return;
@@ -1579,7 +1683,7 @@ async function handleGatewayEventsReadModel(req, res, options) {
 
 async function handlePresenceHeartbeat(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
-  const session = getVerifiedSession(req, options);
+  const session = await getVerifiedSession(req, options);
   if (!session) {
     rejectUnauthenticated(req, res, options, { action: 'panel.presence.authorization' });
     return;
@@ -1610,9 +1714,9 @@ async function handlePresenceHeartbeat(req, res, options) {
   });
 }
 
-function handlePresenceReadModel(req, res, options) {
+async function handlePresenceReadModel(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
-  const session = getVerifiedSession(req, options);
+  const session = await getVerifiedSession(req, options);
   if (!session) {
     rejectUnauthenticated(req, res, options, { action: 'gateway.presence.read' });
     return;
@@ -1655,10 +1759,13 @@ export function createGatewayServer({
   createCorrelationId = randomUUID,
   eventRecorder = null,
   dataRouter = null,
+  localRouter = null,
+  adminRouter = null,
+  authService = null,
   logger = console,
 } = {}) {
   const normalizedPanelUsers = normalizePanelUsers(panelUsers, panelAuth);
-  if (!normalizedPanelUsers.size) {
+  if (!normalizedPanelUsers.size && !authService) {
     throw new GatewayConfigError('API Gateway panel auth requires configured panel users or API_GATEWAY_PANEL_USER and API_GATEWAY_PANEL_PASS fallback');
   }
   if (!Array.isArray(allowedOrigins)) {
@@ -1761,13 +1868,16 @@ export function createGatewayServer({
     createCorrelationId,
     eventRecorder,
     dataRouter,
+    localRouter,
+    adminRouter,
+    authService,
     logger,
     loginAttempts: new BoundedTtlStore({ maxEntries: maxLoginAttempts }),
     presenceStore: new BoundedTtlStore({ maxEntries: maxPresenceSessions }),
     presenceTtlMs,
   };
   const startTime = options.now();
-  return http.createServer((req, res) => {
+  return http.createServer(async (req, res) => {
     req.gatewayCorrelationId = selectCorrelationId(req, { createId: options.createCorrelationId });
     res.setHeader('x-correlation-id', req.gatewayCorrelationId);
     const panelPath = (req.url || '').split('?')[0];
@@ -1804,7 +1914,7 @@ export function createGatewayServer({
         writeJson(res, 405, { error: 'method_not_allowed' });
         return;
       }
-      handlePanelSession(req, res, options);
+      void handlePanelSession(req, res, options);
       return;
     }
     if (panelPath === '/panel/login') {
@@ -1828,7 +1938,7 @@ export function createGatewayServer({
         writeJson(res, 405, { error: 'method_not_allowed' });
         return;
       }
-      handlePanelLogout(req, res, options);
+      void handlePanelLogout(req, res, options);
       return;
     }
     if (panelPath === PANEL_PRESENCE_HEARTBEAT_PATH) {
@@ -1867,7 +1977,23 @@ export function createGatewayServer({
         writeJson(res, 405, { error: 'method_not_allowed', code: 'method_not_allowed' });
         return;
       }
-      handlePresenceReadModel(req, res, options);
+      void handlePresenceReadModel(req, res, options);
+      return;
+    }
+    if (options.adminRouter?.matches(panelPath)) {
+      if (req.method === 'OPTIONS') {
+        handlePreflight(req, res, options);
+        return;
+      }
+      void handleLocalRouterRequest(req, res, options, options.adminRouter, { admin: true });
+      return;
+    }
+    if (options.localRouter?.matches(panelPath)) {
+      if (req.method === 'OPTIONS') {
+        handlePreflight(req, res, options);
+        return;
+      }
+      void handleLocalRouterRequest(req, res, options, options.localRouter);
       return;
     }
     if (options.dataRouter?.matches(panelPath)) {
@@ -1894,7 +2020,7 @@ export function createGatewayServer({
         writeJson(res, 404, { error: 'read_model_not_found', code: 'read_model_not_found' });
         return;
       }
-      const session = getVerifiedSession(req, options);
+      const session = await getVerifiedSession(req, options);
       if (!session) {
         rejectUnauthenticated(req, res, options, { action: 'read-model.authorization', route: readModelRoute });
         return;
@@ -1948,7 +2074,7 @@ export function createGatewayServer({
     }
     let session = null;
     if (policy.requiresSession) {
-      session = getVerifiedSession(req, options);
+      session = await getVerifiedSession(req, options);
       if (!session) {
         rejectUnauthenticated(req, res, options, { route });
         return;
@@ -2021,7 +2147,15 @@ function defaultGatewayEventsFilePath() {
   return join(dirname(fileURLToPath(import.meta.url)), '..', 'runtime-logs', 'gateway-events.jsonl');
 }
 
-export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT, dataRouter = null } = {}) {
+export function startGateway({
+  host = DEFAULT_HOST,
+  port = DEFAULT_PORT,
+  dataRouter = null,
+  repository = null,
+  authService = null,
+  localRouter = null,
+  adminRouter = null,
+} = {}) {
   const allowedOrigins = readAllowedOrigins();
   const trustedMutationOrigins = readTrustedMutationOrigins();
   const eventRecorder = new JsonlEventRecorder({
@@ -2033,11 +2167,39 @@ export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT, dataRou
     },
     logger: console,
   });
+  const panelAuth = readPanelAuthFromEnv();
+  const panelUsers = readPanelUsersFromEnv();
+  const normalizedLegacyUsers = normalizePanelUsers(panelUsers, panelAuth);
+
+  if (repository && !authService) {
+    authService = createAuthService({
+      repository,
+      fallbackAuthenticate: async ({ user, password }) => {
+        const legacy = normalizedLegacyUsers.get(user);
+        if (!legacy || !verifyPanelUserPassword(legacy, password)) return null;
+        return { user: legacy.profile.user, roles: legacy.profile.roles };
+      },
+    });
+  }
+  if (repository && !localRouter) {
+    const runtime = createCoreRuntime({ repository, logger: console });
+    localRouter = createLocalRouter({
+      repository,
+      readModels: runtime.readModels,
+      useCases: runtime.useCases,
+      jobQueue: runtime.jobQueue,
+    });
+    if (!adminRouter) adminRouter = createAdminRouter({ authService });
+  }
+
   const server = createGatewayServer({
     allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
     trustedMutationOrigins: trustedMutationOrigins.length ? trustedMutationOrigins : undefined,
-    panelAuth: readPanelAuthFromEnv(),
-    panelUsers: readPanelUsersFromEnv(),
+    panelAuth,
+    panelUsers,
+    authService,
+    localRouter,
+    adminRouter,
     serviceCredentials: readServiceCredentialsFromEnv(),
     dataRouter,
     eventRecorder,
@@ -2049,10 +2211,11 @@ export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT, dataRou
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { dataRouter } = await createRuntimeDataRouter();
+  const { dataRouter, repository } = await createRuntimeDataRouter();
   startGateway({
     host: process.env.API_GATEWAY_HOST || DEFAULT_HOST,
     port: Number(process.env.API_GATEWAY_PORT || DEFAULT_PORT),
     dataRouter,
+    repository,
   });
 }
