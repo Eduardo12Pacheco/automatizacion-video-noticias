@@ -282,7 +282,7 @@ Useful values:
 | `NEWSROOM_PROFILE` | `cpu` | Written by the installer; `cpu` or `gpu` |
 | `PANEL_PORT` / `API_GATEWAY_PORT` | `8080` / `8099` | Host ports |
 | `NEWSROOM_BIND` | `127.0.0.1` | Host interface for the published panel/API ports |
-| `TRUSTED_PROXY_CIDRS` | `172.28.240.10/32` | Panel container address allowed to set `X-Forwarded-For` |
+| `TRUSTED_PROXY_CIDRS` | `172.29.240.10/32` | Panel container address allowed to set `X-Forwarded-For` |
 | `DATABASE_URL` | local Postgres | Repository connection string |
 | `LLM` | `ollama` | Local model adapter; `openai` is optional and off by default |
 | `OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Local Spanish-capable model |
