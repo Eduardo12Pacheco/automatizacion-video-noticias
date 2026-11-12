@@ -313,6 +313,8 @@ export const PHRASES = [
   ['Detectar automáticamente', 'Detect automatically'],
   ['Detecta automáticamente. Si el idioma detectado tiene Marian, usa Marian; si no, usa fallback Facebook M2M100.', 'Detects automatically. If the detected language has Marian, it uses Marian; otherwise it falls back to Facebook M2M100.'],
   ['Este idioma no requiere traducción: se usa bypass (audio ya en español).', 'This language needs no translation: bypass is used (audio is already in Spanish).'],
+  ['Este idioma usa Marian (Helsinki OPUS-MT).', 'This language uses Marian (Helsinki OPUS-MT).'],
+  ['Este idioma usa fallback Facebook M2M100.', 'This language falls back to Facebook M2M100.'],
   ['VISTA PREVIA', 'LIVE PREVIEW'],
   ['VISTA PREVIA', 'Live preview'],
   ['ORIGEN DE CARGA', 'Upload source'],
