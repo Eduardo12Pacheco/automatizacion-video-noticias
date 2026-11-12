@@ -20,6 +20,7 @@ import struct
 import subprocess
 import sys
 import wave
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,7 +56,7 @@ def ensure_dirs() -> None:
 
 def make_wav(path: Path, kind: str, seconds: float, sample_rate: int = 48000) -> None:
     frames = int(seconds * sample_rate)
-    rng = random.Random(hash(kind) & 0xFFFF)
+    rng = random.Random(zlib.crc32(kind.encode('utf-8')) & 0xFFFF)
     with wave.open(str(path), "wb") as out:
         out.setnchannels(1)
         out.setsampwidth(2)
@@ -96,13 +97,11 @@ def make_logo_png(path: Path, transparent: bool = True) -> None:
     image = Image.new("RGBA", size, (0, 0, 0, 0) if transparent else (0, 177, 64, 255))
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype(str(SOURCE_FONT), 96)
-    small = ImageFont.truetype(str(SOURCE_FONT), 34)
     text = BRAND_TEXT
     box = draw.textbbox((0, 0), text, font=font)
     draw.text(((size[0] - (box[2] - box[0])) / 2, 280), text, fill=(255, 255, 255, 255), font=font)
-    sub = "LOCAL DEMO / CC0"
-    sub_box = draw.textbbox((0, 0), sub, font=small)
-    draw.text(((size[0] - (sub_box[2] - sub_box[0])) / 2, 410), sub, fill=(255, 209, 102, 255), font=small)
+    # No license/tagline text is baked into the art: the repository-level
+    # ASSETS.md is the source of truth for origin and license.
     draw.rectangle([60, 60, size[0] - 60, size[1] - 60], outline=(255, 255, 255, 180), width=6)
     image.save(path)
 
@@ -113,9 +112,6 @@ def make_logo_video(out: Path, green: bool, duration: float = 2.0) -> None:
     draw = (
         f"drawtext=fontfile='{SOURCE_FONT}':text='{BRAND_TEXT}':fontcolor=white:"
         "fontsize=104:x=(w-text_w)/2:y=(h-text_h)/2-30,"
-        "drawtext=fontfile='"
-        f"{SOURCE_FONT}':text='LOCAL DEMO':fontcolor=0xffd166:fontsize=36:"
-        "x=(w-text_w)/2:y=(h-text_h)/2+80,"
         "fade=t=in:st=0:d=0.25,fade=t=out:st=1.55:d=0.45,format=yuv420p"
     )
     if green:

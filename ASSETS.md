@@ -47,10 +47,10 @@ names (`logo-primary`, `logo-secondary`, `logo-final`, `outro-primary`,
 `outro-secondary`, `outro-final`); no country or tournament name is baked into
 an asset path.
 
-The generated logo stills carry the tagline **LOCAL DEMO / CC0**. `CC0` is the
-license dedication for the generated art, not a brand or a person; an earlier
-draft misspelled that license dedication with a three-letter look-alike, and no
-shipped asset carries the misspelling.
+The generated logo stills and stings carry only the fictional brand name; no
+license tagline, watermark or acronym is baked into the artwork. Origin and
+license are recorded in this manifest instead, and the generator is the
+reproducible source for every file.
 
 ## Panel Icon
 
