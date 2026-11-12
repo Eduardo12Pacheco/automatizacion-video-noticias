@@ -31,6 +31,14 @@ async function readModuleSource(relativePath) {
   return readFile(path.join(MODULES_ROOT, relativePath), 'utf8');
 }
 
+async function readRuntimeSource() {
+  const [boot, renderers] = await Promise.all([
+    readModuleSource('app-shell/runtime.js'),
+    readModuleSource('app-shell/runtime-renderers.js'),
+  ]);
+  return `${boot}\n${renderers}`;
+}
+
 function assertContainsAll(source, tokens, reason) {
   const missing = tokens.filter((token) => !source.includes(token));
   if (missing.length) {
@@ -477,7 +485,7 @@ async function replayScriptsFacadeParityScenario() {
     readModuleSource('features/scripts/polling.js'),
     readModuleSource('features/scripts/controller.js'),
     readModuleSource('app-shell/composition.js'),
-    readModuleSource('app-shell/runtime.js'),
+    readRuntimeSource(),
     readModuleSource('app-shell/events/scripts.js'),
     readModuleSource('app-shell/voice/script-to-audio.js'),
   ]);
@@ -812,7 +820,7 @@ export async function runAppShellLifecycleReplay() {
   const [facadeSource, indexSource, runtimeSource, lifecycleSource] = await Promise.all([
     readModuleSource('app-shell.js'),
     readModuleSource('app-shell/index.js'),
-    readModuleSource('app-shell/runtime.js'),
+    readRuntimeSource(),
     readModuleSource('app-shell/lifecycle.js'),
   ]);
 

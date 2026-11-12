@@ -248,7 +248,7 @@ class TestNavigationGuards:
 
     def test_video_projects_render_guard_uses_dom_presence_not_project_count(self):
         """The project list must render empty/loaded states once lazy DOM exists."""
-        source = _read_source(APP_SHELL_DIR / "runtime.js")
+        source = _read_source(APP_SHELL_DIR / "runtime.js") + "\n" + _read_source(APP_SHELL_DIR / "runtime-renderers.js")
         assert "if (!el.videoProjectsList && !state.selectedVideoProject) return;" in source, \
             "renderVideoProjects must not skip rendering just because project count is currently zero"
         assert "!state.videoProjects?.length) return" not in source, \

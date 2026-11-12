@@ -150,8 +150,16 @@ def test_app_shell_declares_single_timer_auto_refresh_for_queue_and_drafts():
     assert "refreshScriptDrafts({ silent: true })" in app_shell_source
 
 
+def _read_runtime_source() -> str:
+    return (
+        (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
+        + "\n"
+        + (ROOT / "js" / "modules" / "app-shell" / "runtime-renderers.js").read_text(encoding="utf-8")
+    )
+
+
 def test_open_video_project_defers_scroll_until_after_render_frame():
-    runtime_source = APP_SHELL_RUNTIME_PATH.read_text(encoding="utf-8")
+    runtime_source = _read_runtime_source()
 
     assert "function waitForNextFrame()" in runtime_source
     assert "const requestFrame = globalThis.requestAnimationFrame;" in runtime_source

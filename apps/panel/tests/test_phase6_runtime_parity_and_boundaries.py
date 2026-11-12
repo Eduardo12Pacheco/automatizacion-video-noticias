@@ -747,7 +747,11 @@ if (JSON.stringify(requested) !== JSON.stringify(['/api/tts/jobs/job-processing'
 
 
 def test_approval_cards_use_delegated_interaction_handlers():
-    source = (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
+    source = (
+        (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
+        + "\n"
+        + (ROOT / "js" / "modules" / "app-shell" / "runtime-renderers.js").read_text(encoding="utf-8")
+    )
     render_cards = source.split("function renderCards()", 1)[1].split("function bindCardsInteractionEvents()", 1)[0]
     delegated = source.split("function bindCardsInteractionEvents()", 1)[1].split("function renderScriptStats()", 1)[0]
 
@@ -1417,7 +1421,11 @@ if (!queueEl.queueList.innerHTML.includes('data-queue-id="queue-1"')) throw new 
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
-    runtime_source = (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
+    runtime_source = (
+        (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
+        + "\n"
+        + (ROOT / "js" / "modules" / "app-shell" / "runtime-renderers.js").read_text(encoding="utf-8")
+    )
     assert "../features/approval/cards.js" not in runtime_source
     assert "../features/approval/detail-dialog.js" not in runtime_source
     assert "../features/approval/queue-monitor.js" not in runtime_source

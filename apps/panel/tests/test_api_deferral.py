@@ -20,6 +20,15 @@ def _read_file(rel_path):
         return f.read()
 
 
+def _read_runtime_source():
+    """The app-shell runtime is split into boot wiring and renderers."""
+    return (
+        _read_file('js/modules/app-shell/runtime.js')
+        + '\n'
+        + _read_file('js/modules/app-shell/runtime-renderers.js')
+    )
+
+
 # ---------------------------------------------------------------------------
 # 3.1.1 — _visited Set exists in composition.js
 # ---------------------------------------------------------------------------
@@ -78,7 +87,7 @@ def test_lifecycle_exposes_mark_visited():
 
 def test_runtime_passes_visited_to_lifecycle():
     """runtime.js must pass _visited to createAppShellLifecycle."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     # The lifecycle creation call
     lifecycle_block = source.split('createAppShellLifecycle(')[1]
     lifecycle_block = lifecycle_block.split('});')[0]
@@ -92,7 +101,7 @@ def test_runtime_passes_visited_to_lifecycle():
 
 def test_runtime_passes_visited_to_navigation():
     """runtime.js must pass _visited to createShellNavigationController."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     nav_block = source.split('createShellNavigationController(')[1]
     nav_block = nav_block.split('});')[0]
     assert '_visited' in nav_block, \
@@ -101,7 +110,7 @@ def test_runtime_passes_visited_to_navigation():
 
 def test_runtime_passes_lazy_view_event_binder_to_navigation():
     """runtime.js must pass lazy view event binders to navigation."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     nav_block = source.split('createShellNavigationController(')[1]
     nav_block = nav_block.split('});')[0]
     assert 'bindViewEvents' in nav_block, \
@@ -150,7 +159,7 @@ def test_navigation_calls_mark_visited_in_set_view():
 
 def test_refresh_all_gates_video_projects():
     """refreshAll() in runtime.js must check _visited before calling refreshVideoProjects."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     # Find refreshAll function
     refresh_all_start = source.find('async function refreshAll')
     assert refresh_all_start != -1, 'runtime.js must have refreshAll'
@@ -168,7 +177,7 @@ def test_refresh_all_gates_video_projects():
 
 def test_refresh_all_skips_video_projects_when_not_visited():
     """refreshAll() must NOT unconditionally call refreshVideoProjects at boot."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     refresh_all_start = source.find('async function refreshAll')
     refresh_all_body = source[refresh_all_start:]
     next_func = refresh_all_body.find('\nasync function ', 1)
@@ -202,7 +211,7 @@ def test_refresh_all_skips_video_projects_when_not_visited():
 
 def test_subtitles_not_called_at_boot():
     """Subtitles controller refreshRemoteStatus must NOT be called unconditionally at boot."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     # Look for subtitles refreshRemoteStatus or pollStatus calls outside of setView/navigation
     # These should only appear inside the navigation/setView flow, not in boot/lifecycle
     boot_start = source.find('function bootApp')
@@ -301,7 +310,7 @@ def test_login_refresh_all_is_silent_for_remote_local_guard():
 
 def test_refresh_all_skips_silent_local_defaults_in_remote_context():
     """Silent refreshAll must guard the resolved n8n URL, not stale legacy baseUrl."""
-    source = _read_file('js/modules/app-shell/runtime.js')
+    source = _read_runtime_source()
     refresh_all_start = source.find('async function refreshAll')
     assert refresh_all_start != -1, 'runtime.js must have refreshAll'
     body = source[refresh_all_start:source.find('\nasync function refreshPending', refresh_all_start)]
