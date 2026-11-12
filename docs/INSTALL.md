@@ -100,7 +100,7 @@ model step entirely.
 |---|---|---|
 | default/`cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, `demo-worker`, Postgres, SearXNG, Mailpit and the deterministic seed; no API keys |
 | `local` | `--mode local` (activated through `COMPOSE_PROFILES=local` in `.env`) | the real CPU workers: `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` |
-| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the local stack plus GPU access; add `-f infra/compose/compose.gpu.yaml` so Ollama/ASR/TTS reserve the device and TTS uses Qwen instead of Piper |
+| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the local stack plus GPU access; the installer and `newsroom up` add `infra/compose/compose.gpu.yaml` automatically so Ollama/ASR/TTS reserve the device and TTS uses Qwen instead of Piper |
 | `n8n` | explicit `--profile n8n` | the optional n8n container for `WORKFLOW=n8n` |
 | `tools` | never started by `up` | one-shot `migrate` and `model-init` services invoked with `docker compose run --rm` |
 | `auto` | default | picks `gpu` or `cpu` as described above |
@@ -126,12 +126,46 @@ editor.
 An explicit `--profile gpu` is never silently downgraded. If the container
 runtime is missing, the installer warns and `auto` falls back to `cpu`. Install
 `nvidia-container-toolkit` (Linux) or update Docker Desktop (Windows) to use the
-GPU. The GPU device reservation lives in the optional
-`infra/compose/compose.gpu.yaml` overlay; without it the workers keep their CPU
-defaults even when the `gpu` profile is enabled.
+GPU. The GPU device reservation lives in
+`infra/compose/compose.gpu.yaml`, which every installer and CLI Compose call
+adds whenever the `gpu` profile is active; a missing overlay is a hard error
+instead of a silent CPU fallback.
+
+`newsroom doctor` reports the GPU in two steps: the detected card/runtime, and a
+real passthrough probe (`docker run --rm --gpus all
+nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi -L`) when the `gpu` profile is
+selected. Override the probe image with `NEWSROOM_GPU_PROBE_IMAGE` on an
+air-gapped host.
+
+The GPU install downloads the Qwen3-TTS 1.7B checkpoint (~4.5 GB) in the same
+`model-init` step as the Piper/Whisper models. `services/tts-worker/refs/`
+ships a 6-second synthetic Piper reference voice so the Qwen engine can clone a
+speaker without a recording. Ollama unloads its model immediately on the GPU
+(`OLLAMA_GPU_KEEP_ALIVE=0s`, overridable) because the 1.7B Qwen voice and a 3B
+LLM cannot stay resident together in 8 GB.
 
 One GPU job runs at a time through `NEWSROOM_GPU_LOCK_PATH`; the API queue keeps
 the GPU slot serial.
+
+### Verified GPU run
+
+The `gpu` path was verified on an RTX 4060 8 GB (driver 620.70,
+`nvidia-container-toolkit`) with the CUDA smoke image from the doctor check. The
+same `e2e/local-mode.spec.js` that runs on CPU passed with real GPU media:
+
+| Stage | GPU | CPU reference (T27) |
+|---|---|---|
+| Ollama script draft | 5.1 s | 22.3 s |
+| Piper/Qwen voice | 90.1 s (Qwen3-TTS 1.7B) | 17.8 s (Piper) |
+| faster-whisper subtitles | 44.9 s | 46.5 s |
+| Remotion render | 188.7 s (CPU) | 177.3 s (CPU) |
+| Whole spec | 6.1 min | 5.2 min |
+
+Peak whole-card usage was 6,646 MB of 8,188 MB (including the desktop), so the
+1.7B voice variant is the fitting choice for 8 GB. GPU mode is therefore about
+voice quality and LLM speed, not a faster end-to-end run; the render stays on
+CPU. The Qwen report records `engine=QwenCloneEngine, device=cuda:0`, and the
+Ollama server log records `CUDA0` buffers and `POST /api/chat` responses.
 
 ## Non-interactive use
 

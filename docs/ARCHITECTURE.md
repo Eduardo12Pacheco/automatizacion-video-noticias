@@ -195,8 +195,17 @@ a typed `adapter_unavailable` error instead of crashing the read/save surfaces.
 
 The core `JobQueue` is serial by default and the scheduler runs maintenance
 tasks such as expired-session cleanup. GPU worker processes additionally take a
-cross-process file lock (`NEWSROOM_GPU_LOCK_PATH`), so LLM, Whisper and TTS never
+cross-process file lock (`NEWSROOM_GPU_LOCK_PATH`), so Whisper and TTS never
 load together on an 8 GB card. Models are loaded on demand by their workers.
+
+The `gpu` profile is a real overlay, not a label: the installers and
+`newsroom up` append `infra/compose/compose.gpu.yaml`, which reserves the device
+for Ollama, ASR and TTS, switches the ASR worker to CUDA/float16, builds the TTS
+worker with the Qwen extra and points it at the local Qwen3-TTS 1.7B checkpoint.
+Ollama unloads its model immediately after a request on GPU
+(`OLLAMA_GPU_KEEP_ALIVE=0s`) because a 3B LLM and the 1.7B voice model do not fit
+together. Qwen clones the committed synthetic Piper reference in
+`services/tts-worker/refs/`; the CPU Piper mode ignores it.
 
 ## Persistence
 

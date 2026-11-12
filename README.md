@@ -125,12 +125,13 @@ nightly/manual CI job that asserts the real media.
 |---|---|---|---|
 | `demo` (default) | Deterministic stub adapters, seeded fictional story, no downloads | None | A first look, screenshots, the browser happy path |
 | `local` | Ollama script writing (`qwen2.5:3b-instruct`), trafilatura extraction, Piper Spanish voice, faster-whisper `small` int8 subtitles and a real Remotion 720p MP4 on CPU | Ollama, Whisper and Piper | A real offline run |
-| `local --gpu` | The same pipeline with the GPU workers and Qwen TTS | The same plus GPU models | An NVIDIA machine, faster renders |
+| `local --gpu` | The same pipeline with Ollama, Whisper and Qwen3-TTS on an NVIDIA GPU | The same plus the Qwen3-TTS 1.7B checkpoint (~4.5 GB) | An NVIDIA machine (tested on an 8 GB RTX 4060) |
 
 The panel always shows a **Modo demo / Demo mode** badge when the demo adapter
-set is active, so a screenshot cannot be mistaken for a real AI run. The GPU
-workers share one cross-process slot so an 8 GB card never loads the LLM,
-Whisper and TTS at the same time.
+set is active, so a screenshot cannot be mistaken for a real AI run. Whisper and
+TTS share one cross-process GPU slot, and the GPU profile makes Ollama unload
+the LLM immediately after each request, so an 8 GB card can run the 3B LLM and
+the 1.7B voice model back to back without both staying resident.
 
 ## Local-first by default
 
@@ -333,9 +334,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full test matrix and conventions.
   `windows-latest` CI job (parser, prerequisite check and dry-run) and by
   PowerShell 7 behaviour tests on Linux; it has not been exercised on a
   physical Windows 10/11 desktop.
-- The GPU overlay and the sharing rule between LLM, Whisper and TTS are covered
-  by Compose and adapter tests, but the development machine has no NVIDIA
-  container toolkit, so the GPU path is not benchmarked here.
+- GPU mode is verified on the owner's machine (RTX 4060 8 GB, driver 620.70,
+  `nvidia-container-toolkit`): `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04
+  nvidia-smi` works, and the local-mode E2E passed with real CUDA Ollama,
+  faster-whisper and Qwen3-TTS media. Peak GPU memory during that run was
+  6,646 MB of 8,188 MB; the 1.7B voice variant fits because the LLM unloads
+  immediately and GPU jobs are serialized. GPU mode is not faster end to end
+  than CPU (Qwen synthesis is heavier and the Remotion render stays on CPU):
+  the measured run took 6.1 min versus 5.2 min on CPU, while the LLM draft
+  dropped from 22.3 s to 5.1 s.
 - The UI chrome, navigation, admin area and every screen in the visual-QA suite
   are translated in ES/EN. Generated editorial content (news titles, scripts,
   player names) intentionally stays in its source language.
