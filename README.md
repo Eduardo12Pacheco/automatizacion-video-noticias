@@ -124,8 +124,7 @@ Linux / macOS:
 ```bash
 git clone https://github.com/<your-account>/newsroom-video-automation.git
 cd newsroom-video-automation
-./install.sh --yes                 # demo mode: instant, no model download
-./install.sh --yes --mode local    # real local AI on CPU (models downloaded)
+./install.sh
 ```
 
 Windows 10/11:
@@ -133,15 +132,21 @@ Windows 10/11:
 ```powershell
 git clone https://github.com/<your-account>/newsroom-video-automation.git
 cd newsroom-video-automation
-.\install.ps1 -Yes                  # demo mode
-.\install.ps1 -Yes -Mode local     # real local AI on CPU
+.\install.ps1
 ```
 
-The installer checks Docker, disk, RAM and ports, detects an NVIDIA GPU, writes
-a `.env` with fresh random secrets, runs the migrations, creates the first
-administrator and starts the stack. The default `demo` mode needs no models;
-`--mode local` downloads Ollama, Piper and faster-whisper models once. Re-running
-it repairs or upgrades the installation.
+The installer asks for the run mode (`demo`, the default, or `local`) and, when
+it finds an NVIDIA GPU, whether to use it; then it checks Docker, disk, RAM and
+ports, writes a `.env` with fresh random secrets, runs the migrations, creates
+the first administrator and starts the stack. It ends with a summary box with
+the panel URL, the administrator, the generated password and the stop/start
+commands. The default `demo` mode needs no models; `local` downloads Ollama,
+Piper and faster-whisper models once.
+
+For unattended installs use the flags: `./install.sh --yes --mode demo` or
+`./install.sh --yes --mode local --no-gpu` (PowerShell: `-Yes -Mode demo`,
+`-Mode local -NoGpu`). `--port 8090` changes the published panel port.
+Re-running the installer repairs or upgrades the installation.
 
 | Mode | What runs | Panel label |
 |---|---|---|
@@ -151,9 +156,11 @@ it repairs or upgrades the installation.
 Then use the control CLI:
 
 ```bash
-newsroom status    # what is running
-newsroom doctor    # Docker, GPU, models, ports, disk
-newsroom logs api  # follow one service
+newsroom status      # what is running
+newsroom doctor      # Docker, GPU, models, ports, disk
+newsroom logs api    # follow one service
+newsroom mode local  # switch run mode and restart
+newsroom test        # run the same suites as CI
 newsroom down
 ```
 

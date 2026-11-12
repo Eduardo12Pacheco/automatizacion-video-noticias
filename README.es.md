@@ -96,7 +96,7 @@ Linux / macOS:
 ```bash
 git clone https://github.com/<tu-cuenta>/newsroom-video-automation.git
 cd newsroom-video-automation
-./install.sh --yes
+./install.sh
 ```
 
 Windows 10/11:
@@ -104,20 +104,30 @@ Windows 10/11:
 ```powershell
 git clone https://github.com/<tu-cuenta>/newsroom-video-automation.git
 cd newsroom-video-automation
-.\install.ps1 -Yes
+.\install.ps1
 ```
 
-El instalador verifica Docker, disco, RAM y puertos, detecta una GPU NVIDIA,
-genera un `.env` con secretos aleatorios, descarga los modelos locales, ejecuta
-las migraciones, crea el primer administrador y levanta el stack. Volver a
-ejecutarlo repara o actualiza la instalación.
+El instalador pregunta el modo de ejecución (`demo`, por defecto, o `local`) y,
+si encuentra una GPU NVIDIA, si quiere usarla; después verifica Docker, disco,
+RAM y puertos, genera un `.env` con secretos aleatorios, ejecuta las
+migraciones, crea el primer administrador y levanta el stack. Termina con un
+resumen con la URL del panel, el administrador, la contraseña generada y los
+comandos para parar/arrancar. El modo `demo` no descarga modelos; `local`
+descarga Ollama, Piper y faster-whisper una vez.
+
+Para instalaciones desatendidas: `./install.sh --yes --mode demo` o
+`./install.sh --yes --mode local --no-gpu` (PowerShell: `-Yes -Mode demo`,
+`-Mode local -NoGpu`). `--port 8090` cambia el puerto publicado del panel.
+Volver a ejecutarlo repara o actualiza la instalación.
 
 Después se usa la CLI de control:
 
 ```bash
-newsroom status
-newsroom doctor
-newsroom logs api
+newsroom status      # qué está corriendo
+newsroom doctor      # Docker, GPU, modelos, puertos, disco
+newsroom logs api    # seguir un servicio
+newsroom mode local  # cambiar de modo y reiniciar
+newsroom test        # ejecutar las mismas suites que CI
 newsroom down
 ```
 

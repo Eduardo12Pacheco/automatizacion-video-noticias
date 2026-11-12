@@ -36,14 +36,20 @@ cd newsroom-video-automation
 
 The installer:
 
-1. checks Docker, the daemon, Compose v2, disk, RAM and ports;
-2. detects an NVIDIA GPU and selects the `gpu` profile (otherwise `cpu`);
+1. shows a short banner and checks Docker, the daemon, Compose v2, disk, RAM
+   and ports;
+2. asks for the run mode (`demo` by default, or `local`) and, when an NVIDIA
+   GPU is available, whether to use the `gpu` profile;
 3. creates `.env` from `.env.example` with fresh random secrets, mode `0600`;
 4. installs the `newsroom` CLI into `~/.local/bin` (override with `--bin-dir`);
-5. builds the images and downloads the local models;
+5. builds the images and, in `local` mode, downloads the models;
 6. applies the database migrations;
 7. creates the first administrator and prints the generated password once;
-8. starts the stack and opens <http://127.0.0.1:8080>.
+8. starts the stack, opens <http://127.0.0.1:8080> and prints a summary box with
+   the panel URL, administrator, password and lifecycle commands.
+
+Every phase prints a `[n/7]` progress line. The prompts are skipped by `--yes`,
+in CI and when the matching flag (`--mode`, `--gpu`, `--no-gpu`) is present.
 
 ## Quick start (Windows)
 
@@ -121,11 +127,11 @@ the GPU slot serial.
 ## Non-interactive use
 
 ```bash
-./install.sh --yes --profile cpu
+./install.sh --yes --mode demo --no-gpu
 ```
 
 ```powershell
-.\install.ps1 -Yes -Profile cpu
+.\install.ps1 -Yes -Mode demo -NoGpu
 ```
 
 With `--yes` / `-Yes` the first-admin password is generated and printed exactly
@@ -136,16 +142,22 @@ control the password, provide it through the environment (never through argv):
 NEWSROOM_ADMIN_PASSWORD='choose-a-long-password' ./install.sh --yes --profile cpu
 ```
 
-Other non-interactive options:
+Other options:
 
 ```text
---no-models / -NoModels      skip the model download
---no-start / -NoStart        prepare the installation without starting it
---no-open / -NoOpen          do not open the panel
---admin-email / -AdminEmail  first administrator email
---project-dir / -ProjectDir  directory holding .env and compose.yaml
+--mode / -Mode                 demo (default) or local
+--profile / -Profile           auto (default), cpu or gpu
+--gpu / -Gpu                   use the gpu profile
+--no-gpu / -NoGpu              use cpu even when a GPU is present
+--port / -Port                 published panel port (default 8080)
+--no-models / -NoModels        skip the model download
+--no-start / -NoStart          prepare the installation without starting it
+--no-open / -NoOpen            do not open the panel
+--admin-email / -AdminEmail    first administrator email
+--project-dir / -ProjectDir    directory holding .env and compose.yaml
 --compose-file / -ComposeFile  override the Compose file
 --allow-missing-docker / -AllowMissingDocker  CI/self-check only
+--version / -Version           installer version
 ```
 
 `--dry-run` / `-DryRun` prints every action without creating files or starting
@@ -160,8 +172,10 @@ containers.
 | `newsroom status` | `docker compose ps` |
 | `newsroom logs [service]` | follow logs (`--no-follow` prints and exits) |
 | `newsroom update` | refuse a dirty checkout, `git pull --ff-only`, pull/build images, apply migrations, restart |
+| `newsroom mode demo\|local` | write the run mode, download models when switching to `local`, restart the stack |
 | `newsroom doctor` | Docker, daemon, Compose, GPU, disk, RAM, ports, models, admin and install state |
-| `newsroom models` | download the local models if the state says they are missing |
+| `newsroom models [pull]` | download the local models if missing (`pull` forces a refresh) |
+| `newsroom test` | run the same suites as CI (`tools/run-all-tests.mjs`) |
 | `newsroom version` | CLI version |
 | `newsroom help` | usage |
 
