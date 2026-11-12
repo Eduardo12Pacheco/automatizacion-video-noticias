@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +51,7 @@ def test_cli_unknown_command_returns_json_error():
 
 
 @pytest.mark.live
+@pytest.mark.skipif(os.environ.get("NEWSROOM_LIVE_TESTS") != "1", reason="set NEWSROOM_LIVE_TESTS=1 to run the live trafilatura check")
 def test_live_trafilatura_extracts_a_public_article():
     pytest.importorskip("trafilatura")
     article = extract_article("https://example.com/")
