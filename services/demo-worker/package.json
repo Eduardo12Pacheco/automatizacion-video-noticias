@@ -1,0 +1,11 @@
+{
+  "name": "@newsroom/demo-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic CPU demo worker for the keyless local Compose profile.",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  }
+}
