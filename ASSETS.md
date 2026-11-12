@@ -32,19 +32,34 @@ carry no EXIF data.
 
 Runtime mirrors (same origin/license) are written to:
 
-- `services/renderer/assets/overlays/` — render roles: `logo-demo-alpha.webm`,
-  `logo-demo-co.webm`, `logo-green.mp4`, `logo-clean.mp4`, `logo-demo-cup.png`,
-  `final-demo-{cup,co,ec}.mp4`, `particle-1..4.webm`,
+- `services/renderer/assets/overlays/` — render roles: `logo-primary.webm`,
+  `logo-secondary.webm`, `logo-green.mp4`, `logo-clean.mp4`, `logo-final.png`,
+  `outro-{primary,secondary,final}.mp4`, `particle-1..4.webm`,
   `overlay-layer-01/02.webm` + `.mp4`, the alpha logo frame folders, and the
   three boundary transitions.
-- `services/renderer/public/` — `fonts/versa/Demo-Display.woff2`,
+- `services/renderer/public/` — `fonts/display/Demo-Display.woff2`,
   `sfx/sound-demo.wav` and the generated SFX set.
 - `apps/panel/assets/` — browser previews for the same roles, plus
   `boundary-transitions/`.
 
-The fictional brand name is **Demo Sports News**. Country-specific filenames
-(`-co`, `-ec`, `-cup`) are legacy role identifiers only and do not reference
-any real team, person or channel.
+The fictional brand name is **Demo Sports News**. Brand roles use neutral
+names (`logo-primary`, `logo-secondary`, `logo-final`, `outro-primary`,
+`outro-secondary`, `outro-final`); no country or tournament name is baked into
+an asset path.
+
+The generated logo stills carry the tagline **LOCAL DEMO / CC0**. `CC0` is the
+license dedication for the generated art, not a brand or a person; an earlier
+draft misspelled that license dedication with a three-letter look-alike, and no
+shipped asset carries the misspelling.
+
+## Panel Icon
+
+| Asset | Role | Origin | License |
+|---|---|---|---|
+| `apps/panel/favicon.svg` | Browser favicon for Demo Sports News | Hand-authored SVG in this repository | CC0 |
+
+The icon is an original broadcast mark (a central dot with two signal arcs),
+not a copy of any owner file.
 
 ## Font Licensing
 
@@ -56,8 +71,8 @@ copyright notice plus the full license text:
 |---|---|---|
 | `services/subtitles/assets/fonts/subtitles/` | Anton, Bebas Neue, Khand, League Gothic, Oswald | `OFL.txt` |
 | `examples/brand/fonts/` | `Demo-Display.woff2` (derived from Anton) | `OFL.txt` |
-| `apps/panel/assets/fonts/versa/` | `Demo-Display.woff2` | `OFL.txt` |
-| `services/renderer/public/fonts/versa/` | `Demo-Display.woff2` | `OFL.txt` |
+| `apps/panel/assets/fonts/display/` | `Demo-Display.woff2` | `OFL.txt` |
+| `services/renderer/public/fonts/display/` | `Demo-Display.woff2` | `OFL.txt` |
 
 `Demo-Display.woff2` is a renamed, subsetted repackaging of the OFL-licensed
 Anton font; the reserved-name rules do not apply because Anton's copyright
@@ -66,11 +81,12 @@ the OFL notice and may not be redistributed under another license.
 
 ## Recorded Demo
 
-`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (88-second full
-walkthrough) are screen recordings of the default keyless Docker Compose profile
-(login, approval decision, generated script, voice/subtitles/projects views).
-They are product screenshots, not brand media, and contain only fictional demo
-data. Both files are well below the 5 MB blob limit enforced for history.
+`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (34-second
+walkthrough) are screen recordings of the panel in showcase mode
+(`/?showcase=1`): pipeline navigation, the approval/Guiones view, Prensa, Voz,
+Subtítulos, Proyectos and Settings. They are product screenshots, not brand
+media, and contain only the fictional showcase data. Both files are well below
+the 5 MB blob limit enforced for history.
 
 ## Not Included
 

@@ -11,7 +11,7 @@ nube.**
 El GIF es un loop corto grabado con el stack Docker Compose por defecto, sin
 claves: inicio de sesión, una decisión de aprobación, el borrador de guion
 generado y las vistas de voz, subtítulos y proyectos de video. El
-[MP4](docs/images/demo.mp4) es el recorrido completo de 88 segundos.
+[MP4](docs/images/demo.mp4) es el recorrido de 34 segundos en modo showcase.
 
 | Panel tras iniciar sesión | Modo showcase |
 |---|---|

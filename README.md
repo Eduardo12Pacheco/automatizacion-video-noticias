@@ -9,7 +9,7 @@
 The clip above is a short loop recorded from the default keyless Docker Compose
 stack: login, an approval decision, the generated script draft, and the voice,
 subtitles and video-project views. The [MP4](docs/images/demo.mp4) is the full
-88-second walkthrough.
+34-second showcase walkthrough.
 
 | Panel after login | Showcase mode |
 |---|---|
