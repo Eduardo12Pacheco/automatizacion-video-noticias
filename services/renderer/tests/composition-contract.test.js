@@ -15,35 +15,6 @@ function loadCompositionMotionResolver() {
   return Function(`${source}; return resolveMotionRange;`)();
 }
 
-function loadPreviewMotionResolver() {
-  const source = fs.readFileSync(
-    path.join(__dirname, "../../../apps/panel/js/modules/features/video-projects/composition/renderer/frame-math.js"),
-    "utf8",
-  );
-  const constantsStart = source.indexOf("const ZOOM_SLOW_IN = ");
-  assert.notEqual(constantsStart, -1, "frame-math.js must define ZOOM_SLOW_IN");
-  const constantsEnd = source.indexOf(";", constantsStart);
-  assert.notEqual(constantsEnd, -1, "frame-math.js must define ZOOM_SLOW_IN boundary");
-  const start = source.indexOf("export function resolveZoomRange", constantsEnd);
-  assert.notEqual(start, -1, "frame-math.js must define resolveZoomRange");
-  const end = source.indexOf("\n}\n\nfunction resolveComparableUrl", start);
-  assert.notEqual(end, -1, "frame-math.js preview motion resolver extraction boundary changed");
-  const constantsSnippet = source.slice(constantsStart, constantsEnd + 1);
-  const functionSnippet = source.slice(start, end + 3).replace("export function resolveZoomRange", "function resolveZoomRange");
-  return Function(`${constantsSnippet}${functionSnippet}; return resolveZoomRange;`)();
-}
-
-function normalizePreviewMotionRange(range) {
-  return {
-    fromScale: range.from,
-    toScale: range.to,
-    fromX: range.fromX,
-    fromY: range.fromY,
-    toX: range.toX,
-    toY: range.toY,
-  };
-}
-
 function makeFixture() {
   return {
     contract: {
@@ -680,28 +651,6 @@ test("adapter omits image dimensions when asset metadata is unavailable", () => 
   assert.equal(props.segments[0].imageHeight, undefined);
 });
 
-test("Remotion motion resolver keeps string preset parity with preview", () => {
-  const resolveMotionRange = loadCompositionMotionResolver();
-  const resolvePreviewMotionRange = loadPreviewMotionResolver();
-
-  for (const preset of [
-    "still",
-    "none",
-    "slow-zoom",
-    "slow-zoom-in",
-    "slow-zoom-out",
-    "pan-left",
-    "pan-right",
-    "unknown-motion",
-  ]) {
-    assert.deepEqual(
-      resolveMotionRange(preset),
-      normalizePreviewMotionRange(resolvePreviewMotionRange(preset)),
-      `Expected Remotion motion preset ${preset} to match preview semantics`,
-    );
-  }
-});
-
 test("adapter preserves image selectedAssetId while mapping explicit video segment media", () => {
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
@@ -1127,8 +1076,6 @@ test("Remotion composition source contains newspaper visual mode parity branch",
   const renderScriptSource = fs.readFileSync(path.join(__dirname, "../scripts/render/render-video.js"), "utf8");
   assert.match(renderScriptSource, /const projectFontsDir = path\.join\(publicDir, "fonts", "display"\)/);
   assert.match(renderScriptSource, /fs\.copyFileSync\(repoDisplayFontPath, projectVersaFontPath\)/);
-  const previewFrameMathSource = fs.readFileSync(path.join(__dirname, "../../../apps/panel/js/modules/features/video-projects/composition/renderer/frame-math.js"), "utf8");
-  assert.match(previewFrameMathSource, /const NEWSPAPER_LABEL_FONT_SIZE = 18/, "preview keeps the 1280px editor label size while Remotion scales the label for the 1920px final output");
   assert.match(source, /const NEWSPAPER_LABEL_LINE_HEIGHT = 1\.12/);
   assert.match(source, /fontFamily: NEWSPAPER_LABEL_FONT_FAMILY/);
   assert.match(source, /fontSize: NEWSPAPER_LABEL_FONT_SIZE/);

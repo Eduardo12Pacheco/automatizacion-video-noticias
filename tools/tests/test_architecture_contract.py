@@ -97,6 +97,11 @@ class RuntimeServiceTest(unittest.TestCase):
         self.assertNotIn("approval-editor/server.js", renderer_dockerfile)
         self.assertIn("scripts/render/render-server.js", renderer_dockerfile)
 
+    def test_renderer_tests_do_not_read_panel_sources(self) -> None:
+        for path in (ROOT / "services/renderer/tests").glob("*.test.js"):
+            source = path.read_text(encoding="utf-8")
+            self.assertNotIn("apps/panel", source, f"{path.name} still reaches into the panel")
+
     def test_script_draft_save_is_a_core_use_case(self) -> None:
         use_case = (ROOT / "packages/core/src/use-cases/save-script-draft.js").read_text(encoding="utf-8")
         router = (ROOT / "apps/api/src/local-router.js").read_text(encoding="utf-8")

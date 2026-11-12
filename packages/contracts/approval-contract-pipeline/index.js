@@ -44,6 +44,12 @@ function resolveBrandChannelAssets(channel = DEFAULT_BRAND_CHANNEL) {
   return BRAND_CHANNEL_ASSETS[normalizeBrandChannel(channel)];
 }
 
+function resolveBrandChannelPreviewAssetUrl({ channel = DEFAULT_BRAND_CHANNEL, kind = "logo" } = {}) {
+  const assets = resolveBrandChannelAssets(channel);
+  const asset = kind === "outro" ? assets.outro : assets.logo;
+  return `./assets/${asset.previewPath}`;
+}
+
 function buildBrandAssetRecords(channelAssets = resolveBrandChannelAssets()) {
   const logo = channelAssets.logo;
   const outro = channelAssets.outro;
@@ -321,6 +327,7 @@ module.exports = {
   stableId,
   normalizeBrandChannel,
   resolveBrandChannelAssets,
+  resolveBrandChannelPreviewAssetUrl,
   buildBrandAssetRecords,
   buildApprovalContractPipeline,
   buildCompositionContractFromPreparedInput,

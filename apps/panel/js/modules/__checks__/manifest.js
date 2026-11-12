@@ -1,5 +1,11 @@
 export const CHECK_MANIFEST = [
   {
+    path: 'js/modules/features/video-projects/__checks__/renderer-motion-parity-check.mjs',
+    owner: 'video-projects',
+    commandKind: 'node-test',
+    exportedHelpers: [],
+  },
+  {
     path: 'js/modules/features/audio/__checks__/audio-seams.check.mjs',
     owner: 'audio',
     commandKind: 'node-test',

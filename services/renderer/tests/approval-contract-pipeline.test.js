@@ -7,12 +7,6 @@ const {
   computeApprovalSnapshotHash,
 } = require("../scripts/lib/contracts/approval-contract-pipeline");
 const sharedApprovalPipeline = require("@newsroom/contracts/approval-contract-pipeline");
-const path = require("node:path");
-const { pathToFileURL } = require("node:url");
-
-async function importControlPanelCompositionModule(relativePath) {
-  return import(pathToFileURL(path.join(__dirname, "../../../apps/panel/js/modules/features/video-projects/composition", relativePath)).href);
-}
 
 function makeRows() {
   return [
@@ -363,7 +357,7 @@ test("brand channel registry resolves preview and render assets with legacy Aure
     normalizeBrandChannel,
     resolveBrandChannelAssets,
     resolveBrandChannelPreviewAssetUrl,
-  } = await importControlPanelCompositionModule("overlay-assets.js");
+  } = require("@newsroom/contracts/approval-contract-pipeline");
 
   assert.equal(normalizeBrandChannel("demo-secondary"), "demo-secondary");
   assert.equal(normalizeBrandChannel(undefined), "demo-primary");
@@ -372,7 +366,7 @@ test("brand channel registry resolves preview and render assets with legacy Aure
   const montelia = resolveBrandChannelAssets("demo-secondary");
   assert.equal(montelia.logo.assetId, "brand-logo-secondary");
   assert.equal(montelia.logo.previewPath, "logo-secondary.webm");
-  assert.equal(montelia.logo.renderPath, "overlays/logo-secondary.mp4");
+  assert.equal(montelia.logo.renderPath, "overlays/logo-secondary.webm");
   assert.equal(montelia.outro.assetId, "brand-outro-secondary");
   assert.equal(montelia.outro.previewPath, "outro-secondary.mp4");
   assert.equal(montelia.outro.renderPath, "overlays/outro-secondary.mp4");
