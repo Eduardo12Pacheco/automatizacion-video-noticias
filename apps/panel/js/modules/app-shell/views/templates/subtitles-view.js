@@ -126,7 +126,7 @@ export const subtitlesViewHTML = `\
                   </div>
 
                   <div class="audio-actions">
-                    <button id="subtitle2SaveBtn" class="secondary">Guardar cambios</button>
+                    <button id="subtitle2SaveBtn" class="secondary" data-i18n="subtitles.save">Guardar cambios</button>
                     <span id="subtitle2AutosaveStatus" class="subtitle-autosave-status" aria-live="polite"></span>
                   </div>
 
@@ -176,9 +176,9 @@ export const subtitlesViewHTML = `\
                 <p id="subtitle2DoneMessage" class="meta">Cuando la tabla est\u00e9 lista, renderiz\u00e1 el video desde ac\u00e1 sin salir del editor.</p>
               </div>
               <div class="audio-actions subtitle-finish-actions">
-                <button id="subtitle2ReadyBtn" class="approve">Renderizar video</button>
-                <button id="subtitle2DownloadBtn">Descargar video</button>
-                <button id="subtitle2AnotherVideoBtn" class="secondary">Subtitular otro video</button>
+                <button id="subtitle2ReadyBtn" class="primary" data-i18n="subtitles.render">Renderizar video</button>
+                <button id="subtitle2DownloadBtn" class="secondary" data-i18n="subtitles.download">Descargar video</button>
+                <button id="subtitle2AnotherVideoBtn" class="ghost" data-i18n="subtitles.another">Subtitular otro video</button>
               </div>
             </section>
           </section>`;

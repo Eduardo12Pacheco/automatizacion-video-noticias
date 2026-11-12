@@ -102,8 +102,8 @@ def test_button_variants_and_destructive_actions():
     assert 'id="videoProjectsRefreshBtn" class="ghost' in scripts
 
     subtitles = _read(TEMPLATES / "subtitles-view.js")
-    assert 'id="subtitle2ReadyBtn"' in subtitles
-    assert 'id="subtitle2DownloadBtn"' in subtitles
+    assert 'id="subtitle2ReadyBtn" class="primary"' in subtitles
+    assert 'id="subtitle2DownloadBtn" class="secondary"' in subtitles
 
 
 def test_dialog_pattern_title_close_and_right_aligned_footer():

@@ -76,9 +76,9 @@ export const radarViewHTML = `\
                 <textarea id="radarExtraKeywordsInput" class="script-area" placeholder="Messi, Di Mar\u00eda, Scaloni"></textarea>
               </label>
               <p id="radarValidationMessage" class="meta" aria-live="polite"></p>
-              <div class="queue-actions">
-                <button id="radarSubmitBtn" class="approve" type="button" data-i18n="radar.createJob">Crear job</button>
-              </div>
+              <footer class="dialog-actions">
+                <button id="radarSubmitBtn" class="primary" type="button" data-i18n="radar.createJob">Crear job</button>
+              </footer>
             </article>
           </dialog>
 
@@ -86,7 +86,7 @@ export const radarViewHTML = `\
             <article>
               <header class="dialog-header">
                 <h2 data-i18n="radar.summary">Resumen</h2>
-                <button id="radarSummaryCloseBtn" class="secondary" type="button">Cerrar</button>
+                <button id="radarSummaryCloseBtn" class="dialog-close" type="button" aria-label="Cerrar">×</button>
               </header>
               <div id="radarSummaryBody" class="topic-dialog-body"></div>
             </article>
@@ -96,9 +96,9 @@ export const radarViewHTML = `\
             <article>
               <header class="dialog-header"><h2 id="radarConfirmTitle">Confirmar acci\u00f3n</h2></header>
               <p id="radarConfirmMessage" data-i18n="radar.confirmMeta">Esta acci\u00f3n modifica el job seleccionado.</p>
-              <div class="queue-actions">
-                <button id="radarConfirmCancelBtn" class="secondary" type="button">Cancelar</button>
-                <button id="radarConfirmAcceptBtn" class="approve" type="button">Confirmar</button>
-              </div>
+              <footer class="dialog-actions">
+                <button id="radarConfirmCancelBtn" class="secondary" type="button" data-i18n="radar.cancel">Cancelar</button>
+                <button id="radarConfirmAcceptBtn" class="primary" type="button" data-i18n="radar.confirm">Confirmar</button>
+              </footer>
             </article>
           </dialog>`;
