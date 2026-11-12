@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local authenticated API gateway for the newsroom panel.",
+  "description": "Local authenticated API for the newsroom panel.",
   "scripts": {
     "start": "node src/gateway.js",
     "test": "node --test test/"
   },
   "dependencies": {
-    "@newsroom/data": "workspace:*"
+    "@newsroom/core": "workspace:*",
+    "@newsroom/data": "workspace:*",
+    "bcryptjs": "^3.0.3"
   }
 }
