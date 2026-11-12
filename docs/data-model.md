@@ -3,7 +3,7 @@
 This document is the source of truth for the local Postgres schema. It was
 reverse-engineered during T3 (decision D4) from the only surviving evidence:
 
-- `examples/n8n/workflows.json`: HTTP node bodies, upsert payloads and Code
+- `examples/legacy-n8n/workflows.json`: HTTP node bodies, upsert payloads and Code
   node field names/status values.
 - The panel read-model shapers under `apps/panel/js/modules/features/`.
 - The table/RPC inventory captured in the feature document's Context section.

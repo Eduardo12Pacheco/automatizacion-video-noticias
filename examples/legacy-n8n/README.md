@@ -1,27 +1,20 @@
-# Historical workflow reference
+# Legacy n8n export (reference only)
 
-`workflows.json` is the single sanitized export of the original 16 workflows.
-It preserves the previously imported definitions for the core migration; it is
-not the default local-first backend or a working cloud deployment.
+`workflows.json` is the sanitized export of the original 16 workflows. It is
+kept only so the migration can be inspected: the product logic now lives in
+`packages/core`, and **no Compose stack mounts or imports this file**.
 
-## Inspect or import
+> Warning: this export is not a backup and is not safe to activate. It was
+> written against the retired Supabase backend, its credential exports were
+> removed, and its webhook paths predate the local API. Import it into a
+> disposable n8n instance only, never against real accounts or data.
 
-Review the definitions before importing them into a disposable n8n instance.
-The legacy Compose file in `infra/n8n/` mounts this directory read-only at
-`/import`; it never includes credential exports.
+## What to use instead
 
-```sh
-docker compose -f infra/n8n/docker-compose.yml run --rm n8n \
-  n8n import:workflow --input=/import/workflows.json
-```
+The supported examples are in [`infra/n8n/workflows/`](../../infra/n8n/workflows/):
+two slim workflows that trigger `POST /jobs/discover` and react to the
+`job-completed` webhook. See [`docs/CONNECTORS.md`](../../docs/CONNECTORS.md)
+for the environment variables and the end-to-end setup.
 
-External endpoints use example hosts; removed secrets are placeholders.
-An import alone does not restore accounts, database state, credentials or media.
-Do not activate these historical workflows against real services.
-
-The two former working snapshots contained the same 16 workflow IDs but had
-different bytes. The import export is canonical because it was the actual
-import fixture, not because all three snapshots were identical.
-
-The optional local-first trigger examples will replace this reference once the
-domain use cases have moved into `packages/core`.
+The only supported way to inspect the historical definitions is a manual
+import into a throwaway container; do not mount this directory in Compose.

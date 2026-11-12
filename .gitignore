@@ -39,7 +39,7 @@ local/backups/
 local/models/
 local/default-music/
 # Runtime n8n exports remain ignored. The canonical sanitized reference is
-# versioned separately under examples/n8n/.
+# versioned separately under examples/legacy-n8n/.
 infra/n8n/files/*
 infra/n8n/import/*
 recovery-artifacts/

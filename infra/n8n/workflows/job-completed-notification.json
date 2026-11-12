@@ -1,0 +1,113 @@
+{
+  "name": "Newsroom - job completed notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-completed",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "b2e1d4f2-0000-4000-8000-000000000001",
+      "name": "Job completed webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "newsroom-job-completed"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "b2e1d4f2-0000-4000-8000-000000000002",
+      "name": "Only completed jobs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "newsroom@example.local",
+        "toEmail": "{{ $env.NEWSROOM_NOTIFY_EMAIL || 'editor@example.local' }}",
+        "subject": "=Newsroom job completed: {{ $json.body.job_name }}",
+        "emailFormat": "text",
+        "text": "=Job {{ $json.body.job_id }} ({{ $json.body.job_name }}) finished with status {{ $json.body.status }}.",
+        "options": {}
+      },
+      "id": "b2e1d4f2-0000-4000-8000-000000000003",
+      "name": "Send completion email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [460, 0],
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_YOUR_SMTP_CREDENTIAL",
+          "name": "Newsroom SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Completion notification\n\nThe API posts `{ job_id, job_name, status, finished_at, subject_id }` to `/webhook/job-completed` when `WORKFLOW=n8n`. Attach any SMTP credential (Gmail app password works) to the email node and set `NEWSROOM_NOTIFY_EMAIL`."
+      },
+      "id": "b2e1d4f2-0000-4000-8000-000000000004",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-220, -120]
+    }
+  ],
+  "connections": {
+    "Job completed webhook": {
+      "main": [
+        [
+          {
+            "node": "Only completed jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only completed jobs": {
+      "main": [
+        [
+          {
+            "node": "Send completion email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

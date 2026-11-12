@@ -20,7 +20,7 @@ optional `WorkflowTriggerPort` adapter:
 - The in-process job queue and scheduler own orchestration in the default stack.
 - The `n8n` Compose profile and the slim example workflows stay available for
   users who want to trigger the API from n8n.
-- The historical export remains under `examples/n8n/` as a read-only reference
+- The historical export remains under `examples/legacy-n8n/` as a read-only reference
   fixture, with placeholders instead of secrets.
 
 ## Consequences
