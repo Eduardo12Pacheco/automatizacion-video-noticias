@@ -50,8 +50,15 @@ describe('connectors API', () => {
           port: 1025,
           async verify() { return { ok: true, message: 'SMTP greeting OK' }; },
         },
+        workflow: {
+          constructor: { name: 'N8nWorkflowTrigger' },
+          baseUrl: 'https://user:secret@n8n.example.local/path?token=abc#frag',
+        },
       },
       blobStorage: new FsBlobStorage({ root }),
+      fetchImpl: async (url) => {
+        throw new Error(`cannot reach ${url}`);
+      },
     });
     refreshStarts = [];
     const jobsRouter = createJobsRouter({
@@ -102,6 +109,25 @@ describe('connectors API', () => {
     assert.equal(payload.connectors.find((entry) => entry.id === 'llm').status, 'local');
     assert.equal(JSON.stringify(payload).includes('mailpit:1025'), true);
     assert.equal(JSON.stringify(payload).includes('password'), false);
+  });
+
+  it('never returns URL credentials from the list or a test probe', async () => {
+    const list = await fetch(`${base}/panel/connectors`, { headers: { cookie: cookies.admin } });
+    assert.equal(list.status, 200);
+    const listBody = await list.text();
+    for (const secret of ['user', 'secret', 'token', 'abc', 'frag']) {
+      assert.equal(listBody.includes(secret), false, `connector list leaked ${secret}`);
+    }
+
+    const response = await fetch(`${base}/panel/connectors/workflow/test`, {
+      method: 'POST',
+      headers: { cookie: cookies.admin, origin: TRUSTED_ORIGIN },
+    });
+    assert.equal(response.status, 200);
+    const body = await response.text();
+    for (const secret of ['user', 'secret', 'token', 'abc', 'frag']) {
+      assert.equal(body.includes(secret), false, `connector probe leaked ${secret}`);
+    }
   });
 
   it('reserves the connectors screen for admins', async () => {

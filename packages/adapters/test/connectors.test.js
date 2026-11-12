@@ -96,6 +96,42 @@ test('a successful probe reports local and the connection message', async () => 
   assert.equal(result.message, 'SMTP greeting OK');
 });
 
+test('redacts userinfo, query and fragment from every endpoint detail and probe', async () => {
+  const malicious = 'https://user:secret@host.example/path?token=abc#frag';
+  const adapters = adaptersFor({
+    LLM: 'openai',
+    OPENAI_BASE_URL: malicious,
+    IMAGE_SEARCH: 'searxng',
+    SEARXNG_URL: malicious,
+    WORKFLOW: 'n8n',
+    N8N_WEBHOOK_BASE_URL: malicious,
+    ASR_BASE_URL: malicious,
+    TTS_BASE_URL: malicious,
+    SUBTITLES_BASE_URL: malicious,
+    RENDERER_BASE_URL: malicious,
+  });
+  const registry = createConnectorRegistry({
+    env: {},
+    adapters,
+    fetchImpl: async (url) => {
+      throw new Error(`cannot reach ${url}`);
+    },
+  });
+
+  const serialized = JSON.stringify(registry.list());
+  for (const secret of ['user', 'secret', 'token', 'abc', 'frag']) {
+    assert.equal(serialized.includes(secret), false, `list leaked ${secret}: ${serialized}`);
+  }
+
+  for (const id of ['llm', 'image-search', 'workflow', 'asr', 'tts', 'translation', 'video-renderer', 'media-download']) {
+    const result = await registry.test(id);
+    const response = JSON.stringify(result);
+    for (const secret of ['user', 'secret', 'token', 'abc', 'frag']) {
+      assert.equal(response.includes(secret), false, `${id} leaked ${secret}: ${response}`);
+    }
+  }
+});
+
 test('unknown connectors return null instead of inventing a status', async () => {
   const registry = createConnectorRegistry({ env: {}, adapters: {} });
   assert.equal(await registry.test('nope'), null);

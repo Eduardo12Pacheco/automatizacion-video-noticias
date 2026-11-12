@@ -52,6 +52,28 @@ function httpProbe({ baseUrl, path = '/health', headers = {} } = {}) {
   };
 }
 
+function safeEndpoint(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  try {
+    const parsed = new URL(text);
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`.replace(/\/+$/, '');
+  } catch {
+    return '';
+  }
+}
+
+function safeHost(value) {
+  return String(value || '').trim().split('@').pop().split(/[?#]/)[0];
+}
+
+function redactUrls(value) {
+  return String(value || '').replace(/\bhttps?:\/\/[^\s'"]+/gi, (match) => {
+    const trimmed = match.replace(/[),.;]+$/, '');
+    return safeEndpoint(trimmed) || '[redacted-url]';
+  });
+}
+
 function connector({ id, port, adapter, kind, detail = '', probe = null, env = [] }) {
   return { id, port, adapter: kind, detail, probe, env: [...env] };
 }
@@ -74,20 +96,20 @@ export function createConnectorRegistry({
 
   const definitions = [
     connector({ id: 'repository', port: 'RepositoryPort', adapter: repository, kind: repository ? adapterKind(repository) : 'none', detail: repository ? adapterKind(repository) : '', env: ['DATABASE_URL'] }),
-    connector({ id: 'blob-storage', port: 'BlobStoragePort', adapter: blobStorage, kind: blobStorage ? adapterKind(blobStorage) : 'none', detail: blobStorage?.endpoint ? `${blobStorage.bucket} @ ${blobStorage.endpoint}` : (blobStorage?.root || ''), env: ['STORAGE'] }),
+    connector({ id: 'blob-storage', port: 'BlobStoragePort', adapter: blobStorage, kind: blobStorage ? adapterKind(blobStorage) : 'none', detail: blobStorage?.endpoint ? `${blobStorage.bucket} @ ${safeEndpoint(blobStorage.endpoint)}` : (blobStorage?.root || ''), env: ['STORAGE'] }),
     connector({ id: 'news-source', port: 'NewsSourcePort', adapter: adapters.newsSource, kind: adapters.newsSource ? 'rss' : 'none', detail: 'Google News RSS', env: ['NEWS_SOURCE'] }),
     connector({ id: 'article-extractor', port: 'ArticleExtractorPort', adapter: adapters.articleExtractor, kind: adapterKind(adapters.articleExtractor), detail: adapters.articleExtractor?.pythonBin || '', env: ['ARTICLE_EXTRACTOR'] }),
-    connector({ id: 'llm', port: 'LLMPort', adapter: adapters.llm, kind: adapterKind(adapters.llm), detail: [adapters.llm?.model, adapters.llm?.baseUrl].filter(Boolean).join(' @ '), env: ['LLM'] }),
-    connector({ id: 'image-search', port: 'ImageSearchPort', adapter: adapters.imageSearch, kind: adapters.imageSearch ? 'searxng' : 'none', detail: adapters.imageSearch?.searxngUrl || '', env: ['IMAGE_SEARCH'] }),
-    connector({ id: 'tts', port: 'TTSPort', adapter: adapters.tts, kind: adapterKind(adapters.tts), detail: adapters.tts?.baseUrl || '', env: ['TTS'] }),
-    connector({ id: 'asr', port: 'ASRPort', adapter: adapters.asr, kind: adapterKind(adapters.asr), detail: adapters.asr?.baseUrl || '', env: ['ASR'] }),
-    connector({ id: 'translation', port: 'TranslationPort', adapter: adapters.translation, kind: adapterKind(adapters.translation), detail: adapters.translation?.baseUrl || '', env: ['TRANSLATION'] }),
-    connector({ id: 'video-renderer', port: 'VideoRendererPort', adapter: adapters.videoRenderer, kind: adapterKind(adapters.videoRenderer), detail: adapters.videoRenderer?.baseUrl || '', env: ['RENDERER'] }),
+    connector({ id: 'llm', port: 'LLMPort', adapter: adapters.llm, kind: adapterKind(adapters.llm), detail: [adapters.llm?.model, safeEndpoint(adapters.llm?.baseUrl)].filter(Boolean).join(' @ '), env: ['LLM'] }),
+    connector({ id: 'image-search', port: 'ImageSearchPort', adapter: adapters.imageSearch, kind: adapters.imageSearch ? 'searxng' : 'none', detail: safeEndpoint(adapters.imageSearch?.searxngUrl), env: ['IMAGE_SEARCH'] }),
+    connector({ id: 'tts', port: 'TTSPort', adapter: adapters.tts, kind: adapterKind(adapters.tts), detail: safeEndpoint(adapters.tts?.baseUrl), env: ['TTS'] }),
+    connector({ id: 'asr', port: 'ASRPort', adapter: adapters.asr, kind: adapterKind(adapters.asr), detail: safeEndpoint(adapters.asr?.baseUrl), env: ['ASR'] }),
+    connector({ id: 'translation', port: 'TranslationPort', adapter: adapters.translation, kind: adapterKind(adapters.translation), detail: safeEndpoint(adapters.translation?.baseUrl), env: ['TRANSLATION'] }),
+    connector({ id: 'video-renderer', port: 'VideoRendererPort', adapter: adapters.videoRenderer, kind: adapterKind(adapters.videoRenderer), detail: safeEndpoint(adapters.videoRenderer?.baseUrl), env: ['RENDERER'] }),
     connector({ id: 'channel-feed', port: 'ChannelFeedPort', adapter: adapters.channelFeed, kind: adapters.channelFeed ? 'rss' : 'none', detail: 'YouTube public RSS', env: ['CHANNEL_FEED'] }),
-    connector({ id: 'media-download', port: 'MediaDownloadPort', adapter: adapters.mediaDownload, kind: adapterKind(adapters.mediaDownload), detail: adapters.mediaDownload?.baseUrl || '', env: ['MEDIA_DOWNLOAD'] }),
+    connector({ id: 'media-download', port: 'MediaDownloadPort', adapter: adapters.mediaDownload, kind: adapterKind(adapters.mediaDownload), detail: safeEndpoint(adapters.mediaDownload?.baseUrl), env: ['MEDIA_DOWNLOAD'] }),
     connector({ id: 'document-export', port: 'DocumentExportPort', adapter: adapters.documentExport, kind: adapters.documentExport ? 'local' : 'none', detail: adapters.documentExport?.pythonBin || '', env: ['DOCUMENT_EXPORT'] }),
-    connector({ id: 'workflow', port: 'WorkflowTriggerPort', adapter: adapters.workflowTrigger, kind: adapterKind(adapters.workflowTrigger), detail: adapters.workflowTrigger?.baseUrl || '', env: ['WORKFLOW'] }),
-    connector({ id: 'notification', port: 'NotificationPort', adapter: adapters.notification, kind: adapterKind(adapters.notification), detail: adapters.notification?.host ? `${adapters.notification.host}:${adapters.notification.port}` : '', env: ['NOTIFY'] }),
+    connector({ id: 'workflow', port: 'WorkflowTriggerPort', adapter: adapters.workflowTrigger, kind: adapterKind(adapters.workflowTrigger), detail: safeEndpoint(adapters.workflowTrigger?.baseUrl), env: ['WORKFLOW'] }),
+    connector({ id: 'notification', port: 'NotificationPort', adapter: adapters.notification, kind: adapterKind(adapters.notification), detail: adapters.notification?.host ? `${safeHost(adapters.notification.host)}:${adapters.notification.port}` : '', env: ['NOTIFY'] }),
     connector({ id: 'auth', port: 'AuthPort', adapter: adapters.auth, kind: adapterKind(adapters.auth), detail: '', env: ['AUTH'] }),
   ];
 
@@ -192,11 +214,11 @@ export function createConnectorRegistry({
     try {
       result = await probe({ fetchImpl });
     } catch (error) {
-      result = { ok: false, message: String(error?.message || error) };
+      result = { ok: false, message: redactUrls(error?.message || error) };
     }
     const record = {
       ok: result?.ok !== false,
-      message: String(result?.message || (result?.ok === false ? 'Connection failed' : 'Connection OK')),
+      message: redactUrls(result?.message || (result?.ok === false ? 'Connection failed' : 'Connection OK')),
       checked_at: new Date().toISOString(),
     };
     lastResults.set(id, record);
