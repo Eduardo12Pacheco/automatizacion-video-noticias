@@ -116,7 +116,6 @@ La arquitectura separa frontend browser, servicio local, assets livianos de prev
 ├─ assets/                         # WebM livianos para preview del navegador
 ├─ js/                             # frontend browser ES modules
 │  ├─ main.js
-│  ├─ legacy/app.js                # histórico, no runtime
 │  └─ modules/
 │     ├─ composition-root.js
 │     ├─ app-shell.js              # facade estable del shell
@@ -277,7 +276,6 @@ node "01-Control-Panel/js/modules/features/radar/__checks__/radar-panel-check.js
 
 ## Qué NO borrar
 
-- `js/legacy/app.js`: histórico/no runtime.
 - `services/approval-editor/projects/`: datos runtime locales.
 - `js/modules/__checks__/`: facades y checks de paridad.
 - Facades de features como `features/*/index.js`; son fachadas de compatibilidad cuando sostienen imports existentes.

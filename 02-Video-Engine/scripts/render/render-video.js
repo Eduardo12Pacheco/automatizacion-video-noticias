@@ -1,19 +1,19 @@
 const fs = require("fs");
 const path = require("path");
-const { assertCanonicalTimeline } = require("../lib/timeline-utils");
-const { readJsonSchema, writeJsonSchema } = require("../lib/json-contracts");
-const { diagnosticsSchema, editorProjectSchema, renderPropsSchema, timelineSchema } = require("../lib/schemas");
+const { assertCanonicalTimeline } = require("../lib/timing/timeline-utils");
+const { readJsonSchema, writeJsonSchema } = require("../lib/contracts/json-contracts");
+const { diagnosticsSchema, editorProjectSchema, renderPropsSchema, timelineSchema } = require("../lib/contracts/schemas");
 const {
   deriveRenderPropsFromEditorProject,
   updateProjectConfig,
-} = require("../lib/editor-project");
-const { adaptCompositionContractToRenderProps } = require("../lib/composition-contract");
+} = require("../lib/projects/editor-project");
+const { adaptCompositionContractToRenderProps } = require("../lib/contracts/composition-contract");
 const {
   PIPELINE_PLACEHOLDER_TOKEN,
   resolveProjectRoot,
   resolveRenderAudio,
   resolveVisualSegment,
-} = require("../lib/media-utils");
+} = require("../lib/media/media-utils");
 const {
   RenderLifecycleError,
   acquireRenderLock,

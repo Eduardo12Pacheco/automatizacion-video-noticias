@@ -38,6 +38,5 @@ If a Video Projects style guard fails, rollback only the CSS slice: restore the 
 
 ## Legacy Archive Guard (non-runtime)
 
-- `01-Control-Panel/app.js` is archived as legacy artifact in `js/legacy/app.js`.
-- `js/legacy/app.js` MUST include `LEGACY ARCHIVE - non-runtime` marker.
-- Runtime must never import/include `js/legacy/app.js`; any reference is a parity failure.
+- The legacy archive (`js/legacy/app.js`) was removed during T2 hygiene; no tracked legacy entrypoint remains.
+- Runtime must never import/include a legacy app entrypoint; any reference is a parity failure.

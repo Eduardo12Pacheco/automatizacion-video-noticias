@@ -188,11 +188,9 @@ def test_phase9_structure_guardrails_expect_runtime_pure_helper_locations_after_
     assert "resolveSubtitleProgressPercentRuntime" in app_shell_source
 
 
-def test_legacy_app_js_is_archived_with_marker_and_root_file_removed():
-    assert not ROOT_APP_JS_PATH.exists(), "Root 01-Control-Panel/app.js must be archived, not left in runtime root"
-    assert LEGACY_APP_JS_PATH.exists(), "Legacy app.js must exist at js/legacy/app.js"
-    source = LEGACY_APP_JS_PATH.read_text(encoding="utf-8")
-    assert "LEGACY ARCHIVE - non-runtime" in source
+def test_legacy_app_js_is_removed_after_archive_retirement():
+    assert not ROOT_APP_JS_PATH.exists(), "Root 01-Control-Panel/app.js must stay removed"
+    assert not LEGACY_APP_JS_PATH.exists(), "Archived js/legacy/app.js must be deleted in T2"
 
 
 def test_docs_include_archive_acceptance_and_runtime_reference_guard():
@@ -200,11 +198,11 @@ def test_docs_include_archive_acceptance_and_runtime_reference_guard():
     guards = STYLE_GUARDS_PATH.read_text(encoding="utf-8")
 
     assert "Checkpoint G4" in matrix
-    assert "js/legacy/app.js" in matrix
+    assert "archive retired" in matrix.lower()
     assert "zero runtime references" in matrix
 
-    assert "LEGACY ARCHIVE" in guards
-    assert "js/legacy/app.js" in guards
+    assert "legacy archive" in guards.lower()
+    assert "removed" in guards.lower()
 
 
 def test_s4_archival_rollback_simulation_moves_legacy_app_back_in_isolation_and_restores_state():

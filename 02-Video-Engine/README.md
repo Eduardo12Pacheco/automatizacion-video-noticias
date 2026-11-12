@@ -98,14 +98,14 @@ Lo importante: después de borrar eso, el render oficial siguió funcionando y g
 | Estado | Rutas |
 |---|---|
 | Deleted in this work unit | Pipeline manual viejo: `setup`, `process`, `generate timeline`, `fix timeline`, `verify sync`, modelo Vosk trackeado y outputs históricos. |
-| Deferred, still present | `scripts/transcribe-audio.py`, wrappers bajo `scripts/lib/`, servicio local legacy y `assets/overlays/`. |
+| Deleted in this work unit | Compatibility shims under `scripts/lib/`; callers now import the real implementation modules. |
+| Deferred, still present | `scripts/transcribe-audio.py`, servicio local legacy y `assets/overlays/`. |
 
 ## Qué todavía NO se borra
 
 | Ruta | Por qué se queda |
 |---|---|
 | `scripts/transcribe-audio.py` | `01-Control-Panel/services/approval-editor/lib/real-alignment.js` todavía puede usarlo para STT/alineación real. |
-| wrappers bajo `scripts/lib/` | Compatibilidad temporal mientras callers externos terminan de migrar. |
 | `scripts/approval-pipeline-local-service.js` y `scripts/services/approval-pipeline-local-service.js` | Legacy/local service diferido. No es el flujo oficial, pero no se borró en esta tanda. |
 | `assets/overlays/` | Render final depende de estos assets para fidelidad visual. |
 

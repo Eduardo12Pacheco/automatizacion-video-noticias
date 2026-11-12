@@ -131,6 +131,30 @@ test("deleted high-confidence legacy pipeline paths stay absent while render ass
     );
   }
 
+  const shimPaths = [
+    "scripts/lib/approval-contract-pipeline.js",
+    "scripts/lib/approval-input-preparation.js",
+    "scripts/lib/approval-project-store.js",
+    "scripts/lib/approval-response-adapter.js",
+    "scripts/lib/composition-contract.js",
+    "scripts/lib/editor-project.js",
+    "scripts/lib/guion-parsing.js",
+    "scripts/lib/image-search-provider.js",
+    "scripts/lib/image-selection.js",
+    "scripts/lib/json-contracts.js",
+    "scripts/lib/media-utils.js",
+    "scripts/lib/phrase-alignment.js",
+    "scripts/lib/schemas.js",
+    "scripts/lib/timeline-utils.js",
+  ];
+  for (const relativePath of shimPaths) {
+    assert.equal(
+      fs.existsSync(path.join(videoEngineRoot, relativePath)),
+      false,
+      `${relativePath} compatibility shim should be deleted`,
+    );
+  }
+
   const protectedPaths = [
     "scripts/render-video.js",
     "scripts/render/render-video.js",
@@ -166,9 +190,9 @@ test("gitignore ignores only runtime projects while keeping source project helpe
   }
 });
 
-test("required project compatibility wrappers resolve from a clean checkout source tree", () => {
-  const editorProject = require(path.join(videoEngineRoot, "scripts", "lib", "editor-project"));
-  const approvalProjectStore = require(path.join(videoEngineRoot, "scripts", "lib", "approval-project-store"));
+test("required project modules resolve from a clean checkout source tree", () => {
+  const editorProject = require(path.join(videoEngineRoot, "scripts", "lib", "projects", "editor-project"));
+  const approvalProjectStore = require(path.join(videoEngineRoot, "scripts", "lib", "projects", "approval-project-store"));
 
   assert.equal(editorProject.stableId("Draft Luis Díaz!"), "draft-luis-diaz");
   assert.equal(typeof editorProject.createEditorProject, "function");

@@ -6,8 +6,8 @@ const path = require("node:path");
 
 const { createApprovalEditorService } = require("../../01-Control-Panel/services/approval-editor/server");
 const { createVideoEngineRenderAdapter, buildMinimalRenderScaffold } = require("../../01-Control-Panel/services/approval-editor/lib/video-engine-render-adapter");
-const { adaptCompositionContractToRenderProps } = require("../scripts/lib/composition-contract");
-const { editorProjectSchema } = require("../scripts/lib/schemas");
+const { adaptCompositionContractToRenderProps } = require("../scripts/lib/contracts/composition-contract");
+const { editorProjectSchema } = require("../scripts/lib/contracts/schemas");
 
 function basePayload() {
   return {

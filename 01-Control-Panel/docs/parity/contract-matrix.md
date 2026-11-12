@@ -131,9 +131,9 @@ If P7 fails, rollback MUST revert only `js/modules/features/video-projects/compo
 
 ## Checkpoint G4 (Legacy Archive)
 
-- Acceptance: root `app.js` is archived to `js/legacy/app.js` with explicit `LEGACY ARCHIVE - non-runtime` marker.
+- Archive retired: the archived copy `js/legacy/app.js` and root `app.js` were deleted during T2 hygiene; the historical rollback recipe below is retained as a procedure, not as a tracked artifact.
 - Replay target: dependency/runtime checks enforce **zero runtime references** to `js/legacy/app.js`.
 
 ## Rollback Scope (Slice S4 Archive)
 
-If G4 fails, rollback MUST move archived `js/legacy/app.js` back to root `app.js` only, without reverting prior passing checkpoints.
+If G4 fails, rollback MUST restore `app.js` from history into root `app.js` only, without reverting prior passing checkpoints.

@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { prepareApprovalInputs } = require("../scripts/lib/approval-input-preparation");
+const { prepareApprovalInputs } = require("../scripts/lib/contracts/approval-input-preparation");
 const sharedApprovalPipeline = require("../../03-Contracts-Core/approval-contract-pipeline");
 
 function makeProjectRoot() {

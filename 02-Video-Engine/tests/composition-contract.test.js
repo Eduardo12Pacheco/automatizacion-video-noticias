@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const { adaptCompositionContractToRenderProps, buildWhipRenderEvents } = require("../scripts/lib/composition-contract");
+const { adaptCompositionContractToRenderProps, buildWhipRenderEvents } = require("../scripts/lib/contracts/composition-contract");
 const { computeApprovalSnapshotHash } = require("../../03-Contracts-Core/approval-contract-pipeline");
 
 function loadCompositionMotionResolver() {

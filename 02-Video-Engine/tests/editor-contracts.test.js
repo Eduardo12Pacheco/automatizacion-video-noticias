@@ -9,14 +9,14 @@ const {
   assertNoSelectedVideoAssets,
   editorProjectSchema,
   renderPropsV2Schema,
-} = require("../scripts/lib/schemas");
+} = require("../scripts/lib/contracts/schemas");
 const {
   createEditorProject,
   deriveRenderPropsFromEditorProject,
   validateEditorProject,
-} = require("../scripts/lib/editor-project");
-const { readJsonSchema } = require("../scripts/lib/json-contracts");
-const { secondsToDurationFrames, secondsToFrame, frameToSeconds } = require("../scripts/lib/timeline-utils");
+} = require("../scripts/lib/projects/editor-project");
+const { readJsonSchema } = require("../scripts/lib/contracts/json-contracts");
+const { secondsToDurationFrames, secondsToFrame, frameToSeconds } = require("../scripts/lib/timing/timeline-utils");
 
 const repoRoot = path.resolve(__dirname, "..");
 const pngPixelBase64 =

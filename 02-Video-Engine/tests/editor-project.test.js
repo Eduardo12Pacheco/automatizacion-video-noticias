@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { createEditorProject, validateEditorProject } = require("../scripts/lib/editor-project");
+const { createEditorProject, validateEditorProject } = require("../scripts/lib/projects/editor-project");
 
 const pngPixelBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zz5QAAAAASUVORK5CYII=";
 

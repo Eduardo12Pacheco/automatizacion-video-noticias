@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { parseGuionSegments } = require("../scripts/lib/guion-parsing");
+const { parseGuionSegments } = require("../../03-Contracts-Core/approval-contract-pipeline/guion-parsing");
 
 test("parseGuionSegments preserva indices y falla bloque vacio entre delimitadores", () => {
   assert.throws(

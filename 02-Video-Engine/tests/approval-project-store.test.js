@@ -9,7 +9,7 @@ function makeProjectsRoot() {
 }
 
 test("approval project store persists index, project, and status across restarts", () => {
-  const { createApprovalProjectStore } = require("../scripts/lib/approval-project-store");
+  const { createApprovalProjectStore } = require("../scripts/lib/projects/approval-project-store");
   const projectsRoot = makeProjectsRoot();
 
   const store = createApprovalProjectStore({ projectsRoot });

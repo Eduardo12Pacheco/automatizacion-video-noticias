@@ -8,8 +8,8 @@ const { z } = require("zod");
 const {
   readJsonSchema,
   writeJsonSchema,
-} = require("../scripts/lib/json-contracts");
-const { scriptPhrasesSchema } = require("../scripts/lib/schemas");
+} = require("../scripts/lib/contracts/json-contracts");
+const { scriptPhrasesSchema } = require("../scripts/lib/contracts/schemas");
 
 function makeTempPath(fileName) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "remotion-editor-json-"));

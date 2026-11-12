@@ -5,7 +5,7 @@ const {
   buildApprovalContractPipeline,
   buildCompositionContractFromPreparedInput,
   computeApprovalSnapshotHash,
-} = require("../scripts/lib/approval-contract-pipeline");
+} = require("../scripts/lib/contracts/approval-contract-pipeline");
 const sharedApprovalPipeline = require("../../03-Contracts-Core/approval-contract-pipeline");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");

@@ -5,8 +5,8 @@ const {
   buildApprovalContractPipeline,
   ALIGNMENT_FALLBACK_WARNING,
 } = require("../../../03-Contracts-Core/approval-contract-pipeline");
-const { createApprovalProjectStore } = require("../lib/approval-project-store");
-const { toApprovalCreateResponse, toApprovalStatusResponse } = require("../lib/approval-response-adapter");
+const { createApprovalProjectStore } = require("../lib/projects/approval-project-store");
+const { toApprovalCreateResponse, toApprovalStatusResponse } = require("../lib/contracts/approval-response-adapter");
 const { applyContractOperations } = require("../../../01-Control-Panel/services/approval-editor/lib/contract-updates");
 
 function stableId(value) {
