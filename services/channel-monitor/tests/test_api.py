@@ -607,6 +607,15 @@ def test_preflight_reports_websub_subscription_findings_per_channel_without_secr
     assert settings.callback_url not in response.text
 
 
+def _strip_volatile_card_fields(payload):
+    """Drop timestamp/rank fields the card shape exposes but a fixture cannot pin."""
+    for item in payload.get("items", []):
+        assert item.pop("created_at", None), "card must expose created_at"
+        assert "channel_priority_rank" in item
+        item.pop("channel_priority_rank")
+    return payload
+
+
 def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(tmp_path):
     settings = Settings(
         api_key="monitor-secret",
@@ -648,7 +657,8 @@ def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(t
 
     assert unauthorized.status_code == 401
     assert authorized.status_code == 200
-    assert authorized.json() == {
+    payload = _strip_volatile_card_fields(authorized.json())
+    assert payload == {
         "status": "ok",
         "degraded": False,
         "items": [
@@ -762,7 +772,8 @@ def test_monitor_cards_endpoint_serializes_missing_radar_linkage_as_pending_ment
     response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"})
 
     assert response.status_code == 200
-    assert response.json()["items"] == [
+    payload = _strip_volatile_card_fields(response.json())
+    assert payload["items"] == [
         {
             "id": "valdoria-unlinked:valdoria",
             "video_id": "valdoria-unlinked",
@@ -897,7 +908,8 @@ def test_monitor_cards_endpoint_filters_target_rows_and_exposes_canonical_counts
     response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "terramar"})
 
     assert response.status_code == 200
-    assert response.json()["items"] == [
+    payload = _strip_volatile_card_fields(response.json())
+    assert payload["items"] == [
         {
             "id": "multi:terramar",
             "video_id": "multi",
@@ -1091,7 +1103,8 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
     terramar = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "terramar"})
 
     assert important.status_code == 200
-    assert important.json()["items"] == [
+    important_payload = _strip_volatile_card_fields(important.json())
+    assert important_payload["items"] == [
         {
             "id": "important-zero-api:important",
             "video_id": "important-zero-api",
