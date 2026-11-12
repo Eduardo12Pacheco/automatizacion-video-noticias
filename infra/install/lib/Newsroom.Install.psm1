@@ -195,6 +195,8 @@ function Write-NrInstallSummary {
         Write-Host ('| {0,-68} |' -f $script:NrConfig.PendingAdminPassword)
     } elseif ($script:NrConfig.AdminState -eq 'created') {
         Write-Host ('| {0,-68} |' -f 'Password: the one you entered during installation')
+    } elseif ($script:NrConfig.DryRun) {
+        Write-Host ('| {0,-68} |' -f 'Password: not created in a dry run')
     } else {
         Write-Host ('| {0,-68} |' -f 'Password: unchanged from the previous installation')
     }

@@ -172,6 +172,8 @@ nr_print_summary() {
     printf '| %-68s |\n' "$NR_ADMIN_PASSWORD_PRINTED"
   elif [ "$NR_ADMIN_STATE" = "created" ]; then
     printf '| %-68s |\n' "Password: the one you entered during installation"
+  elif [ "$NR_DRY_RUN" = "1" ]; then
+    printf '| %-68s |\n' "Password: not created in a dry run"
   else
     printf '| %-68s |\n' "Password: unchanged from the previous installation"
   fi
