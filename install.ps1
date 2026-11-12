@@ -13,6 +13,7 @@ param(
     [switch]$DryRun,
     [switch]$Uninstall,
     [switch]$Purge,
+    [switch]$ForcePurge,
     [switch]$NoModels,
     [switch]$NoStart,
     [switch]$NoOpen,
@@ -45,6 +46,7 @@ Options:
   -DryRun               Print every action without changing the host
   -Uninstall            Stop and remove the stack
   -Purge                With -Uninstall: also delete volumes, models and .env
+  -ForcePurge           Skip the typed purge confirmation (non-interactive use)
   -NoModels             Skip downloading the local models
   -NoStart              Prepare the installation but do not start the stack
   -NoOpen               Do not open the panel in a browser
@@ -74,6 +76,7 @@ try {
     Initialize-NrPaths -ProjectDir $ProjectDir -ComposeFile $ComposeFile
     $config = Get-NrConfig
     Set-NrOption -Name Yes -Value ([bool]$Yes)
+    Set-NrOption -Name ForcePurge -Value ([bool]$ForcePurge)
     Set-NrOption -Name DryRun -Value ([bool]$DryRun)
     Set-NrOption -Name DownloadModels -Value (-not [bool]$NoModels)
     Set-NrOption -Name StartStack -Value (-not [bool]$NoStart)

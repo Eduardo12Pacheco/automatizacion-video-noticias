@@ -177,11 +177,21 @@ function Open-NrPanel {
     Write-NrInfo "open the panel at http://127.0.0.1:$port"
 }
 
-function Confirm-NrAction {
-    param([string]$Prompt)
-    if ($script:NrConfig.Yes) { return $false }
-    $answer = Read-Host -Prompt "$Prompt [y/N]"
-    return [bool]($answer -match '^(y|yes)$')
+function Confirm-NrPurge {
+    if ($script:NrConfig.ForcePurge) {
+        Write-NrWarn 'force-purge: deleting volumes, local models and .env without confirmation'
+        return $true
+    }
+    if ($script:NrConfig.Yes) {
+        Write-NrWarn 'purge requires the typed confirmation; pass -ForcePurge for non-interactive use'
+        return $false
+    }
+    $answer = Read-Host -Prompt "Type 'delete' to permanently delete volumes, local models and .env"
+    if ($answer -ne 'delete') {
+        Write-NrInfo "confirmation did not match 'delete'; keeping volumes, local models and .env"
+        return $false
+    }
+    return $true
 }
 
 function Remove-NrStack {
@@ -196,10 +206,8 @@ function Remove-NrStack {
 
     $deleteData = $false
     if ($Purge) {
-        if ($script:NrConfig.Yes -or (Confirm-NrAction -Prompt 'Delete volumes, local models and the generated .env?')) {
+        if (Confirm-NrPurge) {
             $deleteData = $true
-        } else {
-            Write-NrInfo 'keeping volumes, models and .env'
         }
     }
 

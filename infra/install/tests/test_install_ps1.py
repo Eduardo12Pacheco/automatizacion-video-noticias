@@ -28,13 +28,14 @@ def powershell_command():
 @unittest.skipIf(os.name == "nt", "Linux smoke tests; Windows CI runs install.ps1 -Check")
 @unittest.skipIf(PWSH is None, "pwsh/powershell is not installed")
 class PowerShellInstallerTests(InstallerTestCase):
-    def run_ps(self, *args, env_extra=None, timeout=120):
+    def run_ps(self, *args, env_extra=None, timeout=120, input_text=None):
         env = self.base_env(**(env_extra or {}))
         return subprocess.run(
             powershell_command() + ["-File", str(INSTALL_PS1), *args],
             cwd=str(REPO_ROOT),
             env=env,
             text=True,
+            input=input_text,
             capture_output=True,
             timeout=timeout,
         )
@@ -144,12 +145,23 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertTrue((self.project / ".env").exists())
 
         purge = self.run_ps(
-            "-Uninstall", "-Purge", "-Yes",
+            "-Uninstall", "-Purge", "-Yes", "-ForcePurge",
             "-ProjectDir", str(self.project), "-BinDir", str(self.bin_dir),
         )
         self.assertEqual(purge.returncode, 0, purge.stdout + purge.stderr)
         self.assertIn("VOLUMES_REMOVED", self.read_log())
         self.assertFalse((self.project / ".env").exists())
+
+    def test_purge_with_yes_without_force_purge_keeps_data(self):
+        self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
+        result = self.run_ps(
+            "-Uninstall", "-Purge", "-Yes",
+            "-ProjectDir", str(self.project), "-BinDir", str(self.bin_dir),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("VOLUMES_REMOVED", self.read_log())
+        self.assertIn("-ForcePurge", result.stdout + result.stderr)
+        self.assertTrue((self.project / ".env").exists())
 
     def test_cli_status_and_doctor(self):
         self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)

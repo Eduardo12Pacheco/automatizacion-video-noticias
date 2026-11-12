@@ -51,13 +51,14 @@ class InstallerTestCase(unittest.TestCase):
         env.update({key: str(value) for key, value in extra.items()})
         return env
 
-    def run_installer(self, *args, env_extra=None, timeout=60):
+    def run_installer(self, *args, env_extra=None, timeout=60, input_text=None):
         env = self.base_env(**(env_extra or {}))
         result = subprocess.run(
             ["bash", str(INSTALL_SH), *args],
             cwd=str(REPO_ROOT),
             env=env,
             text=True,
+            input=input_text,
             capture_output=True,
             timeout=timeout,
         )
@@ -92,7 +93,7 @@ class HelpAndCheckTests(InstallerTestCase):
     def test_help_lists_the_supported_flags(self):
         result = self.run_installer("--help")
         self.assertEqual(result.returncode, 0, result.stderr)
-        for flag in ("--yes", "--profile", "--check", "--dry-run", "--uninstall", "--purge", "--no-models"):
+        for flag in ("--yes", "--profile", "--check", "--dry-run", "--uninstall", "--purge", "--force-purge", "--no-models"):
             self.assertIn(flag, result.stdout)
 
     def test_check_reports_success_with_a_usable_docker(self):
@@ -270,10 +271,10 @@ class UninstallTests(InstallerTestCase):
         self.assertTrue((self.project / ".env").exists())
         self.assertFalse((self.bin_dir / "newsroom").exists())
 
-    def test_purge_removes_volumes_state_and_env(self):
+    def test_purge_removes_volumes_state_and_env_with_force_purge(self):
         self.assertEqual(self.run_installer(*self.install_args("--profile", "cpu")).returncode, 0)
         result = self.run_installer(
-            "--uninstall", "--purge", "--yes",
+            "--uninstall", "--purge", "--yes", "--force-purge",
             "--project-dir", str(self.project),
             "--bin-dir", str(self.bin_dir),
         )
@@ -281,6 +282,40 @@ class UninstallTests(InstallerTestCase):
         self.assertIn("VOLUMES_REMOVED", self.read_log())
         self.assertFalse((self.project / ".env").exists())
         self.assertFalse((self.project / ".newsroom").exists())
+
+    def test_purge_with_yes_without_force_purge_keeps_data(self):
+        self.assertEqual(self.run_installer(*self.install_args("--profile", "cpu")).returncode, 0)
+        result = self.run_installer(
+            "--uninstall", "--purge", "--yes",
+            "--project-dir", str(self.project),
+            "--bin-dir", str(self.bin_dir),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("VOLUMES_REMOVED", self.read_log())
+        self.assertIn("--force-purge", result.stdout + result.stderr)
+        self.assertTrue((self.project / ".env").exists())
+
+    def test_purge_requires_the_literal_delete_confirmation(self):
+        self.assertEqual(self.run_installer(*self.install_args("--profile", "cpu")).returncode, 0)
+        rejected = self.run_installer(
+            "--uninstall", "--purge",
+            "--project-dir", str(self.project),
+            "--bin-dir", str(self.bin_dir),
+            input_text="yes\n",
+        )
+        self.assertEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+        self.assertNotIn("VOLUMES_REMOVED", self.read_log())
+        self.assertTrue((self.project / ".env").exists())
+
+        accepted = self.run_installer(
+            "--uninstall", "--purge",
+            "--project-dir", str(self.project),
+            "--bin-dir", str(self.bin_dir),
+            input_text="delete\n",
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        self.assertIn("VOLUMES_REMOVED", self.read_log())
+        self.assertFalse((self.project / ".env").exists())
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ $script:NrConfig = @{
     Profile        = 'auto'
     DryRun         = $false
     Yes            = $false
+    ForcePurge     = $false
     DownloadModels = $true
     StartStack     = $true
     OpenPanel      = $false

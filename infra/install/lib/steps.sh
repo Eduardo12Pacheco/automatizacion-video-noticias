@@ -144,15 +144,28 @@ nr_open_panel() {
 
 # --- Uninstall -------------------------------------------------------------
 
-nr_confirm() {
-  local prompt="$1"
-  if [ "$NR_YES" = "1" ] || ! nr_can_use_tty; then
+# S11: --purge always asks for the literal word "delete", even with --yes.
+# --force-purge is the explicit opt-out for unattended automation.
+nr_purge_confirmed() {
+  if [ "$NR_FORCE_PURGE" = "1" ]; then
+    nr_warn "force-purge: deleting volumes, local models and .env without confirmation"
+    return 0
+  fi
+  if [ "$NR_YES" = "1" ]; then
+    nr_warn "purge requires the typed confirmation; pass --force-purge for non-interactive use"
     return 1
   fi
   local answer=""
-  printf '%s [y/N]: ' "$prompt" >&2
-  IFS= read -r answer
-  case "$answer" in y|Y|yes|YES) return 0 ;; *) return 1 ;; esac
+  printf "Type 'delete' to permanently delete volumes, local models and .env: " >&2
+  if ! IFS= read -r answer; then
+    nr_warn "no confirmation input; keeping volumes, local models and .env"
+    return 1
+  fi
+  if [ "$answer" != "delete" ]; then
+    nr_info "confirmation did not match 'delete'; keeping volumes, local models and .env"
+    return 1
+  fi
+  return 0
 }
 
 nr_uninstall() {
@@ -166,10 +179,8 @@ nr_uninstall() {
 
   local delete_data=0
   if [ "$purge" = "1" ]; then
-    if [ "$NR_YES" = "1" ] || nr_confirm "Delete volumes, local models and the generated .env?"; then
+    if nr_purge_confirmed; then
       delete_data=1
-    else
-      nr_info "keeping volumes, models and .env"
     fi
   fi
 

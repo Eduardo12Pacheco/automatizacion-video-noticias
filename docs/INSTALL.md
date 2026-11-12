@@ -192,26 +192,40 @@ Stop and remove containers but keep data:
 ./install.sh --uninstall
 ```
 
-Remove containers **and** volumes, models, images and `.env` (the installer asks
-first unless `--yes` is given):
+Remove containers **and** volumes, models, images and `.env`. Destructive
+purges always ask you to type `delete`, even when `--yes` is present; use
+`--force-purge` / `-ForcePurge` only for unattended automation:
 
 ```bash
 ./install.sh --uninstall --purge
+./install.sh --uninstall --purge --force-purge   # no prompt
 ```
 
 ```powershell
 .\install.ps1 -Uninstall -Purge
+.\install.ps1 -Uninstall -Purge -ForcePurge       # no prompt
 ```
 
 ## Opening the panel to the LAN
 
-The default binding is `127.0.0.1` for the panel-facing services.
-`.env.example` sets `API_GATEWAY_HOST=0.0.0.0` for the API so the panel and API
-can talk inside Compose. To let other people on your LAN use the panel:
+Only the panel and API ports are published, and `NEWSROOM_BIND` controls
+their host interface (`127.0.0.1` by default). `.env.example` keeps
+`API_GATEWAY_HOST=0.0.0.0` so the API listens on the Compose network for the
+panel's nginx proxy; it is not published to the host directly. To let other
+people on your LAN use the panel:
 
-1. Set the panel/API host values in `.env` to `0.0.0.0` (or your LAN address).
-2. Allow the panel and API ports through the host firewall.
-3. Open `http://<your-lan-ip>:8080`.
+1. Set `NEWSROOM_BIND=0.0.0.0` (or your LAN address) in `.env`.
+2. Add the LAN origin to `API_GATEWAY_ALLOWED_ORIGINS` and
+   `API_GATEWAY_TRUSTED_MUTATION_ORIGINS`.
+3. Allow the panel port through the host firewall.
+4. Open `http://<your-lan-ip>:8080`.
+
+Postgres, Ollama, SearXNG, Mailpit and n8n are not published. For debugging,
+add the optional override:
+
+```bash
+docker compose --profile debug -f compose.yaml -f infra/compose/compose.debug.yaml up
+```
 
 Sessions are HTTP-only, SameSite=Lax cookies with a server-side store and
 expiry. Login attempts are rate-limited. Do not expose the stack to the public
@@ -226,6 +240,8 @@ Useful values:
 |---|---|---|
 | `NEWSROOM_PROFILE` | `cpu` | Written by the installer; `cpu` or `gpu` |
 | `PANEL_PORT` / `API_GATEWAY_PORT` | `8080` / `8099` | Host ports |
+| `NEWSROOM_BIND` | `127.0.0.1` | Host interface for the published panel/API ports |
+| `TRUSTED_PROXY_CIDRS` | `172.16.0.0/12` | Proxy networks allowed to set `X-Forwarded-For` |
 | `DATABASE_URL` | local Postgres | Repository connection string |
 | `LLM` | `ollama` | Local model adapter; `openai` is optional and off by default |
 | `OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Local Spanish-capable model |

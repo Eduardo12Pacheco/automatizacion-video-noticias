@@ -23,6 +23,7 @@ Options:
       --dry-run             Print every action without changing the host
       --uninstall           Stop and remove the stack
       --purge               With --uninstall: also delete volumes, models and .env
+      --force-purge         Skip the typed purge confirmation (non-interactive use)
       --no-models           Skip downloading the local models
       --no-start            Prepare the installation but do not start the stack
       --no-open             Do not open the panel in a browser
@@ -62,6 +63,7 @@ while [ "$#" -gt 0 ]; do
     --dry-run) NR_DRY_RUN=1 ;;
     --uninstall) ACTION=uninstall ;;
     --purge) PURGE=1 ;;
+    --force-purge) PURGE=1; NR_FORCE_PURGE=1 ;;
     --no-models) NR_DOWNLOAD_MODELS=0 ;;
     --no-start) NR_START_STACK=0 ;;
     --no-open) NR_OPEN_PANEL=0 ;;
