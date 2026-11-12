@@ -12,6 +12,7 @@ import { createRowImageCommands } from '../data/row-image-commands.js';
 import { createRowCommands } from '../controller/row-commands.js';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+const panelRoot = resolve(currentDir, '../../../../..');
 const videoProjectsStylesPath = resolve(currentDir, '../../../../../styles/features/video-projects/index.css');
 const selectedProjectViewPath = resolve(currentDir, '../render/selected-project-view.js');
 
@@ -35,7 +36,11 @@ function readCssWithImports(filePath, seen = new Set()) {
 
   const source = readFileSync(filePath, 'utf8');
   return source.replace(/@import\s+'([^']+)'\s*;/g, (_, importPath) => {
-    return readCssWithImports(resolve(dirname(filePath), importPath.split('?')[0]), seen);
+    const cleanPath = importPath.split('?')[0];
+    const target = cleanPath.startsWith('/')
+      ? resolve(panelRoot, cleanPath.slice(1))
+      : resolve(dirname(filePath), cleanPath);
+    return readCssWithImports(target, seen);
   });
 }
 

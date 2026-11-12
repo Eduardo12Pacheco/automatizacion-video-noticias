@@ -89,15 +89,15 @@ def test_video_projects_css_facade_is_import_only_with_locked_chunk_order():
     facade_path = ROOT / "styles" / "features" / "video-projects" / "index.css"
     source = facade_path.read_text(encoding="utf-8")
     expected_lines = [
-        "@import './layout.css';",
-        "@import './project-list.css';",
-        "@import './setup-images.css';",
-        "@import './setup-audio.css';",
-        "@import './editor-shell.css';",
-        "@import './editor-controls.css';",
-        "@import './preview-composition.css';",
-        "@import './video-selector.css';",
-        "@import './responsive.css';",
+        "@import '/styles/features/video-projects/layout.css';",
+        "@import '/styles/features/video-projects/project-list.css';",
+        "@import '/styles/features/video-projects/setup-images.css';",
+        "@import '/styles/features/video-projects/setup-audio.css';",
+        "@import '/styles/features/video-projects/editor-shell.css';",
+        "@import '/styles/features/video-projects/editor-controls.css';",
+        "@import '/styles/features/video-projects/preview-composition.css';",
+        "@import '/styles/features/video-projects/video-selector.css';",
+        "@import '/styles/features/video-projects/responsive.css';",
     ]
     lines = [line.strip() for line in source.splitlines() if line.strip()]
     assert lines == expected_lines

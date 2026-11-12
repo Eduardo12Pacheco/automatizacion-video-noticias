@@ -125,7 +125,11 @@ async function resolveStyleImportPaths(filePath, seen = new Set()) {
 
   while (match) {
     const rawPath = match[1];
-    const importedPath = path.resolve(path.dirname(normalizedPath), rawPath);
+    // Root-absolute imports (/styles/...) resolve against the panel root;
+    // relative imports resolve against the importing stylesheet.
+    const importedPath = rawPath.startsWith('/')
+      ? path.join(ROOT, rawPath)
+      : path.resolve(path.dirname(normalizedPath), rawPath);
     imports.push(...await resolveStyleImportPaths(importedPath, seen));
     match = importRegex.exec(stylesEntry);
   }

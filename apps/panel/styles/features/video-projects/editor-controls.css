@@ -1,5 +1,5 @@
-@import './editor-assets.css';
-@import './editor-video-library.css';
-@import './editor-controls-core.css';
-@import './editor-motion.css';
-@import './editor-table.css';
+@import '/styles/features/video-projects/editor-assets.css';
+@import '/styles/features/video-projects/editor-video-library.css';
+@import '/styles/features/video-projects/editor-controls-core.css';
+@import '/styles/features/video-projects/editor-motion.css';
+@import '/styles/features/video-projects/editor-table.css';

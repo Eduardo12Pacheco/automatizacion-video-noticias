@@ -1,4 +1,4 @@
-@import './video-projects/index.css';
+@import '/styles/features/video-projects/index.css';
 
 .scripts-view__placeholder {
   padding: 28px;

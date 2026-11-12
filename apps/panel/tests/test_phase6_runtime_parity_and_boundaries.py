@@ -1565,7 +1565,7 @@ def test_architecture_file_size_soft_cap_and_css_facade_guardrails():
     assert not oversize, "Files exceed 500-line soft cap without exception: " + ", ".join(oversize)
 
     facade_lines = [line.strip() for line in VIDEO_PROJECTS_CSS_FACADE.read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert all(line.startswith("@import './") and line.endswith(".css';") for line in facade_lines)
+    assert all(line.startswith("@import '/styles/") and line.endswith(".css';") for line in facade_lines)
 
 
 def test_video_projects_render_facade_and_hydration_seams():

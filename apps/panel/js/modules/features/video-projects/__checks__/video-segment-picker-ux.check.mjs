@@ -29,6 +29,7 @@ import { buildEditorRowsTable } from '../render/editor-markup.js';
 import { shouldFallbackApprovalSnapshotOperationError } from '../index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const panelRoot = resolve(__dirname, '../../../../..');
 const require = createRequire(import.meta.url);
 const videoProjectsCss = readCssWithImports(resolve(__dirname, '../../../../../styles/features/video-projects/index.css'));
 const compositionRendererSource = [
@@ -43,7 +44,10 @@ function readCssWithImports(filePath, seen = new Set()) {
 
   const source = readFileSync(filePath, 'utf8');
   return source.replace(/@import\s+'([^']+)'\s*;/g, (_, importPath) => {
-    return readCssWithImports(resolve(dirname(filePath), importPath), seen);
+    const target = importPath.startsWith('/')
+      ? resolve(panelRoot, importPath.slice(1))
+      : resolve(dirname(filePath), importPath);
+    return readCssWithImports(target, seen);
   });
 }
 

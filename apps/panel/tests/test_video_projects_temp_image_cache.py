@@ -203,9 +203,9 @@ def test_video_project_card_delete_and_hero_actions_keep_intended_visual_contrac
     card_css = (ROOT / "styles" / "features" / "video-projects" / "project-list.css").read_text(encoding="utf-8")
     layout_css = (ROOT / "styles" / "features" / "video-projects" / "layout.css").read_text(encoding="utf-8")
 
-    assert "./video-projects/index.css" in scripts_css
-    assert "./layout.css" in index_css
-    assert "./project-list.css" in index_css
+    assert "/styles/features/video-projects/index.css" in scripts_css
+    assert "/styles/features/video-projects/layout.css" in index_css
+    assert "/styles/features/video-projects/project-list.css" in index_css
     assert ".video-project-card button.video-project-card__delete" in card_css
     assert "var(--danger-surface) !important" in card_css
     assert "color: var(--danger-text) !important" in card_css
