@@ -118,6 +118,13 @@ class ComposeStackTests(unittest.TestCase):
         self.assertEqual(renderer["APPROVAL_EDITOR_RENDER_ADAPTER"], "video-engine")
         self.assertEqual(renderer["RENDERER_PROFILE"], "${RENDERER_PROFILE:-local}")
 
+    def test_gpu_overlay_reserves_devices_and_selects_qwen(self) -> None:
+        overlay = yaml.safe_load((ROOT / "infra" / "compose" / "compose.gpu.yaml").read_text(encoding="utf-8"))["services"]
+        for name in ("ollama", "asr-worker", "tts-worker"):
+            self.assertEqual(overlay[name].get("gpus"), "all", name)
+        self.assertEqual(overlay["asr-worker"]["environment"]["TRANSCRIPT_SERVICE_DEVICE"], "cuda")
+        self.assertEqual(overlay["tts-worker"]["environment"]["TTS_WORKER_ENGINE"], "qwen")
+
     def test_ollama_never_pulls_models_from_its_container_command(self) -> None:
         ollama = self.services["ollama"]
         self.assertEqual(ollama["command"], ["serve"])

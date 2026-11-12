@@ -85,7 +85,7 @@ model step entirely.
 |---|---|---|
 | default/`cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, `demo-worker`, Postgres, SearXNG, Mailpit and the deterministic seed; no API keys |
 | `local` | `--mode local` (activated through `COMPOSE_PROFILES=local` in `.env`) | the real CPU workers: `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` |
-| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the local stack plus GPU access for the workers |
+| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the local stack plus GPU access; add `-f infra/compose/compose.gpu.yaml` so Ollama/ASR/TTS reserve the device and TTS uses Qwen instead of Piper |
 | `n8n` | explicit `--profile n8n` | the optional n8n container for `WORKFLOW=n8n` |
 | `tools` | never started by `up` | one-shot `migrate` and `model-init` services invoked with `docker compose run --rm` |
 | `auto` | default | picks `gpu` or `cpu` as described above |
@@ -111,7 +111,9 @@ editor.
 An explicit `--profile gpu` is never silently downgraded. If the container
 runtime is missing, the installer warns and `auto` falls back to `cpu`. Install
 `nvidia-container-toolkit` (Linux) or update Docker Desktop (Windows) to use the
-GPU.
+GPU. The GPU device reservation lives in the optional
+`infra/compose/compose.gpu.yaml` overlay; without it the workers keep their CPU
+defaults even when the `gpu` profile is enabled.
 
 One GPU job runs at a time through `NEWSROOM_GPU_LOCK_PATH`; the API queue keeps
 the GPU slot serial.

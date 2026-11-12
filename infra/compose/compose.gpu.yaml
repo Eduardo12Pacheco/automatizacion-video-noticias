@@ -1,0 +1,24 @@
+# Optional GPU override (D10). The base compose file keeps every worker on CPU
+# so the default install never needs an NVIDIA runtime; add this file on a host
+# with nvidia-container-toolkit to give Ollama, ASR and TTS the GPU and to let
+# the TTS worker use Qwen instead of the Piper CPU voice.
+#
+#   docker compose -f compose.yaml -f infra/compose/compose.gpu.yaml \
+#     --profile gpu up -d
+services:
+  ollama:
+    gpus: all
+
+  asr-worker:
+    gpus: all
+    environment:
+      TRANSCRIPT_SERVICE_DEVICE: cuda
+      TRANSCRIPT_SERVICE_COMPUTE_TYPE: float16
+      TRANSCRIPT_SERVICE_CPU_FALLBACK: "1"
+
+  tts-worker:
+    gpus: all
+    environment:
+      TTS_WORKER_ENGINE: qwen
+      TTS_WORKER_DEVICE: cuda
+      TTS_WORKER_ALLOW_CPU_FALLBACK: "1"
