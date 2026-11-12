@@ -68,6 +68,44 @@ export class PostgresNewsRepository extends PostgresBaseRepository {
     });
   }
 
+  /**
+   * Remove one demo story (the ids the seed CLI owns) before re-seeding it.
+   * Used by `seed-demo.js --reset` so the E2E suite can run twice against the
+   * same database without deleting an operator's unrelated rows.
+   */
+  async resetDemoStory({ newsIds = [], clusterIds = [] } = {}) {
+    const news = (newsIds || []).map(String);
+    const clusters = (clusterIds || []).map(String);
+    if (!news.length && !clusters.length) {
+      return { deleted_news: 0, deleted_clusters: 0 };
+    }
+    return this._transaction(async (client) => {
+      // Child tables first; only the ids owned by the seed are touched.
+      await client.query(
+        'delete from video_edit_projects where id_noticia = any($1::text[]) or cluster_id = any($2::text[])',
+        [news, clusters],
+      );
+      await client.query(
+        'delete from script_publish_jobs where id_noticia = any($1::text[]) or cluster_id = any($2::text[])',
+        [news, clusters],
+      );
+      await client.query(
+        'delete from guiones_noticia where id_noticia = any($1::text[]) or cluster_id = any($2::text[])',
+        [news, clusters],
+      );
+      await client.query('delete from script_jobs where id_noticia = any($1::text[])', [news]);
+      const deletedNews = await client.query(
+        'delete from noticias_raw where id_noticia = any($1::text[]) or cluster_id = any($2::text[])',
+        [news, clusters],
+      );
+      const deletedClusters = await client.query(
+        'delete from clusters where cluster_id = any($1::text[])',
+        [clusters],
+      );
+      return { deleted_news: deletedNews.rowCount, deleted_clusters: deletedClusters.rowCount };
+    });
+  }
+
   async persistClusters(clusters = [], { runId = null } = {}) {
     const input = Array.isArray(clusters) ? clusters : [];
     let upserted = 0;

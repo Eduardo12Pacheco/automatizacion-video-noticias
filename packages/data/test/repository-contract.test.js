@@ -157,6 +157,26 @@ export function runRepositoryContract({ label, createHarness }) {
       assert.equal(queue[0].estado_queue, 'pendiente');
     });
 
+    it('resets only the requested demo story rows', async () => {
+      await seedApprovalUniverse(repo);
+      await repo.applyApprovalDecision({
+        idNoticia: 'news-1',
+        clusterId: CLUSTER_FIXTURE.cluster_id,
+        action: 'approve',
+      });
+
+      const result = await repo.resetDemoStory({
+        newsIds: ['news-1', 'news-2'],
+        clusterIds: [CLUSTER_FIXTURE.cluster_id],
+      });
+
+      assert.equal(result.deleted_news, 2);
+      assert.equal(result.deleted_clusters, 1);
+      assert.equal((await repo.listPendingApprovalClusters()).length, 0);
+      assert.equal((await repo.getScriptQueueMonitor()).length, 0);
+      assert.equal(await repo.getApprovalTopicDetail(CLUSTER_FIXTURE.cluster_id), null);
+    });
+
     it('claims, progresses, completes and fails script jobs', async () => {
       await seedApprovalUniverse(repo);
       await repo.applyApprovalDecision({ idNoticia: 'news-1', clusterId: CLUSTER_FIXTURE.cluster_id, action: 'approve' });

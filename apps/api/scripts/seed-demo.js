@@ -9,9 +9,13 @@ import { fileURLToPath } from 'node:url';
 
 import { PostgresRepository } from '@newsroom/data';
 
-import { generateDemoPassword, seedDemoData } from '../src/seed-demo.js';
+import { DEMO_STORY, generateDemoPassword, seedDemoData } from '../src/seed-demo.js';
 
-const USAGE = `Usage: node scripts/seed-demo.js
+const USAGE = `Usage: node scripts/seed-demo.js [--reset]
+
+--reset deletes the seeded demo story (clusters, news, script jobs, drafts,
+publish jobs and video projects) before re-seeding it. It never touches data
+outside the demo ids, so the E2E suite can run twice against the same stack.
 
 Environment:
   DATABASE_URL              Postgres connection string (required)
@@ -38,13 +42,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const repository = new PostgresRepository({ connectionString });
       const password = String(process.env.NEWSROOM_DEMO_PASSWORD || '').trim() || generateDemoPassword();
       try {
+        const resetResult = process.argv.includes('--reset')
+          ? await repository.resetDemoStory({
+            newsIds: [DEMO_STORY.approvedNewsId, DEMO_STORY.pendingNewsId],
+            clusterIds: [DEMO_STORY.draftClusterId, DEMO_STORY.pendingClusterId],
+          })
+          : null;
         const result = await seedDemoData({
           repository,
           password,
           editorEmail: process.env.NEWSROOM_DEMO_EDITOR_EMAIL || 'editor@example.local',
           viewerEmail: process.env.NEWSROOM_DEMO_VIEWER_EMAIL || 'viewer@example.local',
         });
-        process.stdout.write(`${JSON.stringify({ ok: true, ...result, password_generated: !process.env.NEWSROOM_DEMO_PASSWORD })}\n`);
+        process.stdout.write(`${JSON.stringify({ ok: true, reset: resetResult, ...result, password_generated: !process.env.NEWSROOM_DEMO_PASSWORD })}\n`);
         if (!process.env.NEWSROOM_DEMO_PASSWORD) {
           process.stdout.write(`demo password (shown once): ${password}\n`);
         }

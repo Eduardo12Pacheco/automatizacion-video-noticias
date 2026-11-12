@@ -136,8 +136,45 @@ export class InMemoryRepository extends RepositoryPort {
     return { deleted_news: newsCount };
   }
 
-  async resetStaging(runId) {
-    if (!runId) throw new Error('runId is required');
+  /**
+   * Remove one demo story (the ids the seed CLI owns) before re-seeding it.
+   * Used by `seed-demo.js --reset` so the E2E suite can run twice against the
+   * same database without deleting an operator's unrelated rows.
+   */
+  async resetDemoStory({ newsIds = [], clusterIds = [] } = {}) {
+    const news = new Set((newsIds || []).map(String));
+    const clusters = new Set((clusterIds || []).map(String));
+    const matches = (row) => news.has(String(row?.id_noticia)) || clusters.has(String(row?.cluster_id));
+    let deletedNews = 0;
+    let deletedClusters = 0;
+    for (const [id, row] of [...this._news.entries()]) {
+      if (news.has(String(id)) || clusters.has(String(row?.cluster_id))) {
+        this._news.delete(id);
+        deletedNews += 1;
+      }
+    }
+    for (const [id, row] of [...this._clusters.entries()]) {
+      if (clusters.has(String(id)) || news.has(String(row?.id_noticia))) {
+        this._clusters.delete(id);
+        deletedClusters += 1;
+      }
+    }
+    for (const [id, row] of [...this._scriptJobs.entries()]) {
+      if (news.has(String(id)) || matches(row)) this._scriptJobs.delete(id);
+    }
+    for (const [id, row] of [...this._drafts.entries()]) {
+      if (matches(row)) this._drafts.delete(id);
+    }
+    for (const [id, row] of [...this._publishJobs.entries()]) {
+      if (matches(row)) this._publishJobs.delete(id);
+    }
+    for (const [id, row] of [...this._videoProjects.entries()]) {
+      if (matches(row)) this._videoProjects.delete(id);
+    }
+    return { deleted_news: deletedNews, deleted_clusters: deletedClusters };
+  }
+
+  async resetStaging(runId) {    if (!runId) throw new Error('runId is required');
     let deletedNews = 0;
     let deletedClusters = 0;
     for (const key of [...this._stagedNews.keys()]) {

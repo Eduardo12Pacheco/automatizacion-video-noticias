@@ -27,6 +27,7 @@ export class RepositoryPort {
   async listNewsForClustering() { throw new Error('not_implemented: listNewsForClustering'); }
   async resetDiscoveryState() { throw new Error('not_implemented: resetDiscoveryState'); }
   async resetStaging() { throw new Error('not_implemented: resetStaging'); }
+  async resetDemoStory() { throw new Error('not_implemented: resetDemoStory'); }
   async persistClusters() { throw new Error('not_implemented: persistClusters'); }
   async createNewsSearchRun() { throw new Error('not_implemented: createNewsSearchRun'); }
   async getNewsSearchRun() { throw new Error('not_implemented: getNewsSearchRun'); }
@@ -37,7 +38,6 @@ export class RepositoryPort {
   async listPendingApprovalClusters() { throw new Error('not_implemented: listPendingApprovalClusters'); }
   async getApprovalTopicDetail() { throw new Error('not_implemented: getApprovalTopicDetail'); }
   async applyApprovalDecision() { throw new Error('not_implemented: applyApprovalDecision'); }
-
   // Script queue and drafts -------------------------------------------------
   async claimScriptJob() { throw new Error('not_implemented: claimScriptJob'); }
   async updateScriptJobProgress() { throw new Error('not_implemented: updateScriptJobProgress'); }
