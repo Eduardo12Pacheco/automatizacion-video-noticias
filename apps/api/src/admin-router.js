@@ -15,6 +15,12 @@ export const ADMIN_MUTATION_ROUTES = Object.freeze([
     pattern: /^\/panel\/admin\/users\/[^/]+$/,
     examplePath: '/panel/admin/users/user-1',
   },
+  {
+    id: 'admin-test-connector',
+    methods: ['POST'],
+    pattern: /^\/panel\/connectors\/[^/]+\/test$/,
+    examplePath: '/panel/connectors/llm/test',
+  },
 ]);
 
 function json(status, body) {
@@ -36,17 +42,34 @@ async function readJson(readBody) {
 /**
  * Admin user management (S9). Mounted behind the gateway's admin-role check.
  */
-export function createAdminRouter({ authService } = {}) {
+export function createAdminRouter({ authService, connectors = null } = {}) {
   if (!authService) throw new Error('authService is required');
 
   function matches(pathname = '') {
-    return pathname === '/panel/admin/users' || pathname.startsWith('/panel/admin/users/') || pathname === '/panel/admin/roles';
+    return pathname === '/panel/admin/users'
+      || pathname.startsWith('/panel/admin/users/')
+      || pathname === '/panel/admin/roles'
+      || pathname === '/panel/connectors'
+      || pathname.startsWith('/panel/connectors/');
   }
 
   async function handle({ method = 'GET', pathname, readBody } = {}) {
     const upperMethod = String(method || 'GET').toUpperCase();
     const read = readBody || (async () => Buffer.alloc(0));
     try {
+      if (pathname === '/panel/connectors') {
+        if (upperMethod !== 'GET') return json(405, { ok: false, error: 'method_not_allowed' });
+        return json(200, { ok: true, connectors: connectors ? connectors.list() : [] });
+      }
+      const connectorMatch = pathname.match(/^\/panel\/connectors\/([^/]+)\/test$/);
+      if (connectorMatch) {
+        if (upperMethod !== 'POST') return json(405, { ok: false, error: 'method_not_allowed' });
+        if (!connectors) return json(404, { ok: false, error: 'connector_not_found' });
+        const connectorId = decodeURIComponent(connectorMatch[1]);
+        const result = await connectors.test(connectorId);
+        if (!result) return json(404, { ok: false, error: 'connector_not_found' });
+        return json(200, { ok: true, result });
+      }
       if (pathname === '/panel/admin/roles') {
         if (upperMethod !== 'GET') return json(405, { ok: false, error: 'method_not_allowed' });
         return json(200, { ok: true, roles: await authService.listRoles() });

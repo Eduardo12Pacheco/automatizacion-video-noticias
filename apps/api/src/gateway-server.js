@@ -212,6 +212,7 @@ export function createGatewayServer({
   dataRouter = null,
   localRouter = null,
   adminRouter = null,
+  jobsRouter = null,
   authService = null,
   logger = console,
 } = {}) {
@@ -326,6 +327,7 @@ export function createGatewayServer({
     dataRouter,
     localRouter,
     adminRouter,
+    jobsRouter,
     authService,
     logger,
     loginAttempts: new BoundedTtlStore({ maxEntries: maxLoginAttempts }),
@@ -434,6 +436,28 @@ export function createGatewayServer({
         return;
       }
       void handlePresenceReadModel(req, res, options);
+      return;
+    }
+    if (options.jobsRouter?.matches(panelPath)) {
+      void (async () => {
+        let result;
+        try {
+          result = await options.jobsRouter.handle({
+            method: req.method,
+            pathname: panelPath,
+            headers: req.headers,
+            readBody: (limits = {}) => readRawBody(req, { maxBodyBytes: limits.maxBodyBytes || options.maxBodyBytes }),
+          });
+        } catch (error) {
+          if (error?.code === 'payload_too_large') {
+            writeJson(res, 413, { error: 'payload_too_large', code: 'payload_too_large' });
+            return;
+          }
+          if (!res.headersSent) writeJson(res, 400, { ok: false, error: 'invalid_request' });
+          return;
+        }
+        writeJson(res, result.status, result.body, result.headers || {});
+      })();
       return;
     }
     if (options.adminRouter?.matches(panelPath)) {

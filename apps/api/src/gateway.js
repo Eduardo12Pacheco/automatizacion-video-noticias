@@ -13,11 +13,12 @@ export * from './gateway-server.js';
 export * from './gateway-start.js';
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { dataRouter, repository } = await createRuntimeDataRouter();
+  const { dataRouter, repository, blobStorage } = await createRuntimeDataRouter();
   startGateway({
     host: process.env.API_GATEWAY_HOST || '127.0.0.1',
     port: Number(process.env.API_GATEWAY_PORT || 8099),
     dataRouter,
     repository,
+    blobStorage,
   });
 }

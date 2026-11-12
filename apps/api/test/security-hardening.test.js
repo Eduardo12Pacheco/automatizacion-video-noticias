@@ -42,6 +42,8 @@ function bodyFor(route) {
       return { email: 'created@example.local', password: 'created-secret', roles: ['viewer'] };
     case 'admin-update-user':
       return { display_name: 'Renamed User' };
+    case 'admin-test-connector':
+      return {};
     case 'data-editor-state':
       return { editorState: { timeline: [] } };
     case 'data-selections':
@@ -129,7 +131,10 @@ describe('security hardening (S12)', () => {
         blobStorage: new FsBlobStorage({ root }),
       }),
       localRouter: createLocalRouter({ repository, useCases }),
-      adminRouter: createAdminRouter({ authService }),
+      adminRouter: createAdminRouter({
+        authService,
+        connectors: { list: () => [], test: async (id) => ({ id, ok: true, status: 'local', message: 'ok' }) },
+      }),
       eventRecorder: {
         record: async () => {},
         query: async () => ({ events: [], next_cursor: null, retention: { max_events: 10, max_age_days: 1 } }),
@@ -186,6 +191,7 @@ describe('security hardening (S12)', () => {
       'local-manual-create',
       'admin-create-user',
       'admin-update-user',
+      'admin-test-connector',
       'data-editor-state',
       'data-selections',
       'data-audio',

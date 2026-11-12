@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createAdaptersFromEnv, resolveRunMode } from '@newsroom/adapters';
+import { createAdaptersFromEnv, createConnectorRegistry, resolveRunMode } from '@newsroom/adapters';
 import { DEFAULT_EVENT_RETENTION, JsonlEventRecorder } from './gateway-events.js';
 import { DEFAULT_HOST, DEFAULT_PANEL_BOOTSTRAP, DEFAULT_PORT, DEFAULT_TRUSTED_PROXY_CIDRS, resolveRoutesFromEnv } from './gateway-config.js';
 import { readPanelUsersFromEnv, readServiceCredentialsFromEnv } from './gateway-auth.js';
@@ -10,6 +10,7 @@ import { createAdminRouter } from './admin-router.js';
 import { createAuthService } from './auth.js';
 import { createRuntimeDataRouter } from './composition.js';
 import { createCoreRuntime } from './core-runtime.js';
+import { createJobsRouter } from './jobs-router.js';
 import { createLocalRouter } from './local-router.js';
 
 export function readAllowedOrigins() {
@@ -58,6 +59,8 @@ export function startGateway({
   authService = null,
   localRouter = null,
   adminRouter = null,
+  jobsRouter = null,
+  blobStorage = null,
   adapters = null,
 } = {}) {
   const allowedOrigins = readAllowedOrigins();
@@ -78,9 +81,11 @@ export function startGateway({
     authService = createAuthService({ repository });
   }
   let runtimeScheduler = null;
+  let runtimeAdapters = adapters;
+  let runtime = null;
   if (repository && !localRouter) {
-    const runtimeAdapters = adapters || createAdaptersFromEnv({ logger: console, authService });
-    const runtime = createCoreRuntime({
+    runtimeAdapters = adapters || createAdaptersFromEnv({ logger: console, authService });
+    runtime = createCoreRuntime({
       repository,
       adapters: runtimeAdapters,
       discovery: {
@@ -96,7 +101,23 @@ export function startGateway({
       useCases: runtime.useCases,
       jobQueue: runtime.jobQueue,
     });
-    if (!adminRouter) adminRouter = createAdminRouter({ authService });
+    if (!adminRouter) {
+      const connectors = createConnectorRegistry({
+        env: process.env,
+        adapters: runtimeAdapters || {},
+        blobStorage,
+        repository,
+        logger: console,
+      });
+      adminRouter = createAdminRouter({ authService, connectors });
+    }
+  }
+  if (!jobsRouter && runtime && (process.env.JOBS_API_KEY || process.env.API_GATEWAY_SHARED_API_KEY)) {
+    jobsRouter = createJobsRouter({
+      useCases: { refreshSearch: runtime.useCases.refreshSearch },
+      jobQueue: runtime.jobQueue,
+      apiKey: process.env.JOBS_API_KEY || process.env.API_GATEWAY_SHARED_API_KEY,
+    });
   }
   if (runtimeScheduler && repository) {
     runtimeScheduler.register('expired-session-cleanup', {
@@ -125,6 +146,7 @@ export function startGateway({
     authService,
     localRouter,
     adminRouter,
+    jobsRouter,
     serviceCredentials: readServiceCredentialsFromEnv(),
     dataRouter,
     eventRecorder,
@@ -137,11 +159,12 @@ export function startGateway({
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { dataRouter, repository } = await createRuntimeDataRouter();
+  const { dataRouter, repository, blobStorage } = await createRuntimeDataRouter();
   startGateway({
     host: process.env.API_GATEWAY_HOST || DEFAULT_HOST,
     port: Number(process.env.API_GATEWAY_PORT || DEFAULT_PORT),
     dataRouter,
     repository,
+    blobStorage,
   });
 }
