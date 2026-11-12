@@ -1,6 +1,6 @@
 export const VIDEO_PROJECT_PLAYERS_BY_COUNTRY = Object.freeze({
   Aurenia: Object.freeze({
-    players: Object.freeze(['Nicolás Andrade', 'Mateo Salvatierra', 'Iván Cordero', 'Diego Peralta', 'Ángel Mera', 'Bruno Valdivia']),
+    players: Object.freeze(['Nicolás Arbelo', 'Mateo Salvatierra', 'Iván Cordero', 'Diego Peralta', 'Ángel Mera', 'Bruno Valdivia']),
     nicknames: Object.freeze(['La Aurenia']),
   }),
   Montelia: Object.freeze({

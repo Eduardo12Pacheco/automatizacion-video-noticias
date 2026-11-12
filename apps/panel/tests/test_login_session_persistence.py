@@ -1,3 +1,4 @@
+import os
 import secrets
 import subprocess
 from pathlib import Path
@@ -10,16 +11,13 @@ TEST_USER = f"test-user-{secrets.token_hex(4)}"
 TEST_PASSWORD = secrets.token_urlsafe(18)
 
 
-def _with_random_credentials(script: str) -> str:
-    return script.replace("'paneladmin'", repr(TEST_USER)).replace("'Guiones2026!'", repr(TEST_PASSWORD))
-
-
 def _run_node(script: str):
     return subprocess.run(
         ["node", "--input-type=module", "-e", script],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        env={**os.environ, "NEWSROOM_TEST_USER": TEST_USER, "NEWSROOM_TEST_PASSWORD": TEST_PASSWORD},
     )
 
 
@@ -185,18 +183,17 @@ if (hydrated.status !== 'ok' || hydrated.user.email !== 'editor@example.test' ||
 }
 if (calls[0].options.credentials !== 'include') throw new Error('session hydration must include cookies');
 
-await loginGatewaySession({ fetchImpl, user: 'paneladmin', pass: 'Guiones2026!' });
+await loginGatewaySession({ fetchImpl, user: process.env.NEWSROOM_TEST_USER, pass: process.env.NEWSROOM_TEST_PASSWORD });
 if (calls[1].options.method !== 'POST') throw new Error('login must POST');
 if (calls[1].options.credentials !== 'include') throw new Error('login must include cookies');
 if (calls[1].options.headers['Content-Type'] !== 'application/json') throw new Error('login content-type drift');
-if (JSON.parse(calls[1].options.body).pass !== 'Guiones2026!') throw new Error('login payload drift');
+if (JSON.parse(calls[1].options.body).pass !== process.env.NEWSROOM_TEST_PASSWORD) throw new Error('login payload drift');
 
 await logoutGatewaySession({ fetchImpl });
 if (calls[2].options.method !== 'POST' || calls[2].options.credentials !== 'include') {
   throw new Error(`logout request drift: ${JSON.stringify(calls[2])}`);
 }
 """
-    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
@@ -223,7 +220,7 @@ const fetchImpl = async (url, options = {}) => {
 };
 
 await hydrateGatewaySession({ fetchImpl });
-await loginGatewaySession({ fetchImpl, user: 'paneladmin', pass: 'Guiones2026!' });
+await loginGatewaySession({ fetchImpl, user: process.env.NEWSROOM_TEST_USER, pass: process.env.NEWSROOM_TEST_PASSWORD });
 await logoutGatewaySession({ fetchImpl });
 
 if (calls[0].url !== 'https://api.example.local/panel/session') throw new Error(`session endpoint drift: ${calls[0].url}`);
@@ -231,7 +228,6 @@ if (calls[1].url !== 'https://api.example.local/panel/login') throw new Error(`l
 if (calls[2].url !== 'https://api.example.local/panel/logout') throw new Error(`logout endpoint drift: ${calls[2].url}`);
 if (calls[1].options.credentials !== 'include') throw new Error('login must include Gateway cookies');
 """
-    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
@@ -289,8 +285,8 @@ const toasts = [];
 const authForm = { addEventListener(_event, handler) { submitted.push(handler); } };
 const el = {
   authForm,
-  authUser: { value: 'paneladmin' },
-  authPass: { value: 'Guiones2026!' },
+  authUser: { value: process.env.NEWSROOM_TEST_USER },
+  authPass: { value: process.env.NEWSROOM_TEST_PASSWORD },
   authGate: { classList: { add(value) { classCalls.push(['auth-add', value]); }, remove(value) { classCalls.push(['auth-remove', value]); } } },
   appShell: { classList: { add(value) { classCalls.push(['app-add', value]); }, remove(value) { classCalls.push(['app-remove', value]); } } },
   sidebarNav: { addEventListener() {} },
@@ -311,8 +307,8 @@ const el = {
 
 bindCoreEvents({
   el,
-  authUser: 'paneladmin',
-  authPass: 'Guiones2026!',
+  authUser: process.env.NEWSROOM_TEST_USER,
+  authPass: process.env.NEWSROOM_TEST_PASSWORD,
   isValidCredentials: () => true,
   persistSessionStatus() { throw new Error('remote gateway rejection must not persist local session'); },
   clearSessionStatus() {},
@@ -338,7 +334,6 @@ await new Promise((resolve) => setTimeout(resolve, 0));
 if (toasts.join('|') !== 'Usuario o contraseña incorrectos') throw new Error(`unexpected toast flow: ${JSON.stringify(toasts)}`);
 if (classCalls.length) throw new Error(`remote gateway rejection opened shell: ${JSON.stringify(classCalls)}`);
 """
-    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
@@ -353,8 +348,8 @@ const events = [];
 
 const el = {
   authForm: { addEventListener(_event, handler) { submitted.push(handler); } },
-  authUser: { value: 'paneladmin' },
-  authPass: { value: 'Guiones2026!' },
+  authUser: { value: process.env.NEWSROOM_TEST_USER },
+  authPass: { value: process.env.NEWSROOM_TEST_PASSWORD },
   authGate: { classList: { add(value) { events.push(['auth-add', value]); }, remove() {} } },
   appShell: { classList: { add() {}, remove(value) { events.push(['app-remove', value]); } } },
   sidebarNav: { addEventListener() {} },
@@ -399,6 +394,5 @@ await new Promise((resolve) => setTimeout(resolve, 0));
 if (events.some((event) => event[0] === 'persist')) throw new Error(`hardcoded fallback still logs in: ${JSON.stringify(events)}`);
 if (!events.some((event) => event[0] === 'toast' && event[1] === 'Usuario o contraseña incorrectos')) throw new Error(`unexpected toast flow: ${JSON.stringify(events)}`);
 """
-    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr

@@ -10,8 +10,8 @@ describe('core runtime adapter injection', () => {
       async extract() {
         return {
           article: {
-            title: 'Andrade vuelve',
-            main_content: 'Andrade vuelve a entrenar con Aurenia. '.repeat(20),
+            title: 'Arbelo vuelve',
+            main_content: 'Arbelo vuelve a entrenar con Aurenia. '.repeat(20),
           },
         };
       }
@@ -31,11 +31,11 @@ describe('core runtime adapter injection', () => {
     await repository.upsertNews([{
       id_noticia: 'news-1',
       seleccion: 'Aurenia',
-      jugador: 'Nicolás Andrade',
-      titular: 'Andrade vuelve',
+      jugador: 'Nicolás Arbelo',
+      titular: 'Arbelo vuelve',
       link: 'https://example.local/news-1',
       estado_revision: 'aprobado',
-      tema_principal: 'Andrade vuelve',
+      tema_principal: 'Arbelo vuelve',
     }]);
     await repository.applyApprovalDecision({ idNoticia: 'news-1', clusterId: null, action: 'approve' });
     const result = await runtime.useCases.draftScript.execute({ id_noticia: 'news-1' });
@@ -45,7 +45,7 @@ describe('core runtime adapter injection', () => {
   it('notifies the optional workflow trigger when a queued job finishes', async () => {
     class Extractor {
       async extract() {
-        return { article: { title: 'Andrade vuelve', main_content: 'Andrade vuelve a entrenar con Aurenia. '.repeat(20) } };
+        return { article: { title: 'Arbelo vuelve', main_content: 'Arbelo vuelve a entrenar con Aurenia. '.repeat(20) } };
       }
     }
     class Llm {
@@ -65,11 +65,11 @@ describe('core runtime adapter injection', () => {
     await repository.upsertNews([{
       id_noticia: 'news-2',
       seleccion: 'Aurenia',
-      jugador: 'Nicolás Andrade',
-      titular: 'Andrade vuelve',
+      jugador: 'Nicolás Arbelo',
+      titular: 'Arbelo vuelve',
       link: 'https://example.local/news-2',
       estado_revision: 'aprobado',
-      tema_principal: 'Andrade vuelve',
+      tema_principal: 'Arbelo vuelve',
     }]);
     await repository.applyApprovalDecision({ idNoticia: 'news-2', clusterId: null, action: 'approve' });
     runtime.jobQueue.enqueue('draft-script', { id_noticia: 'news-2' });

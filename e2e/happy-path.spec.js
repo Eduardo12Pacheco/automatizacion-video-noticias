@@ -74,7 +74,7 @@ test('login -> approve -> script -> voice -> subtitles -> render on the default 
 
   await page.locator('[data-view="audio"]').click();
   await expect(page.locator('#audioTextArea')).toBeVisible();
-  await page.locator('#audioTextArea').fill('Aurenia ajusta su mediocampo para el próximo partido y Nicolás Andrade vuelve a ser el eje del equipo.');
+  await page.locator('#audioTextArea').fill('Aurenia ajusta su mediocampo para el próximo partido y Nicolás Arbelo vuelve a ser el eje del equipo.');
   await page.locator('#audioRunBtn').click();
   await expect(page.locator('#audioQueueList')).toContainText(/Completado|Procesando|En cola/, { timeout: 20_000 });
 
@@ -82,7 +82,7 @@ test('login -> approve -> script -> voice -> subtitles -> render on the default 
     ...mutation,
     headers: { ...mutation.headers, 'content-type': 'application/json' },
     data: {
-      text: 'Aurenia ajusta su mediocampo para el próximo partido y Nicolás Andrade vuelve a ser el eje del equipo.',
+      text: 'Aurenia ajusta su mediocampo para el próximo partido y Nicolás Arbelo vuelve a ser el eje del equipo.',
       voice_profile: 'balanced_default',
       title: 'e2e',
     },

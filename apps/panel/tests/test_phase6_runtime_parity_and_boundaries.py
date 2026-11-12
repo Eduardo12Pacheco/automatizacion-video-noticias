@@ -1238,7 +1238,7 @@ import { renderScriptCardsView, renderScriptStatsView } from './js/modules/featu
 const state = {
   scriptDrafts: [
     { draft_id: 'processed-1', estado_guion: 'publicado', doc_id: 'doc-1', seleccion: 'Valdoria', jugador: 'Márquez', tema_principal: 'Procesado' },
-    { draft_id: 'draft-1', estado_guion: 'borrador_generado', seleccion: 'Aurenia', jugador: 'Andrade', tema_principal: 'Pendiente' },
+    { draft_id: 'draft-1', estado_guion: 'borrador_generado', seleccion: 'Aurenia', jugador: 'Arbelo', tema_principal: 'Pendiente' },
   ],
   selectedScript: { draft_id: 'processed-1', estado_guion: 'publicado', doc_id: 'doc-1' },
   dismissedProcessedScripts: new Set(),

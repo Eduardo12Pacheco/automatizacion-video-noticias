@@ -22,7 +22,7 @@ const PENDING_ITEMS = Object.freeze([
     cluster_id: 'demo-cluster-1',
     tema_principal: 'La selección define su once para el próximo partido',
     seleccion: 'Aurenia',
-    jugador: 'Nicolás Andrade',
+    jugador: 'Nicolás Arbelo',
     cantidad_fuentes: 7,
     avg: 0.82,
     resumen_cluster: 'Tres medios locales coinciden en la probable alineación y el rol de la mitad de cancha.',
@@ -56,12 +56,12 @@ const SCRIPTS = Object.freeze([
     cluster_id: 'demo-cluster-1',
     id_noticia: 'demo-news-1',
     titulo_noticia: 'Aurenia prepara un mediocampo más dinámico',
-    jugador: 'Nicolás Andrade',
+    jugador: 'Nicolás Arbelo',
     seleccion: 'Aurenia',
     estado_guion: 'borrador',
-    guion_draft: 'Aurenia ajusta su mediocampo para el próximo partido. Nicolás Andrade vuelve a ser el eje del equipo. El cuerpo técnico probó una salida más rápida por las bandas.',
+    guion_draft: 'Aurenia ajusta su mediocampo para el próximo partido. Nicolás Arbelo vuelve a ser el eje del equipo. El cuerpo técnico probó una salida más rápida por las bandas.',
     guion_editado: '',
-    guion_pronunciacion: 'Aurenia ajusta su mediocampo para el próximo partido. Nicolás Andrade vuelve a ser el eje del equipo.',
+    guion_pronunciacion: 'Aurenia ajusta su mediocampo para el próximo partido. Nicolás Arbelo vuelve a ser el eje del equipo.',
     cantidad_fuentes: 7,
   },
   {
@@ -83,7 +83,7 @@ const VIDEO_PROJECTS = Object.freeze([
   {
     draft_id: 'demo-project-1',
     titulo: 'Aurenia prepara un mediocampo más dinámico',
-    jugador: 'Nicolás Andrade',
+    jugador: 'Nicolás Arbelo',
     seleccion: 'Aurenia',
     status: 'draft',
     created_at: '2026-11-12T09:05:00.000Z',
@@ -98,7 +98,7 @@ const RADAR_HISTORY = Object.freeze([
   {
     job_id: 'demo-radar-job-1',
     status: 'succeeded',
-    title: 'Entrevista a Nicolás Andrade',
+    title: 'Entrevista a Nicolás Arbelo',
     selected_countries: ['aurenia'],
     detected_language: 'es',
     mention_count: 4,
@@ -117,7 +117,7 @@ const MONITOR_CARDS = Object.freeze([
     status: 'transcrito',
     published_at: '2026-11-12T08:10:00.000Z',
     mention_counts: [
-      { label: 'Nicolás Andrade', count: 3 },
+      { label: 'Nicolás Arbelo', count: 3 },
       { label: 'Aurenia', count: 1 },
     ],
   },
@@ -354,10 +354,10 @@ export async function createShowcaseResponse(url, options = {}, { scenario = sho
     return jsonResponse({ job_id: pathname.split('/').pop(), status: 'succeeded', progress: { percent: 100 }, mention_count: 2 });
   }
   if (/^\/radar\/api\/radar\/jobs\/[^/]+\/summary$/.test(pathname)) {
-    return jsonResponse({ items: [{ label: 'Nicolás Andrade', count: 2 }, { label: 'Aurenia', count: 1 }] });
+    return jsonResponse({ items: [{ label: 'Nicolás Arbelo', count: 2 }, { label: 'Aurenia', count: 1 }] });
   }
   if (/^\/radar\/api\/radar\/jobs\/[^/]+\/export\.txt$/.test(pathname)) {
-    return new Response('(00:01) Nicolás Andrade — entrevista de demostración.\n', { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+    return new Response('(00:01) Nicolás Arbelo — entrevista de demostración.\n', { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
   if (pathname === '/monitor/api/monitor/cards') {
     return jsonResponse({ items: MONITOR_CARDS, pagination: { total: MONITOR_CARDS.length, limit: 200, offset: 0, has_more: false } });

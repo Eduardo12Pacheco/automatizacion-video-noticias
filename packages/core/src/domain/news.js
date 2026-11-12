@@ -1,5 +1,5 @@
 export const DEFAULT_PLAYERS = Object.freeze([
-  { seleccion: 'Aurenia', jugador: 'Nicolás Andrade' },
+  { seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' },
   { seleccion: 'Aurenia', jugador: 'Mateo Salvatierra' },
   { seleccion: 'Aurenia', jugador: 'Iván Cordero' },
   { seleccion: 'Aurenia', jugador: 'Diego Peralta' },

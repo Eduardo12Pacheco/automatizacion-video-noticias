@@ -207,7 +207,7 @@ def test_yt_dlp_downloader_classifies_bot_check_and_geo_block_errors(tmp_path):
 def test_yt_dlp_downloader_classifies_live_copyright_unavailable_and_age_restricted_errors(tmp_path):
     cases = [
         ("ERROR: This live event will begin in a few moments", "yt_dlp_live_pending"),
-        ("ERROR: This video is not available because it contains content from FIFA, who has blocked it on copyright grounds", "yt_dlp_copyright_blocked"),
+        ("ERROR: This video is not available because it contains content from Liga Demo, who has blocked it on copyright grounds", "yt_dlp_copyright_blocked"),
         ("ERROR: Video unavailable. This video is private", "yt_dlp_private_or_removed"),
         ("ERROR: This video has been removed by the uploader", "yt_dlp_private_or_removed"),
         ("ERROR: Sign in to confirm your age. This video may be inappropriate for some users", "yt_dlp_age_restricted"),

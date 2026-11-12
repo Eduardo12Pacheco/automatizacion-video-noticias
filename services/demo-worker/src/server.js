@@ -31,8 +31,8 @@ const DEMO_SEGMENTS = Object.freeze([
     id: 'demo-segment-2',
     start_ms: 3200,
     end_ms: 7000,
-    source_text: 'Nicolás Andrade vuelve a ser el eje del equipo.',
-    translated_text: 'Nicolás Andrade vuelve a ser el eje del equipo.',
+    source_text: 'Nicolás Arbelo vuelve a ser el eje del equipo.',
+    translated_text: 'Nicolás Arbelo vuelve a ser el eje del equipo.',
     style: { font_size: 110, font_family: 'Khand', color: '#FFFFFF', align: 'left', max_width_px: 1080 },
   },
 ]);

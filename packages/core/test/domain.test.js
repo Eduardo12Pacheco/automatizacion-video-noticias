@@ -33,11 +33,11 @@ describe('news domain', () => {
   });
 
   it('builds one Google News RSS feed request per player', () => {
-    const requests = buildFeedRequests([{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }], '1h', {
+    const requests = buildFeedRequests([{ seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' }], '1h', {
       runId: 'run-1',
     });
     assert.equal(requests.length, 1);
-    assert.equal(requests[0].jugador, 'Nicolás Andrade');
+    assert.equal(requests[0].jugador, 'Nicolás Arbelo');
     assert.equal(requests[0].source_kind, 'google_news_rss');
     assert.equal(requests[0].run_id, 'run-1');
     assert.match(requests[0].feed_url, /news\.google\.com\/rss\/search/);
@@ -61,14 +61,14 @@ describe('news domain', () => {
   it('splits direct football news from rows that need model classification', () => {
     const split = splitFootballNews([
       {
-        jugador: 'Nicolás Andrade',
-        titular: 'Andrade anotó un gol con el Costa Azul FC',
+        jugador: 'Nicolás Arbelo',
+        titular: 'Arbelo anotó un gol con el Costa Azul FC',
         fuente: 'Example',
         snippet: 'Victoria en la Liga Demo',
       },
       {
-        jugador: 'Nicolás Andrade',
-        titular: 'Andrade visitó una escuela',
+        jugador: 'Nicolás Arbelo',
+        titular: 'Arbelo visitó una escuela',
         fuente: 'Example',
         snippet: 'Actividad social',
       },
@@ -96,16 +96,16 @@ describe('script domain', () => {
   it('validates article extraction with the n8n relevance rules', () => {
     const job = {
       link: 'https://news.example.local/andrade-1',
-      jugador: 'Nicolás Andrade',
+      jugador: 'Nicolás Arbelo',
       seleccion: 'Aurenia',
-      tema_principal: 'Gol de Andrade',
-      titular: 'Andrade anotó en la victoria del Costa Azul FC',
+      tema_principal: 'Gol de Arbelo',
+      titular: 'Arbelo anotó en la victoria del Costa Azul FC',
       snippet: 'El mediocampista marcó el primer gol del partido.',
     };
     const article = {
-      title: 'Andrade anotó en la victoria del Costa Azul FC',
+      title: 'Arbelo anotó en la victoria del Costa Azul FC',
       main_content: [
-        'Nicolás Andrade anotó el primer gol del Costa Azul FC en la victoria del partido.',
+        'Nicolás Arbelo anotó el primer gol del Costa Azul FC en la victoria del partido.',
         'El mediocampista aureniano jugó los noventa minutos y fue elegido figura.',
         'El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.',
         'La selección de Aurenia también sigue de cerca su recuperación y su próximo partido de clasificatorias.',
@@ -113,7 +113,7 @@ describe('script domain', () => {
     };
     const valid = validateSourceArticle(article, job);
     assert.equal(valid.ok, true);
-    assert.ok(valid.combined_context.includes('Nicolás Andrade'));
+    assert.ok(valid.combined_context.includes('Nicolás Arbelo'));
     assert.equal(valid.validation.body_words > 30, true);
 
     const betting = validateSourceArticle({
@@ -150,7 +150,7 @@ describe('script domain', () => {
 
   it('builds the piped script and video segments used by the renderer', () => {
     const piped = buildPipedScript(
-      'Andrade anotó el primer gol del partido y fue elegido figura. El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.\n\nSegundo párrafo con otra idea para el cierre.',
+      'Arbelo anotó el primer gol del partido y fue elegido figura. El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.\n\nSegundo párrafo con otra idea para el cierre.',
     );
     assert.ok(piped.includes(' | '));
     assert.ok(piped.includes(' |\n\n'));

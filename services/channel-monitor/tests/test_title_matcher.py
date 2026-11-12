@@ -198,7 +198,7 @@ def test_repository_catalog_has_extensive_player_coverage_by_country():
     [
         ("Salvatierra vuelve a ser clave en defensa", "aurenia", "Mateo Salvatierra"),
         ("Cordero gana protagonismo en Capital FC", "aurenia", "Iván Cordero"),
-        ("Andrade domina el medio ante Bahía Norte FC", "aurenia", "Nicolás Andrade"),
+        ("Arbelo domina el medio ante Bahía Norte FC", "aurenia", "Nicolás Arbelo"),
         ("Bruno Valdivia sigue vigente en la Aurenia", "aurenia", "Bruno Valdivia"),
         ("Ángel Mera vuelve a ser noticia en Costa Azul FC", "aurenia", "Ángel Mera"),
         ("Lucas Benítez apunta a la Liga Demo", "aurenia", "Lucas Benítez"),

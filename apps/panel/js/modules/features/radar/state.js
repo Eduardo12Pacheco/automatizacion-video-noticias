@@ -1,5 +1,5 @@
 export const RADAR_COUNTRIES = [
-  { value: 'aurenia', label: 'Aurenia', players: ['Andrade', 'Cordero', 'Salvatierra'] },
+  { value: 'aurenia', label: 'Aurenia', players: ['Arbelo', 'Cordero', 'Salvatierra'] },
   { value: 'montelia', label: 'Montelia', players: ['Luis Cárdenas', 'Jaime', 'Quiroga'] },
   { value: 'valdoria', label: 'Valdoria', players: ['Márquez', 'Julián Alvarado', 'Ángel Miranda'] },
   { value: 'rivamar', label: 'Rivamar', players: ['Federico Valdés', 'Darío Nieves', 'Sergio Roca'] },

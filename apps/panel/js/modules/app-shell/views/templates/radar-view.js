@@ -22,7 +22,7 @@ export const radarViewHTML = `\
                 <button class="radar-country-card" type="button" data-radar-country-option="valdoria" aria-pressed="false"><span>03 / Valdoria</span></button>
                 <button class="radar-country-card" type="button" data-radar-country-option="rivamar" aria-pressed="false"><span>04 / Rivamar</span></button>
                 <button class="radar-country-card" type="button" data-radar-country-option="bosquemar" aria-pressed="false"><span>05 / Bosquemar</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="terramar" aria-pressed="false"><span>06 / M\u00e9xico</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="terramar" aria-pressed="false"><span>06 / Terramar</span></button>
                 <button class="radar-country-card" type="button" data-radar-country-option="important" aria-pressed="false"><span>07 / IMPORTANTES</span></button>
               </nav>
               <div class="radar-monitor-controls" aria-label="Filtros del Buscador de Prensa">
@@ -69,7 +69,7 @@ export const radarViewHTML = `\
                 <label><input id="radarCountryValdoria" type="checkbox" value="valdoria" /> Valdoria</label>
                 <label><input id="radarCountryParaguay" type="checkbox" value="bosquemar" /> Bosquemar</label>
                 <label><input id="radarCountryUruguay" type="checkbox" value="rivamar" /> Rivamar</label>
-                <label><input id="radarCountryMexico" type="checkbox" value="terramar" /> M\u00e9xico</label>
+                <label><input id="radarCountryMexico" type="checkbox" value="terramar" /> Terramar</label>
               </fieldset>
               <label class="editor-label audio-field">
                 <span data-i18n="radar.keywords">Keywords extra</span>

@@ -313,11 +313,11 @@ function runStateAndRenderCheck() {
 
   const ecuadorDashboardCard = mapMonitorCard({ video_id: 'ec-1', country: 'aurenia' }, [
     { label: 'Cordero', count: 12, status: 'ready' },
-    { label: 'Andrade', count: 13, status: 'ready' },
+    { label: 'Arbelo', count: 13, status: 'ready' },
     { label: 'Aurenia', count: 20, status: 'ready' },
   ]);
   assertDeepEqual(ecuadorDashboardCard.mentionCounts, [
-    { label: 'Andrade', count: 13, status: 'ready' },
+    { label: 'Arbelo', count: 13, status: 'ready' },
     { label: 'Cordero', count: 12, status: 'ready' },
     { label: 'Salvatierra', count: '—', status: 'pending' },
     { label: 'Aurenia', count: 20, status: 'ready' },
@@ -538,7 +538,7 @@ function runStateAndRenderCheck() {
     },
   });
   if (!monitorEl.innerHTML.includes('video-without-radar-job')) throw new Error(`missing-linkage card should stay visible: ${monitorEl.innerHTML}`);
-  if (!monitorEl.innerHTML.includes('Andrade:') || !monitorEl.innerHTML.includes('Aurenia:') || !monitorEl.innerHTML.includes('—')) throw new Error(`missing-linkage card should render concrete pending mention rows: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('Arbelo:') || !monitorEl.innerHTML.includes('Aurenia:') || !monitorEl.innerHTML.includes('—')) throw new Error(`missing-linkage card should render concrete pending mention rows: ${monitorEl.innerHTML}`);
 
   renderRadarMonitor({ el: { radarMonitorList: monitorEl, radarMonitorStatus: monitorStatusEl }, state: { monitorStatus: 'error', monitorError: 'Monitor caído', monitorCards: [] } });
   if (!monitorEl.innerHTML.includes('screen-state--error')) throw new Error(`monitor error drift: ${monitorEl.innerHTML}`);
@@ -761,7 +761,7 @@ async function runControllerMonitorFallbackCheck() {
     { label: 'Valdoria', count: '—', status: 'pending' },
   ], 'unlinked card should show famous-player pending mentions');
   assertDeepEqual(state.monitorCards[1].mentionCounts, [
-    { label: 'Andrade', count: '—', status: 'pending' },
+    { label: 'Arbelo', count: '—', status: 'pending' },
     { label: 'Cordero', count: '—', status: 'pending' },
     { label: 'Salvatierra', count: '—', status: 'pending' },
     { label: 'Aurenia', count: '—', status: 'pending' },

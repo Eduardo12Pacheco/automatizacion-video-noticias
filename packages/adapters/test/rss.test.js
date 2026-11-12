@@ -10,21 +10,21 @@ const CHANNEL_XML = readFileSync(new URL('../../test-fixtures/rss/youtube-channe
 
 test('parseNewsFeed maps Google News RSS fields to the n8n news shape', () => {
   const rows = parseNewsFeed(NEWS_XML, {
-    jugador: 'Nicolás Andrade',
+    jugador: 'Nicolás Arbelo',
     seleccion: 'Aurenia',
     source_kind: 'google_news_rss',
     source_name: 'Google News RSS',
   });
 
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].jugador, 'Nicolás Andrade');
+  assert.equal(rows[0].jugador, 'Nicolás Arbelo');
   assert.equal(rows[0].seleccion, 'Aurenia');
-  assert.equal(rows[0].titular, 'Nicolás Andrade anota en Costa Azul FC');
+  assert.equal(rows[0].titular, 'Nicolás Arbelo anota en Costa Azul FC');
   assert.equal(rows[0].fuente, 'Diario Deportivo');
   assert.equal(rows[0].fuente_origen, 'google_news_rss');
   assert.equal(rows[0].estado_revision, 'pendiente');
   assert.equal(rows[0].snippet, 'El mediocampista marcó y fue figura.');
-  assert.match(rows[0].id_noticia, /^Nicolás Andrade-2026-11-12-/);
+  assert.match(rows[0].id_noticia, /^Nicolás Arbelo-2026-11-12-/);
 });
 
 test('RssNewsSourceAdapter fetches the request feed_url and rejects HTTP failures', async () => {

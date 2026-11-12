@@ -63,8 +63,8 @@ def test_catalog_expands_selected_country_variants_for_supported_languages():
 
     assert "Jaime Rueda" in variants
     assert "Jaime Rueda" in variants["Jaime Rueda"]
-    assert "Nicolás Andrade" in variants
-    assert "Nicolás Andrade" in variants["Nicolás Andrade"]
+    assert "Nicolás Arbelo" in variants
+    assert "Nicolás Arbelo" in variants["Nicolás Arbelo"]
     assert "Leonel Márquez" in variants
     assert "Leonel Márquez" in variants["Leonel Márquez"]
 

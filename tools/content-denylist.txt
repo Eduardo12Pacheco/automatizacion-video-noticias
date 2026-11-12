@@ -263,6 +263,9 @@ Ligue 1
 Serie A
 Libertadores
 Sudamericana
+FIFA
+CONMEBOL
+UEFA
 Mundial
 Copa Mundial
 Copa América

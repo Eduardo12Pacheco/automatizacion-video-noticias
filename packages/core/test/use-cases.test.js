@@ -73,7 +73,7 @@ describe('DiscoverNews', () => {
     const ambiguous = {
       ...NEWS_FIXTURE[1],
       id_noticia: 'news-3',
-      titular: 'Andrade visitó una escuela de su ciudad',
+      titular: 'Arbelo visitó una escuela de su ciudad',
       snippet: 'Actividad social fuera del deporte',
       link: 'https://news.example.local/andrade-3',
       fecha_publicacion: NOW.toISOString(),
@@ -85,11 +85,11 @@ describe('DiscoverNews', () => {
       now: () => NOW,
       newsSource: {
         async fetchFeed(request) {
-          return request.jugador === 'Nicolás Andrade' ? [direct, ambiguous] : [];
+          return request.jugador === 'Nicolás Arbelo' ? [direct, ambiguous] : [];
         },
       },
       llm: createMockLLM('{"results":[{"id_noticia":"news-3","es_futbol":true,"razon":"futbol"}]}'),
-      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' }],
     });
 
     const result = await useCase.execute({ window: '24h' });
@@ -112,7 +112,7 @@ describe('DiscoverNews', () => {
       now: () => NOW,
       feedUrl: 'http://panel/assets/demo/discovery.xml',
       players: [
-        { seleccion: 'Aurenia', jugador: 'Nicolás Andrade' },
+        { seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' },
         { seleccion: 'Montelia', jugador: 'Leonel Márquez' },
       ],
       newsSource: {
@@ -145,7 +145,7 @@ describe('DiscoverNews', () => {
         },
       },
       llm: createMockLLM('{"results":[]}'),
-      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' }],
     });
 
     const result = await useCase.execute({ window: '1h', runId: run.run_id });
@@ -167,7 +167,7 @@ describe('ClusterTopics', () => {
         {
           cluster_id: CLUSTER_FIXTURE.cluster_id,
           seleccion: 'Aurenia',
-          jugador: 'Nicolás Andrade',
+          jugador: 'Nicolás Arbelo',
           tema_principal: CLUSTER_FIXTURE.tema_principal,
           resumen_cluster: CLUSTER_FIXTURE.resumen_cluster,
           tag_editorial: 'club',
@@ -237,7 +237,7 @@ describe('DraftScript', () => {
 
   it('claims a job, extracts the source, generates a draft and completes the job', async () => {
     const { repository } = await setup();
-    const draft = Array.from({ length: 240 }, (_, index) => (index === 0 ? 'Andrade' : 'palabra')).join(' ');
+    const draft = Array.from({ length: 240 }, (_, index) => (index === 0 ? 'Arbelo' : 'palabra')).join(' ');
     const useCase = new DraftScript({
       repository,
       articleExtractor: articleExtractor(),
@@ -309,7 +309,7 @@ describe('PublishScript', () => {
     return new PublishScript({
       repository,
       createVideoProject: new CreateVideoProject({ repository, now: () => NOW }),
-      llm: createMockLLM('Móises Andrade anotó y fue figura'),
+      llm: createMockLLM('Móises Arbelo anotó y fue figura'),
       documentExport: documentExport(),
       imageSearch: imageSearch(),
       now: () => NOW,
@@ -380,11 +380,11 @@ describe('ManualCreateVideoProject', () => {
     });
 
     const started = await useCase.start({
-      titular: 'Manual: Andrade en el Costa Azul FC',
-      guion: 'Nicolás Andrade anotó y fue figura del partido.',
-      jugador: 'Nicolás Andrade',
+      titular: 'Manual: Arbelo en el Costa Azul FC',
+      guion: 'Nicolás Arbelo anotó y fue figura del partido.',
+      jugador: 'Nicolás Arbelo',
       seleccion: 'Aurenia',
-      tema_principal: 'Manual Andrade',
+      tema_principal: 'Manual Arbelo',
     });
     assert.equal(started.job_id, 'manual-job-1');
     assert.equal(started.status, 'queued');
@@ -411,7 +411,7 @@ describe('RefreshSearch', () => {
         },
       },
       llm: createMockLLM('{"results":[]}'),
-      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' }],
     });
     const cluster = new ClusterTopics({
       repository,
@@ -419,7 +419,7 @@ describe('RefreshSearch', () => {
         clusters: [{
           cluster_id: CLUSTER_FIXTURE.cluster_id,
           seleccion: 'Aurenia',
-          jugador: 'Nicolás Andrade',
+          jugador: 'Nicolás Arbelo',
           tema_principal: CLUSTER_FIXTURE.tema_principal,
           source_ids: ['news-1'],
         }],
@@ -492,7 +492,7 @@ describe('DiscoverNews classifier fallback', () => {
     return {
       ...NEWS_FIXTURE[1],
       id_noticia: 'news-ambiguous',
-      titular: 'Andrade visitó una escuela de su ciudad',
+      titular: 'Arbelo visitó una escuela de su ciudad',
       snippet: 'Actividad social fuera del deporte',
       link: 'https://news.example.local/andrade-ambiguous',
       fecha_publicacion: NOW.toISOString(),
@@ -508,7 +508,7 @@ describe('DiscoverNews classifier fallback', () => {
       repository,
       now: () => NOW,
       newsSource: { async fetchFeed() { return [row]; } },
-      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Arbelo' }],
       batchSize: 10,
       ...llms,
     });
@@ -549,10 +549,10 @@ describe('SaveScriptDraft', () => {
 
     const saved = await useCase.execute({
       draftId: 'draft-news-1',
-      guionEditado: 'Nicolás Andrade anotó y fue figura.',
+      guionEditado: 'Nicolás Arbelo anotó y fue figura.',
     });
     assert.equal(saved.ok, true);
-    assert.equal(saved.draft.guion_editado, 'Nicolás Andrade anotó y fue figura.');
+    assert.equal(saved.draft.guion_editado, 'Nicolás Arbelo anotó y fue figura.');
     assert.equal((await repository.getPendingScriptDrafts()).length, 1);
 
     const dismissed = await useCase.execute({ draftId: 'draft-news-1', action: 'dismiss_processed' });

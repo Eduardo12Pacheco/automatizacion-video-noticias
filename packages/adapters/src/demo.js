@@ -1,10 +1,10 @@
 import { AdapterError } from './http.js';
 
 const DEMO_SCRIPT = [
-  'Aurenia prepara su próximo partido con una variante en el mediocampo y la vuelta de Nicolás Andrade como eje del equipo.',
+  'Aurenia prepara su próximo partido con una variante en el mediocampo y la vuelta de Nicolás Arbelo como eje del equipo.',
   'El cuerpo técnico probó una salida más rápida por las bandas durante la práctica abierta del martes.',
   'La idea es ganar terreno antes de que el rival se organice y darle más libertad al jugador que llega desde atrás.',
-  'Andrade completó la sesión sin molestias y trabajó junto al resto del grupo durante todo el entrenamiento.',
+  'Arbelo completó la sesión sin molestias y trabajó junto al resto del grupo durante todo el entrenamiento.',
   'Los asistente midieron la presión alta y la recuperación inmediata después de cada pérdida.',
   'El equipo busca sostener el ritmo durante los noventa minutos y evitar los pasajes de desconcierto que aparecieron en el último amistoso.',
   'La práctica terminó con una serie de definiciones y trabajos de pelota parada.',
@@ -15,7 +15,7 @@ const DEMO_SCRIPT = [
   'La afición agotó las entradas para el sector popular en pocas horas y se espera un estadio lleno.',
   'El equipo cerrará la preparación con una sesión táctica a puertas cerradas.',
   'Después del partido, el cuerpo técnico evaluará el rendimiento y definirá la carga para la siguiente fecha.',
-  'La noticia principal es la recuperación de Andrade, que vuelve a estar disponible en un momento importante del calendario.',
+  'La noticia principal es la recuperación de Arbelo, que vuelve a estar disponible en un momento importante del calendario.',
   'El mediocampista había trabajado de manera diferenciada la semana pasada y ahora completó todas las tareas con normalidad.',
   'Su regreso le da al equipo una salida más limpia y una referencia clara para la presión rival.',
   'El grupo mantiene la misma idea de juego y confía en el trabajo realizado durante la pretemporada.',

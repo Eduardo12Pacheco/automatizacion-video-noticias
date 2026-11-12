@@ -23,12 +23,12 @@ const EDITOR_PASSWORD = process.env.E2E_EDITOR_PASSWORD || 'e2e-demo-password';
 const ORIGIN = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';
 const SCRIPT_TEXT = [
   'La selección de Aurenia ajusta su mediocampo para el próximo partido.',
-  'Nicolás Andrade vuelve a entrenar con el grupo y será el eje del equipo.',
+  'Nicolás Arbelo vuelve a entrenar con el grupo y será el eje del equipo.',
   'El cuerpo técnico probó una salida más rápida por las bandas durante la práctica del martes.',
 ].join(' ');
 const SEGMENTS = [
   'La selección de Aurenia ajusta su mediocampo para el próximo partido.',
-  'Nicolás Andrade vuelve a entrenar con el grupo y será el eje del equipo.',
+  'Nicolás Arbelo vuelve a entrenar con el grupo y será el eje del equipo.',
   'El cuerpo técnico probó una salida más rápida por las bandas.',
 ];
 

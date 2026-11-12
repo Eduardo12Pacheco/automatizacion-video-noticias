@@ -36,9 +36,9 @@ describe('panel data router', () => {
     await repository.upsertVideoProject({
       draft_id: 'draft-1',
       id_noticia: 'news-1',
-      jugador: 'Nicolás Andrade',
+      jugador: 'Nicolás Arbelo',
       seleccion: 'Aurenia',
-      tema_principal: 'Regreso de Andrade',
+      tema_principal: 'Regreso de Arbelo',
       segments: [{ id: 'seg-001', order: 1, text: 'Guion' }],
       image_candidates: [],
       selected_images: [],

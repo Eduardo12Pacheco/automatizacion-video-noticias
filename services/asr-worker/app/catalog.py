@@ -35,8 +35,8 @@ COUNTRY_CATALOG: dict[str, dict[str, object]] = {
                 "pt": ["Aurenia"],
                 "nl": ["Aurenia"],
             },
-            "Nicolás Andrade": {
-                "base": ["Nicolás Andrade", "Nicolas Andrade", "Andrade"],
+            "Nicolás Arbelo": {
+                "base": ["Nicolás Arbelo", "Nicolas Arbelo", "Arbelo"],
             },
             "Mateo Salvatierra": {
                 "base": ["Mateo Salvatierra", "Salvatierra"],
