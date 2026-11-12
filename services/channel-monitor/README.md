@@ -42,7 +42,16 @@ Expected fail-closed reasons during migration include `boundary_misconfigured` f
 
 ### Runtime worker loops
 
-FastAPI startup owns one cancellable runtime loop per enabled duty: Radar enqueue retry, transcript summary sync, pending-live polling, SQLite cleanup, Upload playlist catch-up, and optional WebSub renewal. Configure them with `CHANNEL_MONITOR_WORKER_*_ENABLED` and `CHANNEL_MONITOR_WORKER_*_INTERVAL_SECONDS` in `.env`.
+FastAPI startup owns one cancellable runtime loop per enabled duty: Radar enqueue retry, transcript summary sync, pending-live polling, SQLite cleanup, RSS channel catch-up, and optional WebSub renewal. Configure them with `CHANNEL_MONITOR_WORKER_*_ENABLED` and `CHANNEL_MONITOR_WORKER_*_INTERVAL_SECONDS` in `.env`.
+
+## Local-first channel feed
+
+Local/dev mode uses the public YouTube channel RSS feed
+(`https://www.youtube.com/feeds/videos.xml?channel_id=UC...`) and reads the
+channel page only to resolve a `@handle`; no YouTube Data API key is needed.
+`CHANNEL_MONITOR_YOUTUBE_API_KEY` is no longer required and is not read in
+`local_dev` mode. Set `CHANNEL_MONITOR_NETWORK_MODE=protected` to route feed
+access through the optional network boundary instead.
 
 Preflight includes runtime checks. Radar reachability uses authenticated GET /api/radar/health only; it does not fetch captions, transcripts, or use AI.
 

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from .boundary_client import BoundaryRequestError, ChannelNetworkBoundaryClient
 from .channel_bootstrap import ChannelResolver, channel_sync_report_to_dict, sync_configured_channels
 from .radar_client import RadarClient
+from .rss_client import RssChannelClient
 from .runtime import RuntimeCoordinator, RuntimeLoop
 from .settings import NETWORK_MODE_PROTECTED, Settings, load_and_validate_channel_config, load_channel_config, load_settings, validation_report_to_dict
 from .store import ChannelRecord, MonitorCardRecord, MonitorStore
@@ -367,7 +368,7 @@ def _preflight_response(
         "sqlite": store.preflight(),
         "channels": channel_report,
         "radar": radar_client.preflight() if radar_client else _dependency_status(False, "radar_client_configured"),
-        "youtube": _dependency_status(bool(settings.youtube_api_key), "youtube_api_key_configured"),
+        "channel_feed": _dependency_status(True, "youtube_rss_no_api_key"),
         "websub_callback": _dependency_status(bool(settings.callback_url), "callback_url_configured"),
         "websub_subscriptions": store.subscription_preflight(),
         "catchup": store.catchup_preflight(),
@@ -431,12 +432,10 @@ def _sync_channels_for_preflight_or_startup(
     )
 
 
-def _build_channel_resolver(*, settings: Settings) -> YouTubeDataClient | ChannelNetworkBoundaryClient | None:
+def _build_channel_resolver(*, settings: Settings) -> RssChannelClient | ChannelNetworkBoundaryClient | None:
     if _protected_network_mode(settings):
         return _build_boundary_client(settings=settings)
-    if not settings.youtube_api_key:
-        return None
-    return YouTubeDataClient(api_key=settings.youtube_api_key, network_mode=settings.network_mode)
+    return RssChannelClient()
 
 
 def _channel_to_dict(record: ChannelRecord) -> dict[str, Any]:
@@ -706,9 +705,13 @@ def _build_discovery_worker(*, settings: Settings, store: MonitorStore) -> Disco
     if _protected_network_mode(settings):
         youtube = _require_boundary_client(settings=settings)
     else:
-        if not settings.youtube_api_key:
-            return None
-        youtube = YouTubeDataClient(api_key=settings.youtube_api_key, network_mode=settings.network_mode)
+        youtube = RssChannelClient(
+            channel_ids_provider=lambda: [
+                channel.youtube_channel_id
+                for channel in store.list_channels()
+                if channel.youtube_channel_id
+            ]
+        )
     return DiscoveryWorker(
         store=store,
         youtube=youtube,
@@ -819,9 +822,13 @@ def _build_catchup_worker(
     if _protected_network_mode(settings):
         youtube = _require_boundary_client(settings=settings)
     else:
-        if not settings.youtube_api_key:
-            return None
-        youtube = YouTubeDataClient(api_key=settings.youtube_api_key, network_mode=settings.network_mode)
+        youtube = RssChannelClient(
+            channel_ids_provider=lambda: [
+                channel.youtube_channel_id
+                for channel in store.list_channels()
+                if channel.youtube_channel_id
+            ]
+        )
     return CatchupWorker(
         store=store,
         youtube=youtube,

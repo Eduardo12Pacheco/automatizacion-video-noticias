@@ -102,7 +102,14 @@ def test_lifespan_starts_and_stops_injected_runtime_coordinator_once(tmp_path):
     store.migrate()
     runtime = FakeRuntimeCoordinator()
 
-    with TestClient(create_app(settings=settings, store=store, runtime_coordinator=runtime)) as client:
+    with TestClient(
+        create_app(
+            settings=settings,
+            store=store,
+            runtime_coordinator=runtime,
+            channel_resolver=StartupFakeChannelResolver(),
+        )
+    ) as client:
         response = client.get("/api/monitor/live")
 
     assert response.status_code == 200
@@ -238,7 +245,6 @@ def test_local_dev_builders_keep_explicit_local_provider_path(tmp_path):
         db_path=tmp_path / "monitor.sqlite3",
         catalog_config_path=catalog_path,
         network_mode="local_dev",
-        youtube_api_key="youtube-key",
         callback_url="https://monitor.example.test/api/monitor/websub",
     )
     store = MonitorStore(settings.db_path)
@@ -248,8 +254,8 @@ def test_local_dev_builders_keep_explicit_local_provider_path(tmp_path):
     discovery = main_module._build_discovery_worker(settings=settings, store=store)
     websub = main_module._build_websub_worker(settings=settings, store=store)
 
-    assert resolver.__class__.__name__ == "YouTubeDataClient"
-    assert discovery.youtube.__class__.__name__ == "YouTubeDataClient"
+    assert resolver.__class__.__name__ == "RssChannelClient"
+    assert discovery.youtube.__class__.__name__ == "RssChannelClient"
     assert websub.websub.__class__.__name__ == "WebSubClient"
 
 
@@ -376,7 +382,7 @@ countries:
         "sqlite",
         "channels",
         "radar",
-        "youtube",
+        "channel_feed",
         "websub_callback",
         "websub_subscriptions",
         "catchup",
@@ -384,7 +390,7 @@ countries:
         "runtime",
         "classification",
     }
-    assert "catchup" in authorized.json()["checks"]["runtime"]["disabled"]
+    assert "catchup" in authorized.json()["checks"]["runtime"]["enabled"]
 
 
 
