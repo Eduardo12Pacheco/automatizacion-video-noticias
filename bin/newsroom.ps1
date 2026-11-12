@@ -113,6 +113,9 @@ try {
     if (-not $profile) { $profile = 'cpu' }
     if ($profile -eq 'auto') { $profile = 'cpu' }
     Set-NrOption -Name Profile -Value $profile
+    if ((Test-Path -LiteralPath $config.EnvFile -PathType Leaf) -and (Get-NrEnvValue -Key 'NEWSROOM_MODE') -eq 'local') {
+        Set-NrOption -Name Mode -Value 'local'
+    }
 
     function Assert-NrEnv {
         if (-not (Test-Path -LiteralPath $config.EnvFile -PathType Leaf)) {
@@ -171,6 +174,7 @@ try {
                 Stop-NrInstall 'usage: newsroom mode <demo|local>'
             }
             Set-NrEnvValue -Key 'NEWSROOM_MODE' -Value $modeValue
+            Set-NrOption -Name Mode -Value $modeValue
             if ($modeValue -eq 'local') {
                 Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'
                 Install-NrModels

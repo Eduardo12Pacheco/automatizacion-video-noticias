@@ -232,6 +232,9 @@ function Get-NrComposeArgs {
     if ($script:NrConfig.Profile -and $script:NrConfig.Profile -ne 'auto') {
         $composeArgs += @('--profile', $script:NrConfig.Profile)
     }
+    if ($script:NrConfig.Mode -eq 'local' -and (($Arguments -join ' ') -notmatch '--profile\s+local')) {
+        $composeArgs += @('--profile', 'local')
+    }
     $composeArgs += $Arguments
     return $composeArgs
 }

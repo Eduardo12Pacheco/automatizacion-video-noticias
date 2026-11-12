@@ -111,6 +111,14 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertTrue((self.bin_dir / "newsroom.cmd").is_file())
         self.assertIn("Generated administrator password", result.stdout)
 
+    def test_local_mode_activates_the_local_profile(self):
+        result = self.run_ps(*self.ps_args("-Mode", "local"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        log = self.read_log()
+        self.assertIn("MODEL_INIT", log)
+        stack_up = [line for line in log.splitlines() if " up -d --build" in line][-1]
+        self.assertIn("--profile local", stack_up)
+
     def test_second_install_is_idempotent(self):
         first = self.run_ps(*self.ps_args())
         self.assertEqual(first.returncode, 0, first.stdout + first.stderr)

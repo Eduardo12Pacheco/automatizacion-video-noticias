@@ -169,6 +169,13 @@ nr_compose() {
   if [ -n "$NR_PROFILE" ] && [ "$NR_PROFILE" != "auto" ]; then
     args+=(--profile "$NR_PROFILE")
   fi
+  # COMPOSE_PROFILES in .env is not honoured by every Compose version when
+  # --env-file is used, so local mode activates its profile explicitly.
+  local mode="${NR_RUN_MODE:-$(nr_env_get NEWSROOM_MODE)}"
+  case " $* " in
+    *" --profile local "*) ;;
+    *) [ "$mode" = "local" ] && args+=(--profile local) ;;
+  esac
   ( cd "$NR_PROJECT_DIR" && docker "${args[@]}" "$@" )
 }
 

@@ -139,6 +139,8 @@ class NewsroomCliTests(InstallerTestCase):
         self.assertIn("MODEL_INIT", log)
         self.assertIn("STACK_DOWN", log)
         self.assertIn("STACK_UP", log)
+        stack_up = [line for line in log.splitlines() if " up -d --build" in line][-1]
+        self.assertIn("--profile local", stack_up)
 
         demo = self.run_cli(*self.project_args("mode", "demo"))
         self.assertEqual(demo.returncode, 0, demo.stdout + demo.stderr)

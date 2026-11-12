@@ -190,6 +190,8 @@ class InstallTests(InstallerTestCase):
         self.assertIn("OLLAMA_PULL", log)
         self.assertIn("~2 GB", result.stdout)
         self.assertIn("~0.5 GB", result.stdout)
+        stack_up = [line for line in log.splitlines() if " up -d --build" in line][-1]
+        self.assertIn("--profile local", stack_up)
         values = self.env_values()
         self.assertEqual(values["NEWSROOM_MODE"], "local")
         self.assertEqual(values["COMPOSE_PROFILES"], "local")
