@@ -61,7 +61,7 @@ test.describe.serial('demo panel flows', () => {
     });
     execFileSync('docker', [
       'compose', 'run', '--rm', '-T', 'api', 'node', 'scripts/create-admin.js',
-      '--email', ADMIN_EMAIL, '--display-name', 'Demo Admin', '--password-stdin',
+      '--email', ADMIN_EMAIL, '--display-name', 'Demo Admin', '--password-stdin', '--reset-password',
     ], {
       encoding: 'utf8',
       input: ADMIN_PASSWORD,
