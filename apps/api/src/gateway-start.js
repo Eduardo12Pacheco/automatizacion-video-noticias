@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createAdaptersFromEnv } from '@newsroom/adapters';
+import { createAdaptersFromEnv, resolveRunMode } from '@newsroom/adapters';
 import { DEFAULT_EVENT_RETENTION, JsonlEventRecorder } from './gateway-events.js';
 import { DEFAULT_HOST, DEFAULT_PANEL_BOOTSTRAP, DEFAULT_PORT, DEFAULT_TRUSTED_PROXY_CIDRS, resolveRoutesFromEnv } from './gateway-config.js';
 import { readPanelUsersFromEnv, readServiceCredentialsFromEnv } from './gateway-auth.js';
@@ -92,6 +92,7 @@ export function startGateway({
   const panelBootstrap = {
     ...DEFAULT_PANEL_BOOTSTRAP,
     ...(configuredPublicOrigin ? { apiOrigin: configuredPublicOrigin } : {}),
+    runMode: resolveRunMode(process.env),
     featureFlags: { localWorkflows: true },
   };
   const server = createGatewayServer({

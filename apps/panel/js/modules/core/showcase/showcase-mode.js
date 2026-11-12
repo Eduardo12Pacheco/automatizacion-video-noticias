@@ -128,6 +128,7 @@ function createShowcaseResponse(url, options = {}) {
     return jsonResponse({
       api_origin: globalThis.location?.origin || '',
       app_version: 'showcase',
+      run_mode: 'demo',
       routes: { approval: '/panel/read-models/approval', audio: '/panel/read-models/audio' },
     });
   }
@@ -188,6 +189,7 @@ export function installShowcaseMode({ windowRef = globalThis.window, locationLik
   globalThis.__CONTROL_PANEL_BOOTSTRAP__ = {
     api_origin: locationLike?.origin || '',
     app_version: 'showcase',
+    run_mode: 'demo',
     routes: { approval: '/panel/read-models/approval' },
   };
 

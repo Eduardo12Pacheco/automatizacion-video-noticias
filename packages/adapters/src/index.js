@@ -11,3 +11,15 @@ export { RssChannelFeedAdapter, RssNewsSourceAdapter, parseChannelFeed, parseNew
 export { N8nWorkflowTrigger } from './workflow-trigger.js';
 export { DEFAULT_ADAPTER_SCRIPT, runJsonCommand } from './spawn.js';
 export { createAdaptersFromEnv } from './composition.js';
+export {
+  DEMO_ADAPTER_DEFAULTS,
+  DEMO_ROUTE_TARGETS,
+  DEFAULT_RUN_MODE,
+  LOCAL_ADAPTER_DEFAULTS,
+  LOCAL_ROUTE_TARGETS,
+  RUN_MODES,
+  applyRunModeDefaults,
+  isDemoMode,
+  resolveModeRouteTargets,
+  resolveRunMode,
+} from './run-mode.js';

@@ -27,6 +27,9 @@
   "auth.password": "Password",
   "auth.submit": "Sign in",
   "auth.footer": "Private access · Operations Studio",
+  "mode.demoBadge": "Demo mode",
+  "mode.demoBanner": "Demo data: the whole walkthrough works without downloading models or configuring keys.",
+
   "auth.invalid": "Incorrect username or password",
   "auth.welcome": "Signed in",
 

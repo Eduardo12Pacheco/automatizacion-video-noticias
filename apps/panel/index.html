@@ -45,6 +45,7 @@
             </div>
             <div class="sidebar-brand__copy">
               <strong>Editorial system</strong>
+              <span id="runModeBadge" class="run-mode-badge" data-i18n="mode.demoBadge" hidden>Modo demo</span>
             </div>
           </div>
 
@@ -106,6 +107,10 @@
 
       <!-- Slice A: Main views -->
       <section class="content app-content">
+        <div id="runModeBanner" class="run-mode-banner" role="status" hidden>
+          <strong data-i18n="mode.demoBadge">Modo demo</strong>
+          <span data-i18n="mode.demoBanner">Datos de demostración: el recorrido funciona sin modelos ni claves.</span>
+        </div>
         <section id="viewApproval" class="view approval-screen">
           <header class="approval-controls panel-shell">
             <div class="approval-controls__actions">

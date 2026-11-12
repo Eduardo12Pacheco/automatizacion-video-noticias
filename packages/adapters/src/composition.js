@@ -9,6 +9,7 @@ import { RssChannelFeedAdapter, RssNewsSourceAdapter } from './rss.js';
 import { N8nWorkflowTrigger } from './workflow-trigger.js';
 import { HttpASRAdapter, HttpTranslationAdapter, HttpTTSAdapter, HttpVideoRendererAdapter, workerAuthHeaders } from './worker-ports.js';
 import { createAuthAdapterFromEnv } from './auth-port.js';
+import { applyRunModeDefaults } from './run-mode.js';
 
 function choice(value, fallback) {
   return String(value || fallback || '').trim().toLowerCase();
@@ -37,6 +38,9 @@ export function createAdaptersFromEnv({
   logger = console,
   authService = null,
 } = {}) {
+  // NEWSROOM_MODE supplies the adapter defaults; explicit variables win in
+  // local mode, while demo mode forces the deterministic set (D10).
+  env = applyRunModeDefaults(env);
   const pythonBin = String(env.PYTHON_BIN || 'python3').trim() || 'python3';
   const adapters = {};
 

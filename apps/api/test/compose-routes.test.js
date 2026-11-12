@@ -4,8 +4,12 @@ import { describe, it } from 'node:test';
 import { DEFAULT_ROUTES, resolvePanelRequestOrigin, resolveRoutesFromEnv } from '../src/gateway.js';
 
 describe('compose route configuration', () => {
-  it('keeps default routes when no target env vars are present', () => {
-    assert.deepEqual(resolveRoutesFromEnv({}), DEFAULT_ROUTES);
+  it('uses the local-mode worker targets when no target env vars are present', () => {
+    const routes = resolveRoutesFromEnv({});
+    assert.equal(routes.tts.target, 'http://tts-worker:8766');
+    assert.equal(routes.subtitles.target, 'http://subtitles:8092');
+    assert.equal(routes.remotion.target, 'http://renderer:3042');
+    assert.equal(routes.n8n.target, DEFAULT_ROUTES.n8n.target);
   });
 
   it('lets Compose point each local service at its container target', () => {

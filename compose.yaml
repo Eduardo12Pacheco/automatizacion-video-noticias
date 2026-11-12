@@ -27,6 +27,7 @@ x-api-base: &api-base
       required: false
   environment: &api-environment
     NODE_ENV: production
+    NEWSROOM_MODE: ${NEWSROOM_MODE:-demo}
     API_GATEWAY_HOST: 0.0.0.0
     API_GATEWAY_PORT: "8099"
     DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-newsroom}:${POSTGRES_PASSWORD:?run ./install.sh first}@postgres:5432/${POSTGRES_DB:-newsroom}}
@@ -46,7 +47,7 @@ x-api-base: &api-base
     PYTHON_BIN: /opt/newsroom-python/bin/python
     LLM: ${LLM:-ollama}
     OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-    OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+    OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b-instruct}
     NEWS_SOURCE: ${NEWS_SOURCE:-rss}
     ARTICLE_EXTRACTOR: ${ARTICLE_EXTRACTOR:-trafilatura}
     IMAGE_SEARCH: ${IMAGE_SEARCH:-searxng}
@@ -196,7 +197,7 @@ services:
         ollama pull "$${OLLAMA_MODEL}" || true
         wait $$pid
     environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b-instruct}
     volumes:
       - newsroom_ollama:/root/.ollama
     healthcheck:

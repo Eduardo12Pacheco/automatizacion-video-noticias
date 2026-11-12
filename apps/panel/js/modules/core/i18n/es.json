@@ -27,6 +27,9 @@
   "auth.password": "Contraseña",
   "auth.submit": "Entrar",
   "auth.footer": "Acceso privado · Operations Studio",
+  "mode.demoBadge": "Modo demo",
+  "mode.demoBanner": "Datos de demostración: todo el recorrido funciona sin descargar modelos ni configurar claves.",
+
   "auth.invalid": "Usuario o contraseña incorrectos",
   "auth.welcome": "Sesión iniciada",
 

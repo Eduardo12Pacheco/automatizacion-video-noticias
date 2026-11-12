@@ -306,10 +306,21 @@ const lifecycle = createAppShellLifecycle({
   _visited,
 });
 
+function syncRunModeChrome() {
+  const bootstrap = globalThis.__CONTROL_PANEL_BOOTSTRAP__ || {};
+  const showcase = document.documentElement?.getAttribute?.('data-showcase') === 'true';
+  const demo = bootstrap.run_mode === 'demo' || showcase;
+  const badge = document.getElementById('runModeBadge');
+  const banner = document.getElementById('runModeBanner');
+  if (badge) badge.hidden = !demo;
+  if (banner) banner.hidden = !demo;
+}
+
 export async function bootApp() {
   i18n.apply();
   await hydrateGatewaySession().catch(() => null);
   syncAdminNavigation();
+  syncRunModeChrome();
   lifecycle.bootApp();
 }
 
@@ -317,6 +328,7 @@ export async function bootCompatibilityShell() {
   i18n.apply();
   await hydrateGatewaySession().catch(() => null);
   syncAdminNavigation();
+  syncRunModeChrome();
   lifecycle.bootCompatibilityShell();
 }
 

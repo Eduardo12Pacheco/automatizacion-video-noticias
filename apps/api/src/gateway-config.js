@@ -1,3 +1,5 @@
+import { resolveModeRouteTargets } from '@newsroom/adapters';
+
 export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8099;
 
@@ -37,20 +39,23 @@ export const DEFAULT_PANEL_BOOTSTRAP = Object.freeze({
   settingsVersion: 'gateway-defaults-v1',
   apiOrigin: 'https://api.example.local',
   minShellVersion: '0.1.0',
+  runMode: 'local',
   featureFlags: {},
 });
 
 /**
  * Compose runs every local worker as its own container, so the gateway target
- * for each prefix is configuration rather than a loopback constant. Keep the
- * defaults for host-based development and let deployments override only the
- * targets they need.
+ * for each prefix is configuration rather than a loopback constant. The run
+ * mode supplies the defaults (demo routes to the deterministic worker, local
+ * routes to the real CPU workers); `API_GATEWAY_*_TARGET` overrides either.
  */
 export function resolveRoutesFromEnv(env = process.env, defaults = DEFAULT_ROUTES) {
+  const modeTargets = resolveModeRouteTargets(env || {});
   const routes = {};
   for (const [service, route] of Object.entries(defaults)) {
     const key = `API_GATEWAY_${service.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_TARGET`;
-    const target = String(env?.[key] || '').trim();
+    const envTarget = String(env?.[key] || '').trim();
+    const target = envTarget || modeTargets[service] || '';
     routes[service] = { ...route, ...(target ? { target } : {}) };
   }
   return routes;
@@ -410,6 +415,7 @@ export function normalizePanelBootstrap(panelBootstrap = {}, routes = DEFAULT_RO
     settings_version: String(merged.settingsVersion || DEFAULT_PANEL_BOOTSTRAP.settingsVersion),
     api_origin: String(merged.apiOrigin || DEFAULT_PANEL_BOOTSTRAP.apiOrigin).replace(/\/+$/, ''),
     min_shell_version: String(merged.minShellVersion || DEFAULT_PANEL_BOOTSTRAP.minShellVersion),
+    run_mode: merged.runMode === 'demo' ? 'demo' : 'local',
     routes: routePrefixesForBootstrap(routes),
     feature_flags: merged.featureFlags && typeof merged.featureFlags === 'object' ? merged.featureFlags : {},
   };

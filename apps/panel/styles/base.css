@@ -179,3 +179,45 @@ a {
   font-size: var(--fs-12);
   pointer-events: none;
 }
+
+
+.run-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.run-mode-badge[hidden],
+.run-mode-banner[hidden] {
+  display: none;
+}
+
+.run-mode-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--text-1);
+  font-size: var(--fs-14);
+}
+
+.run-mode-banner strong {
+  color: var(--accent);
+  font-size: var(--fs-12);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
