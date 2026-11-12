@@ -82,7 +82,53 @@ class NewsroomCliTests(InstallerTestCase):
         self.installed()
         result = self.run_cli(*self.project_args("--profile", "gpu", "status"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("--profile gpu", self.read_log())
+        log = self.read_log()
+        self.assertIn("--profile gpu", log)
+        self.assertIn("infra/compose/compose.gpu.yaml", log)
+
+    def test_cpu_profile_does_not_apply_the_gpu_overlay(self):
+        self.installed()
+        self.run_cli(*self.project_args("up"))
+        self.assertNotIn("compose.gpu.yaml", self.read_log())
+
+    def test_newsroom_up_applies_the_overlay_from_the_installed_profile(self):
+        self.installed()
+        self.set_env("NEWSROOM_PROFILE", "gpu")
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_cli(*self.project_args("up"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        log = self.read_log()
+        self.assertIn("--profile gpu", log)
+        self.assertIn("compose.gpu.yaml", log)
+
+    def test_doctor_reports_gpu_passthrough_when_selected(self):
+        self.installed()
+        result = self.run_cli(
+            *self.project_args("--profile", "gpu", "doctor"),
+            env_extra={"FAKE_GPU": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("GPU passthrough: nvidia-smi runs inside a container", result.stdout)
+        self.assertIn("GPU_PROBE", self.read_log())
+
+    def test_doctor_fails_when_gpu_passthrough_is_broken(self):
+        self.installed()
+        result = self.run_cli(
+            *self.project_args("--profile", "gpu", "doctor"),
+            env_extra={"FAKE_GPU": "1", "FAKE_DOCKER_GPU_FAIL": "1"},
+        )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("GPU passthrough failed", result.stdout + result.stderr)
+
+    def test_doctor_skips_passthrough_on_the_cpu_profile(self):
+        self.installed()
+        result = self.run_cli(
+            *self.project_args("doctor"),
+            env_extra={"FAKE_GPU": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("GPU passthrough: not checked (cpu profile", result.stdout)
+        self.assertNotIn("GPU_PROBE", self.read_log())
 
     def test_doctor_reports_prerequisites_and_state(self):
         self.installed()

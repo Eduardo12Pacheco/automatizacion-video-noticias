@@ -88,6 +88,9 @@ function Install-NrModels {
     Write-NrInfo "  Ollama $ollamaModel`: ~2 GB"
     Write-NrInfo "  Whisper $whisperModel`: ~0.5 GB"
     Write-NrInfo "  Piper $piperModel`: ~60 MB"
+    if ($script:NrConfig.Profile -eq 'gpu') {
+        Write-NrInfo '  Qwen3-TTS 1.7B (GPU voice): ~4.5 GB'
+    }
     Write-NrInfo 'downloading local models; this can take a while'
 
     $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'run', '--rm', 'model-init')

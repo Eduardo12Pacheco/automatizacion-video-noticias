@@ -141,7 +141,39 @@ class PowerShellInstallerTests(InstallerTestCase):
             env_extra={"FAKE_GPU": "1"},
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("--profile gpu", self.read_log())
+        log = self.read_log()
+        self.assertIn("--profile gpu", log)
+        self.assertIn("infra/compose/compose.gpu.yaml", log)
+        values = self.env_values()
+        self.assertEqual(values["TTS_WORKER_ENGINE"], "qwen")
+        self.assertEqual(values["OLLAMA_KEEP_ALIVE"], "0s")
+
+    def test_cpu_profile_does_not_apply_the_gpu_overlay(self):
+        result = self.run_ps(*self.ps_args())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("compose.gpu.yaml", self.read_log())
+
+    def test_doctor_reports_gpu_passthrough_when_selected(self):
+        install = self.run_ps(*self.ps_args())
+        self.assertEqual(install.returncode, 0, install.stdout + install.stderr)
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_cli(
+            "--project-dir", str(self.project), "--profile", "gpu", "doctor",
+            env_extra={"FAKE_GPU": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("GPU passthrough: nvidia-smi runs inside a container", result.stdout)
+        self.assertIn("GPU_PROBE", self.read_log())
+
+    def test_doctor_fails_when_gpu_passthrough_is_broken(self):
+        install = self.run_ps(*self.ps_args())
+        self.assertEqual(install.returncode, 0, install.stdout + install.stderr)
+        result = self.run_cli(
+            "--project-dir", str(self.project), "--profile", "gpu", "doctor",
+            env_extra={"FAKE_GPU": "1", "FAKE_DOCKER_GPU_FAIL": "1"},
+        )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("GPU passthrough failed", result.stdout + result.stderr)
 
     def test_gpu_and_no_gpu_switches(self):
         gpu = self.run_ps(

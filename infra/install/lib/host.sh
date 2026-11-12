@@ -57,6 +57,21 @@ nr_gpu_container_ready() {
   docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -qi nvidia
 }
 
+# Proves that the NVIDIA runtime can actually hand the device to a container,
+# not merely that the toolkit is installed. Uses the same documented CUDA probe
+# image as the T30 acceptance check; override the image in air-gapped setups.
+nr_gpu_passthrough() {
+  nr_gpu_overlay_is_required || return 1
+  local image="${NEWSROOM_GPU_PROBE_IMAGE:-nvidia/cuda:12.4.1-base-ubuntu22.04}"
+  local timeout_sec="${NEWSROOM_GPU_PROBE_TIMEOUT_SECONDS:-120}"
+  local cmd=(docker run --rm --gpus all "$image" nvidia-smi -L)
+  if nr_command_exists timeout; then
+    timeout "$timeout_sec" "${cmd[@]}"
+  else
+    "${cmd[@]}"
+  fi
+}
+
 nr_port_in_use() {
   local port="$1"
   if [ -n "${NEWSROOM_LISTENING_PORTS_OVERRIDE:-}" ]; then
@@ -201,8 +216,20 @@ nr_check_environment() {
     else
       nr_warn "NVIDIA container toolkit is missing; the gpu profile will not start"
     fi
+  elif nr_gpu_overlay_is_required; then
+    nr_check_fail "GPU passthrough: the gpu profile is selected but nvidia-smi is not available"
   else
     nr_info "NVIDIA GPU: not detected (cpu profile)"
+  fi
+
+  if nr_gpu_overlay_is_required; then
+    if nr_docker_daemon_ok && nr_gpu_passthrough >/dev/null 2>&1; then
+      nr_ok "GPU passthrough: nvidia-smi runs inside a container"
+    elif [ "$NR_ALLOW_MISSING_DOCKER" != "1" ]; then
+      nr_check_fail "GPU passthrough failed: install nvidia-container-toolkit and run 'docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi'"
+    fi
+  elif nr_gpu_present; then
+    nr_info "GPU passthrough: not checked (cpu profile; use --profile gpu)"
   fi
 
   local configured_ports=()

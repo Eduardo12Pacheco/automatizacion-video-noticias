@@ -36,6 +36,13 @@ if args[:1] == ["info"]:
         print("Server Version: 27.0.0")
     sys.exit(0)
 
+if args[:1] == ["run"] and "--gpus" in args:
+    if os.environ.get("FAKE_DOCKER_GPU_FAIL") == "1":
+        sys.stderr.write("could not select device driver with capabilities: [[gpu]]\n")
+        sys.exit(1)
+    logged("GPU_PROBE")
+    sys.exit(0)
+
 if not args or args[0] != "compose":
     sys.exit(0)
 
@@ -53,6 +60,12 @@ if command == "version":
 
 if command == "run":
     joined = " ".join(rest)
+    if "--gpus" in rest or "--gpus" in args:
+        if os.environ.get("FAKE_DOCKER_GPU_FAIL") == "1":
+            sys.stderr.write("could not select device driver with capabilities: [[gpu]]\n")
+            sys.exit(1)
+        logged("GPU_PROBE")
+        sys.exit(0)
     if "create-admin.js" in joined:
         password = sys.stdin.read() if not sys.stdin.isatty() else ""
         logged(f"ADMIN_STDIN_LEN={len(password)}")

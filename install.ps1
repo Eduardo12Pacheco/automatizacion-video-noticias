@@ -201,6 +201,11 @@ try {
                 Set-NrEnvValue -Key 'TTS_WORKER_ENGINE' -Value 'piper'
             }
         }
+        if ($config.Profile -eq 'gpu') {
+            # Keep the 3B LLM and Qwen3-TTS from staying resident together.
+            Set-NrEnvValue -Key 'TTS_WORKER_ENGINE' -Value 'qwen'
+            Set-NrEnvValue -Key 'OLLAMA_KEEP_ALIVE' -Value '0s'
+        }
         if ($Mode -eq 'local') {
             Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'
         } else {

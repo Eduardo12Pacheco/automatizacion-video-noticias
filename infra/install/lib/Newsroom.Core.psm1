@@ -9,6 +9,7 @@ $script:NrConfig = @{
     EnvFile        = ''
     EnvTemplate    = ''
     ComposeFile    = ''
+    GpuComposeFile = ''
     StateDir       = ''
     StateFile      = ''
     Profile        = 'auto'
@@ -142,6 +143,11 @@ function Initialize-NrPaths {
     $script:NrConfig.EnvFile = $EnvFile
     $script:NrConfig.EnvTemplate = Join-Path $resolvedProject '.env.example'
     $script:NrConfig.ComposeFile = $ComposeFile
+    if ($env:NEWSROOM_GPU_COMPOSE_FILE) {
+        $script:NrConfig.GpuComposeFile = $env:NEWSROOM_GPU_COMPOSE_FILE
+    } else {
+        $script:NrConfig.GpuComposeFile = Join-Path $repo 'infra/compose/compose.gpu.yaml'
+    }
     $script:NrConfig.StateDir = Join-Path $resolvedProject '.newsroom'
     $script:NrConfig.StateFile = Join-Path $script:NrConfig.StateDir 'state.env'
 }
@@ -229,6 +235,12 @@ function Get-NrComposeArgs {
         $composeArgs += @('--env-file', $script:NrConfig.EnvFile)
     }
     $composeArgs += @('-f', $script:NrConfig.ComposeFile)
+    if ($script:NrConfig.Profile -eq 'gpu') {
+        if (-not (Test-Path -LiteralPath $script:NrConfig.GpuComposeFile -PathType Leaf)) {
+            throw "gpu profile needs the compose overlay at $($script:NrConfig.GpuComposeFile)"
+        }
+        $composeArgs += @('-f', $script:NrConfig.GpuComposeFile)
+    }
     if ($script:NrConfig.Profile -and $script:NrConfig.Profile -ne 'auto') {
         $composeArgs += @('--profile', $script:NrConfig.Profile)
     }
@@ -549,6 +561,18 @@ function Test-NrGpuContainerReady {
     return $true
 }
 
+function Test-NrGpuOverlayRequired {
+    return ($script:NrConfig.Profile -eq 'gpu')
+}
+
+function Test-NrGpuPassthrough {
+    if (-not (Test-NrGpuOverlayRequired)) { return $false }
+    $image = $env:NEWSROOM_GPU_PROBE_IMAGE
+    if (-not $image) { $image = 'nvidia/cuda:12.4.1-base-ubuntu22.04' }
+    & docker run --rm --gpus all $image nvidia-smi -L *> $null
+    return ($LASTEXITCODE -eq 0)
+}
+
 function Resolve-NrProfile {
     param(
         [string]$Requested = 'auto',
@@ -701,8 +725,20 @@ function Test-NrEnvironment {
         } else {
             Write-NrWarn 'NVIDIA container runtime is missing; the gpu profile will not start'
         }
+    } elseif (Test-NrGpuOverlayRequired) {
+        Write-NrCheckFail 'GPU passthrough: the gpu profile is selected but nvidia-smi is not available'
     } else {
         Write-NrInfo 'NVIDIA GPU: not detected (cpu profile)'
+    }
+
+    if (Test-NrGpuOverlayRequired) {
+        if ((Test-NrDockerDaemon) -and (Test-NrGpuPassthrough)) {
+            Write-NrOk 'GPU passthrough: nvidia-smi runs inside a container'
+        } elseif (-not $script:NrConfig.AllowMissingDocker) {
+            Write-NrCheckFail "GPU passthrough failed: install nvidia-container-toolkit and run 'docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi'"
+        }
+    } elseif (Test-NrGpuPresent) {
+        Write-NrInfo 'GPU passthrough: not checked (cpu profile; use --profile gpu)'
     }
 
     $portKeys = @('PANEL_PORT', 'API_GATEWAY_PORT', 'POSTGRES_PORT', 'SEARXNG_PORT')

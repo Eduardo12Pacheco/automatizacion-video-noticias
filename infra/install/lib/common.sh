@@ -13,6 +13,7 @@ NR_PROJECT_DIR="${NEWSROOM_PROJECT_DIR:-$NR_REPO_ROOT}"
 NR_ENV_FILE="${NEWSROOM_ENV_FILE:-$NR_PROJECT_DIR/.env}"
 NR_ENV_TEMPLATE="${NEWSROOM_ENV_TEMPLATE:-$NR_PROJECT_DIR/.env.example}"
 NR_COMPOSE_FILE="${NEWSROOM_COMPOSE_FILE:-$NR_PROJECT_DIR/compose.yaml}"
+NR_GPU_COMPOSE_FILE="${NEWSROOM_GPU_COMPOSE_FILE:-$NR_REPO_ROOT/infra/compose/compose.gpu.yaml}"
 NR_STATE_DIR="$NR_PROJECT_DIR/.newsroom"
 NR_STATE_FILE="$NR_STATE_DIR/state.env"
 NR_PROFILE="${NEWSROOM_PROFILE:-auto}"
@@ -129,6 +130,7 @@ nr_reinit_paths() {
   NR_ENV_FILE="${NEWSROOM_ENV_FILE:-$NR_PROJECT_DIR/.env}"
   NR_ENV_TEMPLATE="${NEWSROOM_ENV_TEMPLATE:-$NR_PROJECT_DIR/.env.example}"
   NR_COMPOSE_FILE="${NEWSROOM_COMPOSE_FILE:-$NR_PROJECT_DIR/compose.yaml}"
+  NR_GPU_COMPOSE_FILE="${NEWSROOM_GPU_COMPOSE_FILE:-$NR_REPO_ROOT/infra/compose/compose.gpu.yaml}"
   NR_STATE_DIR="$NR_PROJECT_DIR/.newsroom"
   NR_STATE_FILE="$NR_STATE_DIR/state.env"
 }
@@ -160,12 +162,26 @@ nr_compose_cli_ok() {
   docker compose version >/dev/null 2>&1
 }
 
+# The GPU device reservation and the Qwen/faster-whisper settings live in a
+# separate override file (T30). Every compose call adds it when the gpu profile
+# is active, so the installer, `newsroom up` and the one-shot tools all agree.
+nr_gpu_overlay_is_required() { [ "${NR_PROFILE:-cpu}" = "gpu" ]; }
+
+nr_require_gpu_overlay() {
+  nr_gpu_overlay_is_required || return 0
+  [ -f "$NR_GPU_COMPOSE_FILE" ] || nr_die "gpu profile needs the compose overlay at $NR_GPU_COMPOSE_FILE"
+}
+
 nr_compose() {
+  nr_require_gpu_overlay
   local args=(compose)
   if [ -f "$NR_ENV_FILE" ]; then
     args+=(--env-file "$NR_ENV_FILE")
   fi
   args+=(-f "$NR_COMPOSE_FILE")
+  if nr_gpu_overlay_is_required; then
+    args+=(-f "$NR_GPU_COMPOSE_FILE")
+  fi
   if [ -n "$NR_PROFILE" ] && [ "$NR_PROFILE" != "auto" ]; then
     args+=(--profile "$NR_PROFILE")
   fi
@@ -181,9 +197,14 @@ nr_compose() {
 
 nr_run() {
   if [ "$1" = "nr_compose" ]; then
+    nr_require_gpu_overlay
     local shown=(docker compose)
     [ -f "$NR_ENV_FILE" ] && shown+=(--env-file "$NR_ENV_FILE")
-    shown+=(-f "$NR_COMPOSE_FILE" --profile "$NR_PROFILE")
+    shown+=(-f "$NR_COMPOSE_FILE")
+    if nr_gpu_overlay_is_required; then
+      shown+=(-f "$NR_GPU_COMPOSE_FILE")
+    fi
+    shown+=(--profile "$NR_PROFILE")
     nr_info "run: $(nr_quote "${shown[@]}" "${@:2}")"
   else
     nr_info "run: $(nr_quote "$@")"

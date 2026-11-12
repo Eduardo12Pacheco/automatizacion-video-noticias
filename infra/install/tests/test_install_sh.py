@@ -254,6 +254,37 @@ class InstallTests(InstallerTestCase):
         self.assertIn("--profile gpu", self.read_log())
         self.assertEqual(self.env_values()["NEWSROOM_PROFILE"], "gpu")
 
+    def test_gpu_profile_applies_the_gpu_compose_overlay(self):
+        result = self.run_installer(
+            *self.install_args("--gpu"),
+            env_extra={"FAKE_GPU": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        log = self.read_log()
+        self.assertIn("--profile gpu", log)
+        self.assertIn("infra/compose/compose.gpu.yaml", log)
+        self.assertGreaterEqual(log.count("infra/compose/compose.gpu.yaml"), 2)
+        values = self.env_values()
+        self.assertEqual(values["TTS_WORKER_ENGINE"], "qwen")
+        self.assertEqual(values["OLLAMA_KEEP_ALIVE"], "0s")
+
+    def test_cpu_profile_never_applies_the_gpu_overlay(self):
+        result = self.run_installer(*self.install_args("--no-gpu"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("compose.gpu.yaml", self.read_log())
+
+    def test_gpu_profile_fails_clearly_without_the_overlay(self):
+        result = self.run_installer(
+            *self.install_args("--gpu"),
+            env_extra={
+                "FAKE_GPU": "1",
+                "NEWSROOM_GPU_COMPOSE_FILE": str(self.tmp / "missing.gpu.yaml"),
+            },
+        )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("compose overlay", result.stdout + result.stderr)
+        self.assertIn("missing.gpu.yaml", result.stdout + result.stderr)
+
     def test_auto_profile_falls_back_to_cpu_without_a_gpu(self):
         result = self.run_installer(*self.install_args("--profile", "auto"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

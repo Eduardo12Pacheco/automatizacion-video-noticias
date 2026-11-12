@@ -33,8 +33,8 @@ installers also pass `--env-file .env`).
 | `searxng` | long-running | JSON API enabled on `${SEARXNG_PORT}` (8888) for `ImageSearchPort`. |
 | `mailpit` | long-running | SMTP on `${MAILPIT_SMTP_PORT}` (1025) and UI on `${MAILPIT_UI_PORT}` (8025) for the optional SMTP notification adapter. |
 | `migrate` | one-shot | `node packages/data/scripts/migrate.js` with `${DATABASE_URL}`; exits 0 after applying migrations. Idempotent. |
-| `model-init` | one-shot (`tools`) | Downloads the Piper voice `${PIPER_MODEL}` and the faster-whisper model `${WHISPER_MODEL}`. Idempotent and GPU-free; Ollama pulls its own model on first start. |
-| `tts-worker` | `gpu` profile (Piper CPU fallback) | `TTS_WORKER_ENGINE=piper`; the `gpu` overlay selects Qwen and both use the shared GPU lock volume/path. |
+| `model-init` | one-shot (`tools`) | Downloads the Piper voice `${PIPER_MODEL}`, the faster-whisper model `${WHISPER_MODEL}` and, when the `gpu` overlay sets `TTS_WORKER_ENGINE=qwen`, the Qwen3-TTS checkpoint into `newsroom_qwen_models`. Idempotent and GPU-free; Ollama pulls its own model on first start. |
+| `tts-worker` | `gpu` profile (Piper CPU fallback) | `TTS_WORKER_ENGINE=piper` on CPU; the `gpu` overlay builds the Qwen extra, mounts `newsroom_qwen_models` at `/models/qwen-tts` and sets `TTS_WORKER_ENGINE=qwen` with `TTS_WORKER_DEVICE=cuda:0`. Both engines use the shared GPU lock volume/path. |
 | `asr-worker` | `gpu` profile (CPU fallback) | faster-whisper; uses `WHISPER_DEVICE` and the shared GPU lock. |
 | `n8n` | `n8n` profile, optional | Must stay off by default (`WORKFLOW=disabled`). Mounts `infra/n8n/workflows/` read-only at `/workflows`, never the legacy export. Never required by the installer. |
 | `minio` | `s3` profile, optional | S3-compatible blob storage for `STORAGE=s3`; internal only, credentials from `.env`, bucket created by the `minio-init` one-shot. |
@@ -46,7 +46,9 @@ the `tools` profile and are invoked explicitly with `run --rm`.
 
 ## Exact commands the installer runs
 
-From the repository root, with `--env-file .env -f compose.yaml --profile <cpu|gpu>`:
+From the repository root, with `--env-file .env -f compose.yaml --profile <cpu|gpu>`;
+when the `gpu` profile is active the installers and CLI also append
+`-f infra/compose/compose.gpu.yaml` (a missing overlay is a hard error):
 
 ```text
 docker compose ... build --pull

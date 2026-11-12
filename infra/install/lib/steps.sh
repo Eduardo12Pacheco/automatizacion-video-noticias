@@ -48,6 +48,9 @@ nr_download_models() {
   nr_info "  Ollama ${ollama_model}: ~2 GB"
   nr_info "  Whisper ${whisper_model}: ~0.5 GB"
   nr_info "  Piper ${piper_model}: ~60 MB"
+  if [ "$NR_PROFILE" = "gpu" ]; then
+    nr_info "  Qwen3-TTS 1.7B (GPU voice): ~4.5 GB"
+  fi
   nr_info "Downloading local models; this can take a while"
 
   nr_run_compose --profile local run --rm model-init

@@ -256,6 +256,13 @@ if [ "$NR_DRY_RUN" = "0" ]; then
       nr_env_set TTS_WORKER_ENGINE piper
     fi
   fi
+  # The GPU voice model and a 3B LLM cannot stay resident together in 8 GB.
+  # The API sends keep_alive per request, so the unload policy has to live in
+  # the env file as well as in the compose overlay.
+  if [ "$NR_PROFILE" = "gpu" ]; then
+    nr_env_set TTS_WORKER_ENGINE qwen
+    nr_env_set OLLAMA_KEEP_ALIVE "0s"
+  fi
 else
   # A dry run is allowed before the T8 stack exists; it only prints the plan.
   NR_COMPOSE_MISSING_WARN=1
