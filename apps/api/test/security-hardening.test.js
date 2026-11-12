@@ -166,7 +166,7 @@ describe('security hardening (S12)', () => {
     let body = JSON.stringify(bodyFor(route));
     if (route.id === 'data-upload') {
       headers['content-type'] = 'audio/mp4';
-      body = Buffer.from('voice');
+      body = Buffer.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20, 0, 0, 0, 0]);
     }
     const pathname = route.id === 'admin-update-user'
       ? `/panel/admin/users/${encodeURIComponent(cookies.editorId)}`

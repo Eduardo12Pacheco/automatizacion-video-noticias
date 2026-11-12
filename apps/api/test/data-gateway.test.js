@@ -8,6 +8,8 @@ import { createGatewayServer } from '../src/gateway.js';
 import { createDataRouter } from '../src/data-router.js';
 import { InMemoryRepository, FsBlobStorage } from '../../../packages/data/src/index.js';
 
+const MP4_HEADER = Buffer.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20, 0, 0, 0, 0]);
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -80,7 +82,7 @@ describe('gateway data routes', () => {
     const csrfRejected = await fetch(`${base}/panel/uploads/video-project-audio/projects/draft-1/voice.m4a`, {
       method: 'POST',
       headers: { cookie, 'content-type': 'audio/mp4' },
-      body: Buffer.from('voice'),
+      body: MP4_HEADER,
     });
     assert.equal(csrfRejected.status, 403);
 
@@ -91,7 +93,7 @@ describe('gateway data routes', () => {
         origin: 'http://gateway.test',
         'content-type': 'audio/mp4',
       },
-      body: Buffer.from('voice'),
+      body: MP4_HEADER,
     });
     assert.equal(upload.status, 201);
     const uploaded = await upload.json();
@@ -101,7 +103,8 @@ describe('gateway data routes', () => {
     const blob = await fetch(`${base}${uploaded.storage_public_url}`, { headers: { cookie } });
     assert.equal(blob.status, 200);
     assert.equal(blob.headers.get('content-type'), 'audio/mp4');
-    assert.equal(await blob.text(), 'voice');
+    assert.equal(blob.headers.get('content-security-policy'), "sandbox; default-src 'none'");
+    assert.deepEqual(Buffer.from(await blob.arrayBuffer()), MP4_HEADER);
   });
 
   it('saves project selections through the gateway', async () => {

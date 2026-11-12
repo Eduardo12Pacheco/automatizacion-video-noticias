@@ -11,6 +11,18 @@ function bodyReader(bytes) {
   return async () => (Buffer.isBuffer(bytes) ? bytes : Buffer.from(JSON.stringify(bytes)));
 }
 
+const MP4_HEADER = Buffer.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20, 0, 0, 0, 0]);
+const PNG_HEADER = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+
+async function upload(router, pathname, contentType, bytes) {
+  return router.handle({
+    method: 'POST',
+    pathname,
+    headers: { 'content-type': contentType },
+    readBody: bodyReader(bytes),
+  });
+}
+
 describe('panel data router', () => {
   let root;
   let repository;
@@ -64,14 +76,14 @@ describe('panel data router', () => {
       method: 'POST',
       pathname: '/panel/uploads/video-project-audio/projects/abc/voice/voice.m4a',
       headers: { 'content-type': 'audio/mp4', 'x-file-name': 'voice.m4a' },
-      readBody: bodyReader(Buffer.from('voice-bytes')),
+      readBody: bodyReader(MP4_HEADER),
     });
     assert.equal(upload.status, 201);
     assert.equal(upload.body.ok, true);
     assert.equal(upload.body.storage_bucket, 'video-project-audio');
     assert.equal(upload.body.storage_path, 'projects/abc/voice/voice.m4a');
     assert.equal(upload.body.storage_public_url, '/panel/blobs/video-project-audio/projects/abc/voice/voice.m4a');
-    assert.equal(upload.body.size, 11);
+    assert.equal(upload.body.size, MP4_HEADER.length);
 
     const blob = await router.handle({
       method: 'GET',
@@ -80,7 +92,10 @@ describe('panel data router', () => {
     });
     assert.equal(blob.status, 200);
     assert.equal(blob.headers['content-type'], 'audio/mp4');
-    assert.equal(blob.body.toString('utf8'), 'voice-bytes');
+    assert.equal(blob.headers['x-content-type-options'], 'nosniff');
+    assert.equal(blob.headers['content-security-policy'], "sandbox; default-src 'none'");
+    assert.equal(blob.headers['content-disposition'], undefined);
+    assert.deepEqual(blob.body, MP4_HEADER);
 
     const missing = await router.handle({
       method: 'GET',
@@ -88,6 +103,92 @@ describe('panel data router', () => {
       readBody: bodyReader({}),
     });
     assert.equal(missing.status, 404);
+  });
+
+  it('never serves active content inline', async () => {
+    const html = await upload(
+      router,
+      '/panel/uploads/video-candidates-temp/projects/abc/evil.html',
+      'text/html',
+      Buffer.from('<!doctype html><script>alert(1)</script>'),
+    );
+    assert.equal(html.status, 201);
+
+    const svg = await upload(
+      router,
+      '/panel/uploads/video-candidates-temp/projects/abc/evil.svg',
+      'image/svg+xml',
+      Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+    );
+    assert.equal(svg.status, 201);
+
+    const xml = await upload(
+      router,
+      '/panel/uploads/video-candidates-temp/projects/abc/feed.xml',
+      'application/xml',
+      Buffer.from('<?xml version="1.0"?><root/>'),
+    );
+    assert.equal(xml.status, 201);
+
+    for (const pathname of [
+      '/panel/blobs/video-candidates-temp/projects/abc/evil.html',
+      '/panel/blobs/video-candidates-temp/projects/abc/evil.svg',
+      '/panel/blobs/video-candidates-temp/projects/abc/feed.xml',
+    ]) {
+      const blob = await router.handle({ method: 'GET', pathname, readBody: bodyReader({}) });
+      assert.equal(blob.status, 200, pathname);
+      assert.equal(blob.headers['content-type'], 'application/octet-stream', pathname);
+      assert.match(blob.headers['content-disposition'], /^attachment; filename="/, pathname);
+      assert.equal(blob.headers['content-security-policy'], "sandbox; default-src 'none'", pathname);
+      assert.equal(blob.headers['x-content-type-options'], 'nosniff', pathname);
+    }
+  });
+
+  it('keeps allow-listed images and audio inline after magic-byte validation', async () => {
+    const png = await upload(
+      router,
+      '/panel/uploads/video-candidates-temp/projects/abc/candidate.png',
+      'image/png',
+      PNG_HEADER,
+    );
+    assert.equal(png.status, 201);
+    const image = await router.handle({
+      method: 'GET',
+      pathname: '/panel/blobs/video-candidates-temp/projects/abc/candidate.png',
+      readBody: bodyReader({}),
+    });
+    assert.equal(image.status, 200);
+    assert.equal(image.headers['content-type'], 'image/png');
+    assert.equal(image.headers['content-disposition'], undefined);
+    assert.equal(image.headers['content-security-policy'], "sandbox; default-src 'none'");
+
+    const audio = await upload(
+      router,
+      '/panel/uploads/video-project-audio/projects/abc/voice/voice.wav',
+      'audio/wav',
+      Buffer.concat([Buffer.from('RIFF'), Buffer.from([0, 0, 0, 0]), Buffer.from('WAVEfmt ')]),
+    );
+    assert.equal(audio.status, 201);
+    const served = await router.handle({
+      method: 'GET',
+      pathname: '/panel/blobs/video-project-audio/projects/abc/voice/voice.wav',
+      readBody: bodyReader({}),
+    });
+    assert.equal(served.status, 200);
+    assert.equal(served.headers['content-type'], 'audio/wav');
+    assert.equal(served.headers['content-disposition'], undefined);
+  });
+
+  it('rejects an allow-listed media type whose bytes do not match', async () => {
+    for (const [contentType, pathname] of [
+      ['image/png', '/panel/uploads/video-candidates-temp/projects/abc/fake.png'],
+      ['audio/mp4', '/panel/uploads/video-project-audio/projects/abc/fake.m4a'],
+      ['video/mp4', '/panel/uploads/video-project-videos/projects/abc/fake.mp4'],
+    ]) {
+      const response = await upload(router, pathname, contentType, Buffer.from('<html>not media</html>'));
+      assert.equal(response.status, 415, contentType);
+      assert.equal(response.body.error, 'unsupported_media_type', contentType);
+    }
   });
 
   it('rejects unknown buckets and traversal paths on upload', async () => {

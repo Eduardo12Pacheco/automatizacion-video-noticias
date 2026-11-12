@@ -53,6 +53,104 @@ export const DATA_MUTATION_ROUTES = Object.freeze([
 
 const DEFAULT_MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 
+const INLINE_CONTENT_TYPE_PATTERNS = Object.freeze([
+  /^audio\/[a-z0-9.+-]+$/,
+  /^video\/[a-z0-9.+-]+$/,
+  /^image\/(?:png|jpeg|jpg|webp|gif)$/,
+]);
+
+const BLOB_SECURITY_HEADERS = Object.freeze({
+  'content-security-policy': "sandbox; default-src 'none'",
+  'x-content-type-options': 'nosniff',
+});
+
+function baseContentType(value) {
+  return String(value || '').split(';')[0].trim().toLowerCase();
+}
+
+function isInlineContentType(value) {
+  const type = baseContentType(value);
+  return Boolean(type) && INLINE_CONTENT_TYPE_PATTERNS.some((pattern) => pattern.test(type));
+}
+
+function startsWithBytes(bytes, signature) {
+  if (!bytes || bytes.length < signature.length) return false;
+  return signature.every((byte, index) => bytes[index] === byte);
+}
+
+function hasAscii(bytes, offset, text) {
+  if (!bytes || bytes.length < offset + text.length) return false;
+  return text.split('').every((character, index) => bytes[offset + index] === character.charCodeAt(0));
+}
+
+const MEDIA_SIGNATURES = Object.freeze({
+  png: (bytes) => startsWithBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  jpeg: (bytes) => startsWithBytes(bytes, [0xff, 0xd8, 0xff]),
+  gif: (bytes) => hasAscii(bytes, 0, 'GIF87a') || hasAscii(bytes, 0, 'GIF89a'),
+  webp: (bytes) => hasAscii(bytes, 0, 'RIFF') && hasAscii(bytes, 8, 'WEBP'),
+  wav: (bytes) => hasAscii(bytes, 0, 'RIFF') && hasAscii(bytes, 8, 'WAVE'),
+  ogg: (bytes) => hasAscii(bytes, 0, 'OggS'),
+  flac: (bytes) => hasAscii(bytes, 0, 'fLaC'),
+  mp3: (bytes) => hasAscii(bytes, 0, 'ID3') || (bytes?.[0] === 0xff && (bytes?.[1] & 0xe0) === 0xe0),
+  aac: (bytes) => bytes?.[0] === 0xff && (bytes?.[1] & 0xf6) === 0xf0,
+  mp4: (bytes) => hasAscii(bytes, 4, 'ftyp'),
+  webm: (bytes) => startsWithBytes(bytes, [0x1a, 0x45, 0xdf, 0xa3]),
+});
+
+const MEDIA_VALIDATORS = Object.freeze({
+  'image/png': [MEDIA_SIGNATURES.png],
+  'image/jpeg': [MEDIA_SIGNATURES.jpeg],
+  'image/jpg': [MEDIA_SIGNATURES.jpeg],
+  'image/gif': [MEDIA_SIGNATURES.gif],
+  'image/webp': [MEDIA_SIGNATURES.webp],
+  'audio/wav': [MEDIA_SIGNATURES.wav],
+  'audio/x-wav': [MEDIA_SIGNATURES.wav],
+  'audio/wave': [MEDIA_SIGNATURES.wav],
+  'audio/ogg': [MEDIA_SIGNATURES.ogg],
+  'audio/flac': [MEDIA_SIGNATURES.flac],
+  'audio/mpeg': [MEDIA_SIGNATURES.mp3],
+  'audio/mp3': [MEDIA_SIGNATURES.mp3],
+  'audio/mp4': [MEDIA_SIGNATURES.mp4],
+  'audio/x-m4a': [MEDIA_SIGNATURES.mp4],
+  'audio/m4a': [MEDIA_SIGNATURES.mp4],
+  'audio/aac': [MEDIA_SIGNATURES.aac],
+  'audio/webm': [MEDIA_SIGNATURES.webm],
+  'video/mp4': [MEDIA_SIGNATURES.mp4],
+  'video/webm': [MEDIA_SIGNATURES.webm],
+  'video/ogg': [MEDIA_SIGNATURES.ogg],
+  'video/quicktime': [MEDIA_SIGNATURES.mp4],
+});
+
+const AUDIO_FALLBACK_SIGNATURES = Object.values(MEDIA_SIGNATURES).filter(
+  (validator) => ![MEDIA_SIGNATURES.png, MEDIA_SIGNATURES.jpeg, MEDIA_SIGNATURES.gif, MEDIA_SIGNATURES.webp].includes(validator),
+);
+const VIDEO_FALLBACK_SIGNATURES = [MEDIA_SIGNATURES.mp4, MEDIA_SIGNATURES.webm, MEDIA_SIGNATURES.ogg];
+
+function matchesDeclaredMediaType(contentType, bytes) {
+  const type = baseContentType(contentType);
+  if (!isInlineContentType(type)) return true;
+  const validators = MEDIA_VALIDATORS[type]
+    || (type.startsWith('audio/') ? AUDIO_FALLBACK_SIGNATURES : VIDEO_FALLBACK_SIGNATURES);
+  return validators.some((validator) => validator(bytes));
+}
+
+function safeAttachmentName(key) {
+  const name = String(key || '').split('/').pop() || 'download';
+  return name.replace(/["\\\r\n]/g, '_');
+}
+
+function blobResponseHeaders(blob, key) {
+  const declaredType = baseContentType(blob.content_type) || 'application/octet-stream';
+  const inline = isInlineContentType(declaredType);
+  return {
+    'content-type': inline ? declaredType : 'application/octet-stream',
+    'content-length': String(blob.size ?? blob.data?.length ?? 0),
+    'cache-control': 'private, max-age=60',
+    ...BLOB_SECURITY_HEADERS,
+    ...(inline ? {} : { 'content-disposition': `attachment; filename="${safeAttachmentName(key)}"` }),
+  };
+}
+
 function jsonResponse(status, body) {
   return { status, headers: { 'content-type': 'application/json' }, body };
 }
@@ -190,8 +288,12 @@ export function createDataRouter({
       return jsonResponse(400, { ok: false, error: 'invalid_storage_path' });
     }
     const bytes = await readBody({ maxBodyBytes: maxUploadBytes });
+    const contentType = headers['content-type'] || 'application/octet-stream';
+    if (!matchesDeclaredMediaType(contentType, bytes)) {
+      return jsonResponse(415, { ok: false, error: 'unsupported_media_type' });
+    }
     const stored = await blobStorage.put(`${bucket}/${key}`, bytes, {
-      contentType: headers['content-type'] || 'application/octet-stream',
+      contentType,
     });
     return jsonResponse(201, uploadMetadata({ bucket, key, stored, headers }));
   }
@@ -212,12 +314,7 @@ export function createDataRouter({
     if (!blob) return jsonResponse(404, { ok: false, error: 'blob_not_found' });
     return {
       status: 200,
-      headers: {
-        'content-type': blob.content_type || 'application/octet-stream',
-        'content-length': String(blob.size ?? blob.data?.length ?? 0),
-        'cache-control': 'private, max-age=60',
-        'x-content-type-options': 'nosniff',
-      },
+      headers: blobResponseHeaders(blob, key),
       body: method === 'HEAD' ? null : blob.data,
     };
   }
