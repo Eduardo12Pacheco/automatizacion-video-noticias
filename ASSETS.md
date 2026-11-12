@@ -81,12 +81,25 @@ the OFL notice and may not be redistributed under another license.
 
 ## Recorded Demo
 
-`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (34-second
-walkthrough) are screen recordings of the panel in showcase mode
-(`/?showcase=1`): pipeline navigation, the approval/Guiones view, Prensa, Voz,
+`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (34-second walkthrough) are
+screen recordings of the panel in **demo mode** on the keyless stack, in
+Spanish with the seeded fictional story: login, Prensa, Guiones, Voz,
 Subtítulos, Proyectos and Settings. They are product screenshots, not brand
-media, and contain only the fictional showcase data. Both files are well below
-the 5 MB blob limit enforced for history.
+media, and contain only the fictional demo data.
+
+The recording is reproducible and app-viewport only:
+
+```sh
+cp e2e/.env.example .env
+docker compose up -d --build postgres searxng mailpit demo-worker api panel
+docker compose run --rm seed
+NEWSROOM_DEMO_PASSWORD=e2e-demo-password node tools/record-demo.mjs
+```
+
+`tools/record-demo.mjs` captures the browser viewport through Playwright, fails
+if the page logs a console error or throws, converts the capture with `ffmpeg`
+(`-map_metadata -1`) and writes the MP4 plus the optimized under-1-MB GIF. Both
+files are well below the 5 MB blob limit enforced for history.
 
 ## Not Included
 
