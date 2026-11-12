@@ -1,3 +1,5 @@
+import { getI18n } from './i18n/index.js';
+
 export function bindCoreEvents({
   el,
   persistSessionStatus,
@@ -25,11 +27,20 @@ export function bindCoreEvents({
     refreshAll({ silent: true, source: 'login' });
   }
 
+  function showAuthError(message = '') {
+    if (!el.authError) return;
+    if (message) el.authError.dataset.authErrorKey = 'auth.invalid';
+    else delete el.authError.dataset.authErrorKey;
+    el.authError.textContent = message;
+    el.authError.hidden = !message;
+  }
+
   el.authForm.addEventListener('submit', (ev) => {
     ev.preventDefault();
     void (async () => {
       const user = el.authUser.value.trim();
       const pass = el.authPass.value;
+      showAuthError('');
 
       if (typeof loginGatewaySession === 'function') {
         try {
@@ -42,9 +53,31 @@ export function bindCoreEvents({
         }
       }
 
-      toast('Usuario o contraseña incorrectos');
+      const i18n = getI18n();
+      showAuthError(i18n.t('auth.invalid'));
+      toast(i18n.t('auth.invalid'));
     })();
   });
+
+  el.authForm.addEventListener('input', () => showAuthError(''));
+
+  function syncAuthLanguageButtons(language) {
+    el.authLanguageSwitch?.querySelectorAll?.('[data-auth-language]').forEach((button) => {
+      button.setAttribute('aria-pressed', button.dataset.authLanguage === language ? 'true' : 'false');
+    });
+  }
+
+  el.authLanguageSwitch?.addEventListener?.('click', (event) => {
+    const button = event.target?.closest?.('[data-auth-language]');
+    if (!button) return;
+    const i18n = getI18n();
+    const language = i18n.setLanguage(button.dataset.authLanguage || 'es');
+    i18n.apply(document);
+    syncAuthLanguageButtons(language);
+    const errorKey = el.authError?.dataset?.authErrorKey;
+    if (errorKey) el.authError.textContent = i18n.t(errorKey);
+  });
+  syncAuthLanguageButtons(getI18n().getLanguage());
 
   const mobileNavToggle = el.mobileNavToggle;
   const mobileNav = el.sidebarNav.closest?.('.sidebar');

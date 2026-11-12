@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editorial system</title>
+    <title>Newsroom Video Automation</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <script>
       // Apply the stored/system theme before CSS paints (S5/S10).
@@ -27,9 +27,24 @@
     <!-- Slice A: Auth gate -->
     <section id="authGate" class="auth-gate">
       <article class="auth-card panel-shell">
-        <div class="auth-card__badge">AP</div>
-        <h1 data-i18n="auth.title">Ingreso privado</h1>
-        <p data-i18n="auth.subtitle">Panel interno para aprobación, guiones y audio editorial.</p>
+        <header class="auth-card__head">
+          <div class="auth-card__brand">
+            <span class="auth-card__mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48" focusable="false">
+                <path d="m24 4.5l16.89 9.75v19.5L24 43.5L7.11 33.75v-19.5z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M24 13.17L13.74 30.93h20.52z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="m34.26 30.93l6.63-16.68L24 13.17zM24 13.17L7.11 14.25l6.63 16.68zM13.74 30.93L24 43.5L7.11 33.75zm20.52 0L24 43.5l16.89-9.75zM24 4.5v8.67" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </span>
+            <p class="auth-card__product">Newsroom Video Automation</p>
+          </div>
+          <div id="authLanguageSwitch" class="auth-language-switch" role="group" data-i18n-aria-label="auth.languageLabel" aria-label="Idioma">
+            <button type="button" class="ghost" data-auth-language="es" aria-pressed="true">ES</button>
+            <button type="button" class="ghost" data-auth-language="en" aria-pressed="false">EN</button>
+          </div>
+        </header>
+        <h1 data-i18n="auth.title">Iniciá sesión</h1>
+        <p data-i18n="auth.subtitle">Pipeline editorial local para prensa, guiones, voz, subtítulos y video.</p>
         <form id="authForm" class="auth-form">
           <label>
             <span data-i18n="auth.user">Usuario</span>
@@ -39,9 +54,10 @@
             <span data-i18n="auth.password">Contraseña</span>
             <input id="authPass" type="password" autocomplete="current-password" required />
           </label>
+          <p id="authError" class="auth-error" role="alert" hidden></p>
           <button type="submit" class="primary" data-i18n="auth.submit">Entrar</button>
         </form>
-        <small data-i18n="auth.footer">Acceso privado · Operations Studio</small> 
+        <small data-i18n="auth.footer">Acceso privado · Demo Sports News</small>
       </article>
     </section>
 
@@ -157,8 +173,7 @@
           <section id="stats" class="stats stats--approval approval-stats-sr"></section>
 
           <div class="approval-shell-grid">
-            <div class="approval-primary-column">
-              <section class="panel-shell news-panel">
+            <section class="panel-shell news-panel">
                 <header class="news-panel__filters-heading">
                   <h2 data-i18n="approval.previousNews">Noticias anteriores</h2>
                 </header>
@@ -201,9 +216,9 @@
                   <span id="lastNewsSearchMeta" class="section-last-refresh" hidden></span>
                 </div>
                 <main id="cards" class="cards cards--news"></main>
-              </section>
+            </section>
 
-              <section class="panel-shell script-workbench">
+            <section class="panel-shell script-workbench">
                 <header class="section-heading section-heading--editor">
                   <div>
                     <h2 id="scriptEditorTitle" data-i18n="approval.scriptEditor">Editor de guion</h2>
@@ -265,8 +280,7 @@
                   </button>
                 </div>
 
-              </section>
-            </div>
+            </section>
 
             <aside class="approval-side-column">
               <section class="panel-shell approval-side-panel">

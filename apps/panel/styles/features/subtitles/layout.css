@@ -282,3 +282,26 @@
   min-height: 0;
   place-items: center;
 }
+
+/* One visual stage: the master/side cards are the only framed surfaces, so
+   upload and editor blocks inside them do not add nested hairlines. */
+#viewSubtitulos2 .subtitle2-master-card .subtitle2-upload-source-card,
+#viewSubtitulos2 .subtitle2-master-card .subtitle2-editor-card,
+#viewSubtitulos2 .subtitle2-side-card .subtitle-preview-frame {
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+
+#viewSubtitulos2 .subtitle-preview-stage video {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+#viewSubtitulos2 .subtitle-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}

@@ -9,18 +9,32 @@
 
 .approval-shell-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 460px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
 
-.approval-primary-column,
-.approval-side-column {
-  display: grid;
-  gap: 20px;
+/* Three-column editorial workspace: news inbox / script editor / queue. */
+@media (min-width: 1200px) {
+  .approval-shell-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.9fr) minmax(300px, 0.85fr);
+  }
+}
+
+/* Medium range: the news inbox spans the row, editor and queue share it. */
+@media (min-width: 860px) and (max-width: 1199px) {
+  .approval-shell-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
+  }
+
+  .approval-shell-grid > .news-panel {
+    grid-column: 1 / -1;
+  }
 }
 
 .approval-side-column {
+  display: grid;
+  gap: 20px;
   align-self: start;
   min-height: 100%;
 }
@@ -547,20 +561,18 @@
 
 /* Responsive approval layout: this file loads after the shared responsive
    sheet, so the two layout ranges are repeated here with the same widths. */
-@media (max-width: 1199px) {
+@media (max-width: 859px) {
   .approval-shell-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .approval-side-column,
-  .approval-primary-column {
+  .approval-side-column {
     min-width: 0;
   }
 }
 
 @media (max-width: 859px) {
   .approval-shell-grid,
-  .approval-primary-column,
   .approval-side-column,
   .news-panel,
   .script-workbench,

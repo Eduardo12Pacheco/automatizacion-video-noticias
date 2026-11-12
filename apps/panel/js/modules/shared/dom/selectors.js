@@ -5,6 +5,8 @@ export function getDomSelectors(doc = document) {
     authForm: doc.getElementById('authForm'),
     authUser: doc.getElementById('authUser'),
     authPass: doc.getElementById('authPass'),
+    authError: doc.getElementById('authError'),
+    authLanguageSwitch: doc.getElementById('authLanguageSwitch'),
     stats: doc.getElementById('stats'),
     cards: doc.getElementById('cards'),
     cardsMeta: doc.getElementById('cardsMeta'),
