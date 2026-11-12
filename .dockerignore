@@ -1,0 +1,25 @@
+# Worker/services images build from the repository root to share
+# packages/python/newsroom_worker_common.
+.git
+.gitignore
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/runtime
+**/data
+**/projects
+**/*.mp4
+**/*.webm
+**/*.wav
+!services/renderer/assets/**
+!services/renderer/public/**
+!services/subtitles/assets/fonts/**
+!services/renderer/public/fonts/**
+!services/tts-worker/refs/*.wav
+!services/asr-worker/tests/**/*.json
+infra
+docs
+odd
+examples
+tools

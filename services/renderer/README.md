@@ -186,3 +186,25 @@ node -e "fetch('http://127.0.0.1:3041/health')"
 | `services/renderer` | Render final Remotion. Nada más. |
 
 Si necesitás cambiar cómo se ve el MP4 final, tocá `src/remotion/`. Si necesitás cambiar qué se selecciona, qué fila se edita o qué polvo se elige, eso NO va acá: va en Control Panel o Contracts Core.
+
+## Demo render preset (CPU)
+
+`--profile=demo` renders a 640x360 / 24 fps H.264 preview with hardware
+acceleration disabled and one Remotion tab. It is the preset used by the
+keyless local demo; the output is `output/video-demo.mp4`. Profiles are
+resolved in `scripts/render/render-presets.js` (`final`, `preview`, `demo`).
+
+```bash
+node scripts/render-video.js --project-root=projects/<id> --profile=demo
+```
+
+## Docker
+
+Build from the repository root (the image installs Chrome headless shell and
+ffmpeg):
+
+```bash
+docker build -f services/renderer/Dockerfile -t newsroom-renderer .
+docker run --rm -v "$PWD/projects:/app/projects" newsroom-renderer \
+  --project-root=/app/projects/<id> --profile=demo
+```

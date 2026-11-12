@@ -52,7 +52,7 @@ def test_docs_cover_runtime_toggles_safe_preflight_and_operator_smoke_plan():
         assert name in env_example
     assert "Runtime worker loops" in readme
     assert "transcript summary sync" in readme
-    assert "Upload playlist catch-up" in readme
+    assert "RSS channel catch-up" in readme
     assert "uploads_playlist_id" in readme
     assert "CHANNEL_MONITOR_WORKER_CATCHUP_ENABLED=false" in readme
     assert "reset-radar-baseline.ps1" in readme

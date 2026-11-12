@@ -52,3 +52,26 @@ Los ejemplos versionados usan placeholders. Configurá el hostname como `<your-t
 `.env` es local y no se sube al repo.
 
 El archivo de cookies esperado es `secrets/youtube-cookies.txt`. La carpeta `secrets/` está ignorada por git; no versionar ni imprimir su contenido.
+
+## Shared GPU slot and CPU fallback
+
+Whisper is the single ASR implementation for the product: subtitles and the
+legacy renderer STT client call `POST /api/radar/transcribe` instead of loading
+faster-whisper themselves.
+
+- `NEWSROOM_GPU_LOCK_PATH` (default `/tmp/newsroom-gpu.lock`) is a cross-process
+  lock shared with the TTS worker, so only one GPU job runs at a time.
+- `TRANSCRIPT_SERVICE_CPU_FALLBACK=1` makes a failed CUDA model load retry with
+  `TRANSCRIPT_SERVICE_CPU_FALLBACK_MODEL` (default `small`) on CPU/`int8`.
+- The transcribe endpoint accepts `{ "audio_path": "...", "language": "es" }`
+  and returns `{ segments, language, device, fallback_used }`; it is protected
+  by `x-api-key`.
+
+## Docker
+
+Build from the repository root so the shared worker package is available:
+
+```bash
+docker build -f services/asr-worker/Dockerfile -t newsroom-asr .
+docker run --rm -p 8765:8765 -e TRANSCRIPT_SERVICE_API_KEY=local-token newsroom-asr
+```

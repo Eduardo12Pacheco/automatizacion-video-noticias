@@ -180,3 +180,29 @@ El sample rate final queda como lo devuelve Qwen. No se fuerza resampling manual
 - `voice-tts-entrypoint-cleanup` — scripts/docs/tests migrados a entrypoints canónicos sin borrar wrappers.
 
 Los artifacts están en `openspec/changes/archive/` y Engram.
+
+## Engines: Qwen3-TTS GPU and Piper CPU
+
+`TTS_WORKER_ENGINE=auto|qwen|piper` selects the synthesis engine (default
+`auto`). Qwen runs on the GPU and holds `NEWSROOM_GPU_LOCK_PATH`, the same
+cross-process slot used by the ASR worker. If Qwen/CUDA is unavailable the
+factory falls back to Piper when `PIPER_MODEL` (or
+`generation.piper_model`) is set; set `TTS_WORKER_ALLOW_CPU_FALLBACK=0` to
+disable that fallback.
+
+```bash
+export TTS_WORKER_ENGINE=piper
+export PIPER_MODEL=/models/es_ES-demo-medium.onnx
+export NEWSROOM_GPU_LOCK_PATH=/tmp/newsroom-gpu.lock
+```
+
+## Docker
+
+Build from the repository root. The default image installs Piper (CPU); pass
+`--build-arg TTS_EXTRAS=gpu --build-arg BASE_IMAGE=<cuda-python-image>` to build
+the Qwen GPU variant.
+
+```bash
+docker build -f services/tts-worker/Dockerfile -t newsroom-tts .
+docker run --rm -p 8766:8766 -e TTS_WORKER_ENGINE=piper newsroom-tts
+```

@@ -97,3 +97,10 @@ Automated verification stays local with pytest and fakes. Only after explicit op
 | `POST /api/monitor/radar-baseline-reset` | `x-api-key` | Dry-run/apply clean baseline reset with backup and confirmation. |
 | `GET /api/monitor/basura` | `x-api-key` | Paged rejected/non-matching videos preserved for review. |
 | `GET /api/monitor/summary` | `x-api-key` | Fixed target-country counters plus `basura_count`. |
+
+## Docker
+
+```bash
+docker build -f services/channel-monitor/Dockerfile -t newsroom-monitor .
+docker run --rm -p 8790:8790 -e CHANNEL_MONITOR_API_KEY=local-token newsroom-monitor
+```

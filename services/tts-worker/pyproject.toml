@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = ["qwen-tts>=0.1.1", "torch>=2.3"]
+piper = ["piper-tts>=1.2"]
 dev = ["pytest>=8"]
 
 [tool.uv.sources]
@@ -24,3 +25,10 @@ newsroom-worker-common = { path = "../../packages/python/newsroom_worker_common"
 [tool.pytest.ini_options]
 pythonpath = [".", "../../packages/python/newsroom_worker_common"]
 testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["voice_tts_service*"]
