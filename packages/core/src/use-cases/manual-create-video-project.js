@@ -91,7 +91,7 @@ export class ManualCreateVideoProject {
       segments,
       image_candidates: [],
       image_search_meta: {
-        provider: 'serper-images',
+        provider: 'image-search',
         query: player,
         player,
         country,
@@ -142,7 +142,7 @@ export class ManualCreateVideoProject {
       const query = String(draft.jugador || draft.seleccion || draft.tema_principal || '').trim();
       let candidates = [];
       let meta = {
-        provider: 'serper-images',
+        provider: 'image-search',
         query,
         origin: 'manual',
         status: 'not_configured',
@@ -159,7 +159,7 @@ export class ManualCreateVideoProject {
           candidates = normalizeImageCandidates(search?.images || [], { query });
           meta = {
             ...(search?.meta || {}),
-            provider: 'serper-images',
+            provider: 'image-search',
             query,
             origin: 'manual',
             result_count: candidates.length,

@@ -395,9 +395,9 @@ export function normalizeImageCandidates(images = [], { query = '' } = {}) {
       const position = Number.isFinite(Number(item.position)) ? Number(item.position) : index + 1;
       const idInput = imageUrl || link || item.googleUrl || `${query}-${position}`;
       return {
-        id: `serper-${stableId(idInput)}`,
+        id: `image-search-${stableId(idInput)}`,
         order: position,
-        provider: 'serper-images',
+        provider: 'image-search',
         title: item.title || item.source || domain || `Imagen ${position}`,
         image_url: imageUrl,
         thumbnail_url: thumbnailUrl,

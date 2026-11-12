@@ -16,7 +16,7 @@ def _run_node(script: str):
 
 def test_contract_pipeline_boundary_uses_adapter_and_preserves_fallback_behaviors():
     script = r"""
-import { runContractPipelineClientCheck } from './js/modules/__checks__/contract-pipeline-client-check.js';
+import { runContractPipelineClientCheck } from './js/modules/features/video-projects/__checks__/contract-pipeline-client-check.js';
 
 const result = await runContractPipelineClientCheck();
 if (!result?.ok) {

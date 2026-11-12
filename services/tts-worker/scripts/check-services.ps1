@@ -1,11 +1,11 @@
 param(
-  [string]$PublicHealthUrl = 'https://tts-api.example.local/healthz',
+  [string]$HealthUrl = 'http://127.0.0.1:8088/healthz',
   [int]$TimeoutSec = 10
 )
 
 $ErrorActionPreference = 'Stop'
 
-$services = @('tts-worker', 'tts-orchestrator', 'tts-tunnel')
+$services = @('tts-worker', 'tts-orchestrator')
 $allOk = $true
 
 Write-Host '=== Servicios Windows (TTS) ==='
@@ -27,14 +27,14 @@ foreach ($serviceName in $services) {
   }
 }
 
-Write-Host "`n=== Health público ==="
+Write-Host "`n=== Local health ==="
 try {
-  $response = Invoke-WebRequest -Uri $PublicHealthUrl -UseBasicParsing -TimeoutSec $TimeoutSec
+  $response = Invoke-WebRequest -Uri $HealthUrl -UseBasicParsing -TimeoutSec $TimeoutSec
   if ($response.StatusCode -eq 200 -and $response.Content -match '"ok"\s*:\s*true') {
-    Write-Host "healthz: OK (200) -> $PublicHealthUrl" -ForegroundColor Green
+    Write-Host "healthz: OK (200) -> $HealthUrl" -ForegroundColor Green
   }
   else {
-    Write-Host "healthz: respuesta inesperada ($($response.StatusCode)) -> $PublicHealthUrl" -ForegroundColor Yellow
+    Write-Host "healthz: respuesta inesperada ($($response.StatusCode)) -> $HealthUrl" -ForegroundColor Yellow
     $allOk = $false
   }
 }

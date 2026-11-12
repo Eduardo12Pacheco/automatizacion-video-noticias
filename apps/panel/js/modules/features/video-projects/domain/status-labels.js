@@ -1,7 +1,7 @@
 export function getStatusLabel(status = '') {
   const normalized = status.toString().trim().toLowerCase();
   if (normalized === 'ready') return 'Listo';
-  if (normalized === 'image_search_error') return 'Error Serper';
+  if (normalized === 'image_search_error') return 'Error de búsqueda de imágenes';
   if (normalized === 'no_candidates') return 'Sin imágenes';
   if (normalized === 'pending') return 'Buscando imágenes…';
   return status || 'Sin estado';

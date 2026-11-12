@@ -20,7 +20,6 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_RADAR_API_KEY", "radar-secret")
     monkeypatch.setenv("CHANNEL_MONITOR_CALLBACK_URL", "https://example.test/websub")
     monkeypatch.setenv("CHANNEL_MONITOR_CALLBACK_SECRET", "callback-secret")
-    monkeypatch.setenv("CHANNEL_MONITOR_YOUTUBE_API_KEY", "youtube-secret")
     monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_MODE", "protected")
     monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "https://boundary.example.test")
     monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", "boundary-secret")
@@ -53,7 +52,6 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.radar_api_key == "radar-secret"
     assert settings.callback_url == "https://example.test/websub"
     assert settings.callback_secret == "callback-secret"
-    assert settings.youtube_api_key == "youtube-secret"
     assert settings.network_mode == "protected"
     assert settings.network_boundary_url == "https://boundary.example.test"
     assert settings.network_boundary_token == "boundary-secret"

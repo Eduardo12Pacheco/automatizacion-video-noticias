@@ -96,17 +96,14 @@ Write-Host "NSSM: $nssm"
 
 $workerScript = Join-Path $PSScriptRoot 'run-worker.ps1'
 $orchestratorScript = Join-Path $PSScriptRoot 'run-orchestrator.ps1'
-$tunnelScript = Join-Path $PSScriptRoot 'run-tunnel.ps1'
 
 Install-OrUpdateService -Nssm $nssm -Name 'tts-worker' -DisplayName 'TTS Worker (RTX local)' -Description 'Worker FastAPI para jobs TTS locales con CUDA' -ScriptPath $workerScript -AppDirectory $root -LogOut (Join-Path $logsDir 'tts-worker.out.log') -LogErr (Join-Path $logsDir 'tts-worker.err.log')
 Install-OrUpdateService -Nssm $nssm -Name 'tts-orchestrator' -DisplayName 'TTS Orchestrator API' -Description 'API pública FastAPI para encolar y consultar jobs TTS' -ScriptPath $orchestratorScript -AppDirectory $root -LogOut (Join-Path $logsDir 'tts-orchestrator.out.log') -LogErr (Join-Path $logsDir 'tts-orchestrator.err.log') -Dependency 'tts-worker'
-Install-OrUpdateService -Nssm $nssm -Name 'tts-tunnel' -DisplayName 'TTS Cloudflare Tunnel' -Description 'Publica la API TTS local por Cloudflare Tunnel' -ScriptPath $tunnelScript -AppDirectory $root -LogOut (Join-Path $logsDir 'tts-tunnel.out.log') -LogErr (Join-Path $logsDir 'tts-tunnel.err.log') -Dependency 'tts-orchestrator'
 
 Start-Service tts-worker
 Start-Sleep -Seconds 2
 Start-Service tts-orchestrator
 Start-Sleep -Seconds 2
-Start-Service tts-tunnel
 
-Get-Service -Name tts-worker, tts-orchestrator, tts-tunnel | Select-Object Name, Status, StartType | Format-Table -AutoSize
+Get-Service -Name tts-worker, tts-orchestrator | Select-Object Name, Status, StartType | Format-Table -AutoSize
 Write-Host 'Servicios instalados/actualizados correctamente.'

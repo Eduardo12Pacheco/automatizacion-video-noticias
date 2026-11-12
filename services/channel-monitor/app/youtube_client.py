@@ -17,7 +17,6 @@ from typing import Any, Callable, Protocol
 from .title_matcher import normalize_country, normalize_title
 
 
-YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3"
 WEBSUB_HUB_URL = "https://pubsubhubbub.appspot.com/subscribe"
 YOUTUBE_FEED_URL = "https://www.youtube.com/xml/feeds/videos.xml"
 NETWORK_MODE_PROTECTED = "protected"
@@ -132,94 +131,6 @@ class SubtitleUnavailable(RuntimeError):
 
 class CallbackValidationError(RuntimeError):
     pass
-
-
-class YouTubeDataClient:
-    def __init__(self, *, api_key: str, http: HttpClient | None = None, network_mode: str | None = None):
-        _guard_local_youtube_policy(network_mode)
-        self.api_key = api_key
-        self.http = http or _UrllibHttpClient()
-
-    def resolve_channel(self, source: str) -> ChannelMetadata:
-        params = {"part": "snippet,contentDetails", "key": self.api_key}
-        channel_id = _extract_channel_id(source)
-        if channel_id:
-            params["id"] = channel_id
-        else:
-            params["forHandle"] = _extract_handle(source)
-        payload = self.http.get(f"{YOUTUBE_API_BASE}/channels", params=params).json()
-        items = payload.get("items") or []
-        if not items:
-            raise MetadataUnavailable(source, f"Channel metadata unavailable for {source}")
-        item = items[0]
-        return ChannelMetadata(
-            channel_id=str(item.get("id", "")),
-            title=str(item.get("snippet", {}).get("title", "")),
-            uploads_playlist_id=item.get("contentDetails", {}).get("relatedPlaylists", {}).get("uploads"),
-        )
-
-    def get_video_metadata(self, video_id: str) -> VideoMetadata:
-        payload = self.http.get(
-            f"{YOUTUBE_API_BASE}/videos",
-            params={"part": "snippet,liveStreamingDetails", "id": video_id, "key": self.api_key},
-        ).json()
-        items = payload.get("items") or []
-        if not items:
-            raise MetadataUnavailable(video_id)
-        item = items[0]
-        snippet = item.get("snippet", {})
-        return VideoMetadata(
-            video_id=str(item.get("id") or video_id),
-            channel_id=str(snippet.get("channelId", "")),
-            title=str(snippet.get("title", "")),
-            published_at=snippet.get("publishedAt"),
-            live_status=_live_status(item),
-        )
-
-    def list_upload_video_ids(self, uploads_playlist_id: str, *, limit: int) -> list[str]:
-        payload = self.http.get(
-            f"{YOUTUBE_API_BASE}/playlistItems",
-            params={
-                "part": "contentDetails",
-                "playlistId": uploads_playlist_id,
-                "maxResults": max(1, min(int(limit), 50)),
-                "key": self.api_key,
-            },
-        ).json()
-        video_ids: list[str] = []
-        for item in payload.get("items") or []:
-            video_id = str(item.get("contentDetails", {}).get("videoId") or "").strip()
-            if video_id:
-                video_ids.append(video_id)
-        return video_ids
-
-    def iter_upload_items(self, uploads_playlist_id: str, *, page_limit: int = 20, item_limit: int = 1000):
-        next_page_token: str | None = None
-        yielded = 0
-        for _page in range(max(1, int(page_limit))):
-            params: dict[str, Any] = {
-                "part": "snippet,contentDetails",
-                "playlistId": uploads_playlist_id,
-                "maxResults": 50,
-                "key": self.api_key,
-            }
-            if next_page_token:
-                params["pageToken"] = next_page_token
-            payload = self.http.get(f"{YOUTUBE_API_BASE}/playlistItems", params=params).json()
-            current_page_token = next_page_token
-            for item in payload.get("items") or []:
-                details = item.get("contentDetails", {})
-                snippet = item.get("snippet", {})
-                video_id = str(details.get("videoId") or snippet.get("resourceId", {}).get("videoId") or "").strip()
-                if not video_id:
-                    continue
-                yield UploadItem(video_id=video_id, published_at=details.get("videoPublishedAt") or snippet.get("publishedAt"), page_token=current_page_token)
-                yielded += 1
-                if yielded >= max(1, int(item_limit)):
-                    return
-            next_page_token = str(payload.get("nextPageToken") or "").strip() or None
-            if not next_page_token:
-                return
 
 
 class SubtitleProvider(Protocol):

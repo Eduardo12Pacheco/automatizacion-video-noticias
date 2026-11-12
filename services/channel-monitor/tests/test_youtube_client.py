@@ -16,7 +16,6 @@ from app.youtube_client import (
     WebSubClient,
     YouTubeTranscriptSubtitleProvider,
     YtDlpSubtitleProvider,
-    YouTubeDataClient,
     UploadItem,
     _extract_handle,
     parse_websub_video_ids,
@@ -172,53 +171,9 @@ class FakeYtDlpRunner:
         return FakeRunResult()
 
 
-def test_youtube_client_resolves_handle_and_video_metadata_with_injected_http():
-    http = FakeHttp(
-        FakeResponse(
-            {
-                "items": [
-                    {
-                        "id": "UCStable",
-                        "snippet": {"title": "Demo Sports FR"},
-                        "contentDetails": {"relatedPlaylists": {"uploads": "UUStable"}},
-                    }
-                ]
-            }
-        )
-    )
-    client = YouTubeDataClient(api_key="test-key", http=http)
-
-    channel = client.resolve_channel("https://www.youtube.com/@demo-sports-fr")
-
-    assert channel == ChannelMetadata(channel_id="UCStable", title="Demo Sports FR", uploads_playlist_id="UUStable")
-    assert http.last_get[1]["forHandle"] == "demo-sports-fr"
-
-    http.response = FakeResponse(
-        {
-            "items": [
-                {
-                    "id": "video-1",
-                    "snippet": {"channelId": "UCStable", "title": "France reaction", "publishedAt": "2026-05-19T10:00:00Z"},
-                    "liveStreamingDetails": {"actualEndTime": "2026-05-19T11:00:00Z"},
-                }
-            ]
-        }
-    )
-
-    metadata = client.get_video_metadata("video-1")
-
-    assert metadata == VideoMetadata(
-        video_id="video-1",
-        channel_id="UCStable",
-        title="France reaction",
-        published_at="2026-05-19T10:00:00Z",
-        live_status="completed",
-    )
-
 
 def test_local_youtube_provider_construction_is_forbidden_in_protected_mode():
     constructors = [
-        lambda: YouTubeDataClient(api_key="test-key", network_mode="protected"),
         lambda: YouTubeTranscriptSubtitleProvider(network_mode="protected"),
         lambda: YtDlpSubtitleProvider(network_mode="protected"),
         lambda: WebSubClient(callback_url="https://monitor.test/api/monitor/websub", network_mode="protected"),
@@ -234,7 +189,6 @@ def test_local_youtube_provider_construction_is_forbidden_in_protected_mode():
             raise AssertionError("protected mode must forbid local YouTube provider construction")
 
     assert errors == [
-        "policy_forbidden_local_youtube",
         "policy_forbidden_local_youtube",
         "policy_forbidden_local_youtube",
         "policy_forbidden_local_youtube",
@@ -255,68 +209,8 @@ def test_extract_handle_does_not_invent_handle_for_channel_or_watch_urls():
     assert _extract_handle("https://www.youtube.com/watch?v=abc123") == ""
 
 
-def test_youtube_client_reports_metadata_unavailable_when_api_returns_no_items():
-    client = YouTubeDataClient(api_key="test-key", http=FakeHttp(FakeResponse({"items": []})))
-
-    try:
-        client.get_video_metadata("missing")
-    except MetadataUnavailable as exc:
-        assert exc.video_id == "missing"
-        assert "missing" in str(exc)
-    else:
-        raise AssertionError("expected MetadataUnavailable")
 
 
-def test_youtube_client_lists_upload_playlist_video_ids_with_api_params_and_limit():
-    http = FakeHttp(
-        FakeResponse(
-            {
-                "items": [
-                    {"contentDetails": {"videoId": "new-1"}},
-                    {"contentDetails": {"videoId": "new-2"}},
-                    {"contentDetails": {}},
-                ]
-            }
-        )
-    )
-    client = YouTubeDataClient(api_key="test-key", http=http)
-
-    video_ids = client.list_upload_video_ids("UUStable", limit=2)
-
-    assert video_ids == ["new-1", "new-2"]
-    assert http.last_get == (
-        "https://www.googleapis.com/youtube/v3/playlistItems",
-        {"part": "contentDetails", "playlistId": "UUStable", "maxResults": 2, "key": "test-key"},
-    )
-
-
-def test_youtube_client_iterates_upload_items_with_pagination_and_published_timestamps():
-    http = SequenceHttp([
-        FakeResponse({"nextPageToken": "page-2", "items": [{"contentDetails": {"videoId": "new-1", "videoPublishedAt": "2026-05-28T20:02:00Z"}}]}),
-        FakeResponse({"items": [{"contentDetails": {"videoId": "new-2", "videoPublishedAt": "2026-05-28T20:01:00Z"}}]}),
-    ])
-    client = YouTubeDataClient(api_key="test-key", http=http)
-
-    items = list(client.iter_upload_items("UUStable", page_limit=5, item_limit=10))
-
-    assert items == [
-        UploadItem(video_id="new-1", published_at="2026-05-28T20:02:00Z", page_token=None),
-        UploadItem(video_id="new-2", published_at="2026-05-28T20:01:00Z", page_token="page-2"),
-    ]
-    assert http.gets[0][1] == {"part": "snippet,contentDetails", "playlistId": "UUStable", "maxResults": 50, "key": "test-key"}
-    assert http.gets[1][1] == {"part": "snippet,contentDetails", "playlistId": "UUStable", "maxResults": 50, "key": "test-key", "pageToken": "page-2"}
-
-
-def test_youtube_client_iter_upload_items_falls_back_to_snippet_timestamp_and_video_id():
-    http = SequenceHttp([
-        FakeResponse({"items": [{"snippet": {"publishedAt": "2026-05-28T20:02:00Z", "resourceId": {"videoId": "fallback-video"}}, "contentDetails": {}}]}),
-    ])
-    client = YouTubeDataClient(api_key="test-key", http=http)
-
-    items = list(client.iter_upload_items("UUStable", page_limit=1, item_limit=10))
-
-    assert items == [UploadItem(video_id="fallback-video", published_at="2026-05-28T20:02:00Z", page_token=None)]
-    assert http.gets[0][1]["part"] == "snippet,contentDetails"
 
 
 def test_websub_helpers_validate_secret_signature_parse_ids_and_subscribe():

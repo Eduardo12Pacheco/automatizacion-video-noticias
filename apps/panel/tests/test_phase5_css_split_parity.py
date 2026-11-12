@@ -119,7 +119,7 @@ def test_p4_checkpoint_and_css_rollback_scope_documented():
 
 def test_executable_computed_style_parity_evidence_exists_for_guarded_selectors():
     script = r"""
-import { runComputedStyleParityCheck } from './js/modules/__checks__/css-computed-style-parity.js';
+import { runComputedStyleParityCheck } from './js/modules/__checks__/global/css-computed-style-parity.js';
 
 const result = await runComputedStyleParityCheck();
 if (!result.ok) {
@@ -135,7 +135,7 @@ if (!result.baseline || !result.computed) {
 
 def test_computed_style_parity_snapshot_covers_multiple_guarded_selectors():
     script = r"""
-import { runComputedStyleParityCheck } from './js/modules/__checks__/css-computed-style-parity.js';
+import { runComputedStyleParityCheck } from './js/modules/__checks__/global/css-computed-style-parity.js';
 
 const result = await runComputedStyleParityCheck();
 if (!result.ok) {

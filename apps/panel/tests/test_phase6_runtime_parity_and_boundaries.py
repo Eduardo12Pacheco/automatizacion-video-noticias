@@ -24,18 +24,18 @@ def _run_node(script: str):
     )
 
 
-def _read_check_implementation_source(facade_path: str) -> str:
+def _read_check_implementation_source(implementation_path: str) -> str:
     script = r"""
 import { readFile } from 'node:fs/promises';
 import { CHECK_MANIFEST } from './js/modules/__checks__/manifest.js';
 
-const facadePath = process.argv[1];
-const entry = CHECK_MANIFEST.find((candidate) => candidate.facadePath === facadePath);
-if (!entry) throw new Error(`missing check manifest entry for ${facadePath}`);
-process.stdout.write(await readFile(entry.implementationPath, 'utf8'));
+const implementationPath = process.argv[1];
+const entry = CHECK_MANIFEST.find((candidate) => candidate.path === implementationPath);
+if (!entry) throw new Error(`missing check manifest entry for ${implementationPath}`);
+process.stdout.write(await readFile(entry.path, 'utf8'));
 """
     result = subprocess.run(
-        ["node", "--input-type=module", "-e", script, facade_path],
+        ["node", "--input-type=module", "-e", script, implementation_path],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -1562,7 +1562,7 @@ def test_architecture_file_size_soft_cap_and_css_facade_guardrails():
 
 def test_video_projects_render_facade_and_hydration_seams():
     result = subprocess.run(
-        ["node", "--test", "js/modules/__checks__/video-projects-render-seams.check.mjs"],
+        ["node", "--test", "js/modules/features/video-projects/__checks__/video-projects-render-seams.check.mjs"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -1572,7 +1572,7 @@ def test_video_projects_render_facade_and_hydration_seams():
 
 def test_video_projects_controller_facade_and_use_case_seams():
     result = subprocess.run(
-        ["node", "--test", "js/modules/__checks__/video-projects-controller-seams.check.mjs"],
+        ["node", "--test", "js/modules/features/video-projects/__checks__/video-projects-controller-seams.check.mjs"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -1582,7 +1582,7 @@ def test_video_projects_controller_facade_and_use_case_seams():
 
 def test_app_shell_facade_navigation_settings_and_render_callback_seams():
     result = subprocess.run(
-        ["node", "--test", "js/modules/__checks__/app-shell-seams.check.mjs"],
+        ["node", "--test", "js/modules/app-shell/__checks__/app-shell-seams.check.mjs"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -1592,7 +1592,7 @@ def test_app_shell_facade_navigation_settings_and_render_callback_seams():
 
 def test_composition_renderer_pure_helper_facade_parity():
     result = subprocess.run(
-        ["node", "--test", "js/modules/__checks__/composition-renderer-helpers.check.mjs"],
+        ["node", "--test", "js/modules/features/video-projects/__checks__/composition-renderer-helpers.check.mjs"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -1626,7 +1626,7 @@ def test_contract_matrix_documents_check_manifest_source_aggregation():
 
 def test_dependency_boundary_validator_detects_sibling_feature_imports():
     script = r"""
-import { validateNoSiblingFeatureImports } from './js/modules/__checks__/dependency-boundary-validator.js';
+import { validateNoSiblingFeatureImports } from './js/modules/__checks__/global/dependency-boundary-validator.js';
 
 const baseline = validateNoSiblingFeatureImports({
   'js/modules/features/video-projects/index.js': "import { x } from '../../core/foo.js';",
@@ -1653,7 +1653,7 @@ def test_bootstrap_boundary_invariance_and_runtime_helper_delegation_contract():
     main_source = MAIN_JS_PATH.read_text(encoding="utf-8")
     composition_source = COMPOSITION_ROOT_PATH.read_text(encoding="utf-8")
     app_shell_source = (ROOT / "js" / "modules" / "app-shell.js").read_text(encoding="utf-8")
-    parity_checklist_source = _read_check_implementation_source("js/modules/__checks__/parity-checklist.js")
+    parity_checklist_source = _read_check_implementation_source("js/modules/__checks__/global/parity-checklist.js")
 
     assert "./modules/composition-root.js" in main_source
     assert "./app-shell.js" in composition_source
@@ -1668,7 +1668,7 @@ def test_bootstrap_boundary_invariance_and_runtime_helper_delegation_contract():
 
 def test_parity_checklist_enforces_runtime_helper_import_boundaries_in_app_shell():
     script = r"""
-import { runParityChecklist } from './js/modules/__checks__/parity-checklist.js';
+import { runParityChecklist } from './js/modules/__checks__/global/parity-checklist.js';
 
 const baseline = runParityChecklist({
   indexHtmlSource: '<div id="authGate"></div><div id="appShell"></div><form id="authForm"></form><input id="searchInput"><select id="countryFilter"></select><select id="sourcesFilter"></select><div id="cards"></div><dialog id="queueDialog"></dialog><dialog id="settingsDialog"></dialog><nav id="sidebarNav"></nav><section id="viewApproval"></section><section id="viewScripts"></section><section id="viewAudio"></section><section id="viewSubtitulos2"></section><button id="audioRunBtn"></button><tbody id="subtitle2RowsBody"></tbody><section id="subtitle2ServiceHealthBanner"></section><section id="subtitle2SessionHistory"></section><section id="subtitle2PreviewStage"></section><video id="subtitle2PreviewVideo"></video><section id="subtitle2PreviewOverlay"></section><section id="subtitle2PreviewCue"></section><section id="subtitle2PreviewTimeline"></section><button id="subtitle2AddRowBtn"></button><button id="subtitle2AnotherVideoBtn"></button>',
@@ -1706,7 +1706,7 @@ if (!mutated.failures.some((f) => String(f).includes('resolveSubtitleProgressPer
 
 def test_parity_checklist_enforces_video_projects_facade_contracts():
     script = r"""
-import { runParityChecklist } from './js/modules/__checks__/parity-checklist.js';
+import { runParityChecklist } from './js/modules/__checks__/global/parity-checklist.js';
 
 const indexHtmlSource = '<div id="authGate"></div><div id="appShell"></div><form id="authForm"></form><input id="searchInput"><select id="countryFilter"></select><select id="sourcesFilter"></select><div id="cards"></div><dialog id="queueDialog"></dialog><dialog id="settingsDialog"></dialog><nav id="sidebarNav"></nav><section id="viewApproval"></section><section id="viewScripts"></section><section id="viewAudio"></section><section id="viewSubtitulos2"></section><button id="audioRunBtn"></button><tbody id="subtitle2RowsBody"></tbody><section id="subtitle2ServiceHealthBanner"></section><section id="subtitle2SessionHistory"></section><section id="subtitle2PreviewStage"></section><video id="subtitle2PreviewVideo"></video><section id="subtitle2PreviewOverlay"></section><section id="subtitle2PreviewCue"></section><section id="subtitle2PreviewTimeline"></section><button id="subtitle2AddRowBtn"></button><button id="subtitle2AnotherVideoBtn"></button>';
 const baseline = runParityChecklist({

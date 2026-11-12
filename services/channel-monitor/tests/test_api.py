@@ -195,7 +195,6 @@ def test_protected_discovery_builder_fails_closed_when_boundary_config_missing_w
         network_mode="protected",
         network_boundary_url="",
         network_boundary_token="",
-        youtube_api_key="local-youtube-key-that-must-not-be-used",
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
@@ -219,7 +218,6 @@ def test_protected_catchup_builder_fails_closed_when_boundary_config_missing_wit
         network_mode="protected",
         network_boundary_url="",
         network_boundary_token="",
-        youtube_api_key="local-youtube-key-that-must-not-be-used",
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
@@ -277,7 +275,6 @@ countries:
         db_path=tmp_path / "monitor.sqlite3",
         channels_config_path=channels_path,
         radar_api_key="radar-secret",
-        youtube_api_key="youtube-secret",
         callback_secret="callback-secret",
     )
     store = MonitorStore(settings.db_path)
@@ -490,7 +487,6 @@ countries:
         channels_config_path=channels_path,
         radar_url="http://127.0.0.1:8765",
         radar_api_key="radar-secret",
-        youtube_api_key="youtube-secret",
         callback_url="https://callback.example/api/monitor/websub",
         callback_secret="callback-secret",
     )
@@ -616,7 +612,6 @@ def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(t
         api_key="monitor-secret",
         db_path=tmp_path / "monitor.sqlite3",
         radar_api_key="radar-secret",
-        youtube_api_key="youtube-secret",
         callback_secret="callback-secret",
     )
     store = MonitorStore(settings.db_path)

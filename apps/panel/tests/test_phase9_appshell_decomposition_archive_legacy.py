@@ -27,18 +27,18 @@ def _run_node(script: str):
     )
 
 
-def _read_check_implementation_source(facade_path: str) -> str:
+def _read_check_implementation_source(implementation_path: str) -> str:
     script = r"""
 import { readFile } from 'node:fs/promises';
 import { CHECK_MANIFEST } from './js/modules/__checks__/manifest.js';
 
-const facadePath = process.argv[1];
-const entry = CHECK_MANIFEST.find((candidate) => candidate.facadePath === facadePath);
-if (!entry) throw new Error(`missing check manifest entry for ${facadePath}`);
-process.stdout.write(await readFile(entry.implementationPath, 'utf8'));
+const implementationPath = process.argv[1];
+const entry = CHECK_MANIFEST.find((candidate) => candidate.path === implementationPath);
+if (!entry) throw new Error(`missing check manifest entry for ${implementationPath}`);
+process.stdout.write(await readFile(entry.path, 'utf8'));
 """
     result = subprocess.run(
-        ["node", "--input-type=module", "-e", script, facade_path],
+        ["node", "--input-type=module", "-e", script, implementation_path],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -60,7 +60,7 @@ def test_runtime_entrypoint_contract_remains_index_to_main_to_composition_to_app
 
 
 def test_parity_checklist_freezes_three_hop_bootstrap_boundary_including_app_shell_link():
-    source = _read_check_implementation_source("js/modules/__checks__/parity-checklist.js")
+    source = _read_check_implementation_source("js/modules/__checks__/global/parity-checklist.js")
     assert "COMPOSITION_ROOT_IMPORT_PATH" in source
     assert "APP_SHELL_IMPORT_PATH" in source
     assert "compositionRootSource" in source
@@ -71,7 +71,7 @@ def test_dependency_boundary_validator_enforces_archive_non_runtime_reference_ru
 import {
   validateNoLegacyArchiveRuntimeReferences,
   LEGACY_ARCHIVE_PATH,
-} from './js/modules/__checks__/dependency-boundary-validator.js';
+} from './js/modules/__checks__/global/dependency-boundary-validator.js';
 
 const clean = validateNoLegacyArchiveRuntimeReferences({
   'js/modules/app-shell.js': "import { x } from './features/audio/index.js';",
@@ -105,7 +105,7 @@ if (!String(LEGACY_ARCHIVE_PATH).includes('js/legacy/app.js')) {
 
 def test_rollback_scope_validator_supports_s1_s2_s3_s4_slice_boundaries():
     script = r"""
-import { evaluateRollbackPlan } from './js/modules/__checks__/rollback-scope-validator.js';
+import { evaluateRollbackPlan } from './js/modules/__checks__/global/rollback-scope-validator.js';
 
 const s1 = evaluateRollbackPlan({
   checkpoint: 'S1',
@@ -125,7 +125,7 @@ const s4 = evaluateRollbackPlan({
     'js/legacy/app.js',
     'docs/parity/contract-matrix.md',
     'docs/parity/style-guards.md',
-    'js/modules/__checks__/dependency-boundary-validator.js',
+    'js/modules/__checks__/global/dependency-boundary-validator.js',
   ],
 });
 if (!s4.allowed) {
@@ -210,7 +210,7 @@ def test_s4_archival_rollback_simulation_moves_legacy_app_back_in_isolation_and_
 import { mkdtemp, mkdir, writeFile, readFile, access, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { simulateS4ArchivalRollback } from './js/modules/__checks__/rollback-scope-validator.js';
+import { simulateS4ArchivalRollback } from './js/modules/__checks__/global/rollback-scope-validator.js';
 
 const sandbox = await mkdtemp(path.join(os.tmpdir(), 'approval-panel-s4-'));
 try {

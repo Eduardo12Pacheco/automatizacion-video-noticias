@@ -168,7 +168,7 @@ describe('script domain', () => {
       { imageUrl: 'https://img.example.local/2.jpg', thumbnailUrl: 'https://img.example.local/2-thumb.jpg', source: 'Demo' },
     ]);
     assert.equal(candidates.length, 1);
-    assert.equal(candidates[0].provider, 'serper-images');
+    assert.equal(candidates[0].provider, 'image-search');
     assert.equal(candidates[0].selected, false);
   });
 });

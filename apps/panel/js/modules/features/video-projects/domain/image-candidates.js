@@ -1,6 +1,6 @@
+import { VIDEO_CANDIDATES_TEMP_BUCKET, buildPublicStorageUrl } from '../data/storage-paths.js';
+
 const BLOCKED_IMAGE_DOMAIN_PARTS = ['tiktok.com', 'tiktokcdn.com', 'tiktokv.com', 'facebook.com', 'fbcdn.net', 'instagram.com', 'cdninstagram.com'];
-const VIDEO_CANDIDATES_TEMP_BUCKET = 'video-candidates-temp';
-const VIDEO_CANDIDATES_TEMP_PUBLIC_BASE = 'https://example.supabase.co/storage/v1/object/public/video-candidates-temp';
 
 export function isBlockedImageCandidate(candidate = {}) {
   const haystack = [
@@ -70,7 +70,7 @@ export function resolveStoragePublicUrl(candidate = {}) {
   const bucket = (candidate.storage_bucket || candidate.bucket || VIDEO_CANDIDATES_TEMP_BUCKET).toString().trim();
   const path = (candidate.storage_path || candidate.path || '').toString().trim().replace(/^\/+/, '');
   if (bucket === VIDEO_CANDIDATES_TEMP_BUCKET && path) {
-    return `${VIDEO_CANDIDATES_TEMP_PUBLIC_BASE}/${path.split('/').map(encodeURIComponent).join('/')}`;
+    return buildPublicStorageUrl(VIDEO_CANDIDATES_TEMP_BUCKET, path);
   }
 
   return '';

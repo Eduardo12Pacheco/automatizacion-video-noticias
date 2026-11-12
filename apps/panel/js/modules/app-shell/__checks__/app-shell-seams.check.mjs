@@ -11,7 +11,7 @@ import {
   runAppShellLifecycleReplay,
   runAppShellSetViewReplay,
   runScriptToAudioVoiceReplay,
-} from '../../__checks__/runtime-ui-parity-replay.js';
+} from '../../__checks__/global/runtime-ui-parity-replay.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MODULES_ROOT = path.resolve(__dirname, '../..');

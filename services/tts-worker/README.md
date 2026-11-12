@@ -1,208 +1,61 @@
 # Voice TTS Service
 
-Servicio local de generación de voz con **Qwen3-TTS Base**, expuesto al Control Panel mediante una API pública (`tts-orchestrator`) y un worker interno (`tts-worker`) que ejecuta la síntesis en la GPU local.
+Local speech synthesis for the newsroom pipeline. `voice_tts_service` is the
+only implementation: a FastAPI worker runs Qwen3-TTS (or Piper on CPU), and a
+FastAPI orchestrator exposes the job API to the Control Panel.
 
-La prioridad de este proyecto es clara: **preservar la voz personalizada**. La arquitectura ya fue ordenada, pero los wrappers legacy siguen presentes de forma intencional hasta que el runtime real quede validado por escucha humana.
-
-## Estado actual
-
-| Tema | Estado |
-| ---- | ------ |
-| Arquitectura principal | `voice_tts_service/` |
-| Servicios Windows/NSSM | `tts-worker`, `tts-orchestrator`, `tts-tunnel` |
-| Health público validado | `https://tts-api.example.local/healthz` respondió OK 200 tras reinstalar servicios |
-| Tests determinísticos | `python -m pytest "services/tts-worker/tests"` → esperado: `27 passed` |
-| Wrappers legacy | Conservados como compatibilidad deprecada, no borrar todavía |
-
-## Arquitectura
+## Layout
 
 ```text
 services/tts-worker/
-  voice_tts_service/          # implementación real
-    api/                      # FastAPI worker/orchestrator
-    application/              # casos de uso, queue, assembly
-    cli/                      # CLI canónica de síntesis
-    config/                   # settings worker/orchestrator
-    domain/                   # presets, estados, segmentación, errores
-    infrastructure/           # Qwen/subprocess runner
-    storage/                  # SQLite, runtime paths, artifacts
-  scripts/                    # instalación/arranque/check de servicios
-  tests/                      # contratos determinísticos sin ejecutar modelo real
-  config/default.yaml         # defaults sensibles de voz/generación
-  refs/                       # referencia de voz/texto
-  src/                        # compatibilidad CLI deprecada
-  tts-worker/                 # compatibilidad FastAPI worker deprecada
-  tts-orchestrator/           # compatibilidad FastAPI pública deprecada
+  voice_tts_service/     # API, application, CLI, config, domain, infrastructure
+  scripts/               # Windows service install/run/check helpers
+  tests/                 # deterministic contracts; no model execution
+  config/default.yaml    # voice and generation defaults
+  refs/                  # local voice reference (not shipped)
+  src/main.py            # deprecated CLI wrapper, kept for old commands only
 ```
 
-## Entrypoints canónicos
+Worker state (jobs database, inputs, outputs and segments) lives under
+`runtime/` paths configured by `TTS_WORKER_RUNTIME_DIR`; nothing is committed.
 
-Los scripts de servicio usan estos targets del paquete:
+## Entrypoints
 
 ```powershell
 python -m uvicorn voice_tts_service.api.worker_app:app --host 127.0.0.1 --port 8091
 python -m uvicorn voice_tts_service.api.orchestrator_app:app --host 127.0.0.1 --port 8088
 ```
 
-Para CLI, el código real vive en:
+The CLI lives in `voice_tts_service.cli.synthesize`; `python src/main.py` still
+forwards to it for backward compatibility and will be removed in a future
+cleanup.
 
-```text
-voice_tts_service.cli.synthesize
-```
+## Windows services
 
-El comando legacy sigue funcionando por compatibilidad:
-
-```powershell
-python src/main.py --input input/mi-guion.txt --ref-audio refs/voz.wav --ref-text refs/voz.txt
-```
-
-## Qué carpetas NO borrar todavía
-
-| Carpeta | Por qué sigue existiendo | Cuándo se puede borrar |
-| ------- | ------------------------ | ---------------------- |
-| `src/` | Wrappers/re-exports para comandos CLI legacy. | Solo después de confirmar que nadie usa `python src/main.py` y que la voz real funciona con el entrypoint nuevo. |
-| `tts-worker/` | `app.py` delega a `voice_tts_service.api.worker_app`; compatibilidad para comandos viejos. | Solo después de validar NSSM/runtime sin esa ruta. |
-| `tts-orchestrator/` | `app.py` delega a `voice_tts_service.api.orchestrator_app`; compatibilidad para comandos viejos. | Solo después de validar NSSM/runtime sin esa ruta. |
-
-Estos wrappers son molestos visualmente, sí, pero hoy son una red de seguridad. Se eliminan con otro SDD cuando el usuario confirme runtime real.
-
-## Qué NO tocar sin autorización explícita
-
-Estos elementos son sensibles para la voz personalizada:
-
-- `config/default.yaml`
-- `refs/voz.wav`
-- `refs/voz.txt`
-- presets (`balanced_default`, `golazo_emotivo`, `golazo_informativo`)
-- segmentación
-- ensamblado
-- sample rate
-- nombres/rutas de artifacts
-- runtime folders existentes
-
-No corras Qwen/CUDA/SoX/model generation en tests automáticos salvo que se pida un smoke test real.
-
-## Instalar o actualizar servicios Windows
-
-Abrí PowerShell como **Administrador**:
+Run PowerShell as Administrator:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass -Force
 & "$env:NEWSROOM_ROOT\services\tts-worker\scripts\install-services.ps1"
 ```
 
-Esto actualiza/instala y arranca:
+This installs and starts `tts-worker` and `tts-orchestrator`. The obsolete
+Cloudflare tunnel script and the old `tts-worker/` and `tts-orchestrator/`
+compatibility application trees were removed; everything runs through the
+package above.
 
-- `tts-worker`
-- `tts-orchestrator`
-- `tts-tunnel`
-
-## Verificar servicios
-
-```powershell
-& "$env:NEWSROOM_ROOT\services\tts-worker\scripts\check-services.ps1"
-```
-
-Resultado esperado:
-
-```text
-tts-worker: RUNNING (StartType=Automatic)
-tts-orchestrator: RUNNING (StartType=Automatic)
-tts-tunnel: RUNNING (StartType=Automatic)
-healthz: OK (200)
-TODO OK: ya podés usar 'Creación de audios'.
-```
-
-También podés verificar manualmente:
-
-```powershell
-Invoke-WebRequest "http://127.0.0.1:8088/healthz" -UseBasicParsing
-Invoke-WebRequest "https://tts-api.example.local/healthz" -UseBasicParsing
-```
-
-## Verificar código sin ejecutar el modelo real
-
-```powershell
-python -m pytest "services/tts-worker/tests"
-```
-
-Resultado esperado después del cleanup de entrypoints:
-
-```text
-27 passed
-```
-
-Estos tests cubren contratos de API, worker, runtime, wrappers, entrypoints canónicos y no-drift de defaults sensibles.
-
-## Validación final antes de borrar wrappers
-
-El health prueba que la API vive, pero no prueba la calidad de voz. Antes de eliminar `src/`, `tts-worker/` o `tts-orchestrator/`, hacer esto:
-
-1. Reinstalar/reiniciar servicios con `install-services.ps1`.
-2. Confirmar `check-services.ps1` en OK.
-3. Generar un audio corto desde el Control Panel.
-4. Escuchar el resultado.
-5. Confirmar explícitamente que la voz personalizada sigue igual.
-
-Solo después de eso conviene abrir un SDD final para borrar wrappers legacy.
-
-## Flujo de API
-
-```text
-apps/panel
-  -> https://tts-api.example.local
-  -> tts-orchestrator (127.0.0.1:8088)
-  -> tts-worker (127.0.0.1:8091)
-  -> voice_tts_service.cli.synthesize / Qwen3-TTS
-```
-
-Contratos públicos usados por el Control Panel:
-
-- `POST /api/tts/jobs`
-- `GET /api/tts/jobs/{job_id}`
-- `GET /api/tts/jobs/{job_id}/events`
-- `GET /api/tts/jobs/{job_id}/download`
-- headers `x-api-key` y Basic Auth
-- estados `queued`, `running`, `done`, `error`, `cancelled`
-
-## Salidas de síntesis
-
-- Audio final: `output/<model-tag>/run-YYYYMMDD-HHMMSS.wav`
-- Reporte: `output/<model-tag>/run-YYYYMMDD-HHMMSS.report.json`
-- Segmentos intermedios: `segments/<model-tag>/run-YYYYMMDD-HHMMSS/*.wav`
-
-El sample rate final queda como lo devuelve Qwen. No se fuerza resampling manual.
-
-## Historial SDD relevante
-
-- `voice-tts-service-refactor` — extracción principal a `voice_tts_service/`.
-- `voice-tts-service-warning-cleanup` — cobertura `cancelled` y migración FastAPI lifespan.
-- `voice-tts-entrypoint-cleanup` — scripts/docs/tests migrados a entrypoints canónicos sin borrar wrappers.
-
-Los artifacts están en `openspec/changes/archive/` y Engram.
-
-## Engines: Qwen3-TTS GPU and Piper CPU
-
-`TTS_WORKER_ENGINE=auto|qwen|piper` selects the synthesis engine (default
-`auto`). Qwen runs on the GPU and holds `NEWSROOM_GPU_LOCK_PATH`, the same
-cross-process slot used by the ASR worker. If Qwen/CUDA is unavailable the
-factory falls back to Piper when `PIPER_MODEL` (or
-`generation.piper_model`) is set; set `TTS_WORKER_ALLOW_CPU_FALLBACK=0` to
-disable that fallback.
+## Checks
 
 ```bash
-export TTS_WORKER_ENGINE=piper
-export PIPER_MODEL=/models/es_ES-demo-medium.onnx
-export NEWSROOM_GPU_LOCK_PATH=/tmp/newsroom-gpu.lock
+uv run --project services/tts-worker --with pytest pytest services/tts-worker/tests -q
 ```
 
-## Docker
+The suite covers API/worker contracts, runtime paths, entrypoint cleanup and
+the sensitive defaults in `config/default.yaml`. Do not run Qwen/CUDA/SoX
+generation in automated tests unless a real smoke test is explicitly needed.
 
-Build from the repository root. The default image installs Piper (CPU); pass
-`--build-arg TTS_EXTRAS=gpu --build-arg BASE_IMAGE=<cuda-python-image>` to build
-the Qwen GPU variant.
+## Sensitive defaults
 
-```bash
-docker build -f services/tts-worker/Dockerfile -t newsroom-tts .
-docker run --rm -p 8766:8766 -e TTS_WORKER_ENGINE=piper newsroom-tts
-```
+Do not change these without an explicit voice-quality review: `config/default.yaml`,
+the presets (`balanced_default`, `golazo_emotivo`, `golazo_informativo`),
+segmentation, assembly, sample rate and the artifact paths.

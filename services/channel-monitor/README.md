@@ -49,7 +49,7 @@ FastAPI startup owns one cancellable runtime loop per enabled duty: Radar enqueu
 Local/dev mode uses the public YouTube channel RSS feed
 (`https://www.youtube.com/feeds/videos.xml?channel_id=UC...`) and reads the
 channel page only to resolve a `@handle`; no YouTube Data API key is needed.
-`CHANNEL_MONITOR_YOUTUBE_API_KEY` is no longer required and is not read in
+The YouTube Data API key is no longer required and is not read in
 `local_dev` mode. Set `CHANNEL_MONITOR_NETWORK_MODE=protected` to route feed
 access through the optional network boundary instead.
 

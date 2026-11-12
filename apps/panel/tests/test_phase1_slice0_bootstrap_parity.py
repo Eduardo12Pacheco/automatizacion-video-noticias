@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_MATRIX_PATH = ROOT / "docs" / "parity" / "contract-matrix.md"
-PARITY_CHECKLIST_PATH = ROOT / "js" / "modules" / "__checks__" / "parity-checklist.js"
+PARITY_CHECKLIST_PATH = ROOT / "js" / "modules" / "__checks__" / "global" / "parity-checklist.js"
 MAIN_JS_PATH = ROOT / "js" / "main.js"
 APP_SHELL_PATH = ROOT / "js" / "modules" / "app-shell.js"
 
@@ -37,18 +37,18 @@ REQUIRED_SELECTOR_IDS = [
 ]
 
 
-def _read_check_implementation_source(facade_path: str) -> str:
+def _read_check_implementation_source(implementation_path: str) -> str:
     script = r"""
 import { readFile } from 'node:fs/promises';
 import { CHECK_MANIFEST } from './js/modules/__checks__/manifest.js';
 
-const facadePath = process.argv[1];
-const entry = CHECK_MANIFEST.find((candidate) => candidate.facadePath === facadePath);
-if (!entry) throw new Error(`missing check manifest entry for ${facadePath}`);
-process.stdout.write(await readFile(entry.implementationPath, 'utf8'));
+const implementationPath = process.argv[1];
+const entry = CHECK_MANIFEST.find((candidate) => candidate.path === implementationPath);
+if (!entry) throw new Error(`missing check manifest entry for ${implementationPath}`);
+process.stdout.write(await readFile(entry.path, 'utf8'));
 """
     result = subprocess.run(
-        ["node", "--input-type=module", "-e", script, facade_path],
+        ["node", "--input-type=module", "-e", script, implementation_path],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -76,8 +76,8 @@ def test_contract_matrix_freezes_network_contract_columns():
 
 
 def test_parity_checklist_defines_selector_and_bootstrap_contract_assertions():
-    assert PARITY_CHECKLIST_PATH.exists(), "Task 1.2 requires js/modules/__checks__/parity-checklist.js"
-    checklist_source = _read_check_implementation_source("js/modules/__checks__/parity-checklist.js")
+    assert PARITY_CHECKLIST_PATH.exists(), "Task 1.2 requires js/modules/__checks__/global/parity-checklist.js"
+    checklist_source = _read_check_implementation_source("js/modules/__checks__/global/parity-checklist.js")
 
     for selector_id in REQUIRED_SELECTOR_IDS:
         assert selector_id in checklist_source, f"Missing selector contract assertion for #{selector_id}"

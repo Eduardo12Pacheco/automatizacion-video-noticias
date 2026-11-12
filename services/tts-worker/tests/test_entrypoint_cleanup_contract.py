@@ -35,38 +35,28 @@ def test_service_scripts_prefer_canonical_fastapi_modules_and_preserve_runtime_c
     assert "TTS_WORKER_INTERNAL_TOKEN" in orchestrator
     assert "TTS_ORCH_WORKER_INTERNAL_TOKEN = $env:TTS_WORKER_INTERNAL_TOKEN" in orchestrator
 
-    for service_name in ("tts-worker", "tts-orchestrator", "tts-tunnel"):
+    for service_name in ("tts-worker", "tts-orchestrator"):
         assert f"-Name '{service_name}'" in install_services
         assert f"'{service_name}.out.log'" in install_services
         assert f"'{service_name}.err.log'" in install_services
+    assert "tts-tunnel" not in install_services
+    assert not (SERVICE_ROOT / "scripts" / "run-tunnel.ps1").exists()
 
 
 def test_docs_label_canonical_entrypoints_primary_and_wrappers_compatibility_only() -> None:
-    docs = {
-        "README.md": _read("README.md"),
-        "NSSM-SERVICES-RUNBOOK.md": _read("NSSM-SERVICES-RUNBOOK.md"),
-        "tts-worker/README.md": _read("tts-worker/README.md"),
-        "tts-orchestrator/README.md": _read("tts-orchestrator/README.md"),
-    }
+    readme = _read("README.md")
+    runbook = _read("NSSM-SERVICES-RUNBOOK.md")
 
-    assert "voice_tts_service.api.worker_app:app" in docs["README.md"]
-    assert "voice_tts_service.api.orchestrator_app:app" in docs["README.md"]
-    assert "compatibilidad deprecada" in docs["README.md"].lower()
-    assert "no borrar" in docs["README.md"].lower()
+    assert "voice_tts_service.api.worker_app:app" in readme
+    assert "voice_tts_service.api.orchestrator_app:app" in readme
+    assert not (SERVICE_ROOT / "tts-worker" / "README.md").exists()
+    assert not (SERVICE_ROOT / "tts-orchestrator" / "README.md").exists()
 
-    assert "voice_tts_service.api.worker_app:app" in docs["NSSM-SERVICES-RUNBOOK.md"]
-    assert "voice_tts_service.api.orchestrator_app:app" in docs["NSSM-SERVICES-RUNBOOK.md"]
-    assert "tts-worker`" in docs["NSSM-SERVICES-RUNBOOK.md"]
-    assert "tts-orchestrator`" in docs["NSSM-SERVICES-RUNBOOK.md"]
-    assert "runtime-logs/services/tts-worker.out.log" in docs["NSSM-SERVICES-RUNBOOK.md"]
-
-    assert "uvicorn voice_tts_service.api.worker_app:app --host 127.0.0.1 --port 8091" in docs["tts-worker/README.md"]
-    assert "uvicorn app:app --host 127.0.0.1 --port 8091" in docs["tts-worker/README.md"]
-    assert "compatibilidad deprecada" in docs["tts-worker/README.md"].lower()
-
-    assert "uvicorn voice_tts_service.api.orchestrator_app:app --host 127.0.0.1 --port 8088" in docs["tts-orchestrator/README.md"]
-    assert "uvicorn app:app --host 127.0.0.1 --port 8088" in docs["tts-orchestrator/README.md"]
-    assert "compatibilidad deprecada" in docs["tts-orchestrator/README.md"].lower()
+    assert "voice_tts_service.api.worker_app:app" in runbook
+    assert "voice_tts_service.api.orchestrator_app:app" in runbook
+    assert "runtime-logs/services/tts-worker.out.log" in runbook
+    assert "cloudflared" not in runbook.lower()
+    assert "tts-tunnel" not in runbook
 
 
 def test_voice_defaults_presets_and_artifact_contract_are_unchanged(monkeypatch) -> None:

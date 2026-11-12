@@ -2,9 +2,9 @@ import { AdapterError } from './http.js';
 import { DEFAULT_ADAPTER_SCRIPT, runJsonCommand } from './spawn.js';
 
 /**
- * ArticleExtractorPort backed by trafilatura (local Python). It replaces the
- * Firecrawl cloud scraper: the CLI fetches the URL and returns main text plus
- * metadata, which the core validates before drafting.
+ * ArticleExtractorPort backed by trafilatura (local Python). The CLI fetches
+ * the URL and returns main text plus metadata, which the core validates
+ * before drafting.
  */
 export class TrafilaturaArticleExtractor {
   constructor({

@@ -38,7 +38,6 @@ class Settings:
     radar_api_key: str = ""
     callback_url: str = ""
     callback_secret: str = ""
-    youtube_api_key: str = ""
     network_mode: str = NETWORK_MODE_LOCAL_DEV
     network_boundary_url: str = ""
     network_boundary_token: str = ""
@@ -134,7 +133,6 @@ def load_settings() -> Settings:
         radar_api_key=os.environ.get("CHANNEL_MONITOR_RADAR_API_KEY", ""),
         callback_url=os.environ.get("CHANNEL_MONITOR_CALLBACK_URL", ""),
         callback_secret=os.environ.get("CHANNEL_MONITOR_CALLBACK_SECRET", ""),
-        youtube_api_key=os.environ.get("CHANNEL_MONITOR_YOUTUBE_API_KEY", ""),
         network_mode=_network_mode(os.environ.get("CHANNEL_MONITOR_NETWORK_MODE", NETWORK_MODE_LOCAL_DEV)),
         network_boundary_url=os.environ.get("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "").strip().rstrip("/"),
         network_boundary_token=os.environ.get("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", ""),

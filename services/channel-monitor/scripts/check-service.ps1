@@ -9,7 +9,7 @@ function Redact-SecretText {
     param([string] $Text)
     if (-not $Text) { return $Text }
     $Redacted = $Text
-    foreach ($Secret in @($ApiKey, $env:CHANNEL_MONITOR_RADAR_API_KEY, $env:CHANNEL_MONITOR_YOUTUBE_API_KEY, $env:CHANNEL_MONITOR_CALLBACK_SECRET)) {
+    foreach ($Secret in @($ApiKey, $env:CHANNEL_MONITOR_RADAR_API_KEY, $env:CHANNEL_MONITOR_CALLBACK_SECRET)) {
         if ($Secret) { $Redacted = $Redacted.Replace($Secret, "[redacted]") }
     }
     return $Redacted -replace '(x-api-key=)[^\s&"]+', '$1[redacted]'

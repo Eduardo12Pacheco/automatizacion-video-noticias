@@ -30,7 +30,7 @@ def test_contract_matrix_contains_executable_ui_state_replay_reference_for_prote
 
 def test_runtime_ui_state_replay_executes_all_protected_flows():
     script = r"""
-import { runProtectedFlowsReplay } from './js/modules/__checks__/runtime-ui-parity-replay.js';
+import { runProtectedFlowsReplay } from './js/modules/__checks__/global/runtime-ui-parity-replay.js';
 
 const result = await runProtectedFlowsReplay();
 if (!result.ok) {
@@ -49,7 +49,7 @@ if (!result.passed.includes('scripts/facade-parity')) {
 
 def test_rollback_scope_validator_enforces_checkpoint_failure_boundaries():
     script = r"""
-import { evaluateRollbackPlan } from './js/modules/__checks__/rollback-scope-validator.js';
+import { evaluateRollbackPlan } from './js/modules/__checks__/global/rollback-scope-validator.js';
 
 const okPlan = evaluateRollbackPlan({
   checkpoint: 'P3',
@@ -83,7 +83,7 @@ if (!badPlan.offendingFiles.includes('js/modules/features/approval/index.js')) {
 
 def test_dependency_boundary_validator_detects_mutated_cross_feature_import_edge():
     script = r"""
-import { validateDependencyBoundaries } from './js/modules/__checks__/dependency-boundary-validator.js';
+import { validateDependencyBoundaries } from './js/modules/__checks__/global/dependency-boundary-validator.js';
 
 const importGraph = {
   'features/approval': ['core/http/approval-api'],

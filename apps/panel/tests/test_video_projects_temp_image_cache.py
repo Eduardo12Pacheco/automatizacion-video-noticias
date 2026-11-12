@@ -122,7 +122,7 @@ const list = {
   innerHTML: '',
   querySelectorAll() { return []; },
 };
-const expected = 'https://example.supabase.co/storage/v1/object/public/video-candidates-temp/runs/run-1/projects/draft-1/001.webp';
+const expected = '/panel/blobs/video-candidates-temp/runs/run-1/projects/draft-1/001.webp';
 
 renderVideoProjectsListView({
   state: {
