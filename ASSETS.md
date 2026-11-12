@@ -48,10 +48,29 @@ any real team, person or channel.
 
 ## Font Licensing
 
-`Demo-Display.woff2` is a rename/repackaging of the OFL-licensed Anton font
-already shipped under `services/subtitles/assets/fonts/subtitles/`. The
-original OFL license text is a T9 deliverable and must be kept next to the
-font in the public tree.
+All shipped fonts are distributed under the SIL Open Font License, Version 1.1.
+An `OFL.txt` file sits next to every font directory and contains the original
+copyright notice plus the full license text:
+
+| Font directory | Fonts | OFL file |
+|---|---|---|
+| `services/subtitles/assets/fonts/subtitles/` | Anton, Bebas Neue, Khand, League Gothic, Oswald | `OFL.txt` |
+| `examples/brand/fonts/` | `Demo-Display.woff2` (derived from Anton) | `OFL.txt` |
+| `apps/panel/assets/fonts/versa/` | `Demo-Display.woff2` | `OFL.txt` |
+| `services/renderer/public/fonts/versa/` | `Demo-Display.woff2` | `OFL.txt` |
+
+`Demo-Display.woff2` is a renamed, subsetted repackaging of the OFL-licensed
+Anton font; the reserved-name rules do not apply because Anton's copyright
+notice does not declare a Reserved Font Name. The generated display face keeps
+the OFL notice and may not be redistributed under another license.
+
+## Recorded Demo
+
+`docs/images/demo.gif` and `docs/images/demo.mp4` are screen recordings of the
+default keyless Docker Compose profile (login, approval decision, generated
+script, voice/subtitles/projects views). They are product screenshots, not
+brand media, and contain only fictional demo data. Both files are well below the
+5 MB blob limit enforced for history.
 
 ## Not Included
 
