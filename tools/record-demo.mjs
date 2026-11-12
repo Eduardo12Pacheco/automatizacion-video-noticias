@@ -48,6 +48,14 @@ function isExpectedConsoleError(message) {
 
 const consoleErrors = [];
 const pageErrors = [];
+
+async function parkPointerAndBlur(page, width, height) {
+  // Capture hygiene (T29): the rail expands on hover and focus rings would
+  // otherwise stay visible for the rest of the recording.
+  await page.mouse.move(Math.max(8, width - 8), Math.max(8, height - 8));
+  await page.evaluate(() => document.activeElement?.blur?.());
+  await page.waitForTimeout(80);
+}
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
 });
@@ -76,17 +84,21 @@ try {
   await page.fill('#authPass', password);
   await page.locator('#authForm button[type="submit"]').click();
   await page.waitForSelector('#appShell', { state: 'visible' });
+  await parkPointerAndBlur(page, 1280, 720);
   await page.waitForTimeout(3000);
 
   for (const view of views) {
     await page.locator(`.nav-item[data-view="${view.key}"]`).click({ force: true });
+    await parkPointerAndBlur(page, 1280, 720);
     await page.waitForTimeout(view.hold);
   }
 
   await page.locator('#settingsBtn').click();
   await page.waitForSelector('#settingsDialog', { state: 'visible' });
+  await parkPointerAndBlur(page, 1280, 720);
   await page.waitForTimeout(6000);
   await page.locator('#closeSettings').click();
+  await parkPointerAndBlur(page, 1280, 720);
 
   if (pageErrors.length || consoleErrors.length) {
     throw new Error(

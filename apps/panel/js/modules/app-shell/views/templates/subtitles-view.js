@@ -7,24 +7,22 @@ export const subtitlesViewHTML = `\
             <section class="subtitle2-master-card">
               <header class="subtitle2-screen__header">
                 <div>
-                  <p class="subtitle2-eyebrow">Workstation subtitle pipeline</p>
+                  <p class="subtitle2-eyebrow" data-i18n="subtitles.pipeline">Flujo de subtítulos</p>
                   <h1 data-i18n="subtitles.title">Subt\u00edtulos</h1>
                 </div>
-                <div id="subtitle2ServiceHealthBanner" class="subtitle2-health-chip subtitle-health-banner">
-                  Servidor desconectado
-                </div>
+                <div id="subtitle2ServiceHealthBanner" class="subtitle2-health-chip subtitle-health-banner" data-i18n="subtitles.healthPending" aria-live="polite">Comprobando servidor…</div>
               </header>
 
               <ol id="subtitle2PhaseBar" class="subtitle-phase-bar" aria-label="Fases de Subt\u00edtulos 2">
-                <li class="subtitle-phase-item" data-phase="Carga">Carga</li>
-                <li class="subtitle-phase-item" data-phase="Procesando audio">Procesando audio</li>
-                <li class="subtitle-phase-item" data-phase="Edicion">Edicion</li>
+                <li class="subtitle-phase-item" data-phase="Carga" data-i18n="subtitles.phaseUpload">Carga</li>
+                <li class="subtitle-phase-item" data-phase="Procesando audio" data-i18n="subtitles.phaseAnalyze">Procesando audio</li>
+                <li class="subtitle-phase-item" data-phase="Edicion" data-i18n="subtitles.phaseEdit">Edición</li>
               </ol>
 
               <section id="subtitle2PhaseUpload" class="subtitle-phase-section subtitle-phase-section--centered">
                 <article class="subtitle2-upload-source-card">
                   <div class="subtitle2-card-heading">
-                    <span class="subtitle2-section-label">Upload source</span>
+                    <span class="subtitle2-section-label" data-i18n="subtitles.uploadSource">Origen de carga</span>
                     <h3 data-i18n="subtitles.upload">Sub\u00ed tu archivo</h3>
                   </div>
                   <label class="subtitle-upload-dropzone" for="subtitle2UploadInput">
@@ -87,10 +85,10 @@ export const subtitlesViewHTML = `\
                 <article class="subtitle2-editor-card">
                   <div class="subtitle2-card-heading subtitle2-card-heading--inline">
                     <div>
-                      <span class="subtitle2-section-label">Editor</span>
-                      <h3>Tabla de edici\u00f3n</h3>
+                      <span class="subtitle2-section-label" data-i18n="subtitles.editor">Editor</span>
+                      <h3 data-i18n="subtitles.editorTable">Tabla de edición</h3>
                     </div>
-                    <p class="meta">Ajust\u00e1 tiempos, frase y estilo antes de renderizar.</p>
+                    <p class="meta" data-i18n="subtitles.editorHelp">Ajustá tiempos, frase y estilo antes de renderizar.</p>
                   </div>
 
                   <div id="subtitle2PresenceWarning" class="subtitle2-presence-warning" role="status" aria-live="polite" hidden></div>
@@ -110,13 +108,13 @@ export const subtitlesViewHTML = `\
                        </colgroup>
                        <thead>
                          <tr>
-                            <th><span class="subtitle-table__title">Start / End</span><span class="subtitle-table__hint">rango</span></th>
-                           <th><span class="subtitle-table__title">Frase</span><span class="subtitle-table__hint">texto visible</span></th>
-                           <th><span class="subtitle-table__title">Tama\u00f1o</span><span class="subtitle-table__hint">escala cue</span></th>
-                           <th><span class="subtitle-table__title">Ancho m\u00e1x</span><span class="subtitle-table__hint">espacio</span></th>
-                           <th><span class="subtitle-table__title">Fuente</span><span class="subtitle-table__hint">familia</span></th>
-                             <th><span class="subtitle-table__title">Color</span><span class="subtitle-table__hint">cue</span></th>
-                             <th><span class="subtitle-table__title">Alineaci\u00f3n</span><span class="subtitle-table__hint">I \u00b7 C \u00b7 D</span></th>
+                            <th><span class="subtitle-table__title" data-i18n="subtitles.start">Inicio / Fin</span><span class="subtitle-table__hint" data-i18n="subtitles.startHint">rango</span></th>
+                           <th><span class="subtitle-table__title" data-i18n="subtitles.phrase">Frase</span><span class="subtitle-table__hint" data-i18n="subtitles.phraseHint">texto visible</span></th>
+                           <th><span class="subtitle-table__title" data-i18n="subtitles.size">Tamaño</span><span class="subtitle-table__hint" data-i18n="subtitles.sizeHint">escala cue</span></th>
+                           <th><span class="subtitle-table__title" data-i18n="subtitles.maxWidth">Ancho máx</span><span class="subtitle-table__hint" data-i18n="subtitles.maxWidthHint">espacio</span></th>
+                           <th><span class="subtitle-table__title" data-i18n="subtitles.font">Fuente</span><span class="subtitle-table__hint" data-i18n="subtitles.fontHint">familia</span></th>
+                             <th><span class="subtitle-table__title" data-i18n="subtitles.color">Color</span><span class="subtitle-table__hint" data-i18n="subtitles.colorHint">cue</span></th>
+                             <th><span class="subtitle-table__title" data-i18n="subtitles.alignment">Alineación</span><span class="subtitle-table__hint">I · C · D</span></th>
                              <th aria-label="Insertar"><span class="subtitle-table__title">+</span><span class="subtitle-table__hint">insertar</span></th>
                              <th aria-label="Eliminar"></th>
                           </tr>
@@ -138,19 +136,19 @@ export const subtitlesViewHTML = `\
               <div class="subtitle-preview-frame">
                 <div class="subtitle-preview-frame__header">
                   <div>
-                    <span class="subtitle2-section-label">Live preview</span>
-                    <h3>Preview</h3>
+                    <span class="subtitle2-section-label" data-i18n="subtitles.livePreview">Vista previa</span>
+                    <h3 data-i18n="subtitles.preview">Vista previa</h3>
                   </div>
                 </div>
                 <div id="subtitle2PreviewStage" class="subtitle-preview-stage">
                   <video id="subtitle2PreviewVideo" playsinline preload="auto"></video>
-                  <div id="subtitle2PreviewEmpty" class="subtitle-preview-empty">Agreg\u00e1 o retom\u00e1 una sesi\u00f3n para iniciar el preview</div>
+                  <div id="subtitle2PreviewEmpty" class="subtitle-preview-empty" data-i18n="subtitles.previewEmpty">Agregá o retomá una sesión para iniciar el preview</div>
                   <div id="subtitle2PreviewOverlay" class="subtitle-preview-overlay">
                     <div id="subtitle2PreviewCue" class="subtitle-preview-cue hidden"></div>
                   </div>
                 </div>
                 <div class="subtitle-preview-controls">
-                  <button id="subtitle2PreviewPlayBtn" class="subtitle-preview-play-btn" type="button" aria-label="Reproducir preview">\u25b6</button>
+                  <button id="subtitle2PreviewPlayBtn" class="subtitle-preview-play-btn" type="button" data-i18n-aria-label="subtitles.previewPlay" aria-label="Reproducir vista previa">\u25b6</button>
                   <div id="subtitle2PreviewTimeline" class="subtitle-preview-timeline" role="group" aria-label="Timeline preview subt\u00edtulos 2" data-i18n-aria-label="subtitles.previewTimeline">
                     <div id="subtitle2PreviewTimelineTrack" class="subtitle-preview-timeline-track">
                       <div id="subtitle2PreviewPlayhead" class="subtitle-preview-playhead"></div>
@@ -162,18 +160,18 @@ export const subtitlesViewHTML = `\
 
               <div class="subtitle2-history-section">
                 <div>
-                  <span class="subtitle2-section-label">\u00daltimos proyectos</span>
-                  <h3>Historial</h3>
+                  <span class="subtitle2-section-label" data-i18n="subtitles.recentProjects">Últimos proyectos</span>
+                  <h3 data-i18n="subtitles.history">Historial</h3>
                 </div>
-                <div id="subtitle2SessionHistory" class="subtitle-history-list">Todav\u00eda no hay sesiones remotas.</div>
+                <div id="subtitle2SessionHistory" class="subtitle-history-list" data-i18n="subtitles.historyEmpty">Todavía no hay sesiones remotas.</div>
               </div>
             </aside>
 
             <section id="subtitle2PhaseDone" class="subtitle-render-card hidden" aria-live="polite">
               <div>
-                <span class="subtitle2-section-label">Render final</span>
-                <h3 id="subtitle2DoneTitle">Renderizar video</h3>
-                <p id="subtitle2DoneMessage" class="meta">Cuando la tabla est\u00e9 lista, renderiz\u00e1 el video desde ac\u00e1 sin salir del editor.</p>
+                <span class="subtitle2-section-label" data-i18n="subtitles.done">Render final</span>
+                <h3 id="subtitle2DoneTitle" data-i18n="subtitles.render">Renderizar video</h3>
+                <p id="subtitle2DoneMessage" class="meta" data-i18n="subtitles.doneHelp">Cuando la tabla esté lista, renderizá el video desde acá sin salir del editor.</p>
               </div>
               <div class="audio-actions subtitle-finish-actions">
                 <button id="subtitle2ReadyBtn" class="primary" data-i18n="subtitles.render">Renderizar video</button>

@@ -191,9 +191,11 @@ def test_radar_monitor_card_layout_has_wide_cards_filters_and_mention_columns():
         assert current > previous
         previous = current
     assert "data-radar-country-option" in template
-    assert "00 / Todos" in template
+    assert 'data-i18n="radar.all">Todos' in template
+    assert ">00<" in template
     assert 'data-radar-country-option="important"' in template
-    assert "07 / IMPORTANTES" in template
+    assert 'data-i18n="radar.important">IMPORTANTES' in template
+    assert ">07<" in template
     assert "Buscador de Prensa." in template
     assert "Monitoreo" not in template
     assert "MONITOREO" not in template

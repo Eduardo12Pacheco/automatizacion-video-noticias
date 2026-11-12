@@ -167,7 +167,9 @@
 }
 
 .sidebar-nav {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   gap: 8px;
   justify-items: stretch;
   min-width: 0;
@@ -180,15 +182,59 @@
   display: grid;
   gap: 8px;
   margin-top: auto;
+  padding-top: 12px;
   min-width: 0;
+}
+
+/* Wide desktops get the expanded rail by default (T29): labels are always
+   readable there, while narrower desktops keep the hover/focus expansion. */
+@media (min-width: 1440px) {
+  .sidebar--rail {
+    width: var(--sidebar-expanded);
+  }
+
+  .sidebar--rail .sidebar-brand {
+    justify-content: flex-start;
+    gap: 14px;
+  }
+
+  .sidebar--rail .sidebar-brand__copy,
+  .sidebar--rail .nav-item__copy,
+  .sidebar--rail .sidebar-foot,
+  .sidebar--rail .sidebar-quick-label {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  .sidebar--rail .sidebar-foot,
+  .sidebar--rail .sidebar-quick-label {
+    max-height: 160px;
+  }
+
+  .sidebar--rail .sidebar-brand__copy,
+  .sidebar--rail .nav-item__copy {
+    width: auto;
+    max-width: 180px;
+  }
+
+  .sidebar--rail .nav-item {
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .app-content {
+    width: calc(100vw - var(--sidebar-expanded));
+    margin-left: var(--sidebar-expanded);
+  }
 }
 
 .sidebar-quick-label {
   color: var(--muted-2);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-11);
+  letter-spacing: 0;
   margin-bottom: 2px;
 }
 

@@ -1,4 +1,4 @@
-import { renderErrorState, renderLoadingState } from '../../../core/ui/screen-state.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../../core/ui/screen-state.js';
 import {
   SUBTITLES_PHASES,
   SUBTITLE_FONT_PRESETS,
@@ -76,8 +76,17 @@ export function createSubtitleWorkflowRenderer(ctx, collaborators = {}) {
       });
       return;
     }
+    const sessions = Array.isArray(items) ? items : [];
+    if (!sessions.length) {
+      el.subtitle2SessionHistory.innerHTML = renderEmptyState({
+        icon: 'video',
+        titleKey: 'subtitles.emptyTitle',
+        messageKey: 'subtitles.emptyMessage',
+      });
+      return;
+    }
     el.subtitle2SessionHistory.innerHTML = buildSubtitleSessionHistoryMarkupRuntime({
-      items: state.subtitles2.sessionHistory,
+      items: sessions,
       activeSessionId: state.subtitles2.sessionId,
       escapeHtml,
     });

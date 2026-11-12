@@ -195,7 +195,7 @@ def test_subtitle2_markup_and_styles_define_custom_preview_controls_and_clean_ta
     assert 'subtitle-table__col--insert' in index_html
     assert 'subtitle-table__col--delete' in index_html
     assert 'id="subtitle2PreviewVideo" playsinline preload="auto"' in index_html
-    assert 'Start / End' in index_html
+    assert 'data-i18n="subtitles.start">Inicio / Fin' in index_html
     assert '<th aria-label="Insertar"><span class="subtitle-table__title">+</span><span class="subtitle-table__hint">insertar</span></th>' in index_html
     assert '<th aria-label="Eliminar"></th>' in index_html
     assert '<span class="subtitle-table__title">Eliminar</span>' not in index_html

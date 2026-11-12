@@ -61,7 +61,7 @@
 #viewSubtitulos2 .subtitle-history-item__name,
 #viewSubtitulos2 .subtitle-history-item__status {
   min-width: 0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-11);
   letter-spacing: 0.06em;
 }

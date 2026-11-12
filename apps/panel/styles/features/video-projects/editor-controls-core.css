@@ -12,7 +12,6 @@
   font-size: var(--fs-13);
   font-weight: 800;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .video-editor-check {
@@ -111,7 +110,6 @@
   font-size: var(--fs-12);
   font-weight: 800;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -202,7 +200,6 @@
   font-weight: 900;
   letter-spacing: 0.07em;
   text-decoration: none;
-  text-transform: uppercase;
 }
 
 .video-editor-export-panel__download--active {

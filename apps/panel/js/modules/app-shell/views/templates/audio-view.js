@@ -7,15 +7,15 @@ export const audioViewHTML = `\
             <header class="panel-shell audio-screen__header">
               <div>
                 <h1 data-i18n="audio.title">Creaci\u00f3n de audio</h1>
-                <p data-i18n="audio.subtitle">Gener\u00e1 narraciones con preset fijo y monitore\u00e1 la cola de jobs en tiempo real.</p>
+                <p data-i18n="audio.subtitle">Generá narraciones con ajuste fijo y monitore\u00e1 la cola de jobs en tiempo real.</p>
               </div>
             </header>
 
             <section class="audio-screen__grid">
               <section class="audio-panel audio-panel--main panel-shell">
                 <label class="editor-label audio-field">
-                  <span data-i18n="audio.preset">Preset de generaci\u00f3n</span>
-                  <select id="audioPresetSelect" data-custom-dropdown data-dropdown-label="Preset" data-dropdown-placeholder="Preset">
+                  <span data-i18n="audio.preset">Ajuste de generación</span>
+                  <select id="audioPresetSelect" data-custom-dropdown data-dropdown-label="Ajuste de generación" data-dropdown-placeholder="Ajuste de generación" data-i18n-placeholder="audio.preset">
                     <option value="balanced_default">Voz Balanceada</option>
                     <option value="golazo_emotivo">Voz Emotivo</option>
                     <option value="golazo_informativo">Voz Informativa</option>

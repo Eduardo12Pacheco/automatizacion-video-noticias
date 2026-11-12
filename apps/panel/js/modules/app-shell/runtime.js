@@ -317,10 +317,10 @@ function syncRunModeChrome() {
   const bootstrap = globalThis.__CONTROL_PANEL_BOOTSTRAP__ || {};
   const showcase = document.documentElement?.getAttribute?.('data-showcase') === 'true';
   const demo = bootstrap.run_mode === 'demo' || showcase;
+  // One demo indicator only: the persistent header badge. The former banner
+  // and the showcase corner pill duplicated it on the same screen.
   const badge = document.getElementById('runModeBadge');
-  const banner = document.getElementById('runModeBanner');
   if (badge) badge.hidden = !demo;
-  if (banner) banner.hidden = !demo;
 }
 
 export async function bootApp() {

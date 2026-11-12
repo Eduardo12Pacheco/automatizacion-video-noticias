@@ -39,6 +39,7 @@ export function createShellState({ settings, lastNewsSearchAt = null, subtitles2
     audioPollingErrorStreak: 0,
     audioStreamController: null,
     audioRunning: false,
+    audioQueueError: '',
     audioJobs: {},
     audioJobOrder: [],
     dismissedAudioJobs: new Set(),

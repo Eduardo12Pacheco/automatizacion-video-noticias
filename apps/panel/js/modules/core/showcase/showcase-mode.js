@@ -423,13 +423,8 @@ export function installShowcaseMode({ windowRef = globalThis.window, locationLik
     throw new Error('showcase_network_disabled');
   };
 
+  // Showcase mode is labelled by the single persistent demo badge in the app
+  // header (see syncRunModeChrome); it deliberately adds no second indicator.
   windowRef?.document?.documentElement?.setAttribute?.('data-showcase', 'true');
-  const badge = windowRef?.document?.createElement?.('div');
-  if (badge) {
-    badge.className = 'showcase-badge';
-    badge.textContent = 'Showcase · datos ficticios';
-    badge.setAttribute('role', 'status');
-    windowRef.document.body?.appendChild?.(badge);
-  }
   return state;
 }

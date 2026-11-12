@@ -296,7 +296,7 @@ def test_admin_create_user_inputs_are_visible_and_labelled():
         assert f'<label class="settings-field">' in template
     admin = _read(STYLES / "features" / "admin-users.css")
     assert ".admin-users-form input," in admin
-    assert "border: 1px solid var(--border-2);" in admin
+    assert "border: 1px solid var(--border-input);" in admin
     assert "background: var(--surface-1);" in admin
 
 

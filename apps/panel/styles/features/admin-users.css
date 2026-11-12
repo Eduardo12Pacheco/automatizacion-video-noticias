@@ -34,7 +34,7 @@
 .admin-users-form input,
 .admin-users-form select {
   min-height: 44px;
-  border: 1px solid var(--border-2);
+  border: 1px solid var(--border-input);
   background: var(--surface-1);
   color: var(--text-1);
 }

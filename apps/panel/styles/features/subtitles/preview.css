@@ -1,19 +1,19 @@
 #viewSubtitulos2 .subtitle-preview-frame {
   margin: 0;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 0;
 }
 
 #viewSubtitulos2 .subtitle-preview-stage {
   min-height: 240px;
-  border-color: var(--border-soft);
+  border: 0;
   border-radius: var(--radius-sm);
   background: var(--surface-deep);
   box-shadow: none;
 }
 
 #viewSubtitulos2 .subtitle-preview-empty {
-  color: var(--info);
+  color: var(--muted);
   background: var(--surface-deep);
 }
 

@@ -78,7 +78,7 @@ const SPANISH_MARKERS = [
   'reintentar', 'vacío', 'nuevo', 'proyecto', 'proyectos', 'imágenes',
   'subtítulos', 'voz', 'narración', 'plantilla', 'historial', 'duración',
   'estado', 'listo', 'desde', 'hasta', 'tipo', 'últimas', 'horas', 'rango',
-  'búsqueda', 'fuente', 'selección', 'texto', 'editable', 'quitar', 'copia',
+  'búsqueda', 'fuente', 'selección', 'texto', 'quitar', 'copia',
   'cancelar', 'eliminar', 'agregar', 'refrescar', 'actualización', 'sin',
   'todavía', 'primero', 'último', 'evento', 'detalle', 'filtrar', 'fecha',
   'servicio', 'correlación', 'completado', 'progreso', 'descarga', 'trabajo',
@@ -149,13 +149,22 @@ function foreignWordHits(text, language) {
   return [...hits];
 }
 
+async function parkPointerAndBlur(page, viewport) {
+  // Capture hygiene (T29): never leave the pointer over the rail (it would
+  // expand on hover) or a focus ring on the last clicked control.
+  await page.mouse.move(Math.max(8, viewport.width - 8), Math.max(8, viewport.height - 8));
+  await page.evaluate(() => document.activeElement?.blur?.());
+  await page.waitForTimeout(60);
+}
+
 async function openView(page, view, viewport) {
   if (viewport.name === 'mobile') {
     await page.locator('#mobileNavToggle').click();
   }
   await page.locator(`.nav-item[data-view="${view.key}"]`).click({ force: true });
   await expect(page.locator(view.container)).toBeVisible();
-  await page.waitForTimeout(250);
+  await parkPointerAndBlur(page, viewport);
+  await page.waitForTimeout(190);
 }
 
 function attachTelemetry(page, telemetry) {
@@ -181,7 +190,22 @@ async function measureView(page, view) {
       : [];
     const text = document.body.innerText || '';
     const forbiddenHits = forbidden.filter((token) => text.includes(token));
-    return { bodyOverflow, overflowing, forbiddenHits, text };
+    const overlapping = [];
+    const overlapTargets = [
+      ...document.querySelectorAll(`${container} .news-panel__filters > *`),
+    ];
+    for (let first = 0; first < overlapTargets.length; first += 1) {
+      for (let second = first + 1; second < overlapTargets.length; second += 1) {
+        const a = overlapTargets[first].getBoundingClientRect();
+        const b = overlapTargets[second].getBoundingClientRect();
+        if (a.width === 0 || b.width === 0) continue;
+        const intersects = a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+        if (intersects) {
+          overlapping.push(`${overlapTargets[first].className || overlapTargets[first].tagName} / ${overlapTargets[second].className || overlapTargets[second].tagName}`);
+        }
+      }
+    }
+    return { bodyOverflow, overflowing, forbiddenHits, overlapping, text };
   }, { container: view.container, forbidden: FORBIDDEN_TEXT });
 }
 
@@ -207,6 +231,7 @@ for (const language of LANGUAGES) {
         expect(measured.bodyOverflow, `${view.key} overflows the body at ${viewport.name}`).toBeLessThanOrEqual(1);
         expect(measured.overflowing, `${view.key} overflows the main layout at ${viewport.name}`).toEqual([]);
         expect(measured.forbiddenHits, `${view.key} renders debug/fallback text at ${viewport.name}`).toEqual([]);
+        expect(measured.overlapping, `${view.key} overlaps controls at ${viewport.name}`).toEqual([]);
         for (const phrase of foreign) {
           expect(containsPhrase(measured.text, phrase), `${view.key} leaks "${phrase}" in ${language}`).toBe(false);
         }
@@ -241,6 +266,7 @@ for (const language of LANGUAGES) {
             .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
         });
         expect(violations, `${view.key} has serious accessibility violations`).toEqual([]);
+        await parkPointerAndBlur(page, viewport);
         await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${view.key}-${language}-${viewport.name}.png`) });
       }
 
@@ -275,6 +301,7 @@ for (const language of LANGUAGES) {
       await expect(page.locator('#authError')).toContainText(language === 'es' ? 'Usuario o contraseña incorrectos' : 'Incorrect username or password');
       const measured = await page.evaluate(() => document.body.scrollWidth - window.innerWidth);
       expect(measured).toBeLessThanOrEqual(1);
+      await parkPointerAndBlur(page, viewport);
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, `login-${language}-${viewport.name}.png`) });
       expect(telemetry.pageErrors, 'page errors').toEqual([]);
     });
@@ -294,7 +321,11 @@ for (const language of LANGUAGES) {
       }, { lang: language });
       await page.goto('/?showcase=1');
       await expect(page.locator('#appShell')).toBeVisible();
-      if (viewport.name === 'desktop') await page.locator('.sidebar--rail').hover();
+      if (viewport.name === 'desktop') {
+        await page.locator('.sidebar--rail').hover();
+      } else {
+        await page.locator('#mobileNavToggle').click();
+      }
       await page.locator('#settingsBtn').click();
       await expect(page.locator('#settingsDialog')).toBeVisible();
       await page.addScriptTag({ path: AXE_PATH });
@@ -318,6 +349,7 @@ for (const language of LANGUAGES) {
           .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
       });
       expect(violations).toEqual([]);
+      await parkPointerAndBlur(page, viewport);
       await page.screenshot({ path: path.join(SCREENSHOT_DIR, `settings-${language}-${viewport.name}.png`) });
       expect(telemetry.failedResponses, 'failed responses').toEqual([]);
       expect(telemetry.pageErrors, 'page errors').toEqual([]);
@@ -325,6 +357,122 @@ for (const language of LANGUAGES) {
     });
   }
 }
+
+test('exactly one demo indicator is visible and it is the header badge', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('newsroom-panel-language-v1', 'es'));
+  await page.goto('/?showcase=1');
+  await expect(page.locator('#appShell')).toBeVisible();
+  await expect(page.locator('#runModeBadge')).toBeVisible();
+  await expect(page.locator('#runModeBadge')).toHaveCount(1);
+  await expect(page.locator('#runModeBanner')).toHaveCount(0);
+  await expect(page.locator('.showcase-badge')).toHaveCount(0);
+});
+
+for (const width of [1280, 1440]) {
+  test(`approval filter row has no overlapping controls at ${width}px`, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('newsroom-panel-language-v1', 'es');
+      localStorage.setItem('newsroom-panel-theme-v1', 'dark');
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/?showcase=1');
+    await expect(page.locator('#appShell')).toBeVisible();
+    await page.locator('.nav-item[data-view="approval"]').click({ force: true });
+    await expect(page.locator('#viewApproval')).toBeVisible();
+    const overlaps = await page.evaluate(() => {
+      const targets = [...document.querySelectorAll('#viewApproval .news-panel__filters > *')];
+      const result = [];
+      for (let first = 0; first < targets.length; first += 1) {
+        for (let second = first + 1; second < targets.length; second += 1) {
+          const a = targets[first].getBoundingClientRect();
+          const b = targets[second].getBoundingClientRect();
+          if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) {
+            result.push([targets[first].className, targets[second].className]);
+          }
+        }
+      }
+      return result;
+    });
+    expect(overlaps, `filter controls overlap at ${width}px`).toEqual([]);
+  });
+}
+
+test('light theme keeps every view contained and accessible (wcag21aa)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    localStorage.setItem('newsroom-panel-language-v1', 'es');
+    localStorage.setItem('newsroom-panel-theme-v1', 'light');
+  });
+  await page.goto('/?showcase=1');
+  await expect(page.locator('#appShell')).toBeVisible();
+  await page.addScriptTag({ path: AXE_PATH });
+  for (const view of VIEWS) {
+    await openView(page, view, { name: 'desktop', width: 1440, height: 900 });
+    const measured = await page.evaluate(({ container }) => ({
+      bodyOverflow: document.body.scrollWidth - window.innerWidth,
+      overlapping: (() => {
+        const targets = [...document.querySelectorAll(`${container} .news-panel__filters > *`)];
+        const result = [];
+        for (let first = 0; first < targets.length; first += 1) {
+          for (let second = first + 1; second < targets.length; second += 1) {
+            const a = targets[first].getBoundingClientRect();
+            const b = targets[second].getBoundingClientRect();
+            if (a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1) result.push([first, second]);
+          }
+        }
+        return result;
+      })(),
+    }), { container: view.container });
+    expect(measured.bodyOverflow, `${view.key} light theme overflow`).toBeLessThanOrEqual(1);
+    expect(measured.overlapping, `${view.key} light theme overlaps`).toEqual([]);
+    const violations = await page.evaluate(async () => {
+      const result = await globalThis.axe.run(document, {
+        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+      });
+      return result.violations
+        .filter((violation) => ['serious', 'critical'].includes(violation.impact))
+        .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
+    });
+    expect(violations, `${view.key} light theme accessibility violations`).toEqual([]);
+  }
+});
+
+test('admin user input borders meet non-text contrast in both themes', async ({ page }) => {
+  for (const theme of ['dark', 'light']) {
+    await page.addInitScript(({ value }) => {
+      localStorage.setItem('newsroom-panel-language-v1', 'es');
+      localStorage.setItem('newsroom-panel-theme-v1', value);
+    }, { value: theme });
+    await page.goto('/?showcase=1');
+    await expect(page.locator('#appShell')).toBeVisible();
+    await page.locator('.nav-item[data-view="admin-users"]').click({ force: true });
+    await expect(page.locator('#adminUsersForm input').first()).toBeVisible();
+    const ratios = await page.evaluate(() => {
+      function rgb(value) {
+        const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        return match ? match.slice(1, 4).map(Number) : null;
+      }
+      function luminance([r, g, b]) {
+        const channel = (c) => {
+          const value = c / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+      }
+      return [...document.querySelectorAll('#adminUsersForm input, #adminUsersForm select')].map((input) => {
+        const style = getComputedStyle(input);
+        const fg = rgb(style.borderTopColor);
+        const bg = rgb(style.backgroundColor);
+        if (!fg || !bg) return 0;
+        const high = Math.max(luminance(fg), luminance(bg));
+        const low = Math.min(luminance(fg), luminance(bg));
+        return (high + 0.05) / (low + 0.05);
+      });
+    });
+    expect(ratios.length).toBeGreaterThan(0);
+    expect(Math.min(...ratios), `${theme} input border contrast`).toBeGreaterThanOrEqual(3);
+  }
+});
 
 test('designed empty and error states are reachable in every data view', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('newsroom-panel-language-v1', 'es'));

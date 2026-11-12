@@ -11,24 +11,25 @@ export const radarViewHTML = `\
                   <p id="radarMonitorStatus" class="meta word-count" data-i18n="radar.loadingVideos">Cargando videos monitoreados.</p>
                 </div>
                 <div class="radar-monitor-toolbar" aria-label="Acciones Radar Monitor">
-                  <button id="radarBasuraBtn" class="ghost" type="button" data-i18n="radar.trash">Basura <span id="radarBasuraCount">0</span></button>
-                  <button id="radarMonitorRefreshBtn" class="secondary" type="button" data-i18n="radar.update">Actualizar</button>
+                  <button id="radarNewJobBtn" class="primary" type="button" data-i18n="radar.new">Nueva investigación</button>
+                  <button id="radarBasuraBtn" class="ghost" type="button" data-i18n="radar.trash">Descartadas <span id="radarBasuraCount">0</span></button>
+                  <button id="radarMonitorRefreshBtn" class="ghost" type="button" data-i18n="radar.update">Refrescar</button>
                 </div>
               </header>
               <nav id="radarCountryBar" class="radar-country-bar" aria-label="Pa\u00edses monitoreados">
-                <button class="radar-country-card" type="button" data-radar-country-option="" aria-pressed="true"><span>00 / Todos</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="aurenia" aria-pressed="false"><span>01 / Aurenia</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="montelia" aria-pressed="false"><span>02 / Montelia</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="valdoria" aria-pressed="false"><span>03 / Valdoria</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="rivamar" aria-pressed="false"><span>04 / Rivamar</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="bosquemar" aria-pressed="false"><span>05 / Bosquemar</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="terramar" aria-pressed="false"><span>06 / Terramar</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="important" aria-pressed="false"><span>07 / IMPORTANTES</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="" aria-pressed="true"><span><span class="radar-country-card__index">00</span> / <span data-i18n="radar.all">Todos</span></span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="aurenia" aria-pressed="false"><span><span class="radar-country-card__index">01</span> / Aurenia</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="montelia" aria-pressed="false"><span><span class="radar-country-card__index">02</span> / Montelia</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="valdoria" aria-pressed="false"><span><span class="radar-country-card__index">03</span> / Valdoria</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="rivamar" aria-pressed="false"><span><span class="radar-country-card__index">04</span> / Rivamar</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="bosquemar" aria-pressed="false"><span><span class="radar-country-card__index">05</span> / Bosquemar</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="terramar" aria-pressed="false"><span><span class="radar-country-card__index">06</span> / Terramar</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="important" aria-pressed="false"><span><span class="radar-country-card__index">07</span> / <span data-i18n="radar.important">IMPORTANTES</span></span></button>
               </nav>
               <div class="radar-monitor-controls" aria-label="Filtros del Buscador de Prensa">
                 <label class="editor-label audio-field audio-field--grow">
                   <span data-i18n="radar.search">Buscar</span>
-                  <input id="radarMonitorSearchInput" placeholder="T\u00edtulo, tema o canal" autocomplete="off" />
+                  <input id="radarMonitorSearchInput" placeholder="T\u00edtulo, tema o canal" data-i18n-placeholder="radar.searchPlaceholder" autocomplete="off" />
                 </label>
                 <label class="editor-label audio-field">
                   <span data-i18n="radar.order">Orden</span>

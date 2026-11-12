@@ -50,7 +50,7 @@ export function renderAdminUsersView({ el, state }) {
           <th scope="col">${escapeHtmlCore(t('users.email'))}</th>
           <th scope="col">${escapeHtmlCore(t('users.roles'))}</th>
           <th scope="col">${escapeHtmlCore(t('users.status'))}</th>
-          <th scope="col"><span class="visually-hidden">${escapeHtmlCore(t('users.resetPassword'))}</span></th>
+          <th scope="col">${escapeHtmlCore(t('users.actions'))}</th>
         </tr>
       </thead>
       <tbody>

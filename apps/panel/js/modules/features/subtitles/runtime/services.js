@@ -127,7 +127,7 @@ export function resolveSubtitlesModeRuntime(rawMode) {
 export function buildSubtitleHealthRuntime(rawHealth, mode) {
   const status = (rawHealth?.status || 'pending').toString().trim().toLowerCase() || 'pending';
   const message = (rawHealth?.message || 'Estado remoto pendiente.').toString().trim();
-  const tone = ['online', 'healthy', 'ok', 'available', 'succeeded'].includes(status) ? 'online' : 'offline';
+  const tone = ['online', 'healthy', 'ok', 'available', 'ready', 'local', 'succeeded'].includes(status) ? 'online' : 'offline';
   return {
     status,
     tone,

@@ -64,7 +64,7 @@ export function renderErrorsAuditDetail({ el, event }) {
       ${detailRow('Correlation ID', item.correlationId)}
       ${detailRow('Estado', item.status)}
       ${detailRow('Ruta / servicio', [item.method, item.path, item.routeService].filter(Boolean).join(' · '))}
-      ${detailRow('Actor / sesión', [item.actorLabel, item.sessionId].filter(Boolean).join(' · '))}
+      ${detailRow('Usuario / sesión', [item.actorLabel, item.sessionId].filter(Boolean).join(' · '))}
       ${detailRow('Acción / motivo', [item.action, item.reasonCode].filter(Boolean).join(' · '))}
       <pre class="errors-audit-context">${escapeHtml(JSON.stringify(item.context || {}, null, 2))}</pre>
     </section>`;

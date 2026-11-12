@@ -24,10 +24,16 @@ test('the mobile top bar exposes a menu that opens, navigates and closes', async
   const toggle = page.locator('#mobileNavToggle');
   await expect(toggle).toBeVisible();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  const bar = await page.locator('.sidebar--rail').boundingBox();
+  expect(bar.height, 'mobile top bar must stay <= 64px').toBeLessThanOrEqual(64);
+  await expect(page.locator('#settingsBtn')).toBeHidden();
 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#sidebarNav')).toBeVisible();
+  // Footer actions live inside the drawer on mobile (T29).
+  await expect(page.locator('#sidebarNav #settingsBtn')).toBeVisible();
+  await expect(page.locator('#sidebarNav #logoutBtn')).toBeVisible();
   await page.locator('.nav-item[data-view="audio"]').click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(page.locator('#viewAudio')).toBeVisible();

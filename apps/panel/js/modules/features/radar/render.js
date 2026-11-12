@@ -253,11 +253,11 @@ function renderMonitorCard(card = {}) {
         ${importantAudit ? `<small class="radar-monitor-card__meta">${escapeHtml(importantAudit)}</small>` : ''}
       </div>
       <div class="radar-monitor-card__actions" aria-label="Acciones del video monitoreado">
-        <button type="button" data-radar-action="open-link" data-radar-url="${escapeHtml(url)}" aria-label="Abrir video en YouTube" ${linkDisabled}>Link</button>
+        <button type="button" data-radar-action="open-link" data-radar-url="${escapeHtml(url)}" aria-label="Abrir video en YouTube" ${linkDisabled}>Abrir video</button>
         <button type="button" data-radar-action="download-monitor-transcript" data-radar-job-id="${escapeHtml(card.radar_job_id || '')}" aria-label="Descargar transcripción TXT" ${transcriptDisabled}>Transcripción</button>
       </div>
       <div class="radar-monitor-card__mentions" aria-label="Menciones detectadas">
-        <span class="radar-monitor-card__mentions-title">Menciones:</span>
+        <span class="radar-monitor-card__mentions-title" data-i18n="radar.mentions">Menciones:</span>
         <div class="radar-monitor-card__mentions-grid">
           ${mentions.length ? mentions.map(renderMentionColumn).join('') : emptyMentions}
         </div>
@@ -429,7 +429,7 @@ function renderBasuraList({ el, state }) {
         <small>${escapeHtml([item.source_country_label || formatCountryLabel(item.source_country), item.channel_label, item.reason].filter(Boolean).join(' · '))}</small>
       </article>
     `).join('')
-    : '<article class="radar-monitor-empty">Sin videos en Basura.</article>';
+    : '<article class="radar-monitor-empty">Sin videos en Descartadas.</article>';
 }
 
 export function renderRadarSummary({ el, summary }) {

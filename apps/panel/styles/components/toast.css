@@ -9,11 +9,10 @@
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-12);
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  letter-spacing: 0;
   line-height: 1.5;
-  text-transform: uppercase;
   box-shadow: var(--shadow-panel);
   z-index: 99999;
   pointer-events: none;

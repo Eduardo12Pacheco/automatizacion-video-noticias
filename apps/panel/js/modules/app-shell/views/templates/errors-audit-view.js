@@ -9,13 +9,13 @@ export const errorsAuditViewHTML = `
     </header>
 
     <section class="errors-audit-filters" aria-label="Filtros Errors/Audit">
-      <label class="control-group"><span class="control-label">Tipo</span><select id="errorsAuditKindFilter"><option value="">Todos</option><option value="error">Error</option><option value="audit">Audit</option></select></label>
-      <label class="control-group"><span class="control-label">Estado</span><input id="errorsAuditStatusFilter" placeholder="failure, success, 500" /></label>
-      <label class="control-group"><span class="control-label">Servicio</span><input id="errorsAuditServiceFilter" placeholder="gateway" /></label>
-      <label class="control-group"><span class="control-label">Actor</span><input id="errorsAuditActorFilter" placeholder="operator" /></label>
-      <label class="control-group"><span class="control-label">Correlation ID</span><input id="errorsAuditCorrelationFilter" placeholder="corr-..." /></label>
-      <label class="control-group"><span class="control-label">Desde</span><input id="errorsAuditFromFilter" type="date" /></label>
-      <label class="control-group"><span class="control-label">Hasta</span><input id="errorsAuditToFilter" type="date" /></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.kind">Tipo</span><select id="errorsAuditKindFilter"><option value="" data-i18n="errors.all">Todos</option><option value="error" data-i18n="errors.error">Error</option><option value="audit" data-i18n="errors.audit">Auditoría</option></select></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.status">Estado</span><input id="errorsAuditStatusFilter" placeholder="failure, success, 500" /></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.service">Servicio</span><input id="errorsAuditServiceFilter" placeholder="gateway" /></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.actor">Usuario</span><input id="errorsAuditActorFilter" placeholder="operator" /></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.correlation">Correlation ID</span><input id="errorsAuditCorrelationFilter" placeholder="corr-..." /></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.from">Desde</span><input id="errorsAuditFromFilter" type="date" /></label>
+      <label class="control-group"><span class="control-label" data-i18n="errors.to">Hasta</span><input id="errorsAuditToFilter" type="date" /></label>
     </section>
 
     <p id="errorsAuditStatus" class="meta" aria-live="polite" data-i18n="errors.empty">Sin eventos cargados.</p>

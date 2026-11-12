@@ -6,7 +6,6 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--fs-11);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 #viewRadar .subtitle2-health-chip.is-online {
@@ -85,11 +84,15 @@
 
 #viewRadar .radar-country-card span {
   color: var(--text-1);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-13);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+#viewRadar .radar-country-card__index {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
 }
 
 #viewRadar .radar-country-card:hover,
@@ -180,11 +183,10 @@
 
 #viewRadar .radar-monitor-card__mentions-title {
   color: var(--accent);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 #viewRadar .radar-monitor-card__mentions-grid {
@@ -212,9 +214,9 @@
 
 #viewRadar .radar-mention-row small {
   color: var(--text-soft);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  letter-spacing: 0;
 }
 
 #viewRadar .radar-mention-row.is-pending strong,
@@ -304,11 +306,10 @@
 
 #viewRadar .radar-kicker {
   color: var(--accent);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 #viewRadar .radar-error-text {
@@ -325,10 +326,10 @@
   width: fit-content;
   border: 1px solid var(--border-soft);
   padding: 7px 9px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 
@@ -385,10 +386,9 @@
   border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  letter-spacing: 0;
 }
 
 #viewRadar .radar-monitor-card__actions button {
@@ -457,10 +457,9 @@
 #viewRadar .settings-section legend {
   padding: 0 8px;
   color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-10);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  letter-spacing: 0;
 }
 
 #viewRadar .settings-section label {

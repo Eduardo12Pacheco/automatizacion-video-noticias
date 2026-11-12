@@ -52,7 +52,6 @@
   font-size: var(--fs-10);
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -76,7 +75,6 @@
   font-weight: 900;
   letter-spacing: 0.12em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 
 .video-motion-picker {
@@ -104,7 +102,6 @@
   font-weight: 900;
   letter-spacing: 0.12em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 
 .video-motion-picker__group h4::after {
@@ -145,7 +142,6 @@
   font-size: var(--fs-16);
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .video-motion-manual__header p {
@@ -170,7 +166,6 @@
   font-size: var(--fs-10);
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -211,7 +206,6 @@
   font-size: var(--fs-12);
   font-weight: 900;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 .video-motion-manual__fields {
@@ -229,7 +223,6 @@
   font-size: var(--fs-10);
   font-weight: 900;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .video-motion-manual__field input {

@@ -82,9 +82,9 @@
 }
 
 .approval-control--select select {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  letter-spacing: 0;
   background: var(--surface-muted);
 }
 
@@ -94,9 +94,9 @@
 }
 
 .approval-control--search-refresh select {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  letter-spacing: 0;
   background: var(--surface-muted);
 }
 
@@ -213,10 +213,9 @@
 
 .approval-control--select .ui-dropdown__value,
 .approval-control--search-refresh .ui-dropdown__value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  letter-spacing: 0;
 }
 
 .ui-dropdown__chevron {
@@ -298,9 +297,9 @@
 .audio-field .ui-dropdown__trigger,
 .subtitle-source-language .ui-dropdown__trigger {
   justify-content: space-between;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-12);
-  letter-spacing: 0.06em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-13);
+  letter-spacing: 0;
 }
 
 .control-group--search input::placeholder,
@@ -427,7 +426,6 @@
   font-size: var(--fs-11);
   font-weight: 600;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--muted-2);
 }
 

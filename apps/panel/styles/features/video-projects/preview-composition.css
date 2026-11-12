@@ -40,7 +40,6 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--fs-11);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .video-preview-monitor__footer a {
@@ -370,7 +369,6 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--fs-10);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: border-color 0.14s ease, background 0.14s ease;
 }

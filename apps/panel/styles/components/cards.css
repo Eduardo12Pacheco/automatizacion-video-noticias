@@ -15,14 +15,20 @@
   min-height: 84px;
 }
 
-.stat small {
+.stat small,
+.stat strong {
   display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.stat small {
   color: var(--muted);
   margin-bottom: 8px;
 }
 
 .stat strong {
-  display: block;
   font-family: 'Inter', sans-serif;
   font-size: var(--fs-24);
 }
@@ -197,7 +203,6 @@
   color: var(--muted);
   font-size: var(--fs-12);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .subtitle-meta-chip strong {

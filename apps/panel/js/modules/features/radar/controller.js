@@ -98,7 +98,7 @@ export function createRadarController({ state, el, api, ui = {}, browser = {} })
       renderAll();
       el.radarBasuraDialog?.showModal?.();
     } catch (error) {
-      toast(error?.message || 'No pude cargar Basura');
+      toast(error?.message || 'No pude cargar Descartadas');
     }
   }
 

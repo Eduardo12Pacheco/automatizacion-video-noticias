@@ -1,4 +1,4 @@
-import { renderEmptyState, renderLoadingState } from '../../../core/ui/screen-state.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../../core/ui/screen-state.js';
 
 export function createAudioQueueRenderer({ context, callbacks }) {
   const { state, el, escapeHtml, ttsGet, setIntervalImpl, clearIntervalImpl, normalizeAudioProgressPercent, isTerminalAudioStatus, getAudioStatusLabelRuntime, getAudioStatusClassRuntime } = context;
@@ -14,6 +14,13 @@ export function createAudioQueueRenderer({ context, callbacks }) {
     if (!visibleJobs.length) {
       el.audioQueueMeta.textContent = '';
       el.audioQueueList.classList.add('is-empty');
+      if (state.audioQueueError) {
+        el.audioQueueList.innerHTML = renderErrorState({
+          error: state.audioQueueError,
+          fallbackKey: 'audio.queueError',
+        });
+        return;
+      }
       if (state.audioRunning) {
         el.audioQueueList.innerHTML = renderLoadingState({ rows: 2, variant: 'cards' });
         return;

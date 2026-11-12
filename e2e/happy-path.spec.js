@@ -61,7 +61,8 @@ test('login -> approve -> script -> voice -> subtitles -> render on the default 
     await expect(page.locator('#appShell')).toBeVisible();
     await expect(page.locator('#runModeBadge')).toBeVisible();
     await expect(page.locator('#runModeBadge')).toHaveText(/demo/i);
-    await expect(page.locator('#runModeBanner')).toBeVisible();
+    await expect(page.locator('#runModeBadge')).toHaveCount(1);
+    await expect(page.locator('#runModeBanner')).toHaveCount(0);
     const bootstrap = await json(await request.get('/panel/bootstrap'));
     expect(bootstrap.run_mode).toBe('demo');
 

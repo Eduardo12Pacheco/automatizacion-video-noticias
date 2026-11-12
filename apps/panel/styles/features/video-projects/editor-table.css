@@ -30,7 +30,6 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1.1;
-  text-transform: uppercase;
 }
 
 .video-project-detail:has([data-video-selector-modal]) .video-editor-table-wrap,
@@ -79,7 +78,6 @@
   font-size: var(--fs-10);
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -239,7 +237,6 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   line-height: 1;
-  text-transform: uppercase;
 }
 
 .video-editor-row__thumb--missing {
@@ -248,7 +245,6 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--fs-10);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .video-editor-row__image-tag {
@@ -287,7 +283,6 @@
   font-size: var(--fs-11);
   font-weight: 800;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   cursor: pointer;
   box-sizing: border-box;
   position: relative;
@@ -307,7 +302,6 @@
   font-size: var(--fs-11);
   font-weight: 800;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   cursor: pointer;
   box-sizing: border-box;
 }

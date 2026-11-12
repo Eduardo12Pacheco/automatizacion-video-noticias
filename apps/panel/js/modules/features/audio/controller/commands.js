@@ -24,6 +24,7 @@ export function createAudioCommands({ context, callbacks }) {
 
     try {
       state.audioRunning = true;
+      state.audioQueueError = '';
       state.audioPollingErrorStreak = 0;
       el.audioRunBtn.disabled = true;
       callbacks.renderAudioQueue();
@@ -52,7 +53,8 @@ export function createAudioCommands({ context, callbacks }) {
       callbacks.startAudioTracking(data.job_id);
     } catch (err) {
       console.error(err);
-      toast(getErrorMessage(err, 'Error enviando job de audio'));
+      state.audioQueueError = getErrorMessage(err, 'Error enviando job de audio');
+      toast(state.audioQueueError);
     } finally {
       state.audioRunning = false;
       el.audioRunBtn.disabled = false;

@@ -97,11 +97,10 @@
   place-items: center;
   text-align: center;
   color: var(--accent);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-15);
   font-weight: 600;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .audio-queue-card {
@@ -157,7 +156,7 @@
   padding: 2px 8px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-10);
   font-weight: 700;
   margin-top: 0;
@@ -183,7 +182,7 @@
 
 .audio-progress-meta {
   margin: 0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-11);
   color: var(--muted-2);
   font-weight: 600;

@@ -50,7 +50,6 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--fs-11);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .video-editor-shell__phase-bar li.is-active {
@@ -146,7 +145,6 @@
   font-size: var(--fs-16);
   font-weight: 900;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .video-editor-detail__image-card {
@@ -202,7 +200,6 @@
   font-size: var(--fs-11);
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
 }
@@ -266,7 +263,6 @@
   font-family: var(--vp-font-mono, monospace);
   font-size: var(--fs-11);
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .video-editor-content-type__heading strong {
@@ -289,7 +285,6 @@
   font-size: var(--fs-11);
   font-weight: 900;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -328,7 +323,6 @@
   color: var(--vp-accent, var(--accent));
   font-family: var(--vp-font-mono, monospace);
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .video-editor-layer-panel__heading span {
