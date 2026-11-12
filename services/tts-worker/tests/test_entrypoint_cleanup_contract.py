@@ -19,26 +19,25 @@ def _read(relative_path: str) -> str:
 
 def test_service_scripts_prefer_canonical_fastapi_modules_and_preserve_runtime_contract() -> None:
     worker = _read("scripts/run-worker.ps1")
-    orchestrator = _read("scripts/run-orchestrator.ps1")
+    run_local = _read("scripts/run-local.sh")
     install_services = _read("scripts/install-services.ps1")
 
     assert "voice_tts_service.api.worker_app:app" in worker
-    assert "voice_tts_service.api.orchestrator_app:app" in orchestrator
+    assert "voice_tts_service.api.orchestrator_app:app" in run_local
+    assert "voice_tts_service.api.worker_app:app" in run_local
     assert "-m uvicorn app:app" not in worker
-    assert "-m uvicorn app:app" not in orchestrator
+    assert "-m uvicorn app:app" not in run_local
 
     assert "Set-Location $serviceRoot" in worker
-    assert "Set-Location $serviceRoot" in orchestrator
     assert "--host 127.0.0.1 --port 8091" in worker
-    assert "--host 127.0.0.1 --port 8088" in orchestrator
     assert "TTS_WORKER_INTERNAL_TOKEN" in worker
-    assert "TTS_WORKER_INTERNAL_TOKEN" in orchestrator
-    assert "TTS_ORCH_WORKER_INTERNAL_TOKEN = $env:TTS_WORKER_INTERNAL_TOKEN" in orchestrator
+    assert not (SERVICE_ROOT / "scripts" / "run-orchestrator.ps1").exists()
+    assert "TTS_ORCH_" not in run_local
 
-    for service_name in ("tts-worker", "tts-orchestrator"):
-        assert f"-Name '{service_name}'" in install_services
-        assert f"'{service_name}.out.log'" in install_services
-        assert f"'{service_name}.err.log'" in install_services
+    assert "-Name 'tts-worker'" in install_services
+    assert "'tts-worker.out.log'" in install_services
+    assert "'tts-worker.err.log'" in install_services
+    assert "-Name 'tts-orchestrator'" not in install_services
     assert "tts-tunnel" not in install_services
     assert not (SERVICE_ROOT / "scripts" / "run-tunnel.ps1").exists()
 
