@@ -6,6 +6,24 @@ This repository is the single source tree for the n8n workspace. Before provisio
 
 For the supported end-user path (Docker Compose stack, NVIDIA auto-detection, first administrator and the `newsroom` CLI), see [docs/INSTALL.md](docs/INSTALL.md). The installers are `install.sh` (Linux/macOS) and `install.ps1` (Windows); both are idempotent and generate their own local secrets.
 
+The keyless default stack is defined in [compose.yaml](compose.yaml): API, panel,
+Postgres, SearXNG, Mailpit, the deterministic CPU demo worker, Ollama and a
+one-shot seed with one pending story plus one complete script/video project. The
+optional profiles are `gpu` (Qwen TTS, faster-whisper ASR, channel monitor) and
+`n8n`. The default demo is exercised by the Playwright happy path:
+
+```bash
+cp e2e/.env.example .env
+docker compose up -d --build postgres searxng mailpit demo-worker api panel
+docker compose run --rm seed
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+pnpm exec playwright test
+```
+
+See [e2e/README.md](e2e/README.md) for the fresh-database requirement and
+[docs/INSTALL.md](docs/INSTALL.md) for the full installation flow.
+
 ## Quick Path
 
 1. Clone this repository, then use [the recovery inventory](docs/recovery/local-artifacts.md) to obtain every required external artifact from its approved owner.

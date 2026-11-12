@@ -11,6 +11,7 @@ shell/PowerShell code.
 | Path | Owner | Purpose |
 |---|---|---|
 | `compose.yaml` (repo root) | T8 | Stack definition, profiles and volumes |
+| `docker-compose.yml` (repo root) | T8 | Compatibility alias (`include:`) for tools that look for the old filename |
 | `.env.example` → `.env` | T8b installer | Configuration; `.env` is generated with secrets and never committed |
 | `infra/db/migrations/*.sql` | T3 | Applied by the `migrate` service |
 | `apps/api/scripts/create-admin.js` | T8b | First-admin bootstrap run inside the API image |
@@ -23,20 +24,23 @@ installers also pass `--env-file .env`).
 | Service | Kind | Contract |
 |---|---|---|
 | `api` | long-running | Serves the gateway on port 8099. Working directory must contain `scripts/create-admin.js` (so `node scripts/create-admin.js` works). Contains the local adapters' Python helper and `yt-dlp`. Uses `${DATABASE_URL}`, `${BLOB_ROOT}` and the adapter variables from `.env`. |
-| `panel` | long-running | Serves `apps/panel` on `${PANEL_PORT}` (8080) and points the panel bootstrap at the API origin. |
+| `panel` | long-running | Serves `apps/panel` on `${PANEL_PORT}` (8080) and reverse-proxies `/panel`, `/webhook`, `/tts`, `/subtitles`, `/remotion`, `/radar`, `/monitor` and `/approval` to `api:8099`. |
+| `seed` | one-shot, default | Applies the migrations and seeds the fictional users, one pending topic and one complete story. Idempotent. |
+| `demo-worker` | long-running | Deterministic TTS/subtitles/render contracts for the keyless default profile; serves a WAV and the demo MP4. |
+| `ollama` | default (CPU) / `gpu` | Local LLM server. Its entrypoint pulls `${OLLAMA_MODEL}` into the model volume on first start. |
 | `postgres` | long-running | `postgres:16`, database `${POSTGRES_DB}`, user `${POSTGRES_USER}`, password `${POSTGRES_PASSWORD}`, volume `postgres_data`, healthcheck. |
 | `searxng` | long-running | JSON API enabled on `${SEARXNG_PORT}` (8888) for `ImageSearchPort`. |
 | `mailpit` | long-running | SMTP on `${MAILPIT_SMTP_PORT}` (1025) and UI on `${MAILPIT_UI_PORT}` (8025) for the optional SMTP notification adapter. |
 | `migrate` | one-shot | `node packages/data/scripts/migrate.js` with `${DATABASE_URL}`; exits 0 after applying migrations. Idempotent. |
-| `model-init` | one-shot | Downloads `${OLLAMA_MODEL}` into the Ollama volume, the Piper voice `${PIPER_MODEL}` and the faster-whisper model `${WHISPER_MODEL}`. Idempotent: exits 0 immediately when they are present. Must not require a GPU. |
-| `ollama` | `gpu` profile | Local LLM server on `${OLLAMA_PORT}` (11434), model volume. |
+| `model-init` | one-shot (`tools`) | Downloads the Piper voice `${PIPER_MODEL}` and the faster-whisper model `${WHISPER_MODEL}`. Idempotent and GPU-free; Ollama pulls its own model on first start. |
 | `tts-worker` | `gpu` profile (Piper CPU fallback) | `TTS_WORKER_ENGINE=auto`; uses the shared GPU lock volume/path. |
 | `asr-worker` | `gpu` profile (CPU fallback) | faster-whisper; uses `WHISPER_DEVICE` and the shared GPU lock. |
 | `n8n` | `n8n` profile, optional | Must stay off by default (`WORKFLOW=disabled`). Never required by the installer. |
 
-The default profile (no `--profile` beyond `cpu`) must start **api + panel +
-worker + Postgres + SearXNG + Mailpit** with seed data and no API keys. T8
-provides the seeds and the demo walkthrough.
+The default profile (no `--profile` beyond `cpu`) starts **api + panel +
+demo-worker + seed + Postgres + SearXNG + Mailpit + Ollama** with seed data and
+no API keys. `seed` is idempotent and exits; `migrate` and `model-init` are in
+the `tools` profile and are invoked explicitly with `run --rm`.
 
 ## Exact commands the installer runs
 

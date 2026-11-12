@@ -68,9 +68,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
 | Profile | Selected when | Contains |
 |---|---|---|
-| `cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, Postgres, SearXNG, Mailpit, CPU worker paths, Piper TTS, faster-whisper CPU fallback |
-| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the CPU stack plus Ollama, Qwen TTS and faster-whisper on the GPU |
+| default/`cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, `demo-worker`, Postgres, SearXNG, Mailpit, Ollama (CPU) and the deterministic seed; no API keys |
+| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the CPU stack plus GPU access and the optional `asr-worker`, `tts-worker` and `channel-monitor` services |
+| `n8n` | explicit `--profile n8n` | the optional n8n container for `WORKFLOW=n8n` |
+| `tools` | never started by `up` | one-shot `migrate` and `model-init` services invoked with `docker compose run --rm` |
 | `auto` | default | picks `gpu` or `cpu` as described above |
+
+The default CPU worker is deliberately deterministic: it serves the TTS,
+subtitles and render contracts with small local assets so the demo and the
+Playwright test can run without a GPU or a model download. Set
+`LLM=ollama` (the default in `.env.example`) for real script generation; the
+`ollama` service pulls `OLLAMA_MODEL` on first start. The `gpu` profile adds the
+heavy Qwen/faster-whisper workers for operators who want them.
+
+### Seed data and the demo story
+
+The unprofiled `seed` service runs after Postgres is healthy and is idempotent.
+It creates two fictional users (`editor@example.local` and
+`viewer@example.local`, password from the generated `NEWSROOM_DEMO_PASSWORD`),
+one pending approval topic and one complete story with a draft and video
+project. The administrator account created by the installer is separate and is
+the one whose password is printed once; use the administrator for an
+interactive login unless `NEWSROOM_DEMO_PASSWORD` was set explicitly before the
+install. The E2E environment sets that value so the test can log in as the
+editor.
 
 An explicit `--profile gpu` is never silently downgraded. If the container
 runtime is missing, the installer warns and `auto` falls back to `cpu`. Install
@@ -253,5 +274,23 @@ available. The CI workflow `.github/workflows/installers.yml` runs the checks on
 `ubuntu-latest` and `windows-latest`; the Windows job keeps Docker optional
 because the hosted runner does not provide Linux containers.
 
-The full stack (Compose profiles, seed data, Playwright happy path) is delivered
-by T8 and must satisfy [COMPOSE_CONTRACT.md](../infra/install/COMPOSE_CONTRACT.md).
+## End-to-end check
+
+The default stack ships the Playwright happy path:
+
+```bash
+cp e2e/.env.example .env
+docker compose up -d --build postgres searxng mailpit demo-worker api panel
+docker compose run --rm seed
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+pnpm exec playwright test
+```
+
+Use `docker compose down -v` between runs. The test logs in through the UI,
+approves a topic, waits for the drafted script, publishes it and checks voice,
+subtitles and final render artifacts through the panel proxy. See
+[e2e/README.md](../e2e/README.md).
+
+The Compose contract is documented in
+[COMPOSE_CONTRACT.md](../infra/install/COMPOSE_CONTRACT.md).
