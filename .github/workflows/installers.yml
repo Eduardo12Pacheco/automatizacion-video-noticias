@@ -1,0 +1,79 @@
+name: installers
+
+# Installer/CLI checks owned by T8b. The full product CI (all suites, compose
+# profiles and Playwright) is added by T8 in ci.yml.
+
+on:
+  push:
+    paths:
+      - "install.sh"
+      - "install.ps1"
+      - "bin/newsroom.*"
+      - "infra/install/**"
+      - ".env.example"
+      - "apps/api/scripts/create-admin.js"
+      - "apps/api/src/create-admin.js"
+      - ".github/workflows/installers.yml"
+  pull_request:
+    paths:
+      - "install.sh"
+      - "install.ps1"
+      - "bin/newsroom.*"
+      - "infra/install/**"
+      - ".env.example"
+      - "apps/api/scripts/create-admin.js"
+      - "apps/api/src/create-admin.js"
+      - ".github/workflows/installers.yml"
+  workflow_dispatch:
+
+jobs:
+  linux-installers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shell syntax
+        run: |
+          bash -n install.sh
+          bash -n bin/newsroom.sh
+          for file in infra/install/lib/*.sh; do bash -n "$file"; done
+
+      - name: Python syntax
+        run: python3 -m compileall -q infra/install/tests apps/api/scripts apps/api/src
+
+      - name: Installer and CLI behaviour tests
+        run: bash infra/install/tests/run.sh
+
+      - name: Host prerequisite check
+        run: ./install.sh --check
+
+      - name: Non-interactive dry run
+        run: ./install.sh --yes --profile cpu --dry-run --no-open
+
+  windows-installers:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PowerShell syntax (5.1 parser)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in @('install.ps1', 'bin/newsroom.ps1', 'infra/install/lib/Newsroom.Core.psm1', 'infra/install/lib/Newsroom.Install.psm1')) {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$null, [ref]$errors) | Out-Null
+            if ($errors) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          }
+
+      # Docker Linux containers are not available on the hosted Windows runner.
+      # The plan allows the Windows CI job to stop at "prerequisites OK"; the
+      # installer reports the missing Docker as a warning in this mode.
+      - name: Prerequisite check
+        shell: powershell
+        run: ./install.ps1 -Check -AllowMissingDocker -Yes
+
+      - name: Non-interactive dry run
+        shell: powershell
+        run: ./install.ps1 -DryRun -AllowMissingDocker -Yes -Profile cpu -NoOpen
