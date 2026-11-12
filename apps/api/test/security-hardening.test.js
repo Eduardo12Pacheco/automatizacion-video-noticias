@@ -29,6 +29,8 @@ function bodyFor(route) {
       return { cluster_id: 'cluster-1', action: 'approve' };
     case 'local-search-refresh':
       return { window: '24h' };
+    case 'local-search-refresh-status':
+      return { run_id: 'run-status-1' };
     case 'local-save-draft':
       return { draft_id: 'draft-script-1', id_noticia: 'news-1', guion_editado: 'texto' };
     case 'local-publish':
@@ -74,6 +76,9 @@ describe('security hardening (S12)', () => {
   let repository;
   let authService;
   let cookies;
+  let dataRouter;
+  let localRouter;
+  let adminRouter;
 
   before(async () => {
     root = await mkdtemp(join(tmpdir(), 'newsroom-t12-'));
@@ -122,20 +127,23 @@ describe('security hardening (S12)', () => {
       },
     };
 
+    dataRouter = createDataRouter({
+      repository,
+      blobStorage: new FsBlobStorage({ root }),
+    });
+    localRouter = createLocalRouter({ repository, useCases });
+    adminRouter = createAdminRouter({
+      authService,
+      connectors: { list: () => [], test: async (id) => ({ id, ok: true, status: 'local', message: 'ok' }) },
+    });
     server = createGatewayServer({
       allowedOrigins: [TRUSTED_ORIGIN],
       trustedMutationOrigins: [TRUSTED_ORIGIN],
       authService,
       repository,
-      dataRouter: createDataRouter({
-        repository,
-        blobStorage: new FsBlobStorage({ root }),
-      }),
-      localRouter: createLocalRouter({ repository, useCases }),
-      adminRouter: createAdminRouter({
-        authService,
-        connectors: { list: () => [], test: async (id) => ({ id, ok: true, status: 'local', message: 'ok' }) },
-      }),
+      dataRouter,
+      localRouter,
+      adminRouter,
       eventRecorder: {
         record: async () => {},
         query: async () => ({ events: [], next_cursor: null, retention: { max_events: 10, max_age_days: 1 } }),
@@ -179,33 +187,31 @@ describe('security hardening (S12)', () => {
     });
   }
 
-  it('enumerates every registered panel mutation exactly once', () => {
-    const ids = PANEL_MUTATION_ROUTES.map((route) => route.id);
+  function registeredMutationRoutes() {
+    return [
+      ...localRouter.mutationRoutes.map((route) => ({ ...route, router: 'local', role: 'editor' })),
+      ...adminRouter.mutationRoutes.map((route) => ({ ...route, router: 'admin', role: 'admin' })),
+      ...dataRouter.mutationRoutes.map((route) => ({ ...route, router: 'data', role: 'editor' })),
+    ];
+  }
+
+  it('derives every role-checked route from the handlers that register it', () => {
+    const registered = registeredMutationRoutes();
+    const ids = registered.map((route) => route.id);
     assert.equal(new Set(ids).size, ids.length);
-    for (const id of [
-      'local-decision',
-      'local-search-refresh',
-      'local-save-draft',
-      'local-publish',
-      'local-publish-status',
-      'local-download-document',
-      'local-manual-create',
-      'admin-create-user',
-      'admin-update-user',
-      'admin-test-connector',
-      'data-editor-state',
-      'data-selections',
-      'data-audio',
-      'data-custom-images',
-      'data-disable',
-      'data-upload',
-    ]) {
-      assert.ok(ids.includes(id), `missing mutation route ${id}`);
+    assert.equal(registered.length, PANEL_MUTATION_ROUTES.length);
+
+    for (const route of registered) {
+      const tableRoute = PANEL_MUTATION_ROUTES.find((candidate) => candidate.id === route.id);
+      assert.ok(tableRoute, `router registered ${route.id} but the gateway table does not cover it`);
+      assert.deepEqual(tableRoute.methods, [...route.methods], `${route.id} methods`);
+      assert.equal(tableRoute.role, route.role, `${route.id} role`);
+      assert.ok(tableRoute.pattern.test(route.examplePath), `${route.id} example path must match the table`);
     }
   });
 
   it('enforces one role and CSRF policy across every mutating route', async () => {
-    for (const route of PANEL_MUTATION_ROUTES) {
+    for (const route of registeredMutationRoutes()) {
       const allowedCookie = route.role === 'admin' ? cookies.admin : cookies.editor;
 
       const unauthenticated = await routeRequest(route);

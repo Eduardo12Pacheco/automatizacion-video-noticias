@@ -168,6 +168,19 @@ in **Administración → Conectores** with its live status, and documented in
 All optional connectors are off by default; their credentials come from `.env`
 and are never returned by the API or committed to the repository.
 
+## Security model
+
+Published ports bind to `127.0.0.1` by default, users live in Postgres with
+bcrypt hashes and HTTP-only sessions, and every mutating route passes one role
+gate with a trusted-Origin check. The one authenticated route that is not
+role-gated is `POST /panel/presence/heartbeat`: it only writes ephemeral
+presence state, never domain data. Login throttling keys on the username plus
+the client IP, and `X-Forwarded-For` is trusted only from the panel container's
+own address. Uploaded blobs are served with a sandbox CSP and `nosniff`; only
+audio, video and raster images may render inline, while HTML, SVG and XML are
+forced to `application/octet-stream` downloads. The full list and the threat
+model are in [SECURITY.md](SECURITY.md).
+
 ## Tech stack
 
 | Layer | Choice | Why |

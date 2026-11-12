@@ -41,8 +41,15 @@ dependency:
   and the credentials are printed once in the installer summary.
 - **Mutations are protected.** Every mutating panel route requires a session,
   the right role and a trusted Origin; audit, presence and error read models are
-  admin-only. Login throttling keys on user plus client IP and trusts
-  `X-Forwarded-For` only from the bundled proxy.
+  admin-only. The sole authenticated route that is not role-gated is
+  `POST /panel/presence/heartbeat`, which writes only ephemeral presence state.
+  Login throttling keys on user plus client IP, reads the client address from
+  the right-most untrusted forwarding hop, and trusts `X-Forwarded-For` only
+  from the panel container's own address.
+- **Uploaded blobs are inert by default.** Only audio, video and raster images
+  are served inline after magic-byte validation; every other type (including
+  HTML, SVG and XML) is served as an `application/octet-stream` attachment with
+  `Content-Security-Policy: sandbox; default-src 'none'` and `nosniff`.
 - **No secret endpoint.** `GET /panel/connectors` returns adapter status, never
   credentials. SMTP probes open the greeting without sending mail.
 - **History privacy.** The public history is scrubbed of personal paths,

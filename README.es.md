@@ -168,6 +168,19 @@ documentado en [`docs/CONNECTORS.md`](docs/CONNECTORS.md).
 Todos los conectores opcionales están apagados por defecto; sus credenciales
 vienen de `.env` y nunca las devuelve la API ni se commitean al repositorio.
 
+## Modelo de seguridad
+
+Los puertos publicados se atan a `127.0.0.1` por defecto, los usuarios viven en
+Postgres con hashes bcrypt y sesiones HTTP-only, y cada ruta mutadora pasa por un
+único control de rol con validación de Origin. La única ruta autenticada sin rol
+es `POST /panel/presence/heartbeat`: solo escribe estado de presencia efímero,
+nunca datos de dominio. El throttling de login usa el usuario más la IP del
+cliente, y `X-Forwarded-For` solo se confía desde la dirección del contenedor del
+panel. Los blobs subidos se sirven con CSP sandbox y `nosniff`; solo audio, video
+e imágenes raster pueden renderizarse inline, mientras que HTML, SVG y XML se
+fuerzan a descarga `application/octet-stream`. La lista completa y el modelo de
+amenazas están en [SECURITY.md](SECURITY.md).
+
 ## Stack
 
 | Capa | Elección | Motivo |

@@ -117,5 +117,5 @@ export function createAdminRouter({ authService, connectors = null } = {}) {
     }
   }
 
-  return { matches, handle };
+  return { mutationRoutes: ADMIN_MUTATION_ROUTES, matches, handle };
 }

@@ -333,6 +333,7 @@ export function createDataRouter({
   }
 
   return {
+    mutationRoutes: DATA_MUTATION_ROUTES,
     matches(pathname) {
       return pathname === '/panel/read-models/video-projects'
         || pathname.startsWith('/panel/video-projects/')

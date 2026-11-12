@@ -16,6 +16,12 @@ export const LOCAL_MUTATION_ROUTES = Object.freeze([
     examplePath: '/webhook/approval/search-refresh/supabase/v2',
   },
   {
+    id: 'local-search-refresh-status',
+    methods: ['POST'],
+    path: '/webhook/approval/search-refresh/status/supabase/v1',
+    examplePath: '/webhook/approval/search-refresh/status/supabase/v1',
+  },
+  {
     id: 'local-save-draft',
     methods: ['POST'],
     path: '/webhook/mvp-script-draft-save/supabase/v2',
@@ -272,6 +278,7 @@ export function createLocalRouter({
   }
 
   return {
+    mutationRoutes: LOCAL_MUTATION_ROUTES,
     matches,
     handle,
     isMutation(pathname = '') {
