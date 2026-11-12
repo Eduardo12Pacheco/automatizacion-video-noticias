@@ -56,6 +56,19 @@ export class ManualCreateVideoProject {
     const guionText = blocks.join('\n\n');
     const segments = buildVideoSegments(piped).map((segment) => ({ ...segment, phrase: segment.text, source: 'manual_guion_piped' }));
 
+    // noticias_raw.cluster_id is a foreign key in Postgres; create the manual
+    // cluster before the news row so the same payload works on both adapters.
+    await this.repository.persistClusters([{
+      cluster_id: clusterId,
+      seleccion: country,
+      jugador: player,
+      tema_principal: title,
+      resumen_cluster: null,
+      tag_editorial: 'otros',
+      estado_revision: 'aprobado',
+      fecha_creacion_cluster: now,
+      sources: [],
+    }]);
     await this.repository.upsertNews([{
       id_noticia: idNoticia,
       cluster_id: clusterId,

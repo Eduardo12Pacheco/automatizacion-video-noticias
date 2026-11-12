@@ -370,6 +370,30 @@ describe('PublishScript', () => {
 });
 
 describe('ManualCreateVideoProject', () => {
+  it('persists the manual cluster before the news row (Postgres foreign key)', async () => {
+    const { repository } = await createHarness();
+    const upsertNews = repository.upsertNews.bind(repository);
+    repository.upsertNews = async (rows) => {
+      for (const row of rows) {
+        if (!repository._clusters.has(String(row.cluster_id))) {
+          throw new Error(`foreign key violation: ${row.cluster_id}`);
+        }
+      }
+      return upsertNews(rows);
+    };
+    const useCase = new ManualCreateVideoProject({ repository, now: () => NOW, createJobId: () => 'manual-job-fk' });
+
+    const started = await useCase.start({
+      title: 'Cluster FK regression',
+      jugador: 'Nicolás Arbelo',
+      seleccion: 'Aurenia',
+      guion_piped: 'Primera frase. | Segunda frase.',
+    });
+
+    assert.equal(started.status, 'queued');
+    assert.ok(repository._clusters.has(String(started.cluster_id)));
+  });
+
   it('creates the manual records and finalizes image candidates asynchronously', async () => {
     const { repository } = await createHarness();
     const useCase = new ManualCreateVideoProject({

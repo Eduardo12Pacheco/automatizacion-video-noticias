@@ -17,9 +17,13 @@ async function parseResponseBody(response) {
 }
 
 async function createManualVideoProject({ settings = {}, payload = {}, fetchImpl = fetch } = {}) {
-  const config = resolveServiceConfig(settings, 'n8n');
-  const baseUrl = (config.baseUrl || '').toString().trim();
-  if (!baseUrl) throw new Error('Falta configurar la URL base de n8n.');
+  // The local API serves the historical webhook paths on the gateway. Only a
+  // deployment that explicitly selects n8n should call the n8n base URL.
+  const localWorkflows = globalThis.__CONTROL_PANEL_BOOTSTRAP__?.feature_flags?.localWorkflows;
+  const baseUrl = localWorkflows
+    ? resolveGatewayBaseUrl(settings)
+    : (resolveServiceConfig(settings, 'n8n').baseUrl || '').toString().trim();
+  if (!baseUrl && !localWorkflows) throw new Error('No hay un backend configurado para crear el proyecto.');
 
   const headers = { 'Content-Type': 'application/json' };
   const shellVersion = (globalThis.__CONTROL_PANEL_BOOTSTRAP__?.app_version || '').toString().trim();
@@ -34,7 +38,7 @@ async function createManualVideoProject({ settings = {}, payload = {}, fetchImpl
   const data = await parseResponseBody(response);
 
   if (!response.ok || data?.ok === false || data?.error) {
-    throw new Error(data?.message || data?.error || data?.raw || `Crear proyecto ${response.status}`);
+    throw new Error(data?.message || data?.error || `No se pudo crear el proyecto (${response.status}).`);
   }
 
   return data;
