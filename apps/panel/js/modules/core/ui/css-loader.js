@@ -24,6 +24,7 @@ const FEATURE_CSS_MAP = Object.freeze({
   radar: "features/radar.css",
   "errors-audit": "features/errors-audit.css",
   "active-users": "features/active-users.css",
+  "admin-users": "features/admin-users.css",
 });
 
 /** @type {Set<string>} Tracks which feature CSS link elements exist in <head>. */

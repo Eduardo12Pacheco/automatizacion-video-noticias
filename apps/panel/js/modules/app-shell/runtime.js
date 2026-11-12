@@ -11,7 +11,6 @@ import { versionedModule } from '../core/versioning/asset-version.js';
 import {
   clearSessionStatus,
   hydrateGatewaySession,
-  isValidCredentials,
   loginGatewaySession,
   logoutGatewaySession,
   persistSessionStatus,
@@ -73,14 +72,14 @@ import {
 } from './views/approval-search.js';
 import { createShellRenderers } from './views/renderers.js';
 import { createScriptToAudioVoiceController } from './voice/script-to-audio.js';
+import { createI18n, setSharedI18n } from '../core/i18n/index.js';
 
 const storageKey = 'approval-panel-settings-v1';
 const sessionKey = 'approval-panel-session-v1';
 const lastNewsSearchKey = 'approval-panel-last-news-search-at-v1';
 
-const AUTH_USER = 'paneladmin';
-const AUTH_PASS = 'Guiones2026!';
 const APPROVAL_AUTO_REFRESH_INTERVAL_MS = 30000;
+const i18n = setSharedI18n(createI18n());
 
 function waitForNextFrame() {
   return new Promise((resolve) => {
@@ -110,7 +109,7 @@ const composition = createAppShellComposition({
   storage: localStorage,
   storageKey,
   lastNewsSearchKey,
-  fetchImpl: fetch,
+  fetchImpl: (...args) => globalThis.fetch(...args),
   btoaImpl: btoa,
   defaultsFactory: defaultSettings,
   ui: { toast },
@@ -149,6 +148,7 @@ const {
   radarController,
   errorsAuditController,
   activeUsersController,
+  adminUsersController,
   subtitlesController,
   audioFeature,
   ttsApi,
@@ -163,6 +163,7 @@ const {
   _ensureRadarFeature,
   _ensureErrorsAuditFeature,
   _ensureActiveUsersFeature,
+  _ensureAdminUsersFeature,
   _cssLoaded,
   _domInjected,
   _visited,
@@ -197,6 +198,7 @@ const navigation = createShellNavigationController({
   radarController,
   errorsAuditController,
   activeUsersController,
+  adminUsersController,
   approvalFeature,
   scriptsFeature,
   videoProjectsFeature,
@@ -211,6 +213,7 @@ const navigation = createShellNavigationController({
   _ensureRadarFeature,
   _ensureErrorsAuditFeature,
   _ensureActiveUsersFeature,
+  _ensureAdminUsersFeature,
   _cssLoaded,
   _domInjected,
   _visited,
@@ -259,13 +262,48 @@ const lifecycle = createAppShellLifecycle({
 });
 
 export async function bootApp() {
+  i18n.apply();
   await hydrateGatewaySession().catch(() => null);
+  syncAdminNavigation();
   lifecycle.bootApp();
 }
 
 export async function bootCompatibilityShell() {
+  i18n.apply();
   await hydrateGatewaySession().catch(() => null);
+  syncAdminNavigation();
   lifecycle.bootCompatibilityShell();
+}
+
+function sessionIsAdmin() {
+  const roles = globalThis.__CONTROL_PANEL_SESSION__?.roles;
+  return Array.isArray(roles) && roles.includes('admin');
+}
+
+globalThis.__NEWSROOM_SYNC_ADMIN__ = () => syncAdminNavigation();
+
+function syncAdminNavigation() {
+  const adminGroup = document.querySelector('[data-admin-only]');
+  if (!adminGroup) return;
+  const visible = sessionIsAdmin();
+  adminGroup.hidden = !visible;
+  adminGroup.setAttribute('aria-hidden', String(!visible));
+}
+
+function bindLanguageEvents() {
+  if (el.languageSelect) {
+    el.languageSelect.value = i18n.getLanguage();
+    el.languageSelect.addEventListener('change', () => {
+      i18n.setLanguage(el.languageSelect.value);
+      syncAdminNavigation();
+      toast(i18n.t('settings.saved'));
+    });
+  }
+  el.cancelSettingsBtn?.addEventListener('click', () => el.settingsDialog?.close?.());
+  el.closePublishDialog?.addEventListener('click', () => el.publishConfirmDialog?.close?.());
+  el.cancelOriginalDialog?.addEventListener('click', () => el.scriptOriginalDialog?.close?.());
+  el.manualVideoProjectCancelFooterBtn?.addEventListener('click', () => el.manualVideoProjectDialog?.close?.());
+  el.closeVoicePresetBtn?.addEventListener('click', () => el.voicePresetDialog?.close?.());
 }
 
 function renderSubtitle2PreviewPlaybackState() {
@@ -273,13 +311,11 @@ function renderSubtitle2PreviewPlaybackState() {
 }
 
 function bindEvents() {
+  bindLanguageEvents();
   bindShellEvents({
     bindCore: () => bindCoreEvents({
       el,
-      authUser: AUTH_USER,
-      authPass: AUTH_PASS,
-      isValidCredentials,
-      loginGatewaySession,
+          loginGatewaySession,
       persistSessionStatus: () => persistSessionStatus({ storage: localStorage, cookieJar: document, sessionKey }),
       logoutGatewaySession,
       clearSessionStatus: () => clearSessionStatus({ storage: localStorage, cookieJar: document, sessionKey }),
@@ -296,6 +332,7 @@ function bindEvents() {
     bindRadar: () => radarController.bindEvents(),
     bindErrorsAudit: () => errorsAuditController.bindEvents?.(),
     bindActiveUsers: () => activeUsersController.bindEvents?.(),
+    bindAdminUsers: () => adminUsersController.bindEvents?.(),
     bindScripts: () => bindScriptEvents({
       state,
       el,
@@ -357,6 +394,10 @@ function bindViewEvents(viewName) {
     activeUsersController.bindEvents?.();
     return;
   }
+  if (viewName === 'admin-users') {
+    adminUsersController.bindEvents?.();
+    return;
+  }
   if (viewName === 'subtitulos2') {
     bindSubtitlesEvents({ state, el, subtitlesController, renderSubtitle2PreviewPlaybackState });
   }
@@ -365,10 +406,7 @@ function bindViewEvents(viewName) {
 function legacyBindEvents() {
   bindCoreEvents({
     el,
-    authUser: AUTH_USER,
-    authPass: AUTH_PASS,
-    isValidCredentials,
-    loginGatewaySession,
+      loginGatewaySession,
     persistSessionStatus: () => persistSessionStatus({ storage: localStorage, cookieJar: document, sessionKey }),
     logoutGatewaySession,
     clearSessionStatus: () => clearSessionStatus({ storage: localStorage, cookieJar: document, sessionKey }),

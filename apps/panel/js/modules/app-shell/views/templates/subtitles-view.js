@@ -8,7 +8,7 @@ export const subtitlesViewHTML = `\
               <header class="subtitle2-screen__header">
                 <div>
                   <p class="subtitle2-eyebrow">Workstation subtitle pipeline</p>
-                  <h1>Subt\u00edtulos</h1>
+                  <h1 data-i18n="subtitles.title">Subt\u00edtulos</h1>
                 </div>
                 <div id="subtitle2ServiceHealthBanner" class="subtitle2-health-chip subtitle-health-banner">
                   Servidor desconectado
@@ -25,18 +25,18 @@ export const subtitlesViewHTML = `\
                 <article class="subtitle2-upload-source-card">
                   <div class="subtitle2-card-heading">
                     <span class="subtitle2-section-label">Upload source</span>
-                    <h3>Sub\u00ed tu archivo</h3>
+                    <h3 data-i18n="subtitles.upload">Sub\u00ed tu archivo</h3>
                   </div>
                   <label class="subtitle-upload-dropzone" for="subtitle2UploadInput">
                     <input id="subtitle2UploadInput" type="file" accept=".mp4,.mov,video/mp4,video/quicktime" />
                     <div class="subtitle-upload-cta-icon" aria-hidden="true">\uff0b</div>
-                    <div class="subtitle-upload-cta-title">Agregar video</div>
-                    <div class="subtitle-upload-cta-sub">Arrastr\u00e1 un .mp4 o .mov para crear una sesi\u00f3n remota</div>
+                    <div class="subtitle-upload-cta-title" data-i18n="subtitles.addVideo">Agregar video</div>
+                    <div class="subtitle-upload-cta-sub" data-i18n="subtitles.uploadHelp">Arrastr\u00e1 un .mp4 o .mov para crear una sesi\u00f3n remota</div>
                   </label>
                   <div class="subtitle-source-language">
-                    <p class="subtitle-source-language-title">Idioma origen</p>
+                    <p class="subtitle-source-language-title" data-i18n="subtitles.sourceLanguage">Idioma origen</p>
                     <select id="subtitle2SourceLanguagePicker" class="subtitle-lang-select" data-custom-dropdown data-dropdown-label="Idioma origen" data-dropdown-placeholder="Idioma origen" aria-label="Idioma origen para Subt\u00edtulos 2">
-                      <option value="auto">Detectar autom\u00e1ticamente</option>
+                      <option value="auto" data-i18n="subtitles.detect">Detectar autom\u00e1ticamente</option>
                       <option value="de">Alem\u00e1n</option>
                       <option value="ber">Amazigh / Bereber</option>
                       <option value="ar">\u00c1rabe</option>
@@ -61,7 +61,7 @@ export const subtitlesViewHTML = `\
               </section>
 
               <section id="subtitle2AnalyzeMeta" class="subtitle2-editor-card subtitle-meta-card hidden">
-                <h3>Metadata del an\u00e1lisis</h3>
+                <h3 data-i18n="subtitles.analysisMeta">Metadata del an\u00e1lisis</h3>
                 <div class="subtitle-meta-grid">
                   <div class="subtitle-meta-chip"><span class="subtitle-meta-chip__label">source_language_requested</span><strong id="subtitle2MetaRequested">\u2014</strong></div>
                   <div class="subtitle-meta-chip"><span class="subtitle-meta-chip__label">source_language_effective</span><strong id="subtitle2MetaEffective">\u2014</strong></div>

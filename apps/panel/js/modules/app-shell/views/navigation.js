@@ -3,6 +3,7 @@ import { injectFeatureCSS, isFeatureCSSInjected } from '../../core/ui/css-loader
 import { injectViewTemplate } from '../../core/ui/dom-injector.js';
 import { versionedModule } from '../../core/versioning/asset-version.js';
 import { getDomSelectors } from '../../shared/dom/selectors.js';
+import { getI18n } from '../../core/i18n/index.js';
 
 /**
  * Map of normalized view names to their container element IDs and template HTML.
@@ -15,6 +16,7 @@ const VIEW_TO_TEMPLATE = Object.freeze({
   'errors-audit': { containerId: 'viewErrorsAudit', module: './templates/errors-audit-view.js', exportName: 'errorsAuditViewHTML' },
   'active-users': { containerId: 'viewActiveUsers', module: './templates/active-users-view.js', exportName: 'activeUsersViewHTML' },
   subtitulos2: { containerId: 'viewSubtitulos2', module: './templates/subtitles-view.js', exportName: 'subtitlesViewHTML' },
+  'admin-users': { containerId: 'viewAdminUsers', module: './templates/admin-users-view.js', exportName: 'adminUsersViewHTML' },
 });
 
 /**
@@ -28,6 +30,7 @@ const VIEW_TO_CSS = Object.freeze({
   'errors-audit': 'errors-audit',
   'active-users': 'active-users',
   subtitulos2: 'subtitulos2',
+  'admin-users': 'admin-users',
 });
 
 /**
@@ -48,6 +51,7 @@ export function createShellNavigationController({
   radarController,
   errorsAuditController,
   activeUsersController,
+  adminUsersController,
   approvalFeature,
   scriptsFeature,
   videoProjectsFeature,
@@ -62,6 +66,7 @@ export function createShellNavigationController({
   _ensureRadarFeature,
   _ensureErrorsAuditFeature,
   _ensureActiveUsersFeature,
+  _ensureAdminUsersFeature,
   _cssLoaded,
   _domInjected,
   _visited,
@@ -98,6 +103,7 @@ export function createShellNavigationController({
       const templateModule = await import(versionedModule(template.module, import.meta.url));
       injectViewTemplate(template.containerId, templateModule[template.exportName]);
       Object.assign(el, getDomSelectors(documentRef));
+      getI18n().apply(el[template.containerId] || documentRef);
       _domInjected.add(nextView);
     }
 
@@ -139,6 +145,9 @@ export function createShellNavigationController({
       case 'subtitulos2':
         await _ensureSubtitlesFeature();
         break;
+      case 'admin-users':
+        await _ensureAdminUsersFeature();
+        break;
       default:
         break;
     }
@@ -156,6 +165,7 @@ export function createShellNavigationController({
       'errors-audit': el.viewErrorsAudit,
       'active-users': el.viewActiveUsers,
       subtitulos2: el.viewSubtitulos2,
+      'admin-users': el.viewAdminUsers,
     };
     const container = elMap[viewName];
     if (!container) return;
@@ -180,6 +190,8 @@ export function createShellNavigationController({
       case 'subtitulos2':
         if (subtitlesController.activate) subtitlesController.activate(container);
         break;
+      case 'admin-users':
+        break;
       default:
         break;
     }
@@ -198,6 +210,7 @@ export function createShellNavigationController({
     if (el.viewErrorsAudit) el.viewErrorsAudit.style.visibility = 'hidden';
     if (el.viewActiveUsers) el.viewActiveUsers.style.visibility = 'hidden';
     if (el.viewSubtitulos2) el.viewSubtitulos2.style.visibility = 'hidden';
+    if (el.viewAdminUsers) el.viewAdminUsers.style.visibility = 'hidden';
 
     // Lazy load CSS + DOM + feature for the target view
     try {
@@ -220,6 +233,7 @@ export function createShellNavigationController({
     const isErrorsAudit = nextView === 'errors-audit';
     const isActiveUsers = nextView === 'active-users';
     const isSubtitulos2 = nextView === 'subtitulos2';
+    const isAdminUsers = nextView === 'admin-users';
 
     // Only auto-refresh approval/queue monitor when on approval or scripts views.
     ensureApprovalAutoRefresh(isApproval || isScripts);
@@ -235,6 +249,7 @@ export function createShellNavigationController({
     el.viewErrorsAudit?.classList.toggle('hidden', !isErrorsAudit);
     el.viewActiveUsers?.classList.toggle('hidden', !isActiveUsers);
     el.viewSubtitulos2?.classList.toggle('hidden', !isSubtitulos2);
+    el.viewAdminUsers?.classList.toggle('hidden', !isAdminUsers);
 
     // Reveal the active view (FOUC prevention complete)
     const activeEls = {
@@ -245,6 +260,7 @@ export function createShellNavigationController({
       'errors-audit': el.viewErrorsAudit,
       'active-users': el.viewActiveUsers,
       subtitulos2: el.viewSubtitulos2,
+      'admin-users': el.viewAdminUsers,
     };
     const activeEl = activeEls[nextView];
     if (activeEl) {
@@ -299,6 +315,12 @@ export function createShellNavigationController({
       void activeUsersController.activate?.();
     } else {
       activeUsersController.deactivate?.();
+    }
+
+    if (isAdminUsers) {
+      void adminUsersController.activate?.();
+    } else {
+      adminUsersController.deactivate?.();
     }
   }
 

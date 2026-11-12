@@ -7,12 +7,12 @@ export const radarViewHTML = `\
             <section class="panel-shell radar-monitor-panel">
               <header class="audio-queue-header">
                 <div>
-                  <h3>Buscador de Prensa.</h3>
-                  <p id="radarMonitorStatus" class="meta word-count">Cargando videos monitoreados.</p>
+                  <h3 data-i18n="radar.title">Buscador de Prensa.</h3>
+                  <p id="radarMonitorStatus" class="meta word-count" data-i18n="radar.loadingVideos">Cargando videos monitoreados.</p>
                 </div>
                 <div class="radar-monitor-toolbar" aria-label="Acciones Radar Monitor">
-                  <button id="radarBasuraBtn" class="secondary" type="button">Basura <span id="radarBasuraCount">0</span></button>
-                  <button id="radarMonitorRefreshBtn" class="secondary" type="button">Actualizar</button>
+                  <button id="radarBasuraBtn" class="ghost" type="button" data-i18n="radar.trash">Basura <span id="radarBasuraCount">0</span></button>
+                  <button id="radarMonitorRefreshBtn" class="secondary" type="button" data-i18n="radar.update">Actualizar</button>
                 </div>
               </header>
               <nav id="radarCountryBar" class="radar-country-bar" aria-label="Pa\u00edses monitoreados">
@@ -27,14 +27,14 @@ export const radarViewHTML = `\
               </nav>
               <div class="radar-monitor-controls" aria-label="Filtros del Buscador de Prensa">
                 <label class="editor-label audio-field audio-field--grow">
-                  <span>Buscar</span>
+                  <span data-i18n="radar.search">Buscar</span>
                   <input id="radarMonitorSearchInput" placeholder="T\u00edtulo, tema o canal" autocomplete="off" />
                 </label>
                 <label class="editor-label audio-field">
-                  <span>Orden</span>
+                  <span data-i18n="radar.order">Orden</span>
                   <select id="radarMonitorSortSelect">
-                    <option value="relevance" selected>Relevancia</option>
-                    <option value="recent">Recientes</option>
+                    <option value="relevance" selected data-i18n="radar.relevance">Relevancia</option>
+                    <option value="recent" data-i18n="radar.recent">Recientes</option>
                   </select>
                 </label>
               </div>
@@ -45,8 +45,8 @@ export const radarViewHTML = `\
           <dialog id="radarBasuraDialog">
             <article>
               <header class="dialog-header">
-                <h2>Basura</h2>
-                <button id="radarBasuraCloseBtn" class="secondary" type="button">Cerrar</button>
+                <h2 data-i18n="radar.trash">Basura</h2>
+                <button id="radarBasuraCloseBtn" class="dialog-close" type="button" aria-label="Cerrar">×</button>
               </header>
               <div id="radarBasuraList" class="radar-basura-list"></div>
             </article>
@@ -55,11 +55,11 @@ export const radarViewHTML = `\
           <dialog id="radarNewJobDialog">
             <article>
               <header class="dialog-header">
-                <h2>Nueva investigaci\u00f3n</h2>
-                <button id="radarNewJobCancelBtn" class="secondary" type="button">Cerrar</button>
+                <h2 data-i18n="radar.new">Nueva investigaci\u00f3n</h2>
+                <button id="radarNewJobCancelBtn" class="dialog-close" type="button" aria-label="Cerrar">×</button>
               </header>
               <label class="editor-label audio-field audio-field--grow">
-                <span>Link del video</span>
+                <span data-i18n="radar.link">Link del video</span>
                 <input id="radarUrlInput" placeholder="https://youtu.be/..." />
               </label>
               <fieldset class="settings-section">
@@ -72,12 +72,12 @@ export const radarViewHTML = `\
                 <label><input id="radarCountryMexico" type="checkbox" value="mexico" /> M\u00e9xico</label>
               </fieldset>
               <label class="editor-label audio-field">
-                <span>Keywords extra</span>
+                <span data-i18n="radar.keywords">Keywords extra</span>
                 <textarea id="radarExtraKeywordsInput" class="script-area" placeholder="Messi, Di Mar\u00eda, Scaloni"></textarea>
               </label>
               <p id="radarValidationMessage" class="meta" aria-live="polite"></p>
               <div class="queue-actions">
-                <button id="radarSubmitBtn" class="approve" type="button">Crear job</button>
+                <button id="radarSubmitBtn" class="approve" type="button" data-i18n="radar.createJob">Crear job</button>
               </div>
             </article>
           </dialog>
@@ -85,7 +85,7 @@ export const radarViewHTML = `\
           <dialog id="radarSummaryDialog">
             <article>
               <header class="dialog-header">
-                <h2>Resumen</h2>
+                <h2 data-i18n="radar.summary">Resumen</h2>
                 <button id="radarSummaryCloseBtn" class="secondary" type="button">Cerrar</button>
               </header>
               <div id="radarSummaryBody" class="topic-dialog-body"></div>
@@ -95,7 +95,7 @@ export const radarViewHTML = `\
           <dialog id="radarConfirmDialog" aria-labelledby="radarConfirmTitle" aria-describedby="radarConfirmMessage">
             <article>
               <header class="dialog-header"><h2 id="radarConfirmTitle">Confirmar acci\u00f3n</h2></header>
-              <p id="radarConfirmMessage">Esta acci\u00f3n modifica el job seleccionado.</p>
+              <p id="radarConfirmMessage" data-i18n="radar.confirmMeta">Esta acci\u00f3n modifica el job seleccionado.</p>
               <div class="queue-actions">
                 <button id="radarConfirmCancelBtn" class="secondary" type="button">Cancelar</button>
                 <button id="radarConfirmAcceptBtn" class="approve" type="button">Confirmar</button>

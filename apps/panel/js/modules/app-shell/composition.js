@@ -92,6 +92,8 @@ export function createAppShellComposition({
   const errorsAuditController = createErrorsAuditStub();
   state.activeUsers = { _stub: true };
   const activeUsersController = createActiveUsersStub();
+  state.adminUsers = { _stub: true };
+  const adminUsersController = createAdminUsersStub();
 
   const ttsApi = createTtsApiStub();
   const subtitlesController = createSubtitlesStub();
@@ -289,6 +291,30 @@ export function createAppShellComposition({
     return _errorsAuditModules;
   }
 
+  let _adminUsersModules = null;
+  async function _ensureAdminUsersFeature() {
+    if (_adminUsersModules) return _adminUsersModules;
+    const [featureMod] = await Promise.all([
+      import(versionedModule('../features/admin-users/index.js', import.meta.url)),
+    ]);
+    const realState = featureMod.createAdminUsersState();
+    Object.assign(state.adminUsers, realState);
+    const adminUsersApi = featureMod.createAdminUsersApiClient({
+      getSettings: () => state.settings,
+      fetchImpl,
+    });
+    const realController = featureMod.createAdminUsersController({
+      state: state.adminUsers,
+      el,
+      api: adminUsersApi,
+      ui,
+      windowRef,
+    });
+    Object.assign(adminUsersController, realController);
+    _adminUsersModules = { controller: adminUsersController, api: adminUsersApi };
+    return _adminUsersModules;
+  }
+
   let _activeUsersModules = null;
   async function _ensureActiveUsersFeature() {
     if (_activeUsersModules) return _activeUsersModules;
@@ -325,6 +351,7 @@ export function createAppShellComposition({
     radarController,
     errorsAuditController,
     activeUsersController,
+    adminUsersController,
     subtitlesController,
     audioFeature,
     ttsApi,
@@ -341,6 +368,7 @@ export function createAppShellComposition({
     _ensureRadarFeature,
     _ensureErrorsAuditFeature,
     _ensureActiveUsersFeature,
+    _ensureAdminUsersFeature,
 
     // Tracker Sets — populated by navigation guards
     _cssLoaded,
@@ -401,6 +429,14 @@ function createErrorsAuditStub() {
   };
 }
 function createActiveUsersStub() {
+  return {
+    bindEvents() {},
+    activate() { return Promise.resolve(); },
+    deactivate() {},
+    render() {},
+  };
+}
+function createAdminUsersStub() {
   return {
     bindEvents() {},
     activate() { return Promise.resolve(); },

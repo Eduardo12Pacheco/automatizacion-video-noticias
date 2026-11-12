@@ -1,19 +1,5 @@
-function isRemoteBrowserContext(locationLike = globalThis.location) {
-  const hostname = (locationLike?.hostname || '').toString().toLowerCase();
-  if (!hostname) return false;
-  return !new Set(['localhost', '127.0.0.1', '::1']).has(hostname);
-}
-
-function shouldBlockRemoteOperatorFallback() {
-  const status = globalThis.__CONTROL_PANEL_SESSION__?.status;
-  return isRemoteBrowserContext() && ['anonymous', 'failed'].includes(status);
-}
-
 export function bindCoreEvents({
   el,
-  authUser,
-  authPass,
-  isValidCredentials,
   persistSessionStatus,
   clearSessionStatus,
   loginGatewaySession,
@@ -30,6 +16,7 @@ export function bindCoreEvents({
 }) {
   function openAuthenticatedShell() {
     persistSessionStatus();
+    globalThis.__NEWSROOM_SYNC_ADMIN__?.();
     el.authGate.classList.add('hidden');
     el.appShell.classList.remove('hidden');
     el.authPass.value = '';
@@ -50,18 +37,9 @@ export function bindCoreEvents({
           openAuthenticatedShell();
           return;
         } catch {
-          if (shouldBlockRemoteOperatorFallback()) {
-            toast('Usuario o contraseña incorrectos');
-            return;
-          }
-          // Keep the existing operator login flow available for local/offline fallback only.
+          // S9: local users live in the API/database; the panel never ships a
+          // hardcoded fallback password.
         }
-      }
-
-      const validLocalCredentials = isValidCredentials({ user, pass, authUser, authPass });
-      if (validLocalCredentials) {
-        openAuthenticatedShell();
-        return;
       }
 
       toast('Usuario o contraseña incorrectos');
