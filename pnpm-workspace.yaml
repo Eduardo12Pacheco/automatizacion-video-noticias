@@ -1,6 +1,7 @@
 packages:
   - "apps/api"
   - "packages/contracts"
+  - "packages/core"
   - "services/renderer"
   - "services/subtitles"
   - "packages/data"
