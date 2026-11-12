@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _run_node(script: str):
     return subprocess.run(
-        ["node", "--experimental-default-type=module", "-e", script],
+        ["node", "--input-type=module", "-e", script],
         cwd=ROOT,
         capture_output=True,
         text=True,

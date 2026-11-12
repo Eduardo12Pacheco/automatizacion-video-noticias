@@ -57,7 +57,7 @@ def _border_radius_values(css: str) -> list[str]:
 
 def _run_node(script: str):
     return subprocess.run(
-        ["node", "--experimental-default-type=module", "-e", script],
+        ["node", "--input-type=module", "-e", script],
         cwd=ROOT,
         capture_output=True,
         text=True,

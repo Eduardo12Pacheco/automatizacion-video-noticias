@@ -7,7 +7,7 @@ during the local-first migration.
 ## Verify the existing boundary
 
 ```sh
-node --experimental-default-type=module --test test/gateway-security.test.js
+node --test test/gateway-security.test.js
 ```
 
 Protected panel calls must pass through the authenticated gateway. The panel

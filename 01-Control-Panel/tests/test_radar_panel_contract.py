@@ -15,7 +15,7 @@ RADAR_CSS_PATH = ROOT / "styles" / "features" / "radar.css"
 
 def _run_node_file(path: Path):
     return subprocess.run(
-        ["node", "--experimental-default-type=module", str(path)],
+        ["node", str(path)],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -24,7 +24,7 @@ def _run_node_file(path: Path):
 
 def _run_node(script: str):
     return subprocess.run(
-        ["node", "--experimental-default-type=module", "-e", script],
+        ["node", "--input-type=module", "-e", script],
         cwd=ROOT,
         capture_output=True,
         text=True,

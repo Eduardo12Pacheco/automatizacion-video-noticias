@@ -20,7 +20,7 @@ STYLE_GUARDS_PATH = ROOT / "docs" / "parity" / "style-guards.md"
 
 def _run_node(script: str):
     return subprocess.run(
-        ["node", "--experimental-default-type=module", "-e", script],
+        ["node", "--input-type=module", "-e", script],
         cwd=ROOT,
         capture_output=True,
         text=True,

@@ -272,7 +272,7 @@ Checks focalizados para Radar/Monitor:
 
 ```powershell
 python -m pytest "01-Control-Panel/tests/test_radar_panel_contract.py"
-node --experimental-default-type=module "01-Control-Panel/js/modules/features/radar/__checks__/radar-panel-check.js"
+node "01-Control-Panel/js/modules/features/radar/__checks__/radar-panel-check.js"
 ```
 
 ## Qué NO borrar
