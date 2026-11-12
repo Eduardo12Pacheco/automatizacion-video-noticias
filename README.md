@@ -2,6 +2,10 @@
 
 This repository is the single source tree for the n8n workspace. Before provisioning a new machine, follow the tracked [recovery inventory](docs/recovery/local-artifacts.md); a clone alone is intentionally not operational. Nested repositories have been flattened intentionally; their separate local Git histories are not part of this checkout.
 
+## Local Installation
+
+For the supported end-user path (Docker Compose stack, NVIDIA auto-detection, first administrator and the `newsroom` CLI), see [docs/INSTALL.md](docs/INSTALL.md). The installers are `install.sh` (Linux/macOS) and `install.ps1` (Windows); both are idempotent and generate their own local secrets.
+
 ## Quick Path
 
 1. Clone this repository, then use [the recovery inventory](docs/recovery/local-artifacts.md) to obtain every required external artifact from its approved owner.

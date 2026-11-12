@@ -15,6 +15,7 @@
 *.egg-info/
 
 # Local environment and secrets. Sanitized templates are intentionally versioned.
+.newsroom/
 **/.env
 **/.env.*
 !**/.env.example

@@ -1,0 +1,257 @@
+# Install Newsroom locally
+
+Newsroom runs entirely on your machine. The default installation uses **no API
+keys and no cloud accounts**: Postgres, SearXNG, Mailpit, the API, the panel and
+the workers run as local containers, and the LLM, speech and transcription
+models are downloaded to local volumes.
+
+The installer supports Windows 10/11 (PowerShell 5.1+ and PowerShell 7+) and
+Linux (tested on Ubuntu 24.04 and Arch). macOS works with the bash installer on
+a best-effort basis.
+
+![Linux installer check](images/installer-linux.png)
+
+![Windows installer check](images/installer-windows.png)
+
+## Requirements
+
+| Requirement | Linux | Windows |
+|---|---|---|
+| Docker | Docker Engine + Compose v2 plugin | Docker Desktop with the WSL2 backend (Linux containers) |
+| Disk | 10 GB free (more for GPU models) | 10 GB free (more for GPU models) |
+| RAM | 8 GB minimum | 8 GB minimum |
+| GPU (optional) | NVIDIA driver + `nvidia-container-toolkit` | NVIDIA driver for WSL2 (Docker Desktop detects it) |
+| Shell | bash 4+ | PowerShell 5.1 or 7 |
+
+The installer checks all of these before touching the host. `--check` /
+`-Check` runs only the checks.
+
+## Quick start (Linux)
+
+```bash
+git clone https://github.com/EDUARDO/newsroom-video-automation.git
+cd newsroom-video-automation
+./install.sh
+```
+
+The installer:
+
+1. checks Docker, the daemon, Compose v2, disk, RAM and ports;
+2. detects an NVIDIA GPU and selects the `gpu` profile (otherwise `cpu`);
+3. creates `.env` from `.env.example` with fresh random secrets, mode `0600`;
+4. installs the `newsroom` CLI into `~/.local/bin` (override with `--bin-dir`);
+5. builds the images and downloads the local models;
+6. applies the database migrations;
+7. creates the first administrator and prints the generated password once;
+8. starts the stack and opens <http://127.0.0.1:8080>.
+
+## Quick start (Windows)
+
+Open PowerShell in the cloned directory:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\install.ps1
+```
+
+The behaviour is identical to the bash installer. The CLI is installed under
+`%LOCALAPPDATA%\Newsroom\bin` as `newsroom.cmd` / `newsroom.ps1`; add that
+directory to `PATH` to run `newsroom` from any shell.
+
+If PowerShell blocks the script, run it explicitly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+## Profiles
+
+| Profile | Selected when | Contains |
+|---|---|---|
+| `cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, Postgres, SearXNG, Mailpit, CPU worker paths, Piper TTS, faster-whisper CPU fallback |
+| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the CPU stack plus Ollama, Qwen TTS and faster-whisper on the GPU |
+| `auto` | default | picks `gpu` or `cpu` as described above |
+
+An explicit `--profile gpu` is never silently downgraded. If the container
+runtime is missing, the installer warns and `auto` falls back to `cpu`. Install
+`nvidia-container-toolkit` (Linux) or update Docker Desktop (Windows) to use the
+GPU.
+
+One GPU job runs at a time through `NEWSROOM_GPU_LOCK_PATH`; the API queue keeps
+the GPU slot serial.
+
+## Non-interactive use
+
+```bash
+./install.sh --yes --profile cpu
+```
+
+```powershell
+.\install.ps1 -Yes -Profile cpu
+```
+
+With `--yes` / `-Yes` the first-admin password is generated and printed exactly
+once; it is not written to `.env` or the state file. For automation that must
+control the password, provide it through the environment (never through argv):
+
+```bash
+NEWSROOM_ADMIN_PASSWORD='choose-a-long-password' ./install.sh --yes --profile cpu
+```
+
+Other non-interactive options:
+
+```text
+--no-models / -NoModels      skip the model download
+--no-start / -NoStart        prepare the installation without starting it
+--no-open / -NoOpen          do not open the panel
+--admin-email / -AdminEmail  first administrator email
+--project-dir / -ProjectDir  directory holding .env and compose.yaml
+--compose-file / -ComposeFile  override the Compose file
+--allow-missing-docker / -AllowMissingDocker  CI/self-check only
+```
+
+`--dry-run` / `-DryRun` prints every action without creating files or starting
+containers.
+
+## The `newsroom` CLI
+
+| Command | Behaviour |
+|---|---|
+| `newsroom up` | build and start the stack |
+| `newsroom down` | stop the stack, keep volumes and data |
+| `newsroom status` | `docker compose ps` |
+| `newsroom logs [service]` | follow logs (`--no-follow` prints and exits) |
+| `newsroom update` | refuse a dirty checkout, `git pull --ff-only`, pull/build images, apply migrations, restart |
+| `newsroom doctor` | Docker, daemon, Compose, GPU, disk, RAM, ports, models, admin and install state |
+| `newsroom models` | download the local models if the state says they are missing |
+| `newsroom version` | CLI version |
+| `newsroom help` | usage |
+
+Global options: `--project-dir <path>`, `--profile cpu|gpu`, `--dry-run`.
+
+`doctor` exits non-zero when a blocking check fails, so it can be used in
+scripts:
+
+```bash
+newsroom doctor || echo "fix the failed checks above"
+```
+
+## First administrator
+
+The first admin is created through the API container, so the password is hashed
+with bcrypt before it reaches the database. There is **no default password**.
+
+- Interactive install: the installer asks for the email and a password (minimum
+  8 characters).
+- `--yes` / `-Yes`: a random password is generated and printed once.
+- Administrator management afterwards: the **Usuarios** screen (admin role) or
+  the API's `/panel/admin/users` endpoints. Roles are `admin`, `editor` and
+  `viewer`, enforced server-side.
+
+If you lose the password, reset it from the checkout:
+
+```bash
+printf '%s' 'new-long-password' | docker compose run --rm -T api \
+  node scripts/create-admin.js --email admin@example.local --password-stdin --reset-password
+```
+
+## Updating and uninstalling
+
+```bash
+newsroom update
+```
+
+Re-running `install.sh` / `install.ps1` is also safe: existing secrets are kept,
+downloads and migrations are skipped when the state says they are done, and the
+stack is rebuilt/restarted. The administrator password is not reset.
+
+Stop and remove containers but keep data:
+
+```bash
+./install.sh --uninstall
+```
+
+Remove containers **and** volumes, models, images and `.env` (the installer asks
+first unless `--yes` is given):
+
+```bash
+./install.sh --uninstall --purge
+```
+
+```powershell
+.\install.ps1 -Uninstall -Purge
+```
+
+## Opening the panel to the LAN
+
+The default binding is `127.0.0.1` for the panel-facing services.
+`.env.example` sets `API_GATEWAY_HOST=0.0.0.0` for the API so the panel and API
+can talk inside Compose. To let other people on your LAN use the panel:
+
+1. Set the panel/API host values in `.env` to `0.0.0.0` (or your LAN address).
+2. Allow the panel and API ports through the host firewall.
+3. Open `http://<your-lan-ip>:8080`.
+
+Sessions are HTTP-only, SameSite=Lax cookies with a server-side store and
+expiry. Login attempts are rate-limited. Do not expose the stack to the public
+internet.
+
+## Configuration
+
+Everything is read from `.env`, generated from [`.env.example`](../.env.example).
+Useful values:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NEWSROOM_PROFILE` | `cpu` | Written by the installer; `cpu` or `gpu` |
+| `PANEL_PORT` / `API_GATEWAY_PORT` | `8080` / `8099` | Host ports |
+| `DATABASE_URL` | local Postgres | Repository connection string |
+| `LLM` | `ollama` | Local model adapter; `openai` is optional and off by default |
+| `OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Local Spanish-capable model |
+| `ARTICLE_EXTRACTOR` | `trafilatura` | Local article extraction |
+| `IMAGE_SEARCH` | `searxng` | Local image search, Wikimedia fallback |
+| `NOTIFY` | `console` | Local notifications; `smtp` uses Mailpit/Gmail |
+| `WORKFLOW` | `disabled` | Optional n8n orchestration profile |
+| `TTS_WORKER_ENGINE` | `auto` | Qwen on GPU, Piper on CPU |
+| `WHISPER_MODEL` | `small` | faster-whisper model |
+
+Secrets generated by the installer are 48 hex characters and unique per key.
+Do not commit `.env`. Do not put real API keys in `.env.example`.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `docker is not installed or not in PATH` | Install Docker Engine/Desktop and reopen the shell. On Windows use the WSL2 backend. |
+| `docker daemon is not reachable` | Start Docker Desktop or `sudo systemctl start docker`. |
+| `compose file not found` | The T8 stack is not present in this checkout; see [the Compose contract](../infra/install/COMPOSE_CONTRACT.md). |
+| `docker compose ... run --rm model-init` fails | Free disk space, then re-run; the step is idempotent. |
+| Port already in use | Change `PANEL_PORT`/`API_GATEWAY_PORT`/etc. in `.env` and re-run `newsroom up`. |
+| GPU not used | Run `nvidia-smi`, install `nvidia-container-toolkit`, then `./install.sh --profile gpu`. |
+| Panel cannot reach the API | Check `API_GATEWAY_ALLOWED_ORIGINS` and the panel's API origin. |
+| Login fails after a fresh install | The generated password was printed once. Reset it with the command in [First administrator](#first-administrator). |
+
+Collect diagnostics with:
+
+```bash
+newsroom doctor
+docker compose ps
+docker compose logs --tail=200 api
+```
+
+## Verification in this repository
+
+The installer logic is covered by `infra/install/tests` through the public
+commands, using a deterministic `docker` stand-in:
+
+```bash
+bash infra/install/tests/run.sh
+```
+
+The suite also runs the Windows scripts with PowerShell 7 when `pwsh` is
+available. The CI workflow `.github/workflows/installers.yml` runs the checks on
+`ubuntu-latest` and `windows-latest`; the Windows job keeps Docker optional
+because the hosted runner does not provide Linux containers.
+
+The full stack (Compose profiles, seed data, Playwright happy path) is delivered
+by T8 and must satisfy [COMPOSE_CONTRACT.md](../infra/install/COMPOSE_CONTRACT.md).
