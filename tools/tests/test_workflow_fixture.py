@@ -17,12 +17,12 @@ class WorkflowFixtureTests(unittest.TestCase):
         self.assertEqual(len({workflow["id"] for workflow in workflows}), 16)
         self.assertTrue(all(workflow["nodes"] for workflow in workflows))
         for obsolete in (
-            "local/n8n/import/workflows.json",
-            "local/n8n/files/workflows-clean.json",
-            "local/n8n/files/workflows-final.json",
+            "infra/n8n/import/workflows.json",
+            "infra/n8n/files/workflows-clean.json",
+            "infra/n8n/files/workflows-final.json",
         ):
             self.assertFalse((ROOT / obsolete).exists(), obsolete)
-        compose = ROOT / "local/n8n/docker-compose.yml"
+        compose = ROOT / "infra/n8n/docker-compose.yml"
         source = "../../examples/n8n"
         self.assertIn(f"{source}:/import:ro", compose.read_text(encoding="utf-8"))
         self.assertEqual((compose.parent / source).resolve(), fixture.parent)

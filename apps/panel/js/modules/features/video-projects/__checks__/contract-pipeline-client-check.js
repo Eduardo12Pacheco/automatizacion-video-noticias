@@ -1,0 +1,803 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import { prepareVideoCompositionContract } from '../contract-pipeline-client.js';
+import { createVideoProjectsApiClient } from '../api.js';
+import { createVideoProjectsFeature } from '../index.js';
+import { renderSelectedVideoProjectView } from '../render.js';
+const cjsRequire = createRequire(import.meta.url);
+const approvalService = cjsRequire('../../../../../../../services/renderer/scripts/approval-pipeline-local-service.js');
+const { applyContractOperations } = cjsRequire('../../../../../services/approval-editor/lib/contract-updates.js');
+
+const { createApprovalPipelineLocalService } = approvalService;
+
+function baseProject() {
+  return {
+    draft_id: 'draft-1',
+    title: 'Proyecto 1',
+    guion_piped: 'linea|dos',
+    segments: [
+      { id: 'row-1', text: 'Hola mundo' },
+      { id: 'row-2', phrase: 'Segunda línea' },
+    ],
+    selected_images: [{ id: 'asset-1' }],
+    voice_audio: { public_url: 'https://cdn.example.com/voice.mp3' },
+    background_audio: { public_url: 'https://cdn.example.com/music.mp3' },
+  };
+}
+
+function makeFakeElement() {
+  return {
+    innerHTML: '',
+    classList: { add() {}, remove() {} },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+  };
+}
+
+function makeApprovalEditorProject() {
+  const snapshot = {
+    contractVersion: 'approval-editor-service-v1',
+    snapshotId: 'snapshot-ok',
+    snapshotHash: 'hash-ok',
+    rows: [
+      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Fila estable', startTime: 0, endTime: 1, selectedAssetId: 'asset-1' },
+      { rowId: 'row-2', id: 'row-2', index: 1, phrase: 'Fila con error', startTime: 1, endTime: 2, selectedAssetId: 'asset-2' },
+    ],
+    audio: { voice: { volume: 1, muted: false }, music: { volume: 0.16, muted: false } },
+    assets: {
+      'asset-1': { assetId: 'asset-1', previewUrl: 'https://cdn.example.com/stable-1.jpg', renderPath: 'https://cdn.example.com/stable-1.jpg' },
+      'asset-2': { assetId: 'asset-2', previewUrl: 'https://cdn.example.com/stable-2.jpg', renderPath: 'https://cdn.example.com/stable-2.jpg' },
+    },
+  };
+  return {
+    draft_id: 'draft-editor',
+    title: 'Proyecto editor',
+    status: 'ready',
+    _videoProjectStep: 'audio',
+    _editorRows: snapshot.rows.map((row) => ({ ...row })),
+    _globalAudio: { voice: { volume: 1, muted: false }, music: { volume: 0.16, muted: false } },
+    editor_state: {
+      phase: 'preview_ready',
+      remotion_project_id: 'approval-project-1',
+      pipeline_provider: 'approval',
+      pipeline_base_url: 'https://approval.local',
+      approval_contract_snapshot: snapshot,
+      snapshot_id: snapshot.snapshotId,
+      snapshot_hash: snapshot.snapshotHash,
+      last_preview_hash: snapshot.snapshotHash,
+      timed_rows: snapshot.rows.map((row) => ({ ...row })),
+      global_audio: { voice: { volume: 1, muted: false }, music: { volume: 0.16, muted: false } },
+      dirty: false,
+      error: '',
+    },
+  };
+}
+
+async function captureExpectedConsoleErrors(action, expectedMessage) {
+  const originalConsoleError = console.error;
+  const captured = [];
+  let expectedRejection = false;
+  console.error = (...args) => {
+    captured.push(args);
+  };
+
+  try {
+    try {
+      await action();
+    } catch (error) {
+      if (!String(error?.message || error).includes(expectedMessage)) throw error;
+      expectedRejection = true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 450));
+  } finally {
+    console.error = originalConsoleError;
+  }
+
+  const unexpected = captured.filter((args) => !args.some((arg) => String(arg?.message || arg).includes(expectedMessage)));
+  if (unexpected.length) {
+    for (const args of unexpected) originalConsoleError(...args);
+    throw new Error(`Unexpected console.error while exercising expected failure path: ${unexpected.length}`);
+  }
+  if (!captured.length && !expectedRejection) {
+    throw new Error('Expected failure path to log the caught service error');
+  }
+}
+
+async function assertServiceEditErrorKeepsStablePreview({ action, expectedContext, expectedStablePhrase, allowLocalSnapshotDraft = false }) {
+  const project = makeApprovalEditorProject();
+  const state = { selectedVideoProject: project, settings: { approvalPipelineBaseUrl: 'https://approval.local' } };
+  const persisted = [];
+  const toasts = [];
+  const el = { videoProjectDetail: makeFakeElement(), viewScripts: makeFakeElement(), videoProjectsCatalog: makeFakeElement() };
+  const failingApi = {
+    createApprovalPipelineClient() {
+      return {
+        async updateSnapshot() {
+          throw new Error('validation failed: selected asset is blocked');
+        },
+      };
+    },
+    async updateVideoProjectEditorState({ editorState }) {
+      persisted.push(editorState);
+      return { ok: true };
+    },
+  };
+  const store = { getState: () => state };
+  const feature = createVideoProjectsFeature({
+    api: failingApi,
+    store,
+    ui: { toast(message) { toasts.push(message); } },
+    callbacks: {
+      renderSelectedVideoProject() {
+        renderSelectedVideoProjectView({ state, el, updateRow: feature.updateRow, updateGlobalAudio: feature.updateGlobalAudio });
+      },
+    },
+  });
+
+  const stableSnapshot = JSON.stringify(project.editor_state.approval_contract_snapshot);
+  const stableRows = JSON.stringify(project._editorRows);
+  await captureExpectedConsoleErrors(() => action(feature), 'validation failed: selected asset is blocked');
+
+  if (!allowLocalSnapshotDraft && JSON.stringify(project.editor_state.approval_contract_snapshot) !== stableSnapshot) {
+    throw new Error('Expected failed service update to preserve the last stable canonical snapshot');
+  }
+  if (JSON.stringify(project._editorRows) !== stableRows) {
+    throw new Error('Expected failed service update to preserve the last stable preview rows');
+  }
+  if (!project.editor_state.error.includes(expectedContext)) {
+    throw new Error(`Expected visible service error to include ${expectedContext}; got ${project.editor_state.error}`);
+  }
+  renderSelectedVideoProjectView({ state, el, updateRow: feature.updateRow, updateGlobalAudio: feature.updateGlobalAudio });
+  if (!el.videoProjectDetail.innerHTML.includes(expectedStablePhrase)) {
+    throw new Error('Expected error render to keep the last stable preview/editor row visible');
+  }
+  if (!el.videoProjectDetail.innerHTML.includes(expectedContext) || !el.videoProjectDetail.innerHTML.includes('validation failed')) {
+    throw new Error('Expected rendered error state to show row/global validation context');
+  }
+  if (!toasts.length) {
+    throw new Error('Expected failed service update to surface a user toast');
+  }
+  if (persisted.length) {
+    throw new Error('Expected failed service update not to persist a replacement snapshot');
+  }
+}
+
+async function assertApprovalRowImageSwapPreservesCanonicalAssetUrls() {
+  const project = makeApprovalEditorProject();
+  const state = { selectedVideoProject: project, settings: { approvalPipelineBaseUrl: 'https://approval.local' } };
+  const updateSnapshotCalls = [];
+  const api = {
+    createApprovalPipelineClient() {
+      return {
+        async updateSnapshot(projectId, payload) {
+          updateSnapshotCalls.push({ projectId, payload });
+          const next = JSON.parse(JSON.stringify(project.editor_state.approval_contract_snapshot));
+          for (const operation of payload.operations || []) {
+            if (operation?.type !== 'setRowImage') continue;
+            const asset = operation.asset || {};
+            next.assets[asset.assetId] = asset;
+            const row = next.rows.find((candidate) => candidate.rowId === operation.rowId || candidate.id === operation.rowId);
+            if (row) row.selectedAssetId = asset.assetId;
+          }
+          next.snapshotId = 'snapshot-swapped';
+          next.snapshotHash = 'hash-swapped';
+          return { snapshot: next };
+        },
+      };
+    },
+    async saveVideoProjectEditorState() {},
+  };
+  const feature = createVideoProjectsFeature({
+    api,
+    store: { getState: () => state },
+    ui: { toast() {} },
+    callbacks: {
+      renderSelectedVideoProject() {},
+      renderVideoProjects() {},
+    },
+  });
+
+  await feature.swapRowImages('row-1', 'row-2');
+
+  if (updateSnapshotCalls.length !== 1) {
+    throw new Error(`Expected one atomic row-image swap update, got ${updateSnapshotCalls.length}`);
+  }
+  const operations = updateSnapshotCalls[0].payload.operations;
+  const sourceOperation = operations.find((operation) => operation.rowId === 'row-1');
+  const targetOperation = operations.find((operation) => operation.rowId === 'row-2');
+  if (sourceOperation?.asset?.previewUrl !== 'https://cdn.example.com/stable-2.jpg') {
+    throw new Error(`Expected row-1 swap asset to preserve asset-2 previewUrl, got ${sourceOperation?.asset?.previewUrl}`);
+  }
+  if (sourceOperation?.asset?.renderPath !== 'https://cdn.example.com/stable-2.jpg') {
+    throw new Error(`Expected row-1 swap asset to preserve asset-2 renderPath, got ${sourceOperation?.asset?.renderPath}`);
+  }
+  if (targetOperation?.asset?.previewUrl !== 'https://cdn.example.com/stable-1.jpg') {
+    throw new Error(`Expected row-2 swap asset to preserve asset-1 previewUrl, got ${targetOperation?.asset?.previewUrl}`);
+  }
+  if (sourceOperation?.asset?.previewUrl === sourceOperation?.asset?.assetId || targetOperation?.asset?.previewUrl === targetOperation?.asset?.assetId) {
+    throw new Error('Expected row-image swap operations not to use bare asset IDs as image URLs');
+  }
+}
+
+function assertApprovalServicePersistsNewspaperMediaMode() {
+  const snapshot = {
+    contractVersion: 'approval-editor-service-v1',
+    projectId: 'approval-project-1',
+    snapshotId: 'snapshot-1',
+    snapshotHash: 'hash-1',
+    rows: [
+      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Luis diaz', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' }, motionPresetId: 'Zoom 110' },
+    ],
+    assets: {
+      'asset-1': { assetId: 'asset-1', previewUrl: 'https://cdn.example.com/luis.jpg', renderPath: 'https://cdn.example.com/luis.jpg' },
+    },
+  };
+
+  const next = applyContractOperations(snapshot, [
+    { type: 'setRowMediaMode', rowId: 'row-1', mediaMode: 'newspaper', media: { kind: 'image' } },
+  ]);
+
+  if (next.rows[0].mediaMode !== 'newspaper') {
+    throw new Error(`Expected setRowMediaMode to persist newspaper mode, got ${next.rows[0].mediaMode}`);
+  }
+  if (next.rows[0].media?.kind !== 'image') {
+    throw new Error('Expected newspaper media mode to persist as image media');
+  }
+  if (next.rows[0].motionPresetId !== 'Zoom 150' || next.rows[0].motion?.toScale !== 1.5) {
+    throw new Error('Expected newspaper mode to persist Zoom 150 defaults');
+  }
+  if (next.snapshotHash === snapshot.snapshotHash) {
+    throw new Error('Expected persisted newspaper mode to produce a new snapshot hash');
+  }
+}
+
+function makeApprovalFetchFixture() {
+  const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zz5QAAAAASUVORK5CYII=', 'base64');
+  const voice = Buffer.from('voice-bytes');
+  const music = Buffer.from('music-bytes');
+  const byUrl = new Map([
+    ['https://cdn.example.com/image-1.jpg', { bytes: image, contentType: 'image/jpeg' }],
+    ['https://cdn.example.com/image-2.jpg', { bytes: image, contentType: 'image/jpeg' }],
+    ['https://cdn.example.com/voice.mp3', { bytes: voice, contentType: 'audio/mpeg' }],
+    ['https://cdn.example.com/music.mp3', { bytes: music, contentType: 'audio/mpeg' }],
+  ]);
+
+  return async (url) => {
+    const found = byUrl.get(String(url));
+    if (!found) return new Response('not found', { status: 404 });
+    return new Response(found.bytes, { status: 200, headers: { 'content-type': found.contentType } });
+  };
+}
+
+async function withApprovalService(fn) {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-pipeline-check-'));
+  const server = createApprovalPipelineLocalService({ projectsRoot, env: {}, fetchImpl: makeApprovalFetchFixture() });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  try {
+    await fn(`http://127.0.0.1:${port}`);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+export async function runContractPipelineClientCheck() {
+  await withApprovalService(async (approvalBaseUrl) => {
+    const api = createVideoProjectsApiClient({ fetchImpl: fetch });
+    const remotionCalls = [];
+    const remotionApi = {
+      createApprovalPipelineClient({ resolveBaseUrl }) {
+        remotionCalls.push({ type: 'approval-adapter', baseUrl: resolveBaseUrl() });
+        return api.createApprovalPipelineClient({ resolveBaseUrl });
+      },
+      createRemotionClient({ resolveBaseUrl }) {
+        remotionCalls.push({ type: 'remotion-adapter', baseUrl: resolveBaseUrl() });
+        return {
+          async createFromApproval() {
+            throw new Error('Remotion fallback should not run for healthy approval service');
+          },
+          async status() {
+            throw new Error('Remotion fallback should not run for healthy approval service');
+          },
+        };
+      },
+    };
+
+    const prepared = await prepareVideoCompositionContract({
+      project: baseProject(),
+      settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: approvalBaseUrl },
+      api: remotionApi,
+    });
+
+    if (prepared.provider !== 'approval') {
+      throw new Error('Expected healthy local approval service to be selected');
+    }
+    if (prepared.providerMetadata?.health?.ok !== true) {
+      throw new Error('Expected healthy service metadata to preserve ok=true');
+    }
+    if (prepared.providerMetadata?.health?.status !== 'ready') {
+      throw new Error('Expected healthy service metadata to preserve ready status');
+    }
+    if (!Array.isArray(prepared.timedRows) || prepared.timedRows.length !== 2) {
+      throw new Error('Expected approval service to provide timed rows');
+    }
+    if (!prepared.timedRows.every((row) => row.dust?.enabled === true && row.dust?.type === 'particle-1')) {
+      throw new Error('Expected newly prepared approval rows to default to Polvo 1 enabled');
+    }
+    if (remotionCalls.some((entry) => entry.type === 'remotion-adapter' && entry.baseUrl !== 'https://remotion.local')) {
+      throw new Error('Expected remotion adapter base URL to remain unchanged');
+    }
+  });
+
+  const healthyApprovalTimeoutCalls = [];
+  const healthyApprovalTimeoutApi = {
+    createApprovalPipelineClient() {
+      return {
+        async health() {
+          healthyApprovalTimeoutCalls.push({ type: 'approval-health' });
+          return { ok: true, status: 'ready' };
+        },
+        async createFromApproval() {
+          healthyApprovalTimeoutCalls.push({ type: 'approval-create' });
+          throw new TypeError('Failed to fetch');
+        },
+        async status() {
+          healthyApprovalTimeoutCalls.push({ type: 'approval-status' });
+          throw new Error('Approval status should not run after failed create');
+        },
+      };
+    },
+    createRemotionClient() {
+      return {
+        async createFromApproval() {
+          healthyApprovalTimeoutCalls.push({ type: 'remotion-create' });
+          throw new Error('Remotion fallback should not run after healthy Approval create timeout');
+        },
+        async status() {
+          healthyApprovalTimeoutCalls.push({ type: 'remotion-status' });
+          throw new Error('Remotion fallback should not run after healthy Approval create timeout');
+        },
+      };
+    },
+  };
+  let healthyApprovalTimeoutError = '';
+  try {
+    await prepareVideoCompositionContract({
+      project: baseProject(),
+      settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+      api: healthyApprovalTimeoutApi,
+    });
+  } catch (error) {
+    healthyApprovalTimeoutError = error?.message || '';
+  }
+  if (!healthyApprovalTimeoutError.includes('puede seguir corriendo en el servidor')) {
+    throw new Error(`Expected healthy Approval create timeout to surface in-flight guidance, got: ${healthyApprovalTimeoutError}`);
+  }
+  if (healthyApprovalTimeoutCalls.some((call) => call.type.startsWith('remotion-'))) {
+    throw new Error('Expected healthy Approval create timeout not to fallback to Remotion preparation');
+  }
+  if (!healthyApprovalTimeoutCalls.some((call) => call.type === 'approval-create')) {
+    throw new Error('Expected healthy Approval create path to be attempted before surfacing timeout guidance');
+  }
+
+  const calls = [];
+  const fakeAdapter = {
+    async createFromApproval(seed) {
+      calls.push({ type: 'create', seed });
+      return {
+        alignmentStatus: { status: 'ready' },
+        projectId: 'remotion-123',
+        snapshot: {
+          project: {
+            rows: [],
+          },
+        },
+        previewAssets: { from: 'created' },
+      };
+    },
+    async status(projectId) {
+      calls.push({ type: 'status', projectId });
+      return {
+        project: {
+          rows: [
+            { id: 'row-1', phrase: 'Hola mundo', startTime: 0, endTime: 2, selectedAssetId: 'asset-1' },
+          ],
+        },
+        previewAssets: { from: 'status' },
+      };
+    },
+  };
+
+  const api = {
+    createRemotionClient({ resolveBaseUrl }) {
+      calls.push({ type: 'adapter', baseUrl: resolveBaseUrl() });
+      return fakeAdapter;
+    },
+  };
+
+  const prepared = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local' },
+    api,
+  });
+
+  if (prepared.compositionProjectId !== 'remotion-123') {
+    throw new Error('Expected normalized compositionProjectId');
+  }
+  if (!Array.isArray(prepared.timedRows) || prepared.timedRows.length !== 1) {
+    throw new Error('Expected timedRows fallback from status rows');
+  }
+  if (prepared.previewAssets?.from !== 'status') {
+    throw new Error('Expected status previewAssets to win over created fallback');
+  }
+  if (prepared.providerMetadata?.id !== 'remotion') {
+    throw new Error('Expected default metadata to identify remotion provider');
+  }
+  if (!('baseUrl' in (prepared.providerMetadata || {})) || !('fallbackFrom' in (prepared.providerMetadata || {}))) {
+    throw new Error('Expected minimal provider metadata to be present');
+  }
+
+  const invalidTimelineApi = {
+    createRemotionClient() {
+      return {
+        async createFromApproval() {
+          return {
+            alignmentStatus: { status: 'ready' },
+            projectId: 'invalid-timeline-project',
+            snapshot: {
+              contractVersion: 'approval-editor-service-v1',
+              projectId: 'invalid-timeline-project',
+              rows: [
+                { rowId: 'seg-018', id: 'seg-018', index: 0, phrase: 'Fila 18', startTime: 97.7, endTime: 98.7, effectiveEndTime: 88.74, selectedAssetId: 'asset-18' },
+                { rowId: 'seg-019', id: 'seg-019', index: 1, phrase: 'Fila 19', startTime: 88.74, endTime: 93.64, effectiveEndTime: 93.64, selectedAssetId: 'asset-19' },
+              ],
+            },
+          };
+        },
+        async status() {
+          return { snapshot: null, previewAssets: { assets: {} } };
+        },
+      };
+    },
+  };
+  let invalidTimelineError = '';
+  try {
+    await prepareVideoCompositionContract({
+      project: baseProject(),
+      settings: { remotionApiUrl: 'https://remotion.local' },
+      api: invalidTimelineApi,
+    });
+  } catch (error) {
+    invalidTimelineError = error?.message || '';
+  }
+  if (!/Invalid timeline:.*seg-018 effectiveEndTime 88\.74 is before endTime 98\.7.*seg-019 starts at 88\.74 before previous row seg-018 endTime 98\.7/is.test(invalidTimelineError)) {
+    throw new Error(`Expected prepared editor client to reject invalid returned rows, got: ${invalidTimelineError}`);
+  }
+
+  const boundarySnapshot = {
+    contractVersion: 'approval-editor-service-v1',
+    projectId: 'approval-boundary-preview',
+    snapshotId: 'snapshot-boundary-preview',
+    snapshotHash: 'hash-boundary-preview',
+    rows: [
+      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Primer párrafo', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', media: { kind: 'image' }, paragraphBoundaryAfter: true, nextRowId: 'row-2', transition: 'none' },
+      { rowId: 'row-2', id: 'row-2', index: 1, phrase: 'Segundo párrafo', startTime: 1, endTime: 2, selectedAssetId: 'asset-2', media: { kind: 'image' }, paragraphBoundaryAfter: true, nextRowId: 'row-3', transition: 'none' },
+      { rowId: 'row-3', id: 'row-3', index: 2, phrase: 'Tercer párrafo', startTime: 2, endTime: 3, selectedAssetId: 'asset-3', media: { kind: 'image' }, transition: 'none' },
+    ],
+    assets: {
+      'asset-1': { assetId: 'asset-1', previewUrl: 'https://cdn.example.com/1.jpg', renderPath: 'https://cdn.example.com/1.jpg' },
+      'asset-2': { assetId: 'asset-2', previewUrl: 'https://cdn.example.com/2.jpg', renderPath: 'https://cdn.example.com/2.jpg' },
+      'asset-3': { assetId: 'asset-3', previewUrl: 'https://cdn.example.com/3.jpg', renderPath: 'https://cdn.example.com/3.jpg' },
+    },
+    audio: { voice: { volume: 1, muted: false }, music: { volume: 0.16, muted: false } },
+  };
+  const boundaryPrepared = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local' },
+    api: {
+      createRemotionClient() {
+        return {
+          async createFromApproval() {
+            return { alignmentStatus: { status: 'ready' }, projectId: boundarySnapshot.projectId, snapshot: boundarySnapshot };
+          },
+          async status() {
+            return { snapshot: boundarySnapshot, previewAssets: { assets: {} } };
+          },
+        };
+      },
+    },
+  });
+
+  const preparedSnapshotRows = boundaryPrepared.approvalContractSnapshot?.rows || [];
+  if (preparedSnapshotRows[0]?.transition !== 'transition-3' || preparedSnapshotRows[0]?.transitionSource !== 'auto') {
+    throw new Error('Expected prepared Approval snapshot row 1 to already persist automatic Transition 3');
+  }
+  if (preparedSnapshotRows[1]?.transition !== 'transition-3' || preparedSnapshotRows[1]?.transitionSource !== 'auto') {
+    throw new Error('Expected prepared Approval snapshot row 2 to already persist automatic Transition 3');
+  }
+  if (preparedSnapshotRows[0]?.transitionConfig?.assetId !== 'transition-3' || preparedSnapshotRows[1]?.transitionConfig?.assetId !== 'transition-3') {
+    throw new Error('Expected prepared Approval snapshot rows to include full automatic Transition 3 configs');
+  }
+  if (!boundaryPrepared.approvalContractSnapshot?.assets?.['transition-3']) {
+    throw new Error('Expected prepared Approval snapshot to include automatic Transition 3 boundary asset');
+  }
+
+  const manualNoneSnapshot = {
+    ...boundarySnapshot,
+    snapshotId: 'snapshot-manual-none-preview',
+    snapshotHash: 'hash-manual-none-preview',
+    rows: [
+      { ...boundarySnapshot.rows[0], transition: 'none', transitionSource: 'manual' },
+      { ...boundarySnapshot.rows[1], transition: 'none' },
+      { ...boundarySnapshot.rows[2] },
+    ],
+  };
+  const manualNonePrepared = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local' },
+    api: {
+      createRemotionClient() {
+        return {
+          async createFromApproval() {
+            return { alignmentStatus: { status: 'ready' }, projectId: manualNoneSnapshot.projectId, snapshot: manualNoneSnapshot };
+          },
+          async status() {
+            return { snapshot: manualNoneSnapshot, previewAssets: { assets: {} } };
+          },
+        };
+      },
+    },
+  });
+  const manualRows = manualNonePrepared.approvalContractSnapshot?.rows || [];
+  if (manualRows[0]?.transition !== 'none' || manualRows[0]?.transitionSource !== 'manual') {
+    throw new Error('Expected prepared Approval snapshot to preserve explicit manual none at the first boundary');
+  }
+  if (manualRows[1]?.transition !== 'transition-3' || manualRows[1]?.transitionSource !== 'auto') {
+    throw new Error('Expected automatic Transition 3 default to continue after a preserved manual none');
+  }
+
+  const adapterCall = calls.find((entry) => entry.type === 'adapter');
+  if (!adapterCall || adapterCall.baseUrl !== 'https://remotion.local') {
+    throw new Error('Expected contract pipeline client to configure adapter with settings base URL');
+  }
+
+  const createCall = calls.find((entry) => entry.type === 'create');
+  if (!createCall?.seed?.draft_id || !createCall?.seed?.voice_audio || !createCall?.seed?.background_audio) {
+    throw new Error('Expected create-from-approval seed to preserve contract payload essentials');
+  }
+
+  let missingAudioError = '';
+  try {
+    await prepareVideoCompositionContract({
+      project: { ...baseProject(), voice_audio: null },
+      settings: { remotionApiUrl: 'https://remotion.local' },
+      api,
+    });
+  } catch (error) {
+    missingAudioError = error?.message || '';
+  }
+  if (!missingAudioError.includes('voice_audio.public_url')) {
+    throw new Error('Expected existing missing-audio fallback error behavior');
+  }
+
+  const providerCalls = [];
+  const apiWithApproval = {
+    createApprovalPipelineClient({ resolveBaseUrl }) {
+      providerCalls.push({ type: 'approval-adapter', baseUrl: resolveBaseUrl() });
+      return {
+        async health() {
+          providerCalls.push({ type: 'approval-health' });
+          return { ok: true, status: 'ready' };
+        },
+        async createFromApproval() {
+          providerCalls.push({ type: 'approval-create' });
+          return {
+            alignmentStatus: { status: 'ready' },
+            projectId: 'approval-123',
+            snapshot: { project: { rows: [{ id: 'row-a', phrase: 'Desde approval', startTime: 0, endTime: 2 }] } },
+          };
+        },
+        async status(projectId) {
+          providerCalls.push({ type: 'approval-status', projectId });
+          return { project: { rows: [{ id: 'row-a', phrase: 'Desde approval', startTime: 0, endTime: 2 }] } };
+        },
+      };
+    },
+    createRemotionClient() {
+      providerCalls.push({ type: 'remotion-adapter' });
+      return fakeAdapter;
+    },
+  };
+
+  const preparedWithApproval = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+    api: apiWithApproval,
+  });
+
+  if (preparedWithApproval.provider !== 'approval') {
+    throw new Error('Expected healthy configured approval provider to be selected');
+  }
+  if (preparedWithApproval.providerMetadata?.id !== 'approval') {
+    throw new Error('Expected provider metadata for approval selection');
+  }
+  const approvalRenderCalls = providerCalls.filter((entry) => entry.type?.includes('render'));
+  if (approvalRenderCalls.length) {
+    throw new Error('Prepare pipeline must not move preview/final rendering ownership');
+  }
+
+  const healthFailCalls = [];
+  const apiWithUnhealthyApproval = {
+    createApprovalPipelineClient() {
+      healthFailCalls.push({ type: 'approval-adapter' });
+      return {
+        async health() {
+          healthFailCalls.push({ type: 'approval-health' });
+          return { ok: false, status: 'degraded' };
+        },
+      };
+    },
+    createRemotionClient() {
+      healthFailCalls.push({ type: 'remotion-adapter' });
+      return fakeAdapter;
+    },
+  };
+
+  const preparedFallback = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+    api: apiWithUnhealthyApproval,
+  });
+  if (preparedFallback.provider !== 'remotion') {
+    throw new Error('Expected unhealthy approval health to fallback to remotion');
+  }
+  if (preparedFallback.providerMetadata?.fallbackFrom !== 'approval') {
+    throw new Error('Expected fallback metadata source when approval health is degraded');
+  }
+
+  const malformedHealthCalls = [];
+  const apiWithMalformedHealth = {
+    createApprovalPipelineClient() {
+      malformedHealthCalls.push({ type: 'approval-adapter' });
+      return {
+        async health() {
+          malformedHealthCalls.push({ type: 'approval-health' });
+          return {};
+        },
+      };
+    },
+    createRemotionClient() {
+      malformedHealthCalls.push({ type: 'remotion-adapter' });
+      return fakeAdapter;
+    },
+  };
+
+  const preparedMalformedFallback = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+    api: apiWithMalformedHealth,
+  });
+  if (preparedMalformedFallback.provider !== 'remotion') {
+    throw new Error('Expected malformed approval health payload to fallback to remotion');
+  }
+
+  const nonReadyCalls = [];
+  const apiWithNonReadyApproval = {
+    createApprovalPipelineClient() {
+      nonReadyCalls.push({ type: 'approval-adapter' });
+      return {
+        async health() {
+          return { ok: true, status: 'ready' };
+        },
+        async createFromApproval() {
+          nonReadyCalls.push({ type: 'approval-create' });
+          return { alignmentStatus: { status: 'pending' }, projectId: 'approval-pending' };
+        },
+        async status() {
+          nonReadyCalls.push({ type: 'approval-status' });
+          return { project: { rows: [] } };
+        },
+      };
+    },
+    createRemotionClient() {
+      nonReadyCalls.push({ type: 'remotion-adapter' });
+      return {
+        async createFromApproval() {
+          nonReadyCalls.push({ type: 'remotion-create' });
+          throw new Error('Remotion fallback should not run when healthy approval preparation fails');
+        },
+        async status() {
+          nonReadyCalls.push({ type: 'remotion-status' });
+          throw new Error('Remotion fallback should not run when healthy approval preparation fails');
+        },
+      };
+    },
+  };
+
+  let nonReadyError = '';
+  try {
+    await prepareVideoCompositionContract({
+      project: baseProject(),
+      settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+      api: apiWithNonReadyApproval,
+    });
+  } catch (error) {
+    nonReadyError = error?.message || '';
+  }
+  if (!nonReadyError.includes('Alineación de audio pendiente')) {
+    throw new Error('Expected healthy approval preparation failures to stay on approval provider and surface the real error');
+  }
+  if (nonReadyCalls.some((entry) => entry.type === 'remotion-create' || entry.type === 'remotion-status')) {
+    throw new Error('Expected non-ready approval payload not to fallback to remotion');
+  }
+
+  const apiWithApprovalDebugHealth = {
+    createApprovalPipelineClient() {
+      return {
+        async health() {
+          return { ok: true, status: 'ready', debug: 'must-not-leak' };
+        },
+        async createFromApproval() {
+          return {
+            alignmentStatus: { status: 'ready' },
+            projectId: 'approval-456',
+            snapshot: { project: { rows: [{ id: 'row-b', phrase: 'Desde approval 2', startTime: 0, endTime: 2 }] } },
+          };
+        },
+        async status() {
+          return { project: { rows: [{ id: 'row-b', phrase: 'Desde approval 2', startTime: 0, endTime: 2 }] } };
+        },
+      };
+    },
+    createRemotionClient() {
+      return fakeAdapter;
+    },
+  };
+
+  const preparedSanitizedHealth = await prepareVideoCompositionContract({
+    project: baseProject(),
+    settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+    api: apiWithApprovalDebugHealth,
+  });
+  if (preparedSanitizedHealth.provider !== 'approval') {
+    throw new Error('Expected healthy approval payload to remain on approval provider');
+  }
+  if (preparedSanitizedHealth.providerMetadata?.health?.debug !== undefined) {
+    throw new Error('Expected provider metadata health to be sanitized (no debug field leakage)');
+  }
+  if (preparedSanitizedHealth.providerMetadata?.health?.ok !== true) {
+    throw new Error('Expected provider metadata health to preserve the ok flag');
+  }
+
+  await assertApprovalRowImageSwapPreservesCanonicalAssetUrls();
+  assertApprovalServicePersistsNewspaperMediaMode();
+
+  await assertServiceEditErrorKeepsStablePreview({
+    action: (feature) => feature.updateRow('row-2', { selectedAssetId: 'blocked-asset' }),
+    expectedContext: 'Fila row-2',
+    expectedStablePhrase: 'Fila con error',
+  });
+
+  await assertServiceEditErrorKeepsStablePreview({
+    action: (feature) => feature.updateGlobalAudio('voice', { volume: 0.35 }),
+    expectedContext: 'Audio voice',
+    expectedStablePhrase: 'Fila estable',
+    allowLocalSnapshotDraft: true,
+  });
+
+  return { ok: true };
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  runContractPipelineClientCheck()
+    .then(() => {
+      console.log('contract-pipeline-client-check: PASS');
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    });
+}

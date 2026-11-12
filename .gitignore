@@ -26,10 +26,10 @@
 **/*.key
 **/*.p12
 **/*.pfx
-10-Api-Gateway/users.json
-local/n8n/files/credentials-final.json
-local/n8n/files/credentials-clean.json
-local/n8n/import/credentials.json
+apps/api/users.json
+infra/n8n/files/credentials-final.json
+infra/n8n/files/credentials-clean.json
+infra/n8n/import/credentials.json
 
 # Local service state, databases, generated media, and model downloads
 local/backups/
@@ -37,32 +37,32 @@ local/models/
 local/default-music/
 # Runtime n8n exports remain ignored. The canonical sanitized reference is
 # versioned separately under examples/n8n/.
-local/n8n/files/*
-local/n8n/import/*
+infra/n8n/files/*
+infra/n8n/import/*
 recovery-artifacts/
 # Root-anchored on purpose: a bare `runtime/` matches at any depth and silently
-# excluded real source under 01-Control-Panel/js/modules/features/*/runtime/.
+# excluded real source under apps/panel/js/modules/features/*/runtime/.
 # Per-service nested .gitignore files still cover their own runtime state.
 /runtime/
 /runtime-logs/
 /logs/
 /temp/
-local/services/logs/
+infra/windows/logs/
 profesor/data/runtime/
 subtitles-local-minimal/runtime-remote/
-01-Control-Panel/services/approval-editor/projects/
-02-Video-Engine/assets/overlays/
-02-Video-Engine/projects/
-02-Video-Engine/public/
-05-Voice-TTS-Service/output/
-05-Voice-TTS-Service/segments/
-05-Voice-TTS-Service/runtime/
-05-Voice-TTS-Service/models/
-06-Subtitles-Service/output/
-09-Transcript-Service/runtime/
-09-Transcript-Service/runtime-logs/
-10-Channel-Monitor-Service/runtime/
-10-Channel-Monitor-Service/runtime-logs/
+apps/panel/services/approval-editor/projects/
+services/renderer/assets/overlays/
+services/renderer/projects/
+services/renderer/public/
+services/tts-worker/output/
+services/tts-worker/segments/
+services/tts-worker/runtime/
+services/tts-worker/models/
+services/subtitles/output/
+services/asr-worker/runtime/
+services/asr-worker/runtime-logs/
+services/channel-monitor/runtime/
+services/channel-monitor/runtime-logs/
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal

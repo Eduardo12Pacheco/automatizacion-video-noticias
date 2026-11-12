@@ -7,11 +7,11 @@ not the default local-first backend or a working cloud deployment.
 ## Inspect or import
 
 Review the definitions before importing them into a disposable n8n instance.
-The legacy Compose file in `local/n8n/` mounts this directory read-only at
+The legacy Compose file in `infra/n8n/` mounts this directory read-only at
 `/import`; it never includes credential exports.
 
 ```sh
-docker compose -f local/n8n/docker-compose.yml run --rm n8n \
+docker compose -f infra/n8n/docker-compose.yml run --rm n8n \
   n8n import:workflow --input=/import/workflows.json
 ```
 

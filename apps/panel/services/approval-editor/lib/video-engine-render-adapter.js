@@ -1,0 +1,615 @@
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const { spawn } = require("child_process");
+const { stableId, normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("../../../../../packages/contracts/approval-contract-pipeline");
+const { addBoundaryTransitionAssets, normalizeBoundaryTransitionRows } = require("./boundary-transitions");
+
+const AUTHORITATIVE_DUST_ASSETS = {
+  "particle-1": {
+    assetId: "particle-1",
+    id: "particle-1",
+    type: "dust",
+    role: "dust",
+    source: { kind: "local", bridge: "approval-panel" },
+    publicUrl: "./assets/particle-1.webm",
+    previewUrl: "./assets/particle-1.webm",
+    renderPath: "overlays/particle-1.mp4",
+    status: "ready",
+  },
+  "particle-2": {
+    assetId: "particle-2",
+    id: "particle-2",
+    type: "dust",
+    role: "dust",
+    source: { kind: "local", bridge: "approval-panel" },
+    publicUrl: "./assets/particle-2.webm",
+    previewUrl: "./assets/particle-2.webm",
+    renderPath: "overlays/particle-2.mp4",
+    status: "ready",
+  },
+  "particle-3": {
+    assetId: "particle-3",
+    id: "particle-3",
+    type: "dust",
+    role: "dust",
+    source: { kind: "local", bridge: "approval-panel" },
+    publicUrl: "./assets/particle-3.webm",
+    previewUrl: "./assets/particle-3.webm",
+    renderPath: "overlays/particle-3.mp4",
+    status: "ready",
+  },
+  "particle-4": {
+    assetId: "particle-4",
+    id: "particle-4",
+    type: "dust",
+    role: "dust",
+    source: { kind: "local", bridge: "approval-panel" },
+    publicUrl: "./assets/particle-4.webm",
+    previewUrl: "./assets/particle-4.webm",
+    renderPath: "overlays/particle-4.mp4",
+    status: "ready",
+  },
+};
+
+const DEFAULT_RENDER_ASSET_RETRY_DELAYS_MS = [250, 1000];
+const DEFAULT_RENDER_ASSET_REQUEST_HEADERS = {
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+  accept: "image/jpeg,image/png,image/*,*/*;q=0.8",
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function createAdapterError(code, message, details) {
+  const error = new Error(message);
+  error.code = code;
+  if (details !== undefined) error.details = details;
+  return error;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+function normalizeRetryDelays(value) {
+  if (!Array.isArray(value)) return DEFAULT_RENDER_ASSET_RETRY_DELAYS_MS;
+  return value
+    .map((entry) => Number(entry))
+    .filter((entry) => Number.isFinite(entry) && entry >= 0);
+}
+
+function shouldRetryAssetDownloadStatus(status) {
+  if (!Number.isFinite(Number(status))) return true;
+  const numericStatus = Number(status);
+  if (numericStatus === 404) return false;
+  return numericStatus === 408 || numericStatus === 409 || numericStatus === 425 || numericStatus === 429 || numericStatus === 403 || numericStatus >= 500;
+}
+
+function resolveProjectId(projectId, snapshot = {}) {
+  const id = stableId(snapshot.projectId || projectId || snapshot.draftId || snapshot.title || "approval-render");
+  if (!id) throw createAdapterError("invalid_project_id", "Approval Editor render adapter could not resolve a safe Video Engine project id.");
+  return id;
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  fs.renameSync(tempPath, filePath);
+}
+
+function isHttpUrl(value) {
+  return /^https?:\/\//i.test(String(value || "").trim());
+}
+
+function isUnsafeRenderPath(value) {
+  const normalized = String(value || "").trim().replace(/\\/g, "/");
+  if (!normalized || normalized.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(normalized)) return true;
+  return normalized.split("/").some((part) => part === "..") || normalized.includes("//");
+}
+
+function sanitizeAssetId(value, fallback) {
+  const sanitized = String(value || fallback || "asset")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "asset";
+  if (sanitized.length <= 120) return sanitized;
+  const hash = crypto.createHash("sha1").update(sanitized).digest("hex").slice(0, 12);
+  return `${sanitized.slice(0, 96).replace(/[-._]+$/g, "")}-${hash}`;
+}
+
+function extensionFromSource(source, asset = {}) {
+  const candidates = [source, asset.renderPath, asset.localPath, asset.publicPath, asset.publicUrl, asset.previewUrl, asset.url];
+  for (const candidate of candidates) {
+    try {
+      const pathname = isHttpUrl(candidate) ? new URL(candidate).pathname : String(candidate || "");
+      const ext = path.extname(pathname).toLowerCase();
+      if (/^\.[a-z0-9]{1,8}$/.test(ext)) return ext;
+    } catch {
+      const ext = path.extname(String(candidate || "")).toLowerCase();
+      if (/^\.[a-z0-9]{1,8}$/.test(ext)) return ext;
+    }
+  }
+  if ([asset.type, asset.kind].some((entry) => ["audio", "voice", "music"].includes(String(entry || "").toLowerCase()))) return ".wav";
+  return ".bin";
+}
+
+function generatedFolderForAsset(asset = {}) {
+  const type = String(asset.type || asset.kind || "").toLowerCase();
+  if (["audio", "voice", "music"].includes(type)) return "audio";
+  if (["image", "photo"].includes(type)) return "images";
+  if (["logo", "outro", "overlay", "dust", "video", "video-segment"].includes(type)) return "overlays";
+  return "assets";
+}
+
+function normalizeEditorAssetSource(source = {}, fallbackKind = "api-candidate") {
+  const kind = String(source?.kind || fallbackKind || "api-candidate").trim();
+  if (["local", "api-candidate", "generated"].includes(kind)) return { ...source, kind };
+  return { ...source, kind: fallbackKind };
+}
+
+function normalizeEditorAssetRecord(assetId, asset = {}, fallback = {}) {
+  const id = String(asset?.assetId || asset?.id || assetId || fallback.id || "").trim();
+  if (!id) return null;
+  const rawType = String(asset?.type || asset?.role || fallback.type || "image").toLowerCase();
+  const type = rawType === "voice" ? "audio" : rawType === "photo" ? "image" : rawType;
+  if (!["image", "audio", "music", "logo", "outro", "video"].includes(type)) return null;
+  const source = normalizeEditorAssetSource(asset?.source, type === "logo" || type === "outro" || type === "video" ? "local" : "api-candidate");
+  const publicPath = [asset?.publicPath, asset?.publicUrl, asset?.previewUrl, asset?.renderPath, asset?.localPath, asset?.url]
+    .find((entry) => typeof entry === "string" && entry.trim());
+  return {
+    ...asset,
+    id,
+    type,
+    source,
+    ...(asset?.localPath && !isHttpUrl(asset.localPath) ? { localPath: asset.localPath } : {}),
+    ...(publicPath ? { publicPath } : {}),
+    ...(Number.isFinite(Number(asset?.durationSeconds)) ? { durationSeconds: Number(asset.durationSeconds) } : {}),
+    status: asset?.status || "ready",
+  };
+}
+
+function resolveRowSelectedAsset(row = {}) {
+  const selectedAssetId = String(row?.selectedAssetId || "").trim();
+  if (!selectedAssetId) return null;
+  const candidates = Array.isArray(row?.candidates) ? row.candidates : [];
+  const matchingCandidate = candidates.find((candidate) => [candidate?.assetId, candidate?.id].some((value) => String(value || "") === selectedAssetId));
+  if (matchingCandidate) return normalizeEditorAssetRecord(selectedAssetId, matchingCandidate, { type: "image" });
+  if (isHttpUrl(selectedAssetId)) {
+    return normalizeEditorAssetRecord(selectedAssetId, { id: selectedAssetId, type: "image", source: { kind: "api-candidate" }, publicPath: selectedAssetId, previewUrl: selectedAssetId, renderPath: selectedAssetId }, { type: "image" });
+  }
+  const rowImageSource = [row?.publicPath, row?.publicUrl, row?.previewUrl, row?.renderPath, row?.imageUrl, row?.image]
+    .find((entry) => typeof entry === "string" && entry.trim());
+  if (rowImageSource) return normalizeEditorAssetRecord(selectedAssetId, { id: selectedAssetId, type: "image", source: { kind: "api-candidate" }, publicPath: rowImageSource, previewUrl: rowImageSource, renderPath: rowImageSource }, { type: "image" });
+  return null;
+}
+
+function buildScaffoldAssets(snapshot = {}) {
+  const assetsById = new Map();
+  const addAsset = (assetId, asset, fallback) => {
+    const normalized = normalizeEditorAssetRecord(assetId, asset, fallback);
+    if (normalized) assetsById.set(normalized.id, normalized);
+  };
+
+  const snapshotAssets = snapshot?.assets && typeof snapshot.assets === "object" ? snapshot.assets : {};
+  for (const [assetId, asset] of Object.entries(snapshotAssets)) addAsset(assetId, asset, {});
+
+  const channelAssets = resolveBrandChannelAssets(inferBrandChannel(snapshot));
+  for (const [assetId, asset] of Object.entries(buildBrandAssetRecords(channelAssets))) addAsset(assetId, asset, {});
+
+  for (const row of Array.isArray(snapshot?.rows) ? snapshot.rows : []) {
+    const selectedAssetId = String(row?.selectedAssetId || "").trim();
+    if (selectedAssetId && !assetsById.has(selectedAssetId)) {
+      const rowAsset = resolveRowSelectedAsset(row);
+      if (rowAsset) assetsById.set(rowAsset.id, rowAsset);
+    }
+  }
+
+  return Array.from(assetsById.values());
+}
+
+function firstRenderableSource(asset = {}) {
+  return [asset.renderPath, asset.localPath, asset.publicPath, asset.publicUrl, asset.url, asset.previewUrl]
+    .find((entry) => typeof entry === "string" && entry.trim());
+}
+
+function firstMaterializableExternalSource(asset = {}) {
+  return [asset.localPath, asset.publicPath, asset.publicUrl, asset.url, asset.previewUrl, asset.renderPath]
+    .find((entry) => {
+      if (typeof entry !== "string" || !entry.trim()) return false;
+      return isHttpUrl(entry) || path.isAbsolute(entry);
+    });
+}
+
+function addAssetReference(references, value) {
+  const normalized = String(value || "").trim();
+  if (normalized) references.add(normalized);
+}
+
+function collectRenderReferencedAssetIds(snapshot = {}) {
+  const references = new Set();
+  const audio = snapshot?.audio || {};
+  addAssetReference(references, audio?.voice?.assetId || audio?.voiceAssetId);
+  addAssetReference(references, audio?.music?.assetId || audio?.musicAssetId);
+
+  const globalLayers = snapshot?.globalLayers || {};
+  addAssetReference(references, globalLayers.logoAssetId || globalLayers.logo?.assetId);
+  addAssetReference(references, globalLayers.outroAssetId || globalLayers.outro?.assetId);
+  addAssetReference(references, snapshot?.outro?.assetId);
+
+  for (const row of Array.isArray(snapshot?.rows) ? snapshot.rows : []) {
+    addAssetReference(references, row?.selectedAssetId);
+    addAssetReference(references, row?.dust?.assetId || row?.dust?.type);
+    addAssetReference(references, row?.transitionConfig?.assetId);
+    const media = row?.media || {};
+    addAssetReference(references, media.sourceVideoAssetId);
+    addAssetReference(references, media.effect1AssetId);
+    addAssetReference(references, media.effect2AssetId);
+  }
+  return references;
+}
+
+function resolveVideoSegmentAssetSource(media = {}) {
+  const explicitSource = [media.sourceVideoSrc, media.previewUrl, media.renderPath, media.publicUrl, media.publicPath, media.localPath]
+    .find((entry) => typeof entry === "string" && entry.trim());
+  if (explicitSource) return explicitSource.trim();
+  const assetId = String(media.sourceVideoAssetId || "").trim();
+  return isHttpUrl(assetId) ? assetId : "";
+}
+
+function withRenderableVideoSource(asset = {}, assetId, source) {
+  return {
+    ...asset,
+    assetId: asset.assetId || asset.id || assetId,
+    id: asset.id || asset.assetId || assetId,
+    type: asset.type || "video",
+    role: asset.role || "video",
+    source: asset.source || { kind: "approval-editor-service" },
+    publicUrl: asset.publicUrl || asset.public_url || source,
+    previewUrl: asset.previewUrl || source,
+    renderPath: asset.renderPath || asset.localPath || source,
+    publicPath: asset.publicPath || source,
+    localPath: asset.localPath || source,
+    url: asset.url || source,
+    status: asset.status || "ready",
+  };
+}
+
+function repairVideoSegmentAssets(snapshot = {}) {
+  const rows = Array.isArray(snapshot?.rows) ? snapshot.rows : [];
+  const assets = { ...(snapshot?.assets && typeof snapshot.assets === "object" ? snapshot.assets : {}) };
+  let changed = false;
+  const repairedRows = rows.map((row) => {
+    const media = row?.media;
+    if (media?.kind !== "video-segment") return row;
+    const assetId = String(media.sourceVideoAssetId || "").trim();
+    if (!assetId) return row;
+    const source = resolveVideoSegmentAssetSource(media);
+    if (!source) return row;
+    const current = assets[assetId] && typeof assets[assetId] === "object" ? assets[assetId] : {};
+    if (firstRenderableSource(current)) return row;
+    assets[assetId] = withRenderableVideoSource(current, assetId, source);
+    changed = true;
+    const { sourceVideoSrc, previewUrl, renderPath, publicUrl, publicPath, localPath, ...mediaWithoutDirectSource } = media;
+    return { ...row, media: mediaWithoutDirectSource };
+  });
+  return changed ? { ...snapshot, rows: repairedRows, assets } : snapshot;
+}
+
+async function materializeAsset({ source, outputPath, fetchImpl, retryDelaysMs = DEFAULT_RENDER_ASSET_RETRY_DELAYS_MS }) {
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  if (isHttpUrl(source)) {
+    if (typeof fetchImpl !== "function") throw createAdapterError("asset_localization_unavailable", `Cannot localize remote render asset without fetch support: ${source}`, { source });
+    const delays = normalizeRetryDelays(retryDelaysMs);
+    let lastStatus = null;
+    let lastError = null;
+    for (let attempt = 0; attempt <= delays.length; attempt += 1) {
+      try {
+        const response = await fetchImpl(source, { headers: DEFAULT_RENDER_ASSET_REQUEST_HEADERS });
+        lastStatus = response?.status ?? null;
+        if (response?.ok) {
+          const bytes = Buffer.from(await response.arrayBuffer());
+          fs.writeFileSync(outputPath, bytes);
+          return;
+        }
+        if (!shouldRetryAssetDownloadStatus(response?.status) || attempt >= delays.length) break;
+      } catch (error) {
+        lastError = error;
+        if (attempt >= delays.length) break;
+      }
+      await sleep(delays[attempt]);
+    }
+    throw createAdapterError("asset_localization_failed", `Failed to download render asset: ${source}`, { source, status: lastStatus, attempts: delays.length + 1, error: lastError?.message || null });
+  }
+  fs.copyFileSync(source, outputPath);
+}
+
+function materializeSafeRelativeAsset({ assetSourceRoot, projectRoot, renderPath }) {
+  if (!assetSourceRoot || !renderPath || isUnsafeRenderPath(renderPath)) return false;
+  const sourcePath = path.resolve(assetSourceRoot, renderPath);
+  const resolvedSourceRoot = path.resolve(assetSourceRoot);
+  if (sourcePath !== resolvedSourceRoot && !sourcePath.startsWith(`${resolvedSourceRoot}${path.sep}`)) return false;
+  if (!fs.existsSync(sourcePath)) return false;
+  const outputPath = path.join(projectRoot, "public", renderPath);
+  if (fs.statSync(sourcePath).isDirectory()) {
+    fs.cpSync(sourcePath, outputPath, { recursive: true });
+    return true;
+  }
+  if (!fs.statSync(sourcePath).isFile()) return false;
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.copyFileSync(sourcePath, outputPath);
+  return true;
+}
+
+function inferBrandChannel(snapshot = {}) {
+  const explicitBrandChannel = String(snapshot?.brandChannel || "").trim();
+  if (explicitBrandChannel) return normalizeBrandChannel(explicitBrandChannel);
+
+  const candidates = [
+    snapshot?.globalLayers?.logoAssetId,
+    snapshot?.globalLayers?.outroAssetId,
+    snapshot?.globalLayers?.logo?.assetId,
+    snapshot?.globalLayers?.outro?.assetId,
+    snapshot?.outro?.assetId,
+    ...Object.keys(snapshot?.assets && typeof snapshot.assets === "object" ? snapshot.assets : {}),
+  ].map((value) => String(value || "").toLowerCase());
+
+  if (candidates.some((value) => value.includes("mundial"))) return "final-demo-cup";
+  if (candidates.some((value) => value.includes("colombia"))) return "golazo-colombia";
+  if (candidates.some((value) => value.includes("ecuador"))) return "golazo-ecuador";
+  return normalizeBrandChannel(null);
+}
+
+async function localizeRenderAssets({ projectRoot, assetSourceRoot, snapshot, fetchImpl = globalThis.fetch, retryDelaysMs = DEFAULT_RENDER_ASSET_RETRY_DELAYS_MS } = {}) {
+  const contract = { ...(snapshot || {}) };
+  const sourceAssets = snapshot?.assets && typeof snapshot.assets === "object" ? snapshot.assets : {};
+  const referencedAssetIds = collectRenderReferencedAssetIds(contract);
+  const localizedAssets = {};
+  for (const [assetId, asset] of Object.entries(sourceAssets)) {
+    if (!asset || typeof asset !== "object") {
+      localizedAssets[assetId] = asset;
+      continue;
+    }
+    if (referencedAssetIds.size && !referencedAssetIds.has(String(assetId))) {
+      localizedAssets[assetId] = asset;
+      continue;
+    }
+    const renderPath = typeof asset.renderPath === "string" ? asset.renderPath.trim() : "";
+    let source = firstRenderableSource(asset);
+    if (renderPath && !isUnsafeRenderPath(renderPath)) {
+      const materialized = materializeSafeRelativeAsset({ assetSourceRoot, projectRoot, renderPath });
+      const fallbackSource = materialized ? "" : firstMaterializableExternalSource(asset);
+      if (!fallbackSource) {
+        localizedAssets[assetId] = asset;
+        continue;
+      }
+      source = fallbackSource;
+    }
+    if (!source) {
+      localizedAssets[assetId] = asset;
+      continue;
+    }
+    if (!isHttpUrl(source) && !path.isAbsolute(source)) {
+      localizedAssets[assetId] = asset;
+      continue;
+    }
+    const folder = generatedFolderForAsset(asset);
+    const fileName = `${sanitizeAssetId(asset.id || assetId, assetId)}${extensionFromSource(source, asset)}`;
+    const relativePath = path.posix.join("generated", folder, fileName);
+    const outputPath = path.join(projectRoot, "public", "generated", folder, fileName);
+    await materializeAsset({ source, outputPath, fetchImpl, retryDelaysMs });
+    localizedAssets[assetId] = {
+      ...asset,
+      renderPath: relativePath,
+      ...(asset.localPath && isUnsafeRenderPath(asset.localPath) ? { localPath: relativePath } : {}),
+      ...(asset.publicPath && isUnsafeRenderPath(asset.publicPath) ? { publicPath: relativePath } : {}),
+    };
+  }
+  return { ...contract, assets: localizedAssets };
+}
+
+function readIndex(indexPath) {
+  if (!fs.existsSync(indexPath)) return { projects: [] };
+  try {
+    const parsed = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+    return { projects: Array.isArray(parsed.projects) ? parsed.projects : [] };
+  } catch {
+    return { projects: [] };
+  }
+}
+
+function upsertProjectIndex(projectsRoot, { projectId, title }) {
+  const indexPath = path.join(projectsRoot, "index.json");
+  const current = readIndex(indexPath);
+  const createdAt = nowIso();
+  const existing = current.projects.find((entry) => entry.id === projectId) || null;
+  const projects = current.projects.filter((entry) => entry.id !== projectId);
+  projects.push({
+    id: projectId,
+    title: title || projectId,
+    status: "editing",
+    projectPath: `projects/${projectId}`,
+    createdAt: existing?.createdAt || createdAt,
+    updatedAt: createdAt,
+    lastRender: existing?.lastRender || null,
+  });
+  writeJson(indexPath, { projects });
+}
+
+function buildMinimalRenderScaffold({ projectId, title, snapshot = {} }) {
+  const rows = normalizeBoundaryTransitionRows(Array.isArray(snapshot.rows) ? snapshot.rows : []).map((row, index) => {
+    const isVideoSegment = row?.media?.kind === "video-segment";
+    const dustType = row?.dust?.type || "particle-1";
+    const dustEnabled = isVideoSegment ? false : (row?.dust?.enabled !== undefined ? Boolean(row.dust.enabled) : true);
+
+    return {
+      id: String(row?.id || `row-${index + 1}`),
+      index,
+      phrase: String(row?.phrase || row?.caption || row?.text || "").trim(),
+      startTime: Number(row?.startTime ?? row?.start_time ?? row?.start ?? index * 3),
+      endTime: Number(row?.endTime ?? row?.end_time ?? row?.end ?? (index + 1) * 3),
+      selectedAssetId: row?.selectedAssetId || null,
+      mediaMode: row?.mediaMode === "newspaper" ? "newspaper" : "image",
+      newspaper: row?.newspaper && typeof row.newspaper === "object" ? { ...row.newspaper } : { labelEnabled: true },
+      candidates: [],
+      motion: row?.motion || "slow-zoom-in",
+      dust: { ...(row?.dust || {}), enabled: dustEnabled, type: dustType, assetId: dustEnabled ? (row?.dust?.assetId || dustType) : null, opacity: Number(row?.dust?.opacity ?? 0.36), blendMode: row?.dust?.blendMode || "screen" },
+      filter: row?.filter || { enabled: true, mode: "cover" },
+      transition: row?.transition || "none",
+      ...(row?.transitionSource === "auto" || row?.transitionSource === "manual" ? { transitionSource: row.transitionSource } : {}),
+      ...(row?.transitionConfig ? { transitionConfig: row.transitionConfig } : {}),
+      ...(row?.paragraphBoundaryAfter === true ? { paragraphBoundaryAfter: true, nextRowId: row.nextRowId || null } : {}),
+      sfx: row?.sfx || null,
+      caption: String(row?.caption || row?.phrase || row?.text || "").trim(),
+      lockedPhrase: true,
+      warnings: [],
+      status: "ready",
+    };
+  });
+
+  const channelAssets = resolveBrandChannelAssets(inferBrandChannel(snapshot));
+
+  return {
+    schemaVersion: 1,
+    projectId,
+    title: title || projectId,
+    fps: 30,
+    canvas: { width: 1280, height: 720 },
+    assets: buildScaffoldAssets(snapshot),
+    globalLayers: {
+      logoAssetId: snapshot?.globalLayers?.logoAssetId || snapshot?.globalLayers?.logo?.assetId || channelAssets.logo.assetId,
+      outroAssetId: snapshot?.globalLayers?.outroAssetId || snapshot?.globalLayers?.outro?.assetId || channelAssets.outro.assetId,
+      logo: { enabled: snapshot?.globalLayers?.logo?.enabled !== false, position: "top-left" },
+      dustDefault: snapshot?.globalLayers?.dustDefault !== false,
+      filterDefault: true,
+    },
+    audio: {
+      music: { volume: Number(snapshot?.audio?.music?.volume ?? 0.8), muted: Boolean(snapshot?.audio?.music?.muted) },
+      voice: { volume: Number(snapshot?.audio?.voice?.volume ?? 1), muted: Boolean(snapshot?.audio?.voice?.muted) },
+    },
+    rows,
+    selectedRowId: rows[0]?.id || null,
+    preview: { status: "ready", lastGeneratedAt: nowIso() },
+    renderStatus: { status: "idle", outputPath: null, diagnosticsPath: null },
+    phase: "preview_ready",
+  };
+}
+
+async function persistSnapshotForVideoEngine({ projectsRoot, projectId, snapshot, snapshotHash, fetchImpl, assetSourceRoot, retryDelaysMs }) {
+  const projectRoot = path.join(projectsRoot, projectId);
+  fs.mkdirSync(path.join(projectRoot, "guion"), { recursive: true });
+  fs.mkdirSync(path.join(projectRoot, "output"), { recursive: true });
+  fs.mkdirSync(path.join(projectRoot, "public", "generated"), { recursive: true });
+  const repairedSnapshot = repairVideoSegmentAssets(snapshot || {});
+  const scriptLines = (Array.isArray(repairedSnapshot?.rows) ? repairedSnapshot.rows : [])
+    .map((row) => String(row?.phrase || row?.caption || row?.text || "").trim())
+    .filter(Boolean);
+  fs.writeFileSync(path.join(projectRoot, "guion", "guion.txt"), `${scriptLines.join("\n") || snapshot.title || projectId}\n`, "utf8");
+
+  writeJson(path.join(projectRoot, "editor-project.json"), buildMinimalRenderScaffold({ projectId, title: repairedSnapshot.title || projectId, snapshot: repairedSnapshot }));
+
+  const channelAssets = resolveBrandChannelAssets(inferBrandChannel(repairedSnapshot));
+  const authoritativeBrandAssets = buildBrandAssetRecords(channelAssets);
+  const snapshotWithAuthoritativeBrandAssets = addBoundaryTransitionAssets({
+    ...(repairedSnapshot || {}),
+    rows: normalizeBoundaryTransitionRows(Array.isArray(repairedSnapshot?.rows) ? repairedSnapshot.rows : []),
+    assets: {
+      ...(repairedSnapshot?.assets || {}),
+      ...AUTHORITATIVE_DUST_ASSETS,
+      ...authoritativeBrandAssets,
+    },
+    globalLayers: {
+      ...(repairedSnapshot?.globalLayers || {}),
+      logoAssetId: channelAssets.logo.assetId,
+      outroAssetId: channelAssets.outro.assetId,
+      logo: {
+        ...(repairedSnapshot?.globalLayers?.logo || {}),
+        enabled: repairedSnapshot?.globalLayers?.logo?.enabled !== false,
+        assetId: channelAssets.logo.assetId,
+        source: channelAssets.logo.source,
+        preferredSource: channelAssets.logo.source,
+      },
+      outro: {
+        ...(repairedSnapshot?.globalLayers?.outro || {}),
+        enabled: repairedSnapshot?.globalLayers?.outro?.enabled !== false,
+        assetId: channelAssets.outro.assetId,
+      },
+    },
+    outro: {
+      ...(repairedSnapshot?.outro || {}),
+      enabled: repairedSnapshot?.outro?.enabled !== false,
+      assetId: channelAssets.outro.assetId,
+      durationSeconds: channelAssets.outro.durationSeconds,
+      label: channelAssets.outro.label,
+    },
+  });
+  const localizedSnapshot = await localizeRenderAssets({ projectRoot, assetSourceRoot, snapshot: snapshotWithAuthoritativeBrandAssets, fetchImpl, retryDelaysMs });
+  const contract = { ...localizedSnapshot, snapshotHash: snapshotHash || repairedSnapshot.snapshotHash };
+  writeJson(path.join(projectRoot, "composition-contract.json"), {
+    version: 1,
+    savedAt: nowIso(),
+    contract,
+    manifest: { assets: contract.assets || {} },
+  });
+  upsertProjectIndex(projectsRoot, { projectId, title: repairedSnapshot.title });
+  return projectRoot;
+}
+
+function defaultRunCommand(command) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, command.args, {
+      cwd: command.cwd,
+      env: command.env,
+      windowsHide: true,
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
+    child.on("error", (error) => resolve({ status: "error", exitCode: 1, stdout, stderr: stderr || error.message }));
+    child.on("close", (code) => resolve({ status: code === 0 ? "success" : "error", exitCode: code || 0, stdout, stderr }));
+  });
+}
+
+function createVideoEngineRenderAdapter({
+  videoEngineRoot,
+  projectsRoot,
+  env = process.env,
+  runCommand = defaultRunCommand,
+  fetchImpl = globalThis.fetch,
+  renderAssetRetryDelaysMs = DEFAULT_RENDER_ASSET_RETRY_DELAYS_MS,
+} = {}) {
+  const resolvedVideoEngineRoot = path.resolve(videoEngineRoot || env.APPROVAL_EDITOR_VIDEO_ENGINE_ROOT || path.join(__dirname, "..", "..", "..", "..", "services/renderer"));
+  const resolvedProjectsRoot = path.resolve(projectsRoot || env.APPROVAL_EDITOR_VIDEO_ENGINE_PROJECTS_ROOT || env.REMOTION_EDITOR_PROJECTS_ROOT || path.join(resolvedVideoEngineRoot, "projects"));
+  const scriptPath = path.join(resolvedVideoEngineRoot, "scripts", "render-video.js");
+
+  return async function videoEngineRenderAdapter({ projectId, snapshot, snapshotHash }) {
+    if (!fs.existsSync(scriptPath)) {
+      throw createAdapterError("render_command_missing", `services/renderer render command not found: ${scriptPath}`, { scriptPath });
+    }
+    const videoProjectId = resolveProjectId(projectId, snapshot);
+    const projectRoot = await persistSnapshotForVideoEngine({ projectsRoot: resolvedProjectsRoot, projectId: videoProjectId, snapshot, snapshotHash, fetchImpl, assetSourceRoot: path.join(resolvedVideoEngineRoot, "assets"), retryDelaysMs: renderAssetRetryDelaysMs });
+    const outputPath = path.join(projectRoot, "output", "video-final.mp4");
+    const command = {
+      scriptPath,
+      args: [scriptPath, `--project-root=${projectRoot}`, "--profile=final"],
+      cwd: resolvedVideoEngineRoot,
+      env: { ...process.env, ...env },
+      projectRoot,
+      outputPath,
+    };
+    const result = await runCommand(command);
+    if (result?.status !== "success" || Number(result.exitCode || 0) !== 0) {
+      throw createAdapterError("render_command_failed", `services/renderer final render failed with exit code ${result?.exitCode ?? 1}.`, { ...result, scriptPath, projectRoot });
+    }
+    if (!fs.existsSync(outputPath) || !fs.statSync(outputPath).isFile()) {
+      throw createAdapterError("render_output_missing", `services/renderer render command completed without creating final output: ${outputPath}`, { outputPath, stdout: result.stdout || "", stderr: result.stderr || "" });
+    }
+    return { finalPath: outputPath, projectRoot, command: { scriptPath, cwd: resolvedVideoEngineRoot } };
+  };
+}
+
+module.exports = { createVideoEngineRenderAdapter, persistSnapshotForVideoEngine, buildMinimalRenderScaffold, AUTHORITATIVE_DUST_ASSETS };

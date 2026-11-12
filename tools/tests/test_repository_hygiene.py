@@ -20,7 +20,7 @@ class RepositoryHygieneTests(unittest.TestCase):
             "07-Supabase",
         ):
             self.assertFalse((ROOT / name).exists(), name)
-        for source in ("01-Control-Panel", "02-Video-Engine", "apps", "services"):
+        for source in ("apps/panel", "services/renderer", "apps", "services"):
             folder = ROOT / source
             self.assertEqual(list(folder.rglob("AGENTS.md")), [], source)
             self.assertEqual(list(folder.rglob("openspec")), [], source)
