@@ -80,7 +80,7 @@ import {
 
 const centered = buildSubtitlePreviewPresentationRuntime({
   activeCue: {
-    phrase: 'golazo total',
+    phrase: 'demo total',
     color: '#FFF000',
     fontFamily: 'Anton',
     size: '110',
@@ -94,7 +94,7 @@ const centered = buildSubtitlePreviewPresentationRuntime({
 });
 
 if (!centered.hasCue) throw new Error('expected active cue presentation');
-if (centered.text !== 'GOLAZO TOTAL') throw new Error(`unexpected cue text: ${centered.text}`);
+if (centered.text !== 'DEMO TOTAL') throw new Error(`unexpected cue text: ${centered.text}`);
 if (centered.justifyContent !== 'center') throw new Error(`unexpected justify: ${centered.justifyContent}`);
 if (centered.playheadPercent !== 25) throw new Error(`unexpected playhead: ${centered.playheadPercent}`);
 if (centered.fontSizePx !== 55) throw new Error(`expected scaled font size, got ${centered.fontSizePx}`);

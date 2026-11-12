@@ -37,7 +37,7 @@ export function normalizePreparedContractRows(rows = []) {
       motionPresetId: motion.motionPresetId,
       motion: motion.motion,
       dust: { enabled: dustEnabled, type: dustType, assetId: dustEnabled ? (row?.dust?.assetId || dustType) : null, opacity: row?.dust?.opacity ?? 0.36, blendMode: row?.dust?.blendMode || 'screen' },
-      logo: { enabled: row?.logo?.enabled !== false, source: row?.logo?.source || 'logo-demo-alpha.webm' },
+      logo: { enabled: row?.logo?.enabled !== false, source: row?.logo?.source || 'logo-primary.webm' },
       filter: { enabled: Boolean(row?.filter?.enabled), mode: row?.filter?.mode || 'cover' },
       transition: row?.transition || 'none',
       ...(row?.transitionSource === 'auto' || row?.transitionSource === 'manual' ? { transitionSource: row.transitionSource } : {}),
@@ -148,7 +148,7 @@ function buildApprovalSeedPayload(project = {}, settings = {}) {
     selected_images: selectedImages,
     voice_audio: project.voice_audio || null,
     background_audio: project.background_audio || null,
-    brandChannel: settings?.brandChannel || project?.editor_state?.brandChannel || project?.editor_state?.brand_channel || 'golazo-ecuador',
+    brandChannel: settings?.brandChannel || project?.editor_state?.brandChannel || project?.editor_state?.brand_channel || 'demo-primary',
     defaults: {
       fps: 30,
       preview: { width: 1280, height: 720 },

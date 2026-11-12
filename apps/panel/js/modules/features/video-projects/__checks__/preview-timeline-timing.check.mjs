@@ -84,7 +84,7 @@ test('preview contract extends final visual row through official audio duration 
     editor_state: {
       approval_contract_snapshot: {
         contractVersion: 'approval-editor-service-v1',
-        brandChannel: 'golazo-colombia',
+        brandChannel: 'demo-secondary',
         audio: { totalDurationSeconds: 9.5 },
         rows,
       },
@@ -109,6 +109,6 @@ test('preview active segment starts outro at official narration audio boundary',
 });
 
 test('brand outro duration metadata matches full final asset durations', () => {
-  assert.equal(resolveBrandChannelAssets('golazo-colombia').outro.durationSeconds, 30.16);
-  assert.equal(resolveBrandChannelAssets('golazo-ecuador').outro.durationSeconds, 30.53);
+  assert.equal(resolveBrandChannelAssets('demo-secondary').outro.durationSeconds, 30.16);
+  assert.equal(resolveBrandChannelAssets('demo-primary').outro.durationSeconds, 30.53);
 });

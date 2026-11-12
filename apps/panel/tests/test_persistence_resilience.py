@@ -447,7 +447,7 @@ const current = {
   channelMonitorBaseUrl: 'http://127.0.0.1:8775',
   remotionApiUrl: 'http://127.0.0.1:3037',
   approvalPipelineBaseUrl: 'http://127.0.0.1:3042',
-  brandChannel: 'golazo-colombia',
+  brandChannel: 'demo-secondary',
 };
 
 const hydrated = hydrateSettingsFromServerBootstrap(current, {
@@ -472,7 +472,7 @@ for (const service of ['n8n', 'tts', 'subtitles', 'radar', 'monitor', 'remotion'
 if (hydrated.approvalPipelineBaseUrl !== 'https://gateway.example.test/approval') {
   throw new Error(`approval route drift: ${hydrated.approvalPipelineBaseUrl}`);
 }
-if (hydrated.brandChannel !== 'golazo-colombia') throw new Error('local brand channel preference must be preserved');
+if (hydrated.brandChannel !== 'demo-secondary') throw new Error('local brand channel preference must be preserved');
 """
     result = _run_node(script)
     assert result.returncode == 0, result.stderr

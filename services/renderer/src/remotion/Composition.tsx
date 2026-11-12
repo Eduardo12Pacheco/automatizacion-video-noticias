@@ -138,9 +138,9 @@ const getFadedMusicVolume = ({
 };
 
 const isVideoSource = (src?: string | null) => /\.(mp4|webm|mov|m4v)$/i.test(src || "");
-const isGreenScreenLogoSource = (src?: string | null) => /(?:logo-green|logo-demo-co(?:-keyed)?)\.(?:mp4|webm)$/i.test(src || "");
-const isLogoFrameSequenceSource = (src?: string | null) => /logo-(?:colombia|ecuador)-alpha-frames$/i.test(src || "");
-const isMundialLogoSource = (src?: string | null) => /logo-demo-cup\.png$/i.test(src || "");
+const isGreenScreenLogoSource = (src?: string | null) => /(?:logo-green|logo-secondary(?:-keyed)?)\.(?:mp4|webm)$/i.test(src || "");
+const isLogoFrameSequenceSource = (src?: string | null) => /logo-(?:montelia|aurenia)-alpha-frames$/i.test(src || "");
+const isFinalLogoSource = (src?: string | null) => /logo-final\.png$/i.test(src || "");
 const logoFrameSequenceSrc = (src: string, frame: number) => `${src}/frame-${String(frame % 900).padStart(4, "0")}.png`;
 
 const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
@@ -354,10 +354,10 @@ const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number 
 
   const style: CSSProperties = {
     position: "absolute",
-    left: isMundialLogoSource(logo.src) ? -42 : 52,
-    top: isMundialLogoSource(logo.src) ? -9 : 38,
-    width: isMundialLogoSource(logo.src) ? 412 : 220,
-    height: isMundialLogoSource(logo.src) ? 232 : 124,
+    left: isFinalLogoSource(logo.src) ? -42 : 52,
+    top: isFinalLogoSource(logo.src) ? -9 : 38,
+    width: isFinalLogoSource(logo.src) ? 412 : 220,
+    height: isFinalLogoSource(logo.src) ? 232 : 124,
     opacity: 0.94,
     filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.55))",
     pointerEvents: "none",
@@ -501,9 +501,9 @@ const VideoSegmentScene = ({
   );
 };
 
-const NEWSPAPER_LOCAL_FONT_FAMILY = "Versa Versa";
-const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/versa/Demo-Display.woff2");
-const NEWSPAPER_LABEL_FONT_FAMILY = "\"Versa Versa\", Versa, VERSA, Inter, Arial, sans-serif";
+const NEWSPAPER_LOCAL_FONT_FAMILY = "Demo Display";
+const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/display/Demo-Display.woff2");
+const NEWSPAPER_LABEL_FONT_FAMILY = "\"Demo Display\", Inter, Arial, sans-serif";
 const NEWSPAPER_LABEL_FONT_SIZE = 40;
 const NEWSPAPER_LABEL_LINE_HEIGHT = 1.12;
 const NEWSPAPER_LABEL_TOP = 40;
@@ -517,7 +517,7 @@ const NEWSPAPER_FONT_FACE_CSS = `@font-face {
 }`;
 
 const useNewspaperFont = () => {
-  const [fontHandle] = useState(() => delayRender("Loading Versa Versa newspaper font"));
+  const [fontHandle] = useState(() => delayRender("Loading Demo Display newspaper font"));
 
   useEffect(() => {
     if (typeof document === "undefined" || typeof FontFace === "undefined") {

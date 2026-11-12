@@ -229,7 +229,7 @@ function assertApprovalServicePersistsNewspaperMediaMode() {
     snapshotId: 'snapshot-1',
     snapshotHash: 'hash-1',
     rows: [
-      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Luis diaz', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' }, motionPresetId: 'Zoom 110' },
+      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Luis cardenas', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' }, motionPresetId: 'Zoom 110' },
     ],
     assets: {
       'asset-1': { assetId: 'asset-1', previewUrl: 'https://cdn.example.com/luis.jpg', renderPath: 'https://cdn.example.com/luis.jpg' },

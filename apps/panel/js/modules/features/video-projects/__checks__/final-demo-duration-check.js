@@ -8,8 +8,8 @@ const __dirname = dirname(__filename);
 
 // 7 levels up from apps/panel/js/modules/features/video-projects/__checks__ to repo root.
 const REPO_ROOT = resolve(__dirname, '../../../../../../..');
-const CP_PREVIEW = resolve(REPO_ROOT, 'apps/panel/assets/final-demo-cup.webm');
-const VE_RENDER = resolve(REPO_ROOT, 'services/renderer/assets/overlays/final-demo-cup.mp4');
+const CP_PREVIEW = resolve(REPO_ROOT, 'apps/panel/assets/outro-final.webm');
+const VE_RENDER = resolve(REPO_ROOT, 'services/renderer/assets/overlays/outro-final.mp4');
 const CP_CATALOG = resolve(REPO_ROOT, 'apps/panel/js/modules/features/video-projects/composition/overlay-assets.js');
 const CONTRACTS_CATALOG = resolve(REPO_ROOT, 'packages/contracts/approval-contract-pipeline/index.js');
 const CATALOG_TARGET_SECONDS = 30.12;
@@ -50,7 +50,7 @@ function extractBalancedObject(source, startIndex) {
 }
 
 function extractFinalMundialBlock(source) {
-  const keyMatch = source.match(/['"]final-demo-cup['"]\s*:\s*\{/);
+  const keyMatch = source.match(/['"]demo-final['"]\s*:\s*\{/);
   if (!keyMatch) return null;
   const startBraceIndex = source.indexOf('{', keyMatch.index);
   return extractBalancedObject(source, startBraceIndex);
@@ -70,11 +70,11 @@ function assertCatalogHasFinalMundialDuration30_12(label, filePath) {
   const source = readFileSync(filePath, 'utf8');
   const catalogValue = extractFinalMundialDurationFromSource(source);
   if (!Number.isFinite(catalogValue)) {
-    fail(`Could not locate outro.durationSeconds in the final-demo-cup block of ${label} (${filePath})`);
+    fail(`Could not locate outro.durationSeconds in the demo-final block of ${label} (${filePath})`);
   }
   if (Math.abs(catalogValue - CATALOG_TARGET_SECONDS) > 0.0001) {
     fail(
-      `${label} catalog final-demo-cup outro.durationSeconds is ${catalogValue}, expected ${CATALOG_TARGET_SECONDS}`,
+      `${label} catalog demo-final outro.durationSeconds is ${catalogValue}, expected ${CATALOG_TARGET_SECONDS}`,
     );
   }
   return { value: catalogValue, block: extractFinalMundialBlock(source) };
@@ -82,10 +82,10 @@ function assertCatalogHasFinalMundialDuration30_12(label, filePath) {
 
 function runFinalMundialDurationParityCheck() {
   if (!existsSync(CP_PREVIEW)) {
-    fail(`Final Mundial preview webm not found at ${CP_PREVIEW}`);
+    fail(`Final Liga Demo preview webm not found at ${CP_PREVIEW}`);
   }
   if (!existsSync(VE_RENDER)) {
-    fail(`Final Mundial render mp4 not found at ${VE_RENDER}`);
+    fail(`Final Liga Demo render mp4 not found at ${VE_RENDER}`);
   }
 
   const webmDuration = ffprobeDurationSeconds(CP_PREVIEW);
@@ -99,7 +99,7 @@ function runFinalMundialDurationParityCheck() {
   const parityDelta = Math.abs(webmDuration - mp4Duration);
   if (parityDelta > PARITY_TOLERANCE_SECONDS) {
     fail(
-      `Final Mundial preview/render duration parity violated: |${webmDuration} - ${mp4Duration}| = ${parityDelta.toFixed(6)}s > ${PARITY_TOLERANCE_SECONDS}s`,
+      `Final Liga Demo preview/render duration parity violated: |${webmDuration} - ${mp4Duration}| = ${parityDelta.toFixed(6)}s > ${PARITY_TOLERANCE_SECONDS}s`,
     );
   }
 
@@ -110,13 +110,13 @@ function runFinalMundialDurationParityCheck() {
     webmDuration,
     CATALOG_TARGET_SECONDS,
     PARITY_TOLERANCE_SECONDS,
-    'Final Mundial preview webm duration',
+    'Final Liga Demo preview webm duration',
   );
   assertWithinTolerance(
     mp4Duration,
     CATALOG_TARGET_SECONDS,
     PARITY_TOLERANCE_SECONDS,
-    'Final Mundial render mp4 duration',
+    'Final Liga Demo render mp4 duration',
   );
 }
 
@@ -153,5 +153,5 @@ export async function runFinalMundialDurationCheck() {
 
 if (process.argv[1] && __filename === process.argv[1]) {
   await runFinalMundialDurationCheck();
-  console.log('final-demo-cup-duration-check: ok');
+  console.log('demo-final-duration-check: ok');
 }

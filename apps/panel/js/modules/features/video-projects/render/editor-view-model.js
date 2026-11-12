@@ -16,11 +16,11 @@ const LEGACY_EFFECT_TAB_MAP = {
 };
 const MOTION_EDITOR_TAB_IDS = new Set(['presets', 'manual']);
 const DEFAULT_MOTION_PRESET_NAME = 'Zoom 150';
-const DEFAULT_BRAND_CHANNEL = 'golazo-ecuador';
+const DEFAULT_BRAND_CHANNEL = 'demo-primary';
 
 function normalizeBrandChannel(value = DEFAULT_BRAND_CHANNEL) {
   const normalized = (value || '').toString().trim().toLowerCase();
-  return ['golazo-colombia', 'final-demo-cup'].includes(normalized) ? normalized : DEFAULT_BRAND_CHANNEL;
+  return ['demo-secondary', 'demo-final'].includes(normalized) ? normalized : DEFAULT_BRAND_CHANNEL;
 }
 
 function normalizeLegacyMotionName(value = '', { defaultEmpty = false } = {}) {

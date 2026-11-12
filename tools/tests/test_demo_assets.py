@@ -25,17 +25,17 @@ CANONICAL = [
 ]
 
 MIRRORS = [
-    RENDERER / "assets" / "overlays" / "logo-demo-alpha.webm",
+    RENDERER / "assets" / "overlays" / "logo-primary.webm",
     RENDERER / "assets" / "overlays" / "logo-green.mp4",
-    RENDERER / "assets" / "overlays" / "final-demo-cup.mp4",
+    RENDERER / "assets" / "overlays" / "outro-final.mp4",
     RENDERER / "assets" / "overlays" / "particle-1.webm",
     RENDERER / "assets" / "overlays" / "overlay-layer-01.webm",
-    RENDERER / "public" / "fonts" / "versa" / "Demo-Display.woff2",
+    RENDERER / "public" / "fonts" / "display" / "Demo-Display.woff2",
     RENDERER / "public" / "sfx" / "sound-demo.wav",
-    PANEL / "assets" / "logo-demo-alpha.webm",
-    PANEL / "assets" / "final-demo-cup.webm",
+    PANEL / "assets" / "logo-primary.webm",
+    PANEL / "assets" / "outro-final.webm",
     PANEL / "assets" / "particle-1.webm",
-    PANEL / "assets" / "fonts" / "versa" / "Demo-Display.woff2",
+    PANEL / "assets" / "fonts" / "display" / "Demo-Display.woff2",
 ]
 
 

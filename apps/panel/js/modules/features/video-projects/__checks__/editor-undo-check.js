@@ -95,8 +95,8 @@ function makeProject(overrides = {}) {
       composition_hash: 'composition-original',
       last_preview_hash: 'composition-original',
       error: '',
-      brandChannel: 'golazo-ecuador',
-      brand_channel: 'golazo-ecuador',
+      brandChannel: 'demo-primary',
+      brand_channel: 'demo-primary',
       timed_rows: [
         {
           id: 'row-1',
@@ -109,7 +109,7 @@ function makeProject(overrides = {}) {
       approval_contract_snapshot: {
         snapshotId: 'snapshot-original',
         snapshotHash: 'hash-original',
-        brandChannel: 'golazo-ecuador',
+        brandChannel: 'demo-primary',
         rows: [
           { id: 'row-1', selectedAssetId: 'img-original', media: { kind: 'image', assetId: 'img-original', url: './uploads/original.jpg' } },
         ],
@@ -147,8 +147,8 @@ function mutateProject(project, suffix) {
     composition_hash: `composition-${suffix}`,
     last_preview_hash: `composition-${suffix}`,
     error: `error-${suffix}`,
-    brandChannel: 'golazo-colombia',
-    brand_channel: 'golazo-colombia',
+    brandChannel: 'demo-secondary',
+    brand_channel: 'demo-secondary',
     timed_rows: project._editorRows,
     global_audio: project._globalAudio,
     video_assets: project.video_assets,
@@ -157,7 +157,7 @@ function mutateProject(project, suffix) {
       ...project.editor_state.approval_contract_snapshot,
       snapshotId: `snapshot-${suffix}`,
       snapshotHash: `hash-${suffix}`,
-      brandChannel: 'golazo-colombia',
+      brandChannel: 'demo-secondary',
       rows: project._editorRows,
     },
   };
@@ -178,7 +178,7 @@ function runCaptureRestoreDeepCloneCheck() {
   assertDeepEqual(project.editor_state.timed_rows, originalRows, 'Expected editor_state timed rows to stay in sync with restored rows');
   assertEqual(project._globalAudio.music.volume, 0.4, 'Expected undo to restore global audio');
   assertEqual(project.editor_state.snapshot_hash, 'hash-original', 'Expected undo to restore snapshot metadata');
-  assertEqual(project.editor_state.brandChannel, 'golazo-ecuador', 'Expected undo to restore brand metadata');
+  assertEqual(project.editor_state.brandChannel, 'demo-primary', 'Expected undo to restore brand metadata');
   assertEqual(project._editorEffectTab, 'assets', 'Expected undo to restore UI effect tab');
 
   project._editorRows[0].media.assetId = 'mutated-after-restore';
@@ -426,8 +426,8 @@ async function runCommandMutationCaptureCheck() {
     editor_state: {
       ...makeProject().editor_state,
       global_audio: { voice: { volume: 1, muted: false }, music: { volume: 0.25, muted: false } },
-      brandChannel: 'golazo-ecuador',
-      brand_channel: 'golazo-ecuador',
+      brandChannel: 'demo-primary',
+      brand_channel: 'demo-primary',
     },
   });
   const controller = createVideoProjectsController({
@@ -452,10 +452,10 @@ async function runCommandMutationCaptureCheck() {
     assertEqual(await controller.undoEditorChange(), true, 'Expected global audio mutation to be undoable');
     assertEqual(project._globalAudio.music.volume, 0.25, 'Expected undo to restore pre-audio global state');
 
-    await controller.updateBrandChannel('golazo-colombia');
-    assertEqual(project.editor_state.brandChannel, 'golazo-colombia', 'Expected brand command to mutate before undo');
+    await controller.updateBrandChannel('demo-secondary');
+    assertEqual(project.editor_state.brandChannel, 'demo-secondary', 'Expected brand command to mutate before undo');
     assertEqual(await controller.undoEditorChange(), true, 'Expected brand mutation to be undoable');
-    assertEqual(project.editor_state.brandChannel, 'golazo-ecuador', 'Expected undo to restore pre-brand state');
+    assertEqual(project.editor_state.brandChannel, 'demo-primary', 'Expected undo to restore pre-brand state');
 
     await controller.updateRow('row-1', { selectedAssetId: 'img-original' });
     assertEqual(await controller.undoEditorChange(), false, 'Expected no-op row command not to create a new undo checkpoint');

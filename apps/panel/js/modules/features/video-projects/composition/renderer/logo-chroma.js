@@ -4,13 +4,13 @@ export const LOGO_WIDTH = 220;
 export const LOGO_HEIGHT = 124;
 export const LOGO_OPACITY = 0.94;
 export const LOGO_DROP_SHADOW = 'drop-shadow(0 10px 24px rgba(0,0,0,0.55))';
-export const MUNDIAL_LOGO_LEFT = -28;
-export const MUNDIAL_LOGO_TOP = -6;
-export const MUNDIAL_LOGO_WIDTH = 275;
-export const MUNDIAL_LOGO_HEIGHT = 155;
-export const CHROMA_KEY_LOGO_PATTERN = /(?:logo-green\.mp4|logo-demo-co\.webm)(?:$|[?#])/i;
+export const FINAL_LOGO_LEFT = -28;
+export const FINAL_LOGO_TOP = -6;
+export const FINAL_LOGO_WIDTH = 275;
+export const FINAL_LOGO_HEIGHT = 155;
+export const CHROMA_KEY_LOGO_PATTERN = /(?:logo-green\.mp4|logo-secondary\.webm)(?:$|[?#])/i;
 export const GREEN_SCREEN_LOGO_PATTERN = CHROMA_KEY_LOGO_PATTERN;
-export const MUNDIAL_LOGO_PATTERN = /logo-demo-cup\.png(?:$|[?#])/i;
+export const FINAL_LOGO_PATTERN = /logo-final\.png(?:$|[?#])/i;
 export const CHROMA_GREEN_MIN = 80;
 export const CHROMA_GREEN_DOMINANCE = 1.22;
 export const CHROMA_EDGE_ALPHA = 0.42;
@@ -20,12 +20,12 @@ export function shouldChromaKeyLogo(src = '') {
 }
 
 export function resolveLogoImageLayout(src = '') {
-  if (MUNDIAL_LOGO_PATTERN.test(src || '')) {
+  if (FINAL_LOGO_PATTERN.test(src || '')) {
     return {
-      left: MUNDIAL_LOGO_LEFT,
-      top: MUNDIAL_LOGO_TOP,
-      width: MUNDIAL_LOGO_WIDTH,
-      height: MUNDIAL_LOGO_HEIGHT,
+      left: FINAL_LOGO_LEFT,
+      top: FINAL_LOGO_TOP,
+      width: FINAL_LOGO_WIDTH,
+      height: FINAL_LOGO_HEIGHT,
     };
   }
   return {

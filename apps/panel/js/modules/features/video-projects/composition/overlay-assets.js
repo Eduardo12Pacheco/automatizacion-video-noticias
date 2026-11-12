@@ -6,57 +6,57 @@ export const VIDEO_SEGMENT_EFFECT_ASSETS = [
   { assetId: 'overlay-layer-02', fileName: 'overlay-layer-02.webm', blendMode: 'multiply' },
 ];
 
-export const DEFAULT_BRAND_CHANNEL = 'golazo-ecuador';
+export const DEFAULT_BRAND_CHANNEL = 'demo-primary';
 export const BRAND_CHANNEL_ASSETS = {
-  'golazo-ecuador': {
-    channel: 'golazo-ecuador',
-    label: 'Golazo Ecuador',
+  'demo-primary': {
+    channel: 'demo-primary',
+    label: 'Demo Sports Uno',
     logo: {
-      assetId: 'brand-logo-ecuador',
-      previewPath: 'logo-demo-alpha.webm',
-      renderPath: 'overlays/logo-demo-alpha.webm',
-      source: 'logo-demo-alpha.webm',
+      assetId: 'brand-logo-primary',
+      previewPath: 'logo-primary.webm',
+      renderPath: 'overlays/logo-primary.webm',
+      source: 'logo-primary.webm',
     },
     outro: {
-      assetId: 'brand-outro-ecuador',
-      previewPath: 'final-demo-ec.webm',
-      renderPath: 'overlays/final-demo-ec.mp4',
+      assetId: 'brand-outro-primary',
+      previewPath: 'outro-primary.webm',
+      renderPath: 'overlays/outro-primary.mp4',
       durationSeconds: 30.53,
-      label: 'Golazo Ecuador',
+      label: 'Demo Sports Uno',
     },
   },
-  'golazo-colombia': {
-    channel: 'golazo-colombia',
-    label: 'Golazo Colombia',
+  'demo-secondary': {
+    channel: 'demo-secondary',
+    label: 'Demo Sports Dos',
     logo: {
-      assetId: 'brand-logo-demo-co',
-      previewPath: 'logo-demo-co.webm',
-      renderPath: 'overlays/logo-demo-co.mp4',
-      source: 'logo-demo-co.webm',
+      assetId: 'brand-logo-secondary',
+      previewPath: 'logo-secondary.webm',
+      renderPath: 'overlays/logo-secondary.mp4',
+      source: 'logo-secondary.webm',
     },
     outro: {
-      assetId: 'brand-outro-colombia',
-      previewPath: 'final-demo-co.webm',
-      renderPath: 'overlays/final-demo-co.mp4',
+      assetId: 'brand-outro-secondary',
+      previewPath: 'outro-secondary.webm',
+      renderPath: 'overlays/outro-secondary.mp4',
       durationSeconds: 30.16,
-      label: 'Golazo Colombia',
+      label: 'Demo Sports Dos',
     },
   },
-  'final-demo-cup': {
-    channel: 'final-demo-cup',
-    label: 'Final Mundial',
+  'demo-final': {
+    channel: 'demo-final',
+    label: 'Final Liga Demo',
     logo: {
-      assetId: 'brand-logo-demo-cup',
-      previewPath: 'logo-demo-cup.png',
-      renderPath: 'overlays/logo-demo-cup.png',
-      source: 'logo-demo-cup.png',
+      assetId: 'brand-logo-final',
+      previewPath: 'logo-final.png',
+      renderPath: 'overlays/logo-final.png',
+      source: 'logo-final.png',
     },
     outro: {
-      assetId: 'brand-outro-mundial',
-      previewPath: 'final-demo-cup.webm',
-      renderPath: 'overlays/final-demo-cup.mp4',
+      assetId: 'brand-outro-final',
+      previewPath: 'outro-final.webm',
+      renderPath: 'overlays/outro-final.mp4',
       durationSeconds: 30.12,
-      label: 'Final Mundial',
+      label: 'Final Liga Demo',
     },
   },
 };

@@ -193,7 +193,7 @@ test("required project modules resolve from a clean checkout source tree", () =>
   const editorProject = require(path.join(videoEngineRoot, "scripts", "lib", "projects", "editor-project"));
   const approvalProjectStore = require(path.join(videoEngineRoot, "scripts", "lib", "projects", "approval-project-store"));
 
-  assert.equal(editorProject.stableId("Draft Luis Díaz!"), "draft-luis-diaz");
+  assert.equal(editorProject.stableId("Draft Luis Cárdenas!"), "draft-luis-cardenas");
   assert.equal(typeof editorProject.createEditorProject, "function");
   assert.equal(typeof approvalProjectStore.createApprovalProjectStore, "function");
 });

@@ -3,13 +3,13 @@
    On first visit without cache, the browser uses the system font.
    On repeat visits (cache hit), the web font renders instantly with zero shift. */
 
-/* Versa Versa — newspaper/artistic recreation label */
+/* Demo Display — newspaper/artistic recreation label */
 @font-face {
-  font-family: 'Versa Versa';
+  font-family: 'Demo Display';
   font-style: normal;
   font-weight: 900;
   font-display: block;
-  src: url('../assets/fonts/versa/Demo-Display.woff2') format('woff2');
+  src: url('../assets/fonts/display/Demo-Display.woff2') format('woff2');
 }
 
 /* Inter — 400, 500, 600, 700, 800 */

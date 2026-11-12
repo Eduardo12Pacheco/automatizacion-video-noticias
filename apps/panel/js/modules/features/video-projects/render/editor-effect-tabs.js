@@ -207,9 +207,9 @@ function buildProjectBrandControls({ detail }) {
       <div class="video-editor-control video-editor-control--effect-panel">
         <label>Proyecto</label>
         <select data-action="update-brand-channel">
-          <option value="golazo-ecuador" ${detail.brandChannel === 'golazo-ecuador' ? 'selected' : ''}>Golazo Ecuador</option>
-          <option value="golazo-colombia" ${detail.brandChannel === 'golazo-colombia' ? 'selected' : ''}>Golazo Colombia</option>
-          <option value="final-demo-cup" ${detail.brandChannel === 'final-demo-cup' ? 'selected' : ''}>Final Mundial</option>
+          <option value="demo-primary" ${detail.brandChannel === 'demo-primary' ? 'selected' : ''}>Demo Sports Uno</option>
+          <option value="demo-secondary" ${detail.brandChannel === 'demo-secondary' ? 'selected' : ''}>Demo Sports Dos</option>
+          <option value="demo-final" ${detail.brandChannel === 'demo-final' ? 'selected' : ''}>Final Liga Demo</option>
         </select>
       </div>
     </div>

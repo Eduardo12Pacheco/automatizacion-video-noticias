@@ -211,7 +211,7 @@ test("approval editor service updates immutable snapshots and rejects stale upda
           { type: "setRowImage", rowId: "row-2", asset: { assetId: "custom-asset", previewUrl: "https://cdn.test/custom.webp", renderPath: "https://cdn.test/custom.webp" } },
           { type: "setRowMotion", rowId: "row-2", motionPresetId: "Zoom-125", motion: { fromX: 0, fromY: 0, toX: 0, toY: 0, fromScale: 1, toScale: 1.25, easing: "linear" } },
           { type: "setRowDust", rowId: "row-2", enabled: true, dustType: "particle-2" },
-          { type: "setLogo", enabled: true, source: "logo-demo-alpha.webm" },
+          { type: "setLogo", enabled: true, source: "logo-primary.webm" },
           { type: "setAudio", kind: "voice", settings: { volume: 0.35, muted: false } },
           { type: "setAudio", kind: "music", settings: { muted: true, volume: 0.05, loop: true, fadeInSeconds: 0.25, fadeOutSeconds: 0.75 } },
         ],
@@ -322,28 +322,28 @@ test("approval editor service blocks writes when another actor holds a live leas
 
 test("approval editor service persists brand channel changes, asset references, and render handoff snapshot", async () => {
   await withService(async (baseUrl, renderCalls) => {
-    const created = await api(baseUrl, "/api/projects/create-from-approval", { method: "POST", body: JSON.stringify({ ...basePayload(), brandChannel: "golazo-ecuador" }) });
+    const created = await api(baseUrl, "/api/projects/create-from-approval", { method: "POST", body: JSON.stringify({ ...basePayload(), brandChannel: "demo-primary" }) });
     const projectId = created.body.data.projectId;
     const hashA = created.body.data.snapshotHash;
-    assert.equal(created.body.data.snapshot.brandChannel, "golazo-ecuador");
-    assert.equal(created.body.data.snapshot.globalLayers.logo.assetId, "brand-logo-ecuador");
+    assert.equal(created.body.data.snapshot.brandChannel, "demo-primary");
+    assert.equal(created.body.data.snapshot.globalLayers.logo.assetId, "brand-logo-primary");
 
     const updated = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
       method: "PATCH",
       body: JSON.stringify({
         baseSnapshotHash: hashA,
-        operations: [{ type: "setBrandChannel", brandChannel: "golazo-colombia" }],
+        operations: [{ type: "setBrandChannel", brandChannel: "demo-secondary" }],
       }),
     });
 
     assert.equal(updated.status, 200);
     const hashB = updated.body.data.snapshotHash;
     assert.notEqual(hashB, hashA);
-    assert.equal(updated.body.data.snapshot.brandChannel, "golazo-colombia");
-    assert.equal(updated.body.data.snapshot.globalLayers.logo.assetId, "brand-logo-demo-co");
-    assert.equal(updated.body.data.snapshot.globalLayers.outro.assetId, "brand-outro-colombia");
-    assert.equal(updated.body.data.snapshot.assets["brand-logo-demo-co"].previewUrl, "./assets/logo-demo-co.webm");
-    assert.equal(updated.body.data.snapshot.assets["brand-outro-colombia"].renderPath, "overlays/final-demo-co.mp4");
+    assert.equal(updated.body.data.snapshot.brandChannel, "demo-secondary");
+    assert.equal(updated.body.data.snapshot.globalLayers.logo.assetId, "brand-logo-secondary");
+    assert.equal(updated.body.data.snapshot.globalLayers.outro.assetId, "brand-outro-secondary");
+    assert.equal(updated.body.data.snapshot.assets["brand-logo-secondary"].previewUrl, "./assets/logo-secondary.webm");
+    assert.equal(updated.body.data.snapshot.assets["brand-outro-secondary"].renderPath, "overlays/outro-secondary.mp4");
 
     const staleRender = await api(baseUrl, `/api/projects/${encodeURIComponent(projectId)}/render-final`, { method: "POST", body: JSON.stringify({ snapshotHash: hashA }) });
     assert.equal(staleRender.status, 409);
@@ -353,8 +353,8 @@ test("approval editor service persists brand channel changes, asset references, 
     assert.equal(finalRender.status, 202);
     assert.equal(renderCalls.length, 1);
     assert.equal(renderCalls[0].snapshotHash, hashB);
-    assert.equal(renderCalls[0].snapshot.brandChannel, "golazo-colombia");
-    assert.equal(renderCalls[0].snapshot.globalLayers.outro.assetId, "brand-outro-colombia");
+    assert.equal(renderCalls[0].snapshot.brandChannel, "demo-secondary");
+    assert.equal(renderCalls[0].snapshot.globalLayers.outro.assetId, "brand-outro-secondary");
   });
 });
 
@@ -398,9 +398,9 @@ test("video engine render adapter persists canonical snapshot and invokes render
   fs.mkdirSync(path.join(videoEngineRoot, "scripts"), { recursive: true });
   fs.writeFileSync(path.join(videoEngineRoot, "scripts", "render-video.js"), "// fake render entrypoint\n", "utf8");
   fs.mkdirSync(path.join(videoEngineRoot, "assets", "overlays"), { recursive: true });
-  fs.mkdirSync(path.join(videoEngineRoot, "assets", "overlays", "logo-demo-co-alpha-frames"), { recursive: true });
-  fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "logo-demo-co-alpha-frames", "frame-0000.png"), "source logo png\n", "utf8");
-  fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "final-demo-co.mp4"), "source final mp4\n", "utf8");
+  fs.mkdirSync(path.join(videoEngineRoot, "assets", "overlays", "logo-secondary-alpha-frames"), { recursive: true });
+  fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "logo-secondary-alpha-frames", "frame-0000.png"), "source logo png\n", "utf8");
+  fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "outro-secondary.mp4"), "source final mp4\n", "utf8");
   const commands = [];
   const adapter = createVideoEngineRenderAdapter({
     videoEngineRoot,
@@ -420,10 +420,10 @@ test("video engine render adapter persists canonical snapshot and invokes render
   const persisted = JSON.parse(fs.readFileSync(path.join(projectRoot, "composition-contract.json"), "utf8"));
   assert.equal(persisted.contract.snapshotHash, "hash-canonical");
   assert.equal(persisted.contract.rows[0].selectedAssetId, "image-1");
-  assert.equal(persisted.contract.globalLayers.outro.assetId, "brand-outro-colombia");
-  assert.equal(persisted.manifest.assets["brand-logo-demo-co"].renderPath, "overlays/logo-demo-co-alpha-frames");
-  assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "logo-demo-co-alpha-frames", "frame-0000.png"), "utf8"), "source logo png\n");
-  assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "final-demo-co.mp4"), "utf8"), "source final mp4\n");
+  assert.equal(persisted.contract.globalLayers.outro.assetId, "brand-outro-secondary");
+  assert.equal(persisted.manifest.assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary-alpha-frames");
+  assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "logo-secondary-alpha-frames", "frame-0000.png"), "utf8"), "source logo png\n");
+  assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "outro-secondary.mp4"), "utf8"), "source final mp4\n");
   assert.equal(fs.existsSync(path.join(projectRoot, "editor-project.json")), true);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(projectsRoot, "index.json"), "utf8")).projects.map((entry) => entry.id), ["draft-v1"]);
   assert.equal(commands.length, 1);
@@ -469,7 +469,7 @@ test("approval editor owns non-render prep imports and writes only a minimal ren
   assert.equal(scaffold.rows.length, 2);
   assert.equal(scaffold.rows[0].phrase, "Linea 1");
   assert.equal(scaffold.assets.some((asset) => asset.id === "image-1" && asset.type === "image"), true);
-  assert.equal(scaffold.assets.some((asset) => asset.id === "brand-logo-demo-co" && asset.type === "logo"), true);
+  assert.equal(scaffold.assets.some((asset) => asset.id === "brand-logo-secondary" && asset.type === "logo"), true);
   assert.equal(scaffold.preview.status, "ready");
 });
 
@@ -508,9 +508,9 @@ test("video engine render adapter localizes remote render assets before final re
       assert.equal(assets["music-1"].renderPath, "generated/audio/music-1.mp3");
       assert.equal(assets["image-1"].renderPath, "generated/images/image-1.webp");
       assert.equal(assets["image-2"].renderPath, "generated/images/image-2.jpg");
-      assert.equal(assets["brand-logo-demo-co"].renderPath, "overlays/logo-demo-co-alpha-frames");
-      assert.equal(assets["brand-logo-demo-co"].publicUrl, "./assets/logo-demo-co.webm");
-      assert.equal(assets["brand-outro-colombia"].renderPath, "overlays/final-demo-co.mp4");
+      assert.equal(assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary-alpha-frames");
+      assert.equal(assets["brand-logo-secondary"].publicUrl, "./assets/logo-secondary.webm");
+      assert.equal(assets["brand-outro-secondary"].renderPath, "overlays/outro-secondary.mp4");
       const renderProps = adaptCompositionContractToRenderProps({ contract: persisted.contract, manifest: persisted.manifest });
       assert.equal(renderProps.audio.voiceSrc, "generated/audio/voice-1.wav");
       assert.equal(renderProps.audio.musicSrc, "generated/audio/music-1.mp3");
@@ -527,7 +527,7 @@ test("video engine render adapter localizes remote render assets before final re
   snapshot.assets["music-1"] = { ...snapshot.assets["music-1"], renderPath: "https://cdn.test/assets/music-track.mp3", publicUrl: "https://cdn.test/assets/music-track.mp3" };
   snapshot.assets["image-1"] = { ...snapshot.assets["image-1"], renderPath: "https://cdn.test/images/image-one.webp", publicUrl: "https://cdn.test/images/image-one.webp" };
   snapshot.assets["image-2"] = { ...snapshot.assets["image-2"], renderPath: "https://cdn.test/images/image-two.jpg?token=secret", publicUrl: "https://cdn.test/images/image-two.jpg?token=secret" };
-  snapshot.assets["brand-logo-demo-co"] = { ...snapshot.assets["brand-logo-demo-co"], renderPath: "https://cdn.test/brand/logo.webm", publicUrl: "https://cdn.test/brand/logo.webm" };
+  snapshot.assets["brand-logo-secondary"] = { ...snapshot.assets["brand-logo-secondary"], renderPath: "https://cdn.test/brand/logo.webm", publicUrl: "https://cdn.test/brand/logo.webm" };
 
   await adapter({ projectId: "Draft Remote", snapshot, snapshotHash: "hash-remote" });
 
@@ -546,7 +546,7 @@ test("video engine render adapter retries transient remote render asset download
   fs.mkdirSync(path.join(videoEngineRoot, "scripts"), { recursive: true });
   fs.writeFileSync(path.join(videoEngineRoot, "scripts", "render-video.js"), "// fake render entrypoint\n", "utf8");
 
-  const imageUrl = "https://media.puntal.com.ar/p/example/dibu.jpg";
+  const imageUrl = "https://example.local/media/demo-emiliano.jpg";
   const fetchCalls = [];
   const commands = [];
   const adapter = createVideoEngineRenderAdapter({
@@ -654,15 +654,15 @@ test("video engine render adapter repairs legacy URL-keyed video segment assets 
   assert.equal(fs.readFileSync(path.join(commands[0].projectRoot, "public", "generated", "overlays", `${sourceUrl.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "")}.mp4`), "utf8"), "video mp4");
 });
 
-test("video engine scaffold keeps selected image and Ecuador brand asset references valid", () => {
+test("video engine scaffold keeps selected image and Aurenia brand asset references valid", () => {
   const snapshot = {
     ...baseCanonicalSnapshot(),
-    brandChannel: "golazo-ecuador",
+    brandChannel: "demo-primary",
     globalLayers: {
-      logoAssetId: "brand-logo-ecuador",
-      outroAssetId: "brand-outro-ecuador",
-      logo: { enabled: true, assetId: "brand-logo-ecuador" },
-      outro: { enabled: true, assetId: "brand-outro-ecuador" },
+      logoAssetId: "brand-logo-primary",
+      outroAssetId: "brand-outro-primary",
+      logo: { enabled: true, assetId: "brand-logo-primary" },
+      outro: { enabled: true, assetId: "brand-outro-primary" },
     },
     rows: [
       { id: "row-1", phrase: "Linea URL", startTime: 0, endTime: 1.2, selectedAssetId: "https://cdn.test/custom/row-1.png", motion: "slow-zoom-in", dust: { enabled: false }, logo: { enabled: true } },
@@ -673,17 +673,17 @@ test("video engine scaffold keeps selected image and Ecuador brand asset referen
     assets: {},
   };
 
-  const scaffold = buildMinimalRenderScaffold({ projectId: "draft-ecuador", title: "Draft Ecuador", snapshot });
+  const scaffold = buildMinimalRenderScaffold({ projectId: "draft-aurenia", title: "Draft Aurenia", snapshot });
   const parsed = editorProjectSchema.parse(scaffold);
 
-  assert.equal(parsed.globalLayers.logoAssetId, "brand-logo-ecuador");
-  assert.equal(parsed.globalLayers.outroAssetId, "brand-outro-ecuador");
+  assert.equal(parsed.globalLayers.logoAssetId, "brand-logo-primary");
+  assert.equal(parsed.globalLayers.outroAssetId, "brand-outro-primary");
   assert.deepEqual(parsed.rows.map((row) => row.selectedAssetId), [
     "https://cdn.test/custom/row-1.png",
     "image-https-cdn-test-generated-row-2-png",
   ]);
-  assert.equal(parsed.assets.some((asset) => asset.id === "brand-logo-ecuador" && asset.type === "logo"), true);
-  assert.equal(parsed.assets.some((asset) => asset.id === "brand-outro-ecuador" && asset.type === "outro"), true);
+  assert.equal(parsed.assets.some((asset) => asset.id === "brand-logo-primary" && asset.type === "logo"), true);
+  assert.equal(parsed.assets.some((asset) => asset.id === "brand-outro-primary" && asset.type === "outro"), true);
   assert.equal(parsed.assets.some((asset) => asset.id === "https://cdn.test/custom/row-1.png" && asset.type === "image"), true);
   assert.equal(parsed.assets.some((asset) => asset.id === "image-https-cdn-test-generated-row-2-png" && asset.publicPath === "https://cdn.test/generated/row-2.png"), true);
 });
@@ -748,8 +748,8 @@ function baseCanonicalSnapshot() {
       music: { assetId: "music-1", volume: 0.15, muted: false, loop: true },
     },
     globalLayers: {
-      logo: { enabled: true, assetId: "brand-logo-demo-co" },
-      outro: { enabled: true, assetId: "brand-outro-colombia" },
+      logo: { enabled: true, assetId: "brand-logo-secondary" },
+      outro: { enabled: true, assetId: "brand-outro-secondary" },
     },
     rows: [
       { id: "row-1", phrase: "Linea 1", startTime: 0, endTime: 1.2, selectedAssetId: "image-1", motion: "slow-zoom-in", dust: { enabled: false }, logo: { enabled: true } },
@@ -760,8 +760,8 @@ function baseCanonicalSnapshot() {
       "image-2": { id: "image-2", type: "image", renderPath: "generated/images/image-2.jpg", status: "ready" },
       "voice-1": { id: "voice-1", type: "audio", renderPath: "generated/audio/voice.wav", status: "ready" },
       "music-1": { id: "music-1", type: "music", renderPath: "generated/audio/music.wav", status: "ready" },
-      "brand-logo-demo-co": { id: "brand-logo-demo-co", type: "logo", renderPath: "overlays/logo-demo-co-alpha-frames", status: "ready" },
-      "brand-outro-colombia": { id: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+      "brand-logo-secondary": { id: "brand-logo-secondary", type: "logo", renderPath: "overlays/logo-secondary-alpha-frames", status: "ready" },
+      "brand-outro-secondary": { id: "brand-outro-secondary", type: "outro", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 30.16, status: "ready" },
     },
   };
 }

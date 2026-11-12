@@ -93,9 +93,9 @@ export function runCompositionCoverPanCheck() {
   assertEqual(matchingDomDimensions.imageWidth, 901, 'Expected DOM width to be trusted when src matches active image URL');
   assertEqual(matchingDomDimensions.imageHeight, 1601, 'Expected DOM height to be trusted when src matches active image URL');
 
-  assertEqual(shouldChromaKeyLogo('./assets/logo-demo-co.webm'), true, 'Expected Colombia preview logo to use chroma-key canvas path');
+  assertEqual(shouldChromaKeyLogo('./assets/logo-secondary.webm'), true, 'Expected Montelia preview logo to use chroma-key canvas path');
   assertEqual(shouldChromaKeyLogo('../../services/renderer/assets/overlays/logo-green.mp4?cache=1'), true, 'Expected legacy green-screen logo to keep chroma-key path');
-  assertEqual(shouldChromaKeyLogo('./assets/logo-demo-alpha.webm'), false, 'Expected alpha logo to keep direct video path');
+  assertEqual(shouldChromaKeyLogo('./assets/logo-primary.webm'), false, 'Expected alpha logo to keep direct video path');
   assertEqual(LOGO_LEFT, 52, 'Expected chroma fix to preserve logo left placement');
   assertEqual(LOGO_TOP, 38, 'Expected chroma fix to preserve logo top placement');
   assertEqual(LOGO_WIDTH, 220, 'Expected chroma fix to preserve logo width');
@@ -125,7 +125,7 @@ export function runCompositionCoverPanCheck() {
   assertEqual(newspaperStart.label.width, 'max-content', 'Expected newspaper label backing to wrap the text only');
   assertEqual(newspaperStart.label.height, 'auto', 'Expected newspaper label backing to avoid stretching vertically');
   assertEqual(newspaperStart.label.transform, 'none', 'Expected newspaper label to avoid translateX centering');
-  assertEqual(newspaperStart.label.fontFamily, '"Versa Versa", Versa, VERSA, Inter, Arial, sans-serif', 'Expected newspaper label to request the installed Versa Versa face first with honest fallbacks');
+  assertEqual(newspaperStart.label.fontFamily, '"Demo Display", Inter, Arial, sans-serif', 'Expected newspaper label to request the installed Demo Display face first with honest fallbacks');
   assertEqual(newspaperStart.label.fontSize, '18px', 'Expected newspaper label to use the shared 18px preview/render contract size');
   assertEqual(newspaperStart.label.lineHeight, 1.12, 'Expected newspaper label leading to separate RECREACIÓN and ARTÍSTICA slightly');
   assertEqual(newspaperStart.label.background, 'transparent', 'Expected newspaper label to have no backing box');
@@ -143,20 +143,20 @@ export function runCompositionCoverPanCheck() {
     throw new Error('Expected newspaper preview DOM fallback style to undo shared composition-layer inset stretching');
   }
 
-  const versaFontPath = path.join(controlPanelRoot, 'assets/fonts/versa/Demo-Display.woff2');
+  const versaFontPath = path.join(controlPanelRoot, 'assets/fonts/display/Demo-Display.woff2');
   if (!fs.existsSync(versaFontPath)) {
-    throw new Error(`Expected local Versa Versa preview font at ${versaFontPath}`);
+    throw new Error(`Expected local Demo Display preview font at ${versaFontPath}`);
   }
 
   const fontsCss = fs.readFileSync(path.join(controlPanelRoot, 'styles/fonts.css'), 'utf8');
-  if (!fontsCss.includes("font-family: 'Versa Versa'")) {
-    throw new Error('Expected styles/fonts.css to declare a local Versa Versa @font-face');
+  if (!fontsCss.includes("font-family: 'Demo Display'")) {
+    throw new Error('Expected styles/fonts.css to declare a local Demo Display @font-face');
   }
-  if (!fontsCss.includes('../assets/fonts/versa/Demo-Display.woff2')) {
-    throw new Error('Expected styles/fonts.css to load the local Versa Versa WOFF2 asset');
+  if (!fontsCss.includes('../assets/fonts/display/Demo-Display.woff2')) {
+    throw new Error('Expected styles/fonts.css to load the local Demo Display WOFF2 asset');
   }
   if (!/font-display:\s*block;/.test(fontsCss)) {
-    throw new Error('Expected Versa Versa preview @font-face to use font-display:block for preview fidelity');
+    throw new Error('Expected Demo Display preview @font-face to use font-display:block for preview fidelity');
   }
 
   const rowsWithOutroGap = computeEffectiveSegmentTimes([

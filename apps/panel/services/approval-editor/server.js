@@ -160,7 +160,7 @@ const ESTIMATED_SECONDS_PER_WORD = 0.55;
 const MIN_ESTIMATED_SEGMENT_SECONDS = 1.2;
 const WAV_DURATION_FETCH_TIMEOUT_MS = 2500;
 const REMOTION_OVERLAYS_DIR = path.resolve(__dirname, "..", "..", "..", "services/renderer", "assets", "overlays");
-const PUBLIC_OVERLAY_FILES = new Set(["particle-1.mp4", "particle-2.mp4", "logo-demo-alpha.webm", "overlay-layer-01.mp4", "overlay-layer-02.mp4"]);
+const PUBLIC_OVERLAY_FILES = new Set(["particle-1.mp4", "particle-2.mp4", "logo-primary.webm", "overlay-layer-01.mp4", "overlay-layer-02.mp4"]);
 
 function defaultZoom150Motion() {
   const { category, name, ...motion } = findMotionPreset("Zoom 150") || {};
@@ -323,7 +323,7 @@ function buildRowSeeds(segments = []) {
     motionPresetId: "Zoom 150",
     motion: defaultZoom150Motion(),
     dust: { enabled: true, type: "particle-1", assetId: "particle-1", opacity: 0.36, blendMode: "screen" },
-    logo: { enabled: true, source: "logo-demo-alpha.webm" },
+    logo: { enabled: true, source: "logo-primary.webm" },
     filter: { enabled: true, mode: "cover" },
     transition: "none",
     sfx: null,

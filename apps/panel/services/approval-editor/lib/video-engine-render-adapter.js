@@ -357,9 +357,8 @@ function inferBrandChannel(snapshot = {}) {
     ...Object.keys(snapshot?.assets && typeof snapshot.assets === "object" ? snapshot.assets : {}),
   ].map((value) => String(value || "").toLowerCase());
 
-  if (candidates.some((value) => value.includes("mundial"))) return "final-demo-cup";
-  if (candidates.some((value) => value.includes("colombia"))) return "golazo-colombia";
-  if (candidates.some((value) => value.includes("ecuador"))) return "golazo-ecuador";
+  if (candidates.some((value) => value.includes("-final"))) return "demo-final";
+  if (candidates.some((value) => value.includes("-secondary"))) return "demo-secondary";
   return normalizeBrandChannel(null);
 }
 

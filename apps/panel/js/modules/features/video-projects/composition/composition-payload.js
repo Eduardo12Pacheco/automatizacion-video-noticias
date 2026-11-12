@@ -77,7 +77,7 @@ export function buildCompositionPayload(project) {
         fadeOutSeconds: 1,
       },
     },
-    brandChannel: previewContract?.canonical?.brandChannel || project?.editor_state?.brandChannel || project?.editor_state?.brand_channel || 'golazo-ecuador',
+    brandChannel: previewContract?.canonical?.brandChannel || project?.editor_state?.brandChannel || project?.editor_state?.brand_channel || 'demo-primary',
     segments: (Array.isArray(previewContract.rows) ? previewContract.rows : []).map((row, index) => {
       const rowId = row.id || row.rowId;
       const motion = normalizeRowMotionForPreview(row);

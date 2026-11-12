@@ -237,12 +237,12 @@ async function testStaleBrandSelectionRetriesAgainstLatestSnapshot() {
   const savedStates = [];
   const client = {
     async snapshot() {
-      return { snapshot: { ...project.editor_state.approval_contract_snapshot, snapshotHash: 'hash-latest', brandChannel: 'golazo-colombia', rows } };
+      return { snapshot: { ...project.editor_state.approval_contract_snapshot, snapshotHash: 'hash-latest', brandChannel: 'demo-secondary', rows } };
     },
     async updateSnapshot(projectId, payload) {
       calls.push({ projectId, payload });
       if (payload.baseSnapshotHash === 'hash-latest') {
-        return { snapshot: { ...project.editor_state.approval_contract_snapshot, snapshotHash: 'hash-brand', brandChannel: 'final-demo-cup', rows } };
+        return { snapshot: { ...project.editor_state.approval_contract_snapshot, snapshotHash: 'hash-brand', brandChannel: 'demo-final', rows } };
       }
       const error = new Error('version conflict');
       error.code = 'version_conflict';
@@ -258,11 +258,11 @@ async function testStaleBrandSelectionRetriesAgainstLatestSnapshot() {
     renderSelectedVideoProject() {},
   });
 
-  await operations.commitApprovalSnapshotOperations(project, [{ type: 'setBrandChannel', brandChannel: 'final-demo-cup' }]);
+  await operations.commitApprovalSnapshotOperations(project, [{ type: 'setBrandChannel', brandChannel: 'demo-final' }]);
 
   assertEqual(calls.length, 2, 'Expected stale brand selection to retry once over latest snapshot');
   assertEqual(calls[1].payload.baseSnapshotHash, 'hash-latest', 'Expected brand retry to use latest canonical hash');
-  assertEqual(project.editor_state.approval_contract_snapshot.brandChannel, 'final-demo-cup', 'Expected retried brand selection to apply canonical brand');
+  assertEqual(project.editor_state.approval_contract_snapshot.brandChannel, 'demo-final', 'Expected retried brand selection to apply canonical brand');
   assertEqual(savedStates.length, 1, 'Expected successful brand retry to persist editor state once');
 }
 

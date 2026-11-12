@@ -28,14 +28,14 @@ assets/overlays/*
 !assets/overlays/particle-*.webm
 !assets/overlays/overlay-layer-*.webm
 !assets/overlays/overlay-layer-*.mp4
-!assets/overlays/logo-demo-alpha.webm
-!assets/overlays/logo-demo-co.webm
-!assets/overlays/logo-demo-co.mp4
-!assets/overlays/logo-demo-cup.png
-!assets/overlays/logo-demo-cup.mp4
+!assets/overlays/logo-primary.webm
+!assets/overlays/logo-secondary.webm
+!assets/overlays/logo-secondary.mp4
+!assets/overlays/logo-final.png
+!assets/overlays/logo-final.mp4
 !assets/overlays/logo-green.mp4
 !assets/overlays/logo-clean.mp4
-!assets/overlays/final-demo-*.mp4
+!assets/overlays/outro-*.mp4
 !assets/overlays/TRANSITION *.mp4
 !assets/overlays/efecto-transition-*.mp4
 !assets/overlays/*-alpha-frames/

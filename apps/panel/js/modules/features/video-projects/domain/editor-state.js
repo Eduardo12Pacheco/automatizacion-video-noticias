@@ -43,9 +43,9 @@ export function normalizeEditorState(editorState = {}) {
   };
 }
 
-export function normalizeBrandChannel(value = 'golazo-ecuador') {
+export function normalizeBrandChannel(value = 'demo-primary') {
   const normalized = (value || '').toString().trim().toLowerCase();
-  return ['golazo-colombia', 'final-demo-cup'].includes(normalized) ? normalized : 'golazo-ecuador';
+  return ['demo-secondary', 'demo-final'].includes(normalized) ? normalized : 'demo-primary';
 }
 
 export function normalizeGlobalAudioState(globalAudio = {}) {

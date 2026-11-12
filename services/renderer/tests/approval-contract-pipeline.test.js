@@ -351,50 +351,50 @@ test("approval editor V1 contract includes canonical rows, assets, overlays, aud
   assert.equal(result.contract.rows[0].rowId, "row-1");
   assert.equal(result.contract.rows[0].motionPresetId, "slow-zoom-in");
   assert.equal(result.contract.rows[0].dust.blendMode, "screen");
-  assert.equal(result.contract.globalLayers.logo.preferredSource, "logo-demo-alpha.webm");
+  assert.equal(result.contract.globalLayers.logo.preferredSource, "logo-primary.webm");
   assert.equal(result.contract.assets["image-1"].previewUrl, "generated/images/001.jpg");
   assert.equal(result.contract.audio.voice.assetId, "voice-1");
   assert.match(result.contract.snapshotId, /^draft-v1:/);
   assert.equal(result.contract.snapshotHash, computeApprovalSnapshotHash(result.contract));
 });
 
-test("brand channel registry resolves preview and render assets with legacy Ecuador fallback", async () => {
+test("brand channel registry resolves preview and render assets with legacy Aurenia fallback", async () => {
   const {
     normalizeBrandChannel,
     resolveBrandChannelAssets,
     resolveBrandChannelPreviewAssetUrl,
   } = await importControlPanelCompositionModule("overlay-assets.js");
 
-  assert.equal(normalizeBrandChannel("golazo-colombia"), "golazo-colombia");
-  assert.equal(normalizeBrandChannel(undefined), "golazo-ecuador");
-  assert.equal(normalizeBrandChannel("unknown"), "golazo-ecuador");
+  assert.equal(normalizeBrandChannel("demo-secondary"), "demo-secondary");
+  assert.equal(normalizeBrandChannel(undefined), "demo-primary");
+  assert.equal(normalizeBrandChannel("unknown"), "demo-primary");
 
-  const colombia = resolveBrandChannelAssets("golazo-colombia");
-  assert.equal(colombia.logo.assetId, "brand-logo-demo-co");
-  assert.equal(colombia.logo.previewPath, "logo-demo-co.webm");
-  assert.equal(colombia.logo.renderPath, "overlays/logo-demo-co.mp4");
-  assert.equal(colombia.outro.assetId, "brand-outro-colombia");
-  assert.equal(colombia.outro.previewPath, "final-demo-co.webm");
-  assert.equal(colombia.outro.renderPath, "overlays/final-demo-co.mp4");
-  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "golazo-colombia", kind: "logo" }), "./assets/logo-demo-co.webm");
+  const montelia = resolveBrandChannelAssets("demo-secondary");
+  assert.equal(montelia.logo.assetId, "brand-logo-secondary");
+  assert.equal(montelia.logo.previewPath, "logo-secondary.webm");
+  assert.equal(montelia.logo.renderPath, "overlays/logo-secondary.mp4");
+  assert.equal(montelia.outro.assetId, "brand-outro-secondary");
+  assert.equal(montelia.outro.previewPath, "outro-secondary.webm");
+  assert.equal(montelia.outro.renderPath, "overlays/outro-secondary.mp4");
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-secondary", kind: "logo" }), "./assets/logo-secondary.webm");
 
-  assert.equal(normalizeBrandChannel("final-demo-cup"), "final-demo-cup");
-  const mundial = resolveBrandChannelAssets("final-demo-cup");
-  assert.equal(mundial.logo.assetId, "brand-logo-demo-cup");
-  assert.equal(mundial.logo.previewPath, "logo-demo-cup.png");
-  assert.equal(mundial.logo.renderPath, "overlays/logo-demo-cup.png");
-  assert.equal(mundial.outro.assetId, "brand-outro-mundial");
-  assert.equal(mundial.outro.previewPath, "final-demo-cup.webm");
-  assert.equal(mundial.outro.renderPath, "overlays/final-demo-cup.mp4");
-  assert.equal(mundial.outro.durationSeconds, 30.12);
-  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "final-demo-cup", kind: "logo" }), "./assets/logo-demo-cup.png");
-  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "final-demo-cup", kind: "outro" }), "./assets/final-demo-cup.webm");
+  assert.equal(normalizeBrandChannel("demo-final"), "demo-final");
+  const finalBrand = resolveBrandChannelAssets("demo-final");
+  assert.equal(finalBrand.logo.assetId, "brand-logo-final");
+  assert.equal(finalBrand.logo.previewPath, "logo-final.png");
+  assert.equal(finalBrand.logo.renderPath, "overlays/logo-final.png");
+  assert.equal(finalBrand.outro.assetId, "brand-outro-final");
+  assert.equal(finalBrand.outro.previewPath, "outro-final.webm");
+  assert.equal(finalBrand.outro.renderPath, "overlays/outro-final.mp4");
+  assert.equal(finalBrand.outro.durationSeconds, 30.12);
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-final", kind: "logo" }), "./assets/logo-final.png");
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-final", kind: "outro" }), "./assets/outro-final.webm");
 
   const fallback = resolveBrandChannelAssets(null);
-  assert.equal(fallback.channel, "golazo-ecuador");
-  assert.equal(fallback.logo.previewPath, "logo-demo-alpha.webm");
-  assert.equal(fallback.logo.renderPath, "overlays/logo-demo-alpha.webm");
-  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: null, kind: "logo" }), "./assets/logo-demo-alpha.webm");
+  assert.equal(fallback.channel, "demo-primary");
+  assert.equal(fallback.logo.previewPath, "logo-primary.webm");
+  assert.equal(fallback.logo.renderPath, "overlays/logo-primary.webm");
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: null, kind: "logo" }), "./assets/logo-primary.webm");
 });
 
 test("approval editor V1 contract seeds brand channel assets and changes hash by channel", () => {
@@ -418,35 +418,35 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
     nowIso: "2026-05-08T12:00:00.000Z",
   };
 
-  const ecuador = buildApprovalContractPipeline(baseInput).contract;
-  const colombia = buildApprovalContractPipeline({ ...baseInput, brandChannel: "golazo-colombia" }).contract;
-  const mundial = buildApprovalContractPipeline({ ...baseInput, brandChannel: "final-demo-cup" }).contract;
+  const aurenia = buildApprovalContractPipeline(baseInput).contract;
+  const montelia = buildApprovalContractPipeline({ ...baseInput, brandChannel: "demo-secondary" }).contract;
+  const finalBrand = buildApprovalContractPipeline({ ...baseInput, brandChannel: "demo-final" }).contract;
 
-  assert.equal(ecuador.brandChannel, "golazo-ecuador");
-  assert.equal(ecuador.globalLayers.logo.assetId, "brand-logo-ecuador");
-  assert.equal(ecuador.globalLayers.logo.source, "logo-demo-alpha.webm");
-  assert.equal(ecuador.assets["brand-logo-ecuador"].previewUrl, "./assets/logo-demo-alpha.webm");
-  assert.equal(ecuador.assets["brand-logo-ecuador"].renderPath, "overlays/logo-ecuador-alpha-frames");
-  assert.equal(ecuador.globalLayers.outro.assetId, "brand-outro-ecuador");
-  assert.equal(ecuador.assets["brand-outro-ecuador"].previewUrl, "./assets/final-demo-ec.webm");
-  assert.equal(ecuador.assets["brand-outro-ecuador"].renderPath, "overlays/final-demo-ec.mp4");
+  assert.equal(aurenia.brandChannel, "demo-primary");
+  assert.equal(aurenia.globalLayers.logo.assetId, "brand-logo-primary");
+  assert.equal(aurenia.globalLayers.logo.source, "logo-primary.webm");
+  assert.equal(aurenia.assets["brand-logo-primary"].previewUrl, "./assets/logo-primary.webm");
+  assert.equal(aurenia.assets["brand-logo-primary"].renderPath, "overlays/logo-primary-alpha-frames");
+  assert.equal(aurenia.globalLayers.outro.assetId, "brand-outro-primary");
+  assert.equal(aurenia.assets["brand-outro-primary"].previewUrl, "./assets/outro-primary.webm");
+  assert.equal(aurenia.assets["brand-outro-primary"].renderPath, "overlays/outro-primary.mp4");
 
-  assert.equal(colombia.brandChannel, "golazo-colombia");
-  assert.equal(colombia.globalLayers.logo.assetId, "brand-logo-demo-co");
-  assert.equal(colombia.globalLayers.outro.assetId, "brand-outro-colombia");
-  assert.equal(colombia.assets["brand-logo-demo-co"].previewUrl, "./assets/logo-demo-co.webm");
-  assert.equal(colombia.assets["brand-logo-demo-co"].renderPath, "overlays/logo-demo-co-alpha-frames");
-  assert.equal(colombia.assets["brand-outro-colombia"].renderPath, "overlays/final-demo-co.mp4");
-  assert.notEqual(computeApprovalSnapshotHash(ecuador), computeApprovalSnapshotHash(colombia));
+  assert.equal(montelia.brandChannel, "demo-secondary");
+  assert.equal(montelia.globalLayers.logo.assetId, "brand-logo-secondary");
+  assert.equal(montelia.globalLayers.outro.assetId, "brand-outro-secondary");
+  assert.equal(montelia.assets["brand-logo-secondary"].previewUrl, "./assets/logo-secondary.webm");
+  assert.equal(montelia.assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary-alpha-frames");
+  assert.equal(montelia.assets["brand-outro-secondary"].renderPath, "overlays/outro-secondary.mp4");
+  assert.notEqual(computeApprovalSnapshotHash(aurenia), computeApprovalSnapshotHash(montelia));
 
-  assert.equal(mundial.brandChannel, "final-demo-cup");
-  assert.equal(mundial.globalLayers.logo.assetId, "brand-logo-demo-cup");
-  assert.equal(mundial.globalLayers.logo.source, "logo-demo-cup.png");
-  assert.equal(mundial.globalLayers.outro.assetId, "brand-outro-mundial");
-  assert.equal(mundial.assets["brand-logo-demo-cup"].previewUrl, "./assets/logo-demo-cup.png");
-  assert.equal(mundial.assets["brand-logo-demo-cup"].renderPath, "overlays/logo-demo-cup.png");
-  assert.equal(mundial.assets["brand-outro-mundial"].previewUrl, "./assets/final-demo-cup.webm");
-  assert.equal(mundial.assets["brand-outro-mundial"].renderPath, "overlays/final-demo-cup.mp4");
-  assert.equal(mundial.assets["brand-outro-mundial"].durationSeconds, 30.12);
-  assert.notEqual(computeApprovalSnapshotHash(ecuador), computeApprovalSnapshotHash(mundial));
+  assert.equal(finalBrand.brandChannel, "demo-final");
+  assert.equal(finalBrand.globalLayers.logo.assetId, "brand-logo-final");
+  assert.equal(finalBrand.globalLayers.logo.source, "logo-final.png");
+  assert.equal(finalBrand.globalLayers.outro.assetId, "brand-outro-final");
+  assert.equal(finalBrand.assets["brand-logo-final"].previewUrl, "./assets/logo-final.png");
+  assert.equal(finalBrand.assets["brand-logo-final"].renderPath, "overlays/logo-final.png");
+  assert.equal(finalBrand.assets["brand-outro-final"].previewUrl, "./assets/outro-final.webm");
+  assert.equal(finalBrand.assets["brand-outro-final"].renderPath, "overlays/outro-final.mp4");
+  assert.equal(finalBrand.assets["brand-outro-final"].durationSeconds, 30.12);
+  assert.notEqual(computeApprovalSnapshotHash(aurenia), computeApprovalSnapshotHash(finalBrand));
 });

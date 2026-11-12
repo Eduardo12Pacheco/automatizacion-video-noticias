@@ -33,7 +33,7 @@ describe('demo worker', () => {
     const created = await json('/api/tts/jobs', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: 'Ecuador ajusta su mediocampo para el próximo partido.', voice_profile: 'balanced_default' }),
+      body: JSON.stringify({ text: 'Aurenia ajusta su mediocampo para el próximo partido.', voice_profile: 'balanced_default' }),
     });
     assert.equal(created.response.status, 202);
     assert.equal(created.body.job_id.startsWith('tts-demo-'), true);

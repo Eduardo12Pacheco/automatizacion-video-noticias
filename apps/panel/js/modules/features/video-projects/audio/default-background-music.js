@@ -16,14 +16,14 @@ function buildDefaultTrack({ id, label, fileName }) {
 
 export const DEFAULT_BACKGROUND_MUSIC_TRACKS = [
   buildDefaultTrack({
-    id: 'musica-golazo',
-    label: 'Musica Golazo',
-    fileName: 'musica-golazo-rapida.wav',
+    id: 'musica-demo',
+    label: 'Musica Demo',
+    fileName: 'musica-demo-rapida.wav',
   }),
   buildDefaultTrack({
-    id: 'musica-emotiva-golazo',
-    label: 'Musica Emotiva Golazo',
-    fileName: 'musica-emotiva-golazo.wav',
+    id: 'musica-emotiva-demo',
+    label: 'Musica Emotiva Demo',
+    fileName: 'musica-emotiva-demo.wav',
   }),
   buildDefaultTrack({
     id: 'trap-boxing',
@@ -51,18 +51,18 @@ export const DEFAULT_BACKGROUND_MUSIC_TRACKS = [
     fileName: 'On-A-Mission.wav',
   }),
   buildDefaultTrack({
-    id: 'epic-motivacional-golazo',
-    label: 'Epic Motivacional Golazo',
-    fileName: 'epic-motivacional-golazo.wav',
+    id: 'epic-motivacional-demo',
+    label: 'Epic Motivacional Demo',
+    fileName: 'epic-motivacional-demo.wav',
   }),
   buildDefaultTrack({
-    id: 'debate-golazo-polemico',
-    label: 'Debate Golazo Polemico',
-    fileName: 'debate-golazo-polemico.wav',
+    id: 'debate-demo-polemico',
+    label: 'Debate Demo Polemico',
+    fileName: 'debate-demo-polemico.wav',
   }),
 ];
 
-export const DEFAULT_BACKGROUND_MUSIC_TRACK_ID = 'musica-golazo';
+export const DEFAULT_BACKGROUND_MUSIC_TRACK_ID = 'musica-demo';
 
 export function findDefaultBackgroundMusicTrack(trackId) {
   return DEFAULT_BACKGROUND_MUSIC_TRACKS.find((track) => track.id === trackId) || null;

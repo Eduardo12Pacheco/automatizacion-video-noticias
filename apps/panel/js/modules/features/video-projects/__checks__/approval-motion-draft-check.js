@@ -258,24 +258,24 @@ function createApprovalMotionHarness({ snapshotRows = [], failSnapshotUpdate = f
           projectId: 'remotion-1',
           snapshotHash: 'hash-base',
           rows: [],
-          brandChannel: 'golazo-ecuador',
+          brandChannel: 'demo-primary',
           assets: {
-            'brand-logo-ecuador': { assetId: 'brand-logo-ecuador', previewUrl: './assets/logo-demo-alpha.webm', renderPath: 'overlays/logo-demo-alpha.webm' },
-            'brand-logo-demo-co': { assetId: 'brand-logo-demo-co', previewUrl: './assets/logo-demo-co.webm', renderPath: 'overlays/logo-demo-co.mp4' },
+            'brand-logo-primary': { assetId: 'brand-logo-primary', previewUrl: './assets/logo-primary.webm', renderPath: 'overlays/logo-primary.webm' },
+            'brand-logo-secondary': { assetId: 'brand-logo-secondary', previewUrl: './assets/logo-secondary.webm', renderPath: 'overlays/logo-secondary.mp4' },
             'asset-a': { assetId: 'asset-a', previewUrl: 'https://cdn.example.com/a.jpg', renderPath: 'https://cdn.example.com/a.jpg' },
             'asset-b': { assetId: 'asset-b', previewUrl: 'https://cdn.example.com/b.jpg', renderPath: 'https://cdn.example.com/b.jpg' },
           },
           globalLayers: {
-            logoAssetId: 'brand-logo-ecuador',
-            logo: { enabled: true, source: 'logo-demo-alpha.webm', assetId: 'brand-logo-ecuador' },
+            logoAssetId: 'brand-logo-primary',
+            logo: { enabled: true, source: 'logo-primary.webm', assetId: 'brand-logo-primary' },
           },
         },
         snapshot_hash: 'hash-base',
         phase: 'preview_ready',
       },
       _editorRows: [
-        { id: 'row-1', motionPresetId: 'custom', motion: { fromX: 0, toX: 10, fromScale: 1, toScale: 1.1 }, selectedAssetId: 'asset-a', dust: { enabled: false, type: 'particle-1' }, logo: { enabled: true, source: 'logo-demo-alpha.webm', assetId: 'brand-logo-ecuador' } },
-        { id: 'row-2', motionPresetId: 'custom', motion: { fromX: 0, toX: 0, fromScale: 1, toScale: 1.1 }, selectedAssetId: 'asset-b', dust: { enabled: false, type: 'particle-1' }, logo: { enabled: true, source: 'logo-demo-alpha.webm', assetId: 'brand-logo-ecuador' } },
+        { id: 'row-1', motionPresetId: 'custom', motion: { fromX: 0, toX: 10, fromScale: 1, toScale: 1.1 }, selectedAssetId: 'asset-a', dust: { enabled: false, type: 'particle-1' }, logo: { enabled: true, source: 'logo-primary.webm', assetId: 'brand-logo-primary' } },
+        { id: 'row-2', motionPresetId: 'custom', motion: { fromX: 0, toX: 0, fromScale: 1, toScale: 1.1 }, selectedAssetId: 'asset-b', dust: { enabled: false, type: 'particle-1' }, logo: { enabled: true, source: 'logo-primary.webm', assetId: 'brand-logo-primary' } },
       ],
     },
   };
@@ -588,15 +588,15 @@ async function runApprovalBrandChannelUsesOptimisticDraftCheck() {
   try {
     const { feature, state, updateSnapshotCalls, renderEvents, previewUpdateEvents, toasts } = createApprovalMotionHarness();
 
-    await feature.updateBrandChannel('golazo-colombia');
+    await feature.updateBrandChannel('demo-secondary');
 
     const snapshot = state.selectedVideoProject.editor_state.approval_contract_snapshot;
-    assertEqual(state.selectedVideoProject.editor_state.brandChannel, 'golazo-colombia', 'Expected project selection to patch the editor brand immediately');
-    assertEqual(snapshot.brandChannel, 'golazo-colombia', 'Expected project selection to patch canonical snapshot brand immediately');
-    assertEqual(snapshot.globalLayers.logo.assetId, 'brand-logo-demo-co', 'Expected Colombia selection to apply Colombia logo asset immediately');
-    assertEqual(state.selectedVideoProject._editorRows[0].logo.source, 'logo-demo-co.webm', 'Expected Colombia selection to apply row logo source immediately');
+    assertEqual(state.selectedVideoProject.editor_state.brandChannel, 'demo-secondary', 'Expected project selection to patch the editor brand immediately');
+    assertEqual(snapshot.brandChannel, 'demo-secondary', 'Expected project selection to patch canonical snapshot brand immediately');
+    assertEqual(snapshot.globalLayers.logo.assetId, 'brand-logo-secondary', 'Expected Montelia selection to apply Montelia logo asset immediately');
+    assertEqual(state.selectedVideoProject._editorRows[0].logo.source, 'logo-secondary.webm', 'Expected Montelia selection to apply row logo source immediately');
     assertEqual(updateSnapshotCalls.length, 1, 'Expected project selection to persist immediately so hard refresh keeps the chosen brand');
-    assertDeepEqual(updateSnapshotCalls[0].payload.operations, [{ type: 'setBrandChannel', brandChannel: 'golazo-colombia' }], 'Expected immediate project persistence to send only the brand operation');
+    assertDeepEqual(updateSnapshotCalls[0].payload.operations, [{ type: 'setBrandChannel', brandChannel: 'demo-secondary' }], 'Expected immediate project persistence to send only the brand operation');
     assertEqual(previewUpdateEvents.length, 1, 'Expected project selection to update the existing composition preview immediately');
     assertEqual(renderEvents.length, 0, 'Expected project selection not to trigger a full detail render before debounce persistence');
     assertDeepEqual(toasts, [], 'Expected no snapshot error toast before debounced project persistence runs');
@@ -621,17 +621,17 @@ async function runBrandChannelPreviewAssetReloadCheck() {
         { id: 'row-1', rowId: 'row-1', image: 'https://cdn.example.com/a.jpg', startTime: 0, endTime: 3, effectiveEndTime: 3, logo: { enabled: true }, dust: { enabled: false, type: 'particle-1' } },
       ],
       editor_state: {
-        brandChannel: 'golazo-ecuador',
+        brandChannel: 'demo-primary',
         approval_contract_snapshot: {
-          brandChannel: 'golazo-ecuador',
+          brandChannel: 'demo-primary',
           rows: [],
           assets: {
-            'brand-logo-ecuador': { assetId: 'brand-logo-ecuador', previewUrl: './assets/logo-demo-alpha.webm' },
-            'brand-outro-ecuador': { assetId: 'brand-outro-ecuador', previewUrl: './assets/final-demo-ec.webm' },
+            'brand-logo-primary': { assetId: 'brand-logo-primary', previewUrl: './assets/logo-primary.webm' },
+            'brand-outro-primary': { assetId: 'brand-outro-primary', previewUrl: './assets/outro-primary.webm' },
           },
           globalLayers: {
-            logo: { enabled: true, source: 'logo-demo-alpha.webm', assetId: 'brand-logo-ecuador' },
-            outro: { enabled: true, assetId: 'brand-outro-ecuador' },
+            logo: { enabled: true, source: 'logo-primary.webm', assetId: 'brand-logo-primary' },
+            outro: { enabled: true, assetId: 'brand-outro-primary' },
           },
         },
       },
@@ -642,22 +642,22 @@ async function runBrandChannelPreviewAssetReloadCheck() {
     await flushMicrotasks();
 
     const renderer = getCompositionRendererForPreview();
-    assertEqual(renderer?._logoUrl, './assets/logo-demo-alpha.webm', 'Expected initial preview renderer to preload Ecuador logo');
-    assertEqual(renderer?._outroUrl, './assets/final-demo-ec.webm', 'Expected initial preview renderer to preload Ecuador outro');
+    assertEqual(renderer?._logoUrl, './assets/logo-primary.webm', 'Expected initial preview renderer to preload Aurenia logo');
+    assertEqual(renderer?._outroUrl, './assets/outro-primary.webm', 'Expected initial preview renderer to preload Aurenia outro');
 
     project.editor_state = {
       ...project.editor_state,
-      brandChannel: 'golazo-colombia',
+      brandChannel: 'demo-secondary',
       approval_contract_snapshot: {
-        brandChannel: 'golazo-colombia',
+        brandChannel: 'demo-secondary',
         rows: [],
         assets: {
-          'brand-logo-demo-co': { assetId: 'brand-logo-demo-co', previewUrl: './assets/logo-demo-co.webm' },
-          'brand-outro-colombia': { assetId: 'brand-outro-colombia', previewUrl: './assets/final-demo-co.webm' },
+          'brand-logo-secondary': { assetId: 'brand-logo-secondary', previewUrl: './assets/logo-secondary.webm' },
+          'brand-outro-secondary': { assetId: 'brand-outro-secondary', previewUrl: './assets/outro-secondary.webm' },
         },
         globalLayers: {
-          logo: { enabled: true, source: 'logo-demo-co.webm', assetId: 'brand-logo-demo-co' },
-          outro: { enabled: true, assetId: 'brand-outro-colombia' },
+          logo: { enabled: true, source: 'logo-secondary.webm', assetId: 'brand-logo-secondary' },
+          outro: { enabled: true, assetId: 'brand-outro-secondary' },
         },
       },
     };
@@ -667,41 +667,41 @@ async function runBrandChannelPreviewAssetReloadCheck() {
     await flushMicrotasks();
 
     assertEqual(updated, true, 'Expected lightweight preview update to run for brand asset changes');
-    assertEqual(renderer._logoUrl, './assets/logo-demo-co.webm', 'Expected brand change to reload Colombia logo without full rerender');
-    assertEqual(renderer._outroUrl, './assets/final-demo-co.webm', 'Expected brand change to reload Colombia outro without full rerender');
+    assertEqual(renderer._logoUrl, './assets/logo-secondary.webm', 'Expected brand change to reload Montelia logo without full rerender');
+    assertEqual(renderer._outroUrl, './assets/outro-secondary.webm', 'Expected brand change to reload Montelia outro without full rerender');
     assertEqual(renderer.currentTime, 1.25, 'Expected brand asset reload to preserve preview seek time');
 
     project.editor_state = {
       ...project.editor_state,
-      brandChannel: 'final-demo-cup',
+      brandChannel: 'demo-final',
       approval_contract_snapshot: {
-        brandChannel: 'final-demo-cup',
+        brandChannel: 'demo-final',
         rows: [],
         assets: {
-          'brand-logo-demo-cup': { assetId: 'brand-logo-demo-cup', previewUrl: './assets/logo-demo-cup.png' },
-          'brand-outro-mundial': { assetId: 'brand-outro-mundial', previewUrl: './assets/final-demo-cup.webm' },
+          'brand-logo-final': { assetId: 'brand-logo-final', previewUrl: './assets/logo-final.png' },
+          'brand-outro-final': { assetId: 'brand-outro-final', previewUrl: './assets/outro-final.webm' },
         },
         globalLayers: {
-          logo: { enabled: true, source: 'logo-demo-cup.png', assetId: 'brand-logo-demo-cup' },
-          outro: { enabled: true, assetId: 'brand-outro-mundial' },
+          logo: { enabled: true, source: 'logo-final.png', assetId: 'brand-logo-final' },
+          outro: { enabled: true, assetId: 'brand-outro-final' },
         },
       },
     };
 
-    const mundialUpdated = updateSelectedVideoProjectCompositionPreview({ project });
+    const finalBrandUpdated = updateSelectedVideoProjectCompositionPreview({ project });
     await flushMicrotasks();
     await flushMicrotasks();
 
-    assertEqual(mundialUpdated, true, 'Expected lightweight preview update to run for Mundial brand asset changes');
-    assertEqual(renderer._logoUrl, './assets/logo-demo-cup.png', 'Expected brand change to reload Mundial PNG logo without full rerender');
-    assertEqual(renderer._outroUrl, './assets/final-demo-cup.webm', 'Expected brand change to reload Mundial outro without full rerender');
-    assertEqual(renderer.currentTime, 1.25, 'Expected Mundial brand asset reload to preserve preview seek time');
+    assertEqual(finalBrandUpdated, true, 'Expected lightweight preview update to run for Copa Internacional brand asset changes');
+    assertEqual(renderer._logoUrl, './assets/logo-final.png', 'Expected brand change to reload Copa Internacional PNG logo without full rerender');
+    assertEqual(renderer._outroUrl, './assets/outro-final.webm', 'Expected brand change to reload Copa Internacional outro without full rerender');
+    assertEqual(renderer.currentTime, 1.25, 'Expected Copa Internacional brand asset reload to preserve preview seek time');
     const stage = container.children[0];
     const logoLayer = stage.children.find((child) => child.className === 'composition-layer composition-layer--logo');
-    assertEqual(logoLayer?.style.left, '-28px', 'Expected Mundial PNG logo to move left into the approved preview position');
-    assertEqual(logoLayer?.style.top, '-6px', 'Expected Mundial PNG logo to move up into the approved preview position');
-    assertEqual(logoLayer?.style.width, '275px', 'Expected Mundial PNG logo to render 1.25x wider than the generic logo slot');
-    assertEqual(logoLayer?.style.height, '155px', 'Expected Mundial PNG logo to render 1.25x taller than the generic logo slot');
+    assertEqual(logoLayer?.style.left, '-28px', 'Expected Copa Internacional PNG logo to move left into the approved preview position');
+    assertEqual(logoLayer?.style.top, '-6px', 'Expected Copa Internacional PNG logo to move up into the approved preview position');
+    assertEqual(logoLayer?.style.width, '275px', 'Expected Copa Internacional PNG logo to render 1.25x wider than the generic logo slot');
+    assertEqual(logoLayer?.style.height, '155px', 'Expected Copa Internacional PNG logo to render 1.25x taller than the generic logo slot');
   } finally {
     destroyCompositionRenderer();
     restoreDom();
@@ -850,18 +850,18 @@ async function runApprovalGlobalDraftsPersistAfterDebounceCheck() {
 
     await feature.updateRow('row-1', { dust: { enabled: true, type: 'particle-2' } });
     await feature.updateRow('row-1', { logo: { enabled: false } });
-    await feature.updateBrandChannel('golazo-colombia');
+    await feature.updateBrandChannel('demo-secondary');
 
     assertEqual(updateSnapshotCalls.length, 2, 'Expected brand selection to flush pending global drafts and then persist the brand immediately');
     assertDeepEqual(
       updateSnapshotCalls[0].payload.operations,
       [
         { type: 'setRowDust', rowId: 'row-1', enabled: true, dustType: 'particle-2' },
-        { type: 'setLogo', enabled: false, source: 'logo-demo-alpha.webm', assetId: 'brand-logo-ecuador' },
+        { type: 'setLogo', enabled: false, source: 'logo-primary.webm', assetId: 'brand-logo-primary' },
       ],
       'Expected pending global drafts to flush before project brand persistence',
     );
-    assertDeepEqual(updateSnapshotCalls[1].payload.operations, [{ type: 'setBrandChannel', brandChannel: 'golazo-colombia' }], 'Expected brand operation to persist after pending drafts');
+    assertDeepEqual(updateSnapshotCalls[1].payload.operations, [{ type: 'setBrandChannel', brandChannel: 'demo-secondary' }], 'Expected brand operation to persist after pending drafts');
     timers.runPending();
     await flushMicrotasks();
     await flushMicrotasks();

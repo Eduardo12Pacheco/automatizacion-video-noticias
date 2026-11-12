@@ -139,7 +139,7 @@ test('renderer helper facade exposes newspaper image layout parity semantics', (
   assert.equal(lastFrame.foreground.transform, 'scale(1.25)');
   assert.equal(explicitZoom150.foreground.transform, 'scale(1.5)');
   assert.equal(firstFrame.label.lines.join('\n'), 'RECREACIÓN\nARTÍSTICA');
-  assert.equal(firstFrame.label.fontFamily, '"Versa Versa", Versa, VERSA, Inter, Arial, sans-serif');
+  assert.equal(firstFrame.label.fontFamily, '"Demo Display", Inter, Arial, sans-serif');
   assert.equal(firstFrame.label.fontSize, '18px');
 });
 
@@ -209,7 +209,7 @@ test('renderer DOM helper preserves preview layer order and logo chroma detectio
   assert.equal(layers.videoEffect2.src, './assets/overlay-layer-02.webm');
   assert.equal(layers.videoEffect1.src, './assets/overlay-layer-01.webm');
   assert.match(layers.newspaperBackground.style.cssText, /filter:blur\(15px\)/);
-  assert.match(layers.newspaperLabel.style.cssText, /font-family:"Versa Versa", Versa, VERSA, Inter, Arial, sans-serif/);
+  assert.match(layers.newspaperLabel.style.cssText, /font-family:"Demo Display", Inter, Arial, sans-serif/);
   assert.match(layers.newspaperLabel.style.cssText, /font-size:18px/);
   assert.equal(layers.outroText.textContent, 'Gracias por mirar');
 });

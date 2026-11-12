@@ -331,7 +331,7 @@ const fetchImpl = async (url, options = {}) => {
     return { ok: true, status: 200, text: async () => JSON.stringify({ projects: [{ draft_id: 'video-shared-1', title: 'Shared video' }] }) };
   }
   if (url === '/panel/read-models/video-projects?draft_id=video-shared-1') {
-    return { ok: true, status: 200, text: async () => JSON.stringify({ projects: [{ draft_id: 'video-shared-1', editor_state: { brandChannel: 'golazo-ecuador' } }] }) };
+    return { ok: true, status: 200, text: async () => JSON.stringify({ projects: [{ draft_id: 'video-shared-1', editor_state: { brandChannel: 'demo-primary' } }] }) };
   }
   throw new Error(`unexpected video read URL ${url}`);
 };
@@ -341,7 +341,7 @@ const list = await api.listVideoProjects({ limit: 50 });
 const detail = await api.getVideoProject('video-shared-1');
 
 if (list.projects[0].draft_id !== 'video-shared-1') throw new Error('video project list read model drift');
-if (detail.projects[0].editor_state.brandChannel !== 'golazo-ecuador') throw new Error('video project detail read model drift');
+if (detail.projects[0].editor_state.brandChannel !== 'demo-primary') throw new Error('video project detail read model drift');
 for (const call of calls) {
   if (call.options.method !== 'GET') throw new Error(`video read should be GET: ${call.options.method}`);
   if (call.options.credentials !== 'include') throw new Error('video read missing gateway credentials');
@@ -1233,8 +1233,8 @@ import { renderScriptCardsView, renderScriptStatsView } from './js/modules/featu
 
 const state = {
   scriptDrafts: [
-    { draft_id: 'processed-1', estado_guion: 'publicado', doc_id: 'doc-1', seleccion: 'Argentina', jugador: 'Messi', tema_principal: 'Procesado' },
-    { draft_id: 'draft-1', estado_guion: 'borrador_generado', seleccion: 'Ecuador', jugador: 'Caicedo', tema_principal: 'Pendiente' },
+    { draft_id: 'processed-1', estado_guion: 'publicado', doc_id: 'doc-1', seleccion: 'Valdoria', jugador: 'Márquez', tema_principal: 'Procesado' },
+    { draft_id: 'draft-1', estado_guion: 'borrador_generado', seleccion: 'Aurenia', jugador: 'Andrade', tema_principal: 'Pendiente' },
   ],
   selectedScript: { draft_id: 'processed-1', estado_guion: 'publicado', doc_id: 'doc-1' },
   dismissedProcessedScripts: new Set(),

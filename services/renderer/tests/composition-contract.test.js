@@ -394,10 +394,10 @@ test("adapter maps mute controls to zero volume semantics", () => {
 
 test("adapter preserves final render fidelity contract for audio sync, alpha logo, dust, motion, and segment duration", () => {
   for (const { dustAssetId, dustRenderPath, logoRenderPath } of [
-    { dustAssetId: "particle-1", dustRenderPath: "overlays/particle-1.mp4", logoRenderPath: "overlays/logo-demo-co-alpha-frames" },
-    { dustAssetId: "particle-2", dustRenderPath: "overlays/particle-2.mp4", logoRenderPath: "overlays/logo-ecuador-alpha-frames" },
-    { dustAssetId: "particle-3", dustRenderPath: "overlays/particle-3.mp4", logoRenderPath: "overlays/logo-demo-co-alpha-frames" },
-    { dustAssetId: "particle-4", dustRenderPath: "overlays/particle-4.mp4", logoRenderPath: "overlays/logo-ecuador-alpha-frames" },
+    { dustAssetId: "particle-1", dustRenderPath: "overlays/particle-1.mp4", logoRenderPath: "overlays/logo-secondary-alpha-frames" },
+    { dustAssetId: "particle-2", dustRenderPath: "overlays/particle-2.mp4", logoRenderPath: "overlays/logo-primary-alpha-frames" },
+    { dustAssetId: "particle-3", dustRenderPath: "overlays/particle-3.mp4", logoRenderPath: "overlays/logo-secondary-alpha-frames" },
+    { dustAssetId: "particle-4", dustRenderPath: "overlays/particle-4.mp4", logoRenderPath: "overlays/logo-primary-alpha-frames" },
   ]) {
     const snapshot = {
       contractVersion: "approval-editor-service-v1",
@@ -419,7 +419,7 @@ test("adapter preserves final render fidelity contract for audio sync, alpha log
         "voice-1": { assetId: "voice-1", type: "audio", renderPath: "generated/audio/audio-48khz.wav", status: "ready" },
         "music-1": { assetId: "music-1", type: "music", renderPath: "generated/audio/music.wav", status: "ready" },
         "brand-logo": { assetId: "brand-logo", type: "logo", renderPath: logoRenderPath, status: "ready" },
-        "brand-outro": { assetId: "brand-outro", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+        "brand-outro": { assetId: "brand-outro", type: "outro", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 30.16, status: "ready" },
         [dustAssetId]: { assetId: dustAssetId, type: "overlay", renderPath: dustRenderPath, status: "ready" },
       },
       rows: [{
@@ -454,7 +454,7 @@ test("adapter preserves final render fidelity contract for audio sync, alpha log
     assert.equal(props.logo.enabled, true);
     assert.equal(props.overlays.dust.src, dustRenderPath);
     assert.equal(props.overlays.dust.opacity, 0.41);
-    assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
+    assert.equal(props.outro.src, "overlays/outro-secondary.mp4");
     assert.equal(props.outro.durationSeconds, 30.16);
   }
 });
@@ -469,13 +469,13 @@ test("adapter maps approval editor V1 canonical snapshot fields for final render
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
       "particle-2": { assetId: "particle-2", renderPath: "overlays/particle-2.webm", status: "ready" },
-      "logo-demo-alpha": { assetId: "logo-demo-alpha", renderPath: "logo-demo-alpha.webm", status: "ready" },
+      "logo-primary": { assetId: "logo-primary", renderPath: "logo-primary.webm", status: "ready" },
     },
     audio: {
       voice: { assetId: "voice-1", volume: 0.9, muted: false },
       music: { assetId: "music-1", volume: 0.12, muted: false, loop: true, fadeInSeconds: 0.25, fadeOutSeconds: 0.75 },
     },
-    globalLayers: { logo: { enabled: true, assetId: "logo-demo-alpha", source: "logo-demo-alpha.webm" } },
+    globalLayers: { logo: { enabled: true, assetId: "logo-primary", source: "logo-primary.webm" } },
     rows: [{
       rowId: "row-1",
       phrase: "Hola",
@@ -501,7 +501,7 @@ test("adapter maps approval editor V1 canonical snapshot fields for final render
   assert.equal(props.segments[0].panViewportWidth, 950.53125);
   assert.equal(props.segments[0].panViewportHeight, 533.796875);
   assert.equal(props.overlays.dust.src, "overlays/particle-2.webm");
-  assert.equal(props.logo.src, "logo-demo-alpha.webm");
+  assert.equal(props.logo.src, "logo-primary.webm");
   assert.equal(props.audio.voiceSrc, "audio/voice.wav");
   assert.equal(props.audio.music.fadeOutSeconds, 0.75);
 });
@@ -510,14 +510,14 @@ test("adapter maps channel logo and outro render assets from safe overlay paths"
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
     snapshotHash: "hash-brand",
-    brandChannel: "golazo-colombia",
+    brandChannel: "demo-secondary",
     fps: 30,
     assets: {
       "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
-      "brand-logo-demo-co": { assetId: "brand-logo-demo-co", type: "logo", renderPath: "overlays/logo-demo-co.mp4", status: "ready" },
-      "brand-outro-colombia": { assetId: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 3.5, status: "ready" },
+      "brand-logo-secondary": { assetId: "brand-logo-secondary", type: "logo", renderPath: "overlays/logo-secondary.mp4", status: "ready" },
+      "brand-outro-secondary": { assetId: "brand-outro-secondary", type: "outro", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 3.5, status: "ready" },
     },
     audio: {
       totalDurationSeconds: 6,
@@ -525,10 +525,10 @@ test("adapter maps channel logo and outro render assets from safe overlay paths"
       music: { assetId: "music-1", volume: 0.15, muted: false },
     },
     globalLayers: {
-      logo: { enabled: true, assetId: "brand-logo-demo-co", source: "logo-demo-co.webm" },
-      logoAssetId: "brand-logo-demo-co",
-      outro: { enabled: true, assetId: "brand-outro-colombia" },
-      outroAssetId: "brand-outro-colombia",
+      logo: { enabled: true, assetId: "brand-logo-secondary", source: "logo-secondary.webm" },
+      logoAssetId: "brand-logo-secondary",
+      outro: { enabled: true, assetId: "brand-outro-secondary" },
+      outroAssetId: "brand-outro-secondary",
     },
     rows: [{
       rowId: "row-1",
@@ -544,26 +544,26 @@ test("adapter maps channel logo and outro render assets from safe overlay paths"
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.logo.src, "overlays/logo-demo-co.mp4");
+  assert.equal(props.logo.src, "overlays/logo-secondary.mp4");
   assert.equal(props.logo.enabled, true);
   assert.equal(props.outro.enabled, true);
-  assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
+  assert.equal(props.outro.src, "overlays/outro-secondary.mp4");
   assert.equal(props.outro.durationSeconds, 3.5);
   assert.equal(props.compositionDurationSeconds, 8);
 });
 
-test("adapter maps Mundial static PNG logo and original outro render assets", () => {
+test("adapter maps demo-final static PNG logo and original outro render assets", () => {
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
-    snapshotHash: "hash-brand-mundial",
-    brandChannel: "final-demo-cup",
+    snapshotHash: "hash-brand-copa internacional",
+    brandChannel: "demo-final",
     fps: 30,
     assets: {
       "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
-      "brand-logo-demo-cup": { assetId: "brand-logo-demo-cup", type: "logo", renderPath: "overlays/logo-demo-cup.png", status: "ready" },
-      "brand-outro-mundial": { assetId: "brand-outro-mundial", type: "outro", renderPath: "overlays/final-demo-cup.mp4", durationSeconds: 30.12, status: "ready" },
+      "brand-logo-final": { assetId: "brand-logo-final", type: "logo", renderPath: "overlays/logo-final.png", status: "ready" },
+      "brand-outro-final": { assetId: "brand-outro-final", type: "outro", renderPath: "overlays/outro-final.mp4", durationSeconds: 30.12, status: "ready" },
     },
     audio: {
       totalDurationSeconds: 6,
@@ -571,10 +571,10 @@ test("adapter maps Mundial static PNG logo and original outro render assets", ()
       music: { assetId: "music-1", volume: 0.8, muted: false },
     },
     globalLayers: {
-      logo: { enabled: true, assetId: "brand-logo-demo-cup", source: "logo-demo-cup.png" },
-      logoAssetId: "brand-logo-demo-cup",
-      outro: { enabled: true, assetId: "brand-outro-mundial" },
-      outroAssetId: "brand-outro-mundial",
+      logo: { enabled: true, assetId: "brand-logo-final", source: "logo-final.png" },
+      logoAssetId: "brand-logo-final",
+      outro: { enabled: true, assetId: "brand-outro-final" },
+      outroAssetId: "brand-outro-final",
     },
     rows: [{
       rowId: "row-1",
@@ -590,10 +590,10 @@ test("adapter maps Mundial static PNG logo and original outro render assets", ()
 
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
-  assert.equal(props.logo.src, "overlays/logo-demo-cup.png");
+  assert.equal(props.logo.src, "overlays/logo-final.png");
   assert.equal(props.logo.enabled, true);
   assert.equal(props.outro.enabled, true);
-  assert.equal(props.outro.src, "overlays/final-demo-cup.mp4");
+  assert.equal(props.outro.src, "overlays/outro-final.mp4");
   assert.equal(props.outro.durationSeconds, 30.12);
   assert.equal(props.compositionDurationSeconds, 8);
 });
@@ -612,9 +612,9 @@ test("adapter prefers channel outro asset duration over stale contract duration"
       "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
-      "brand-outro-colombia": { assetId: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+      "brand-outro-secondary": { assetId: "brand-outro-secondary", type: "outro", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 30.16, status: "ready" },
     },
-    globalLayers: { outroAssetId: "brand-outro-colombia", outro: { enabled: true, assetId: "brand-outro-colombia" } },
+    globalLayers: { outroAssetId: "brand-outro-secondary", outro: { enabled: true, assetId: "brand-outro-secondary" } },
     outro: { enabled: true, durationSeconds: 3.56, label: "stale" },
     rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 50.26, effectiveEndTime: 50.26, selectedAssetId: "img-1", media: { kind: "image" } }],
   };
@@ -623,26 +623,26 @@ test("adapter prefers channel outro asset duration over stale contract duration"
 
   assert.equal(props.compositionDurationSeconds, 52.26);
   assert.equal(props.outro.durationSeconds, 30.16);
-  assert.equal(props.outro.src, "overlays/final-demo-co.mp4");
+  assert.equal(props.outro.src, "overlays/outro-secondary.mp4");
 });
 
 test("adapter rejects unsafe channel overlay render paths with diagnostics", () => {
   const snapshot = {
     contractVersion: "approval-editor-service-v1",
     snapshotHash: "hash-unsafe",
-    brandChannel: "golazo-colombia",
+    brandChannel: "demo-secondary",
     fps: 30,
     assets: {
       "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
-      "brand-logo-demo-co": { assetId: "brand-logo-demo-co", type: "logo", renderPath: "../secret/logo.mp4", status: "ready" },
+      "brand-logo-secondary": { assetId: "brand-logo-secondary", type: "logo", renderPath: "../secret/logo.mp4", status: "ready" },
     },
     audio: {
       voice: { assetId: "voice-1", volume: 1, muted: false },
       music: { assetId: "music-1", volume: 0.15, muted: false },
     },
-    globalLayers: { logoAssetId: "brand-logo-demo-co", logo: { enabled: true, assetId: "brand-logo-demo-co" } },
+    globalLayers: { logoAssetId: "brand-logo-secondary", logo: { enabled: true, assetId: "brand-logo-secondary" } },
     rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 1, effectiveEndTime: 1, selectedAssetId: "img-1", media: { kind: "image" } }],
     outro: { enabled: false, durationSeconds: 0, label: "" },
   };
@@ -992,9 +992,9 @@ test("adapter uses actual channel outro asset duration and starts it after offic
       "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
       "voice-1": { assetId: "voice-1", renderPath: "audio/audio-48khz.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
-      "brand-outro-colombia": { assetId: "brand-outro-colombia", type: "outro", renderPath: "overlays/final-demo-co.mp4", durationSeconds: 30.16, status: "ready" },
+      "brand-outro-secondary": { assetId: "brand-outro-secondary", type: "outro", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 30.16, status: "ready" },
     },
-    globalLayers: { outroAssetId: "brand-outro-colombia", outro: { enabled: true, assetId: "brand-outro-colombia" } },
+    globalLayers: { outroAssetId: "brand-outro-secondary", outro: { enabled: true, assetId: "brand-outro-secondary" } },
     rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 4.5, effectiveEndTime: 4.5, selectedAssetId: "img-1", media: { kind: "image" } }],
   };
   const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
@@ -1021,9 +1021,9 @@ test("adapter and metadata include full audio duration plus deterministic channe
       "img-1": { assetId: "img-1", renderPath: "imagenes/uno.jpg", status: "ready" },
       "voice-1": { assetId: "voice-1", renderPath: "audio/voice.wav", status: "ready" },
       "music-1": { assetId: "music-1", renderPath: "audio/music.wav", status: "ready" },
-      "brand-outro-ecuador": { assetId: "brand-outro-ecuador", type: "outro", renderPath: "overlays/final-demo-ec.mp4", durationSeconds: 4, status: "ready" },
+      "brand-outro-primary": { assetId: "brand-outro-primary", type: "outro", renderPath: "overlays/outro-primary.mp4", durationSeconds: 4, status: "ready" },
     },
-    globalLayers: { outroAssetId: "brand-outro-ecuador", outro: { enabled: true, assetId: "brand-outro-ecuador" } },
+    globalLayers: { outroAssetId: "brand-outro-primary", outro: { enabled: true, assetId: "brand-outro-primary" } },
     rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 4.5, effectiveEndTime: 4.5, selectedAssetId: "img-1", media: { kind: "image" } }],
   };
   const rootSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Root.tsx"), "utf8");
@@ -1031,7 +1031,7 @@ test("adapter and metadata include full audio duration plus deterministic channe
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
   assert.equal(props.compositionDurationSeconds, 8);
-  assert.equal(props.outro.src, "overlays/final-demo-ec.mp4");
+  assert.equal(props.outro.src, "overlays/outro-primary.mp4");
   assert.equal(props.outro.durationSeconds, 4);
   assert.match(rootSource, /compositionDurationSeconds \+ outroSeconds/);
 });
@@ -1098,17 +1098,17 @@ test("Remotion final image and overlay source keeps preview fidelity rules", () 
   assert.doesNotMatch(source, /absoluteStartFrame/, "final render should not trim reusable overlay videos by absolute row time inside segment sequences");
   assert.match(source, /data-layer="green-screen-logo-video"/, "green-screen brand logo must use the full-frame logo render path instead of shrinking the whole video into a small badge box");
   assert.match(source, /isGreenScreenLogoSource/, "green-screen logo sources must have an explicit render branch");
-  assert.match(source, /logo-demo-co\(\?:-keyed\)\?/, "keyed Colombia logo must use the full-frame branch instead of badge sizing");
+  assert.match(source, /logo-secondary\(\?:-keyed\)\?/, "keyed Montelia logo must use the full-frame branch instead of badge sizing");
   assert.match(source, /data-layer="alpha-logo-frame-sequence"/, "alpha PNG logo frame sequence must render full-frame with real transparency");
-  assert.match(source, /logo-\(\?:colombia\|ecuador\)-alpha-frames/, "both country logos must support alpha PNG frame sequences");
+  assert.match(source, /logo-\(\?:montelia\|aurenia\)-alpha-frames/, "both country logos must support alpha PNG frame sequences");
   assert.match(source, /logoFrameSequenceSrc\(logo\.src, frame\)/, "alpha logo frame sequence must advance by Remotion frame");
 });
 
 test("Remotion composition source contains newspaper visual mode parity branch", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const localFontPath = path.join(__dirname, "../public/fonts/versa/Demo-Display.woff2");
+  const localFontPath = path.join(__dirname, "../public/fonts/display/Demo-Display.woff2");
 
-  assert.ok(fs.existsSync(localFontPath), "Remotion render must ship the local Versa Versa WOFF2 font asset");
+  assert.ok(fs.existsSync(localFontPath), "Remotion render must ship the local Demo Display WOFF2 font asset");
   assert.match(source, /mediaMode\?: "image" \| "newspaper"/);
   assert.match(source, /const NewspaperScene = /);
   assert.match(source, /data-layer="newspaper-background"/);
@@ -1118,16 +1118,16 @@ test("Remotion composition source contains newspaper visual mode parity branch",
   assert.match(source, /data-layer="newspaper-foreground"[\s\S]*objectFit: "contain",[\s\S]*objectPosition: "center center"/);
   assert.match(source, /data-layer="newspaper-foreground"[\s\S]*transformOrigin: "center center"/);
   assert.match(source, /toScale:\s*1\.1/);
-  assert.match(source, /const NEWSPAPER_LABEL_FONT_FAMILY = "\\\"Versa Versa\\\", Versa, VERSA, Inter, Arial, sans-serif"/);
-  assert.match(source, /staticFile\("fonts\/versa\/Demo-Display\.woff2"\)/);
+  assert.match(source, /const NEWSPAPER_LABEL_FONT_FAMILY = "\\\"Demo Display\\\", Inter, Arial, sans-serif"/);
+  assert.match(source, /staticFile\("fonts\/display\/Demo-Display\.woff2"\)/);
   assert.match(source, /@font-face[\s\S]*font-family: "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"[\s\S]*font-display: block/);
   assert.match(source, /const NEWSPAPER_LABEL_FONT_SIZE = 40/);
-  assert.match(source, /delayRender\("Loading Versa Versa newspaper font"\)/);
+  assert.match(source, /delayRender\("Loading Demo Display newspaper font"\)/);
   assert.match(source, /new FontFace\(\s*NEWSPAPER_LOCAL_FONT_FAMILY/);
   assert.match(source, /document\.fonts\.load\(`900 \$\{NEWSPAPER_LABEL_FONT_SIZE\}px "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"`\)/);
   const renderScriptSource = fs.readFileSync(path.join(__dirname, "../scripts/render/render-video.js"), "utf8");
-  assert.match(renderScriptSource, /const projectFontsDir = path\.join\(publicDir, "fonts", "versa"\)/);
-  assert.match(renderScriptSource, /fs\.copyFileSync\(repoVersaFontPath, projectVersaFontPath\)/);
+  assert.match(renderScriptSource, /const projectFontsDir = path\.join\(publicDir, "fonts", "display"\)/);
+  assert.match(renderScriptSource, /fs\.copyFileSync\(repoDisplayFontPath, projectVersaFontPath\)/);
   const previewFrameMathSource = fs.readFileSync(path.join(__dirname, "../../../apps/panel/js/modules/features/video-projects/composition/renderer/frame-math.js"), "utf8");
   assert.match(previewFrameMathSource, /const NEWSPAPER_LABEL_FONT_SIZE = 18/, "preview keeps the 1280px editor label size while Remotion scales the label for the 1920px final output");
   assert.match(source, /const NEWSPAPER_LABEL_LINE_HEIGHT = 1\.12/);

@@ -48,8 +48,8 @@ def ffmpeg(*args: str) -> None:
 
 def ensure_dirs() -> None:
     for path in (BRAND, BRAND_SFX, BRAND_FONTS, RENDERER_OVERLAYS, RENDERER_PUBLIC,
-                 RENDERER_PUBLIC / "fonts" / "versa", RENDERER_PUBLIC / "sfx",
-                 PANEL_ASSETS / "fonts" / "versa", PANEL_ASSETS / "sfx", PANEL_BOUNDARY):
+                 RENDERER_PUBLIC / "fonts" / "display", RENDERER_PUBLIC / "sfx",
+                 PANEL_ASSETS / "fonts" / "display", PANEL_ASSETS / "sfx", PANEL_BOUNDARY):
         path.mkdir(parents=True, exist_ok=True)
 
 
@@ -84,7 +84,7 @@ def make_display_font() -> None:
     shutil.copyfile(SOURCE_FONT, temp_ttf)
     run(["woff2_compress", str(temp_ttf)])
     generated = BRAND_FONTS / "Demo-Display.woff2"
-    for target in (RENDERER_PUBLIC / "fonts" / "versa", PANEL_ASSETS / "fonts" / "versa"):
+    for target in (RENDERER_PUBLIC / "fonts" / "display", PANEL_ASSETS / "fonts" / "display"):
         shutil.copyfile(generated, target / "Demo-Display.woff2")
     temp_ttf.unlink(missing_ok=True)
 
@@ -199,16 +199,16 @@ def main() -> None:
 
     # Logo still and videos.
     make_logo_png(BRAND / "logo-demo.png")
-    make_logo_png(RENDERER_OVERLAYS / "logo-demo-cup.png")
-    make_logo_png(PANEL_ASSETS / "logo-demo-cup.png")
+    make_logo_png(RENDERER_OVERLAYS / "logo-final.png")
+    make_logo_png(PANEL_ASSETS / "logo-final.png")
     make_logo_video(BRAND / "logo-demo.webm", green=False)
     make_logo_video(BRAND / "logo-demo-green.mp4", green=True)
 
     # Outros matching the catalog durations (seconds).
     make_outro(BRAND / "final-demo.mp4", BRAND / "final-demo.webm", 30.12, "FINAL")
-    make_outro(RENDERER_OVERLAYS / "final-demo-cup.mp4", PANEL_ASSETS / "final-demo-cup.webm", 30.12, "FINAL")
-    make_outro(RENDERER_OVERLAYS / "final-demo-co.mp4", PANEL_ASSETS / "final-demo-co.webm", 30.16, "GOLAZO")
-    make_outro(RENDERER_OVERLAYS / "final-demo-ec.mp4", PANEL_ASSETS / "final-demo-ec.webm", 30.53, "GOLAZO")
+    make_outro(RENDERER_OVERLAYS / "outro-final.mp4", PANEL_ASSETS / "outro-final.webm", 30.12, "FINAL")
+    make_outro(RENDERER_OVERLAYS / "outro-secondary.mp4", PANEL_ASSETS / "outro-secondary.webm", 30.16, "DEMO")
+    make_outro(RENDERER_OVERLAYS / "outro-primary.mp4", PANEL_ASSETS / "outro-primary.webm", 30.53, "DEMO")
 
     # Particles and overlays (alpha WebM).
     for index, seed in enumerate((11, 22, 33, 44), start=1):
@@ -225,19 +225,18 @@ def main() -> None:
         make_transition(RENDERER_OVERLAYS / f"overlay-layer-0{index}.mp4", 70 + index, 2.0)
 
     # Logo mirrors used by the renderer and panel.
-    copy(BRAND / "logo-demo.webm", RENDERER_OVERLAYS / "logo-demo-alpha.webm")
-    copy(BRAND / "logo-demo.webm", RENDERER_OVERLAYS / "logo-demo-co.webm")
-    copy(BRAND / "logo-demo.webm", PANEL_ASSETS / "logo-demo-alpha.webm")
-    copy(BRAND / "logo-demo.webm", PANEL_ASSETS / "logo-demo-co.webm")
+    copy(BRAND / "logo-demo.webm", RENDERER_OVERLAYS / "logo-primary.webm")
+    copy(BRAND / "logo-demo.webm", RENDERER_OVERLAYS / "logo-secondary.webm")
+    copy(BRAND / "logo-demo.webm", PANEL_ASSETS / "logo-primary.webm")
+    copy(BRAND / "logo-demo.webm", PANEL_ASSETS / "logo-secondary.webm")
     copy(BRAND / "logo-demo-green.mp4", RENDERER_OVERLAYS / "logo-green.mp4")
     copy(BRAND / "logo-demo-green.mp4", RENDERER_OVERLAYS / "logo-clean.mp4")
-    copy(BRAND / "logo-demo-green.mp4", RENDERER_OVERLAYS / "logo-demo-co.mp4")
+    copy(BRAND / "logo-demo-green.mp4", RENDERER_OVERLAYS / "logo-secondary.mp4")
     copy(BRAND / "logo-demo-green.mp4", PANEL_ASSETS / "logo-green.mp4")
     copy(BRAND / "logo-demo-green.mp4", PANEL_ASSETS / "logo-clean.mp4")
 
     # Alpha frame sequences (single representative frame each).
-    for name in ("logo-demo-co-alpha-frames", "logo-demo-ec-alpha-frames",
-                 "logo-colombia-alpha-frames", "logo-ecuador-alpha-frames"):
+    for name in ("logo-primary-alpha-frames", "logo-secondary-alpha-frames"):
         target = RENDERER_OVERLAYS / name
         target.mkdir(parents=True, exist_ok=True)
         make_logo_png(target / "frame-0000.png")

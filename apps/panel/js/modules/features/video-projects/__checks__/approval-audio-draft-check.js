@@ -115,22 +115,22 @@ function assertSetupUsesGolazoMusicByDefault() {
     voice_audio: { public_url: 'https://cdn.example.com/voice.wav' },
   });
 
-  assertEqual(detail.backgroundAudio.default_track_id, 'musica-golazo', 'Expected setup audio step to select Golazo music by default');
-  assertEqual(detail.backgroundAudio.name, 'Musica Golazo', 'Expected setup audio step to show Golazo music by default');
-  assertEqual(detail.canPreparePreview, true, 'Expected default Golazo music to satisfy background audio requirement');
+  assertEqual(detail.backgroundAudio.default_track_id, 'musica-demo', 'Expected setup audio step to select Demo music by default');
+  assertEqual(detail.backgroundAudio.name, 'Musica Demo', 'Expected setup audio step to show Demo music by default');
+  assertEqual(detail.canPreparePreview, true, 'Expected default Demo music to satisfy background audio requirement');
 }
 
 function assertDefaultMusicCatalogIncludesEmotiveGolazoWithoutChangingDefault() {
-  const emotiveTrack = findDefaultBackgroundMusicTrack('musica-emotiva-golazo');
+  const emotiveTrack = findDefaultBackgroundMusicTrack('musica-emotiva-demo');
 
-  assertEqual(DEFAULT_BACKGROUND_MUSIC_TRACK_ID, 'musica-golazo', 'Expected default background music track id to remain Golazo');
-  assertEqual(DEFAULT_BACKGROUND_MUSIC_TRACKS[0]?.id, 'musica-golazo', 'Expected Golazo music to remain first in the default music catalog');
-  assertEqual(emotiveTrack?.id, 'musica-emotiva-golazo', 'Expected Emotiva Golazo music option to exist');
-  assertEqual(emotiveTrack?.fileName, 'musica-emotiva-golazo.wav', 'Expected Emotiva Golazo music option to reference the local WAV file name');
+  assertEqual(DEFAULT_BACKGROUND_MUSIC_TRACK_ID, 'musica-demo', 'Expected default background music track id to remain Demo');
+  assertEqual(DEFAULT_BACKGROUND_MUSIC_TRACKS[0]?.id, 'musica-demo', 'Expected Demo music to remain first in the default music catalog');
+  assertEqual(emotiveTrack?.id, 'musica-emotiva-demo', 'Expected Emotiva Demo music option to exist');
+  assertEqual(emotiveTrack?.fileName, 'musica-emotiva-demo.wav', 'Expected Emotiva Demo music option to reference the local WAV file name');
   assertEqual(
     emotiveTrack?.path,
-    'defaults/background-music/musica-emotiva-golazo.wav',
-    'Expected Emotiva Golazo music option to use the default background music storage path',
+    'defaults/background-music/musica-emotiva-demo.wav',
+    'Expected Emotiva Demo music option to use the default background music storage path',
   );
 }
 

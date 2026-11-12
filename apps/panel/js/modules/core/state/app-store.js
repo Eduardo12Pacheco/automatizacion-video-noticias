@@ -8,7 +8,7 @@ const DEFAULT_TRANSCRIPT_SERVICE_URL = 'http://127.0.0.1:8765';
 const DEFAULT_CHANNEL_MONITOR_SERVICE_URL = 'http://127.0.0.1:8775';
 const DEFAULT_SUBTITLES_SERVICE_URL = 'http://127.0.0.1:8092';
 const DEFAULT_API_ORIGIN = globalThis?.location?.origin || 'https://api.example.local';
-const DEFAULT_BRAND_CHANNEL = 'golazo-ecuador';
+const DEFAULT_BRAND_CHANNEL = 'demo-primary';
 const DEFAULT_SERVICE_OVERRIDES = Object.freeze({
   n8n: false,
   tts: false,
@@ -126,7 +126,7 @@ function isLegacyStoredSettings(rawValue = {}) {
 
 function normalizeBrandChannel(rawValue) {
   const value = (rawValue || '').toString().trim().toLowerCase();
-  return ['golazo-colombia', 'final-demo-cup'].includes(value) ? value : DEFAULT_BRAND_CHANNEL;
+  return ['demo-secondary', 'demo-final'].includes(value) ? value : DEFAULT_BRAND_CHANNEL;
 }
 
 export function defaultSettingsFactory() {

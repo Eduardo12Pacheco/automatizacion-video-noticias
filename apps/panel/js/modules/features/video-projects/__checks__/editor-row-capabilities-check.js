@@ -53,7 +53,7 @@ function createDetail(overrides = {}) {
     voiceVolumeValue: 1,
     musicVolumePercent: 15,
     musicVolumeValue: 0.15,
-    brandChannel: 'golazo-ecuador',
+    brandChannel: 'demo-primary',
     dustType: 'particle-1',
     logoEnabled: true,
     ...overrides,

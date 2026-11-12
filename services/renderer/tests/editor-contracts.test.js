@@ -143,7 +143,7 @@ test("deriveRenderPropsFromEditorProject produces render props v2 from same edit
   assert.equal(parsed.segments[0].dust.enabled, true);
   assert.equal(parsed.segments[1].dust.enabled, false);
   assert.equal(parsed.segments[0].logo.enabled, true);
-  assert.match(parsed.logo.src || "", /generated\/(overlays\/logo-demo-alpha\.webm|logo-placeholder\.png)$/);
+  assert.match(parsed.logo.src || "", /generated\/(overlays\/logo-primary\.webm|logo-placeholder\.png)$/);
   assert.equal(parsed.overlays.dust?.blendMode, "screen");
   assert.equal(parsed.outro.enabled, true);
 });

@@ -24,15 +24,15 @@ function makeApprovalProject() {
           voice: { volume: 1, muted: false },
           music: { volume: 0.15, muted: false, loop: true },
         },
-        brandChannel: 'golazo-colombia',
+        brandChannel: 'demo-secondary',
         globalLayers: {
-          logoAssetId: 'brand-logo-demo-co',
-          outroAssetId: 'brand-outro-colombia',
+          logoAssetId: 'brand-logo-secondary',
+          outroAssetId: 'brand-outro-secondary',
         },
         assets: {
           'img-1': { status: 'ready', renderPath: 'generated/img-1.jpg' },
-          'brand-logo-demo-co': { status: 'ready', renderPath: 'overlays/logo-demo-co.webm' },
-          'brand-outro-colombia': { status: 'ready', renderPath: 'overlays/final-demo-co.mp4', durationSeconds: 30.16 },
+          'brand-logo-secondary': { status: 'ready', renderPath: 'overlays/logo-secondary.webm' },
+          'brand-outro-secondary': { status: 'ready', renderPath: 'overlays/outro-secondary.mp4', durationSeconds: 30.16 },
         },
       },
     },
@@ -227,11 +227,11 @@ test('remotion export path sends the canonical preview snapshot payload without 
   assert.equal(updateCompositionCalls[0].projectId, 'remotion-project-export');
   const payload = updateCompositionCalls[0].payload;
   assert.equal(payload.snapshotHash, 'snapshot-export-hash');
-  assert.equal(payload.contract.brandChannel, 'golazo-colombia');
+  assert.equal(payload.contract.brandChannel, 'demo-secondary');
   assert.equal(payload.contract.audio.totalDurationSeconds, 3.5);
-  assert.equal(payload.contract.globalLayers.logoAssetId, 'brand-logo-demo-co');
-  assert.equal(payload.contract.globalLayers.outroAssetId, 'brand-outro-colombia');
-  assert.equal(payload.manifest.assets['brand-outro-colombia'].durationSeconds, 30.16);
+  assert.equal(payload.contract.globalLayers.logoAssetId, 'brand-logo-secondary');
+  assert.equal(payload.contract.globalLayers.outroAssetId, 'brand-outro-secondary');
+  assert.equal(payload.manifest.assets['brand-outro-secondary'].durationSeconds, 30.16);
   assert.equal(payload.rows[0].selectedAssetId, 'img-1');
   assert.equal(project.editor_state.final_url, '/api/projects/remotion-project-export/download/final');
   assert.equal(persisted.some((patch) => patch.phase === 'final_ready'), true);

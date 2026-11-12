@@ -191,7 +191,7 @@ test('approval row media mode save refreshes cached project detail before reopen
     snapshotId: 'snapshot-1',
     snapshotHash: 'hash-1',
     rows: [
-      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Luis diaz', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' } },
+      { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Luis cardenas', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' } },
     ],
     assets: {
       'asset-1': { assetId: 'asset-1', previewUrl: 'https://cdn.example.com/luis.jpg', renderPath: 'https://cdn.example.com/luis.jpg' },
@@ -199,7 +199,7 @@ test('approval row media mode save refreshes cached project detail before reopen
   };
   const staleDetail = {
     draft_id: 'draft-1',
-    title: 'Luis diaz',
+    title: 'Luis cardenas',
     editor_state: {
       phase: 'preview_ready',
       pipeline_provider: 'approval',
@@ -214,7 +214,7 @@ test('approval row media mode save refreshes cached project detail before reopen
   let detailFetches = 0;
   const savedEditorStates = [];
   const dependencies = createMinimalDependencies({
-    listProjectsResult: [{ draft_id: 'draft-1', title: 'Luis diaz' }],
+    listProjectsResult: [{ draft_id: 'draft-1', title: 'Luis cardenas' }],
     api: {
       async getVideoProject() {
         detailFetches += 1;
@@ -261,12 +261,12 @@ test('editor hydration keeps persisted timed row media mode over stale snapshot 
     draft_id: 'draft-1',
     editor_state: {
       timed_rows: [
-        { id: 'row-1', rowId: 'row-1', phrase: 'Luis diaz', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'newspaper', media: { kind: 'image' } },
+        { id: 'row-1', rowId: 'row-1', phrase: 'Luis cardenas', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'newspaper', media: { kind: 'image' } },
       ],
       approval_contract_snapshot: {
         contractVersion: 'approval-editor-service-v1',
         rows: [
-          { id: 'row-1', rowId: 'row-1', phrase: 'Luis diaz', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' } },
+          { id: 'row-1', rowId: 'row-1', phrase: 'Luis cardenas', startTime: 0, endTime: 1, selectedAssetId: 'asset-1', mediaMode: 'image', media: { kind: 'image' } },
         ],
       },
     },
