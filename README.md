@@ -11,6 +11,10 @@ stack: login, an approval decision, the generated script draft, and the voice,
 subtitles and video-project views. The [MP4](docs/images/demo.mp4) is the full
 88-second walkthrough.
 
+| Panel after login | Showcase mode |
+|---|---|
+| ![Panel](docs/images/ui-after-login.png) | ![Showcase](docs/images/ui-after-showcase.png) |
+
 ## What it does
 
 The product turns a news signal into a publishable short video:

@@ -13,6 +13,10 @@ claves: inicio de sesión, una decisión de aprobación, el borrador de guion
 generado y las vistas de voz, subtítulos y proyectos de video. El
 [MP4](docs/images/demo.mp4) es el recorrido completo de 88 segundos.
 
+| Panel tras iniciar sesión | Modo showcase |
+|---|---|
+| ![Panel](docs/images/ui-after-login.png) | ![Showcase](docs/images/ui-after-showcase.png) |
+
 ## Qué hace
 
 El producto convierte una señal de noticias en un video corto publicable:
