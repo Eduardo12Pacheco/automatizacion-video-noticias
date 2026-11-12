@@ -261,3 +261,63 @@ def test_subtitles_whisper_client_reports_worker_failures_as_pipeline_errors(tmp
 
     assert failure.value.code == ErrorCode.ASR_FAILED
     assert "GPU slot busy" in failure.value.message
+
+
+# ---------------------------------------------------------------------------
+# Subtitles render audio contract (T27): the black subtitle render must keep
+# the narration from the uploaded source instead of shipping a silent MP4.
+# ---------------------------------------------------------------------------
+
+
+def _run_ffmpeg(*args: str) -> None:
+    import subprocess
+
+    result = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *args], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def _probe_streams(path: Path) -> list[dict[str, Any]]:
+    import json
+    import subprocess
+
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(result.stdout)["streams"]
+
+
+def test_source_audio_is_muxed_into_the_black_subtitles_video(tmp_path):
+    from subtitles_service.infrastructure.render.remotion import mux_source_audio
+
+    source = tmp_path / "source.mp4"
+    _run_ffmpeg(
+        "-f", "lavfi", "-i", "color=c=black:s=320x180:d=2",
+        "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+        "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(source),
+    )
+    rendered = tmp_path / "video-final.mp4"
+    _run_ffmpeg("-f", "lavfi", "-i", "color=c=black:s=320x180:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(rendered))
+
+    assert not any(stream["codec_type"] == "audio" for stream in _probe_streams(rendered))
+
+    result = mux_source_audio(rendered, source)
+
+    assert result == rendered
+    streams = _probe_streams(rendered)
+    assert any(stream["codec_type"] == "audio" for stream in streams)
+    assert any(stream["codec_type"] == "video" and stream["codec_name"] == "h264" for stream in streams)
+
+
+def test_mux_source_audio_is_a_no_op_without_a_source_audio_track(tmp_path):
+    from subtitles_service.infrastructure.render.remotion import mux_source_audio
+
+    rendered = tmp_path / "video-final.mp4"
+    _run_ffmpeg("-f", "lavfi", "-i", "color=c=black:s=320x180:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(rendered))
+    silent_source = tmp_path / "source.mp4"
+    _run_ffmpeg("-f", "lavfi", "-i", "color=c=black:s=320x180:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(silent_source))
+
+    assert mux_source_audio(rendered, silent_source) == rendered
+    assert not any(stream["codec_type"] == "audio" for stream in _probe_streams(rendered))

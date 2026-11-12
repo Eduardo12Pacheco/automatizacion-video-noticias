@@ -90,6 +90,76 @@ def run_render(
     return output_video_path
 
 
+def _has_audio_stream(path: Path) -> bool:
+    command = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "a:0",
+        "-show_entries",
+        "stream=codec_type",
+        "-of",
+        "csv=p=0",
+        str(path),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    return result.returncode == 0 and "audio" in str(result.stdout or "").lower()
+
+
+def mux_source_audio(rendered_video: Path, source_video_path: str | Path | None) -> Path:
+    """Keep the source track in the black subtitle render.
+
+    The Subtítulos contract renders a black background with the translated
+    cues, so Remotion produces a video-only artifact. The operator still
+    expects the uploaded narration in the downloadable MP4; when the source
+    carries an audio stream we mux it back without re-encoding the video.
+    """
+    source = Path(source_video_path) if source_video_path else None
+    if not rendered_video.is_file() or source is None or not source.is_file():
+        return rendered_video
+    if not _has_audio_stream(source):
+        return rendered_video
+
+    output = rendered_video.with_name(f"{rendered_video.stem}.with-audio{rendered_video.suffix}")
+    command = [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        str(rendered_video),
+        "-i",
+        str(source),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "160k",
+        "-movflags",
+        "+faststart",
+        str(output),
+    ]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
+    except OSError as error:
+        raise map_os_error_to_pipeline_error(error, executable="ffmpeg") from error
+    if result.returncode != 0:
+        raise PipelineError(
+            ErrorCode.RENDER_FAILED,
+            "Could not mux the source audio into the subtitles video",
+            {"returncode": result.returncode, "stderr": result.stderr.strip()},
+        )
+    output.replace(rendered_video)
+    return rendered_video
+
+
 def render_black_subtitles_video(session_dir: Path, source_video_path: str | Path, segments: list[dict[str, Any]]) -> Path:
     output_path = session_dir / "video-final.mp4"
     render_props_path = session_dir / "render-props.json"
@@ -112,4 +182,4 @@ def render_black_subtitles_video(session_dir: Path, source_video_path: str | Pat
         },
     )
     run_render(render_props_path=render_props_path, output_video_path=output_path)
-    return output_path
+    return mux_source_audio(output_path, source_video_path)
