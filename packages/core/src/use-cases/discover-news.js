@@ -48,6 +48,7 @@ export class DiscoverNews {
     llm,
     fallbackLlms = [],
     players = DEFAULT_PLAYERS,
+    feedUrl = '',
     now = () => new Date(),
     batchSize = 10,
   } = {}) {
@@ -58,6 +59,7 @@ export class DiscoverNews {
     this.llm = llm || null;
     this.fallbackLlms = (Array.isArray(fallbackLlms) ? fallbackLlms : [fallbackLlms]).filter(Boolean);
     this.players = players || DEFAULT_PLAYERS;
+    this.feedUrl = String(feedUrl || '').trim();
     this.now = now;
     this.batchSize = Math.max(1, Number(batchSize) || 10);
   }
@@ -107,8 +109,19 @@ export class DiscoverNews {
     }
 
     const requests = buildFeedRequests(players || this.players, normalized.requested_window, { runId: effectiveRunId || '' });
+    // A single local fixture feed is useful for air-gapped installs and the
+    // local-mode E2E; the production default keeps the per-player Google News
+    // RSS requests.
+    const effectiveRequests = this.feedUrl
+      ? requests.map((request) => ({
+        ...request,
+        feed_url: this.feedUrl,
+        source_kind: 'local_rss',
+        source_name: 'Local RSS fixture',
+      }))
+      : requests;
     const fetched = [];
-    for (const request of requests) {
+    for (const request of effectiveRequests) {
       const rows = await this.newsSource.fetchFeed(request);
       for (const row of rows || []) fetched.push({ ...row, run_id: effectiveRunId || row.run_id || '' });
     }

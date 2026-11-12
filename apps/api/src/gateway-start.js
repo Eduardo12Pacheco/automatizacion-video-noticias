@@ -38,6 +38,18 @@ export function defaultGatewayEventsFilePath() {
   return join(dirname(fileURLToPath(import.meta.url)), '..', 'runtime-logs', 'gateway-events.jsonl');
 }
 
+function parseDiscoveryPlayers(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return null;
+    return parsed.filter((item) => item && typeof item.jugador === 'string' && item.jugador.trim());
+  } catch {
+    return null;
+  }
+}
+
 export function startGateway({
   host = DEFAULT_HOST,
   port = DEFAULT_PORT,
@@ -68,7 +80,15 @@ export function startGateway({
   let runtimeScheduler = null;
   if (repository && !localRouter) {
     const runtimeAdapters = adapters || createAdaptersFromEnv({ logger: console, authService });
-    const runtime = createCoreRuntime({ repository, adapters: runtimeAdapters, logger: console });
+    const runtime = createCoreRuntime({
+      repository,
+      adapters: runtimeAdapters,
+      discovery: {
+        feedUrl: String(process.env.NEWS_DISCOVERY_FEED_URL || '').trim(),
+        players: parseDiscoveryPlayers(process.env.NEWS_DISCOVERY_PLAYERS),
+      },
+      logger: console,
+    });
     runtimeScheduler = runtime.scheduler;
     localRouter = createLocalRouter({
       repository,

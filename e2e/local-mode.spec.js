@@ -115,6 +115,16 @@ test('local mode discovers, drafts with a real LLM, voices, subtitles and render
     await page.locator('#authForm button[type="submit"]').click();
     await expect(page.locator('#appShell')).toBeVisible();
 
+    const refresh = await json(await request.post('/webhook/approval/search-refresh/supabase/v2', {
+      ...mutation,
+      data: { window: '24h' },
+    }));
+    expect(refresh.run_id).toBeTruthy();
+    await waitFor(async () => {
+      const payload = await json(await request.get(`/webhook/approval/search-refresh/status/supabase/v1?run_id=${encodeURIComponent(refresh.run_id)}`));
+      return String(payload.status).toLowerCase() === 'succeeded' ? payload : null;
+    }, { timeout: 5 * 60_000, message: 'the real discovery refresh did not finish' });
+
     const pending = await json(await request.get('/panel/read-models/approval/pending'));
     expect(Array.isArray(pending.items)).toBe(true);
     expect(pending.items.length).toBeGreaterThan(0);

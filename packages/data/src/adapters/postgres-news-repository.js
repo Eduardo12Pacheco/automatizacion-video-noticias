@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { buildClusterRow, buildNewsRow, json, normalizeRow, normalizeRows, textOrNull, upsertClusterRow, upsertNewsRow } from './postgres-helpers.js';
 import { PostgresBaseRepository } from './postgres-base-repository.js';
 

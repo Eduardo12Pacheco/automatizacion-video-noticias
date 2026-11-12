@@ -41,7 +41,8 @@ downloads the local models and renders real media on CPU:
 ```bash
 cp e2e/.env.example .env
 # set NEWSROOM_MODE=local, LLM=ollama, ARTICLE_EXTRACTOR=trafilatura,
-# TTS_WORKER_ENGINE=piper and COMPOSE_PROFILES=local in .env
+# TTS_WORKER_ENGINE=piper, COMPOSE_PROFILES=local and
+# NEWS_DISCOVERY_FEED_URL=http://panel/assets/demo/discovery.xml in .env
 docker compose --profile local run --rm model-init
 docker compose --profile local run --rm --no-deps --entrypoint /bin/ollama \
   ollama pull qwen2.5:3b-instruct
@@ -52,7 +53,9 @@ docker compose run --rm seed
 NEWSROOM_E2E_LOCAL=1 pnpm exec playwright test e2e/local-mode.spec.js
 ```
 
-It asserts the real pipeline with `ffprobe`: the synthesized WAV is at least
+It runs the real discovery refresh against the local discovery fixture (one
+player and one RSS feed, no third-party news dependency), approves the
+clustered topic, and asserts the real pipeline with `ffprobe`: the synthesized WAV is at least
 3 s and above silence, faster-whisper produces at least three cues containing
 words from the script, the subtitles MP4 is H.264, and the final Remotion MP4
 is 1280x720 with audio and video streams and at least 5 s. The same spec runs

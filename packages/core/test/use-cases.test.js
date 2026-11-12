@@ -104,6 +104,35 @@ describe('DiscoverNews', () => {
     assert.deepEqual(listed.rows.map((row) => row.classification_source).sort(), ['ai', 'heuristic']);
   });
 
+  it('points every per-player request at one configured local feed', async () => {
+    const { repository } = await createHarness();
+    const requested = [];
+    const useCase = new DiscoverNews({
+      repository,
+      now: () => NOW,
+      feedUrl: 'http://panel/assets/demo/discovery.xml',
+      players: [
+        { seleccion: 'Aurenia', jugador: 'Nicolás Andrade' },
+        { seleccion: 'Montelia', jugador: 'Leonel Márquez' },
+      ],
+      newsSource: {
+        async fetchFeed(request) {
+          requested.push(request);
+          return [];
+        },
+      },
+      llm: createMockLLM('{"results":[]}'),
+    });
+
+    await useCase.execute({ window: '24h' });
+
+    assert.equal(requested.length, 2);
+    for (const request of requested) {
+      assert.equal(request.feed_url, 'http://panel/assets/demo/discovery.xml');
+      assert.equal(request.source_kind, 'local_rss');
+    }
+  });
+
   it('stages discovery under a run without touching the live approval universe', async () => {
     const { repository } = await createHarness();
     const run = await repository.createNewsSearchRun({ requestedWindow: '1h' });

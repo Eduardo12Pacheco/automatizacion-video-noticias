@@ -43,7 +43,7 @@ function withDefaults(adapter, methods) {
  * (Ollama, trafilatura, SearXNG, python-docx, …); without them the API still
  * serves read models and fails write endpoints with a clear 503.
  */
-export function createCoreRuntime({ repository, adapters = {}, now = () => new Date(), logger = console } = {}) {
+export function createCoreRuntime({ repository, adapters = {}, discovery = {}, now = () => new Date(), logger = console } = {}) {
   if (!repository) throw new Error('repository is required');
   const llm = adapters.llm || null;
   const newsSource = withDefaults(adapters.newsSource, ['fetchFeed']);
@@ -63,7 +63,14 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
   const auth = adapters.auth || null;
 
   const createVideoProject = new CreateVideoProject({ repository, now });
-  const discoverNews = new DiscoverNews({ repository, newsSource, llm, now });
+  const discoverNews = new DiscoverNews({
+    repository,
+    newsSource,
+    llm,
+    ...(discovery.feedUrl ? { feedUrl: discovery.feedUrl } : {}),
+    ...(Array.isArray(discovery.players) && discovery.players.length ? { players: discovery.players } : {}),
+    now,
+  });
   const clusterTopics = new ClusterTopics({ repository, llm, now });
   const decideApproval = new DecideApproval({ repository, workflowTrigger });
   const draftScript = new DraftScript({ repository, articleExtractor, llm, now });

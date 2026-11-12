@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Demo Sports News</title>
+    <link>http://panel/assets/demo/variant.html</link>
+    <description>Fictional football news for the local-mode end-to-end test.</description>
+    <item>
+      <title>Aurenia prueba una variante en el mediocampo</title>
+      <link>http://panel/assets/demo/variant.html</link>
+      <source>Demo Sports News</source>
+      <description>El cuerpo técnico probó una salida más rápida por las bandas y un mediocampista más adelantado.</description>
+    </item>
+    <item>
+      <title>Nicolás Andrade vuelve a entrenar con el grupo</title>
+      <link>http://panel/assets/demo/andrade.html</link>
+      <source>Demo Wire</source>
+      <description>El mediocampista completó la práctica y quedó disponible para el próximo partido.</description>
+    </item>
+  </channel>
+</rss>
