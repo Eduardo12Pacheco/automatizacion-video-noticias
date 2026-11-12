@@ -2,7 +2,7 @@ function trimSlashes(value = '') {
   return (value || '').toString().replace(/^\/+|\/+$/g, '');
 }
 
-const DEFAULT_API_ORIGIN = 'https://api.example.local';
+const DEFAULT_API_ORIGIN = globalThis?.location?.origin || 'https://api.example.local';
 
 function isRemoteBrowserContext(locationLike = globalThis.location) {
   const hostname = (locationLike?.hostname || '').toString().toLowerCase();

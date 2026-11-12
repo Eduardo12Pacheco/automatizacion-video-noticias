@@ -1,5 +1,5 @@
 import { createCustomDropdownController } from '../core/ui/custom-dropdowns.js';
-import { loadSettingsFromStorage } from '../core/state/app-store.js';
+import { hydrateSettingsFromServerBootstrap, loadSettingsFromStorage } from '../core/state/app-store.js';
 import { createSingleFlightRunner } from '../core/async/single-flight.js';
 import { createApprovalApiClient } from '../core/http/approval-api.js';
 import { createApprovalFeature } from '../features/approval/index.js';
@@ -35,11 +35,14 @@ export function createAppShellComposition({
   callbacks,
   browser,
 }) {
-  const settings = loadSettingsFromStorage({
+  const storedSettings = loadSettingsFromStorage({
     storage,
     storageKey,
     defaultsFactory,
   });
+  const settings = globalThis.__CONTROL_PANEL_BOOTSTRAP__
+    ? hydrateSettingsFromServerBootstrap(storedSettings, globalThis.__CONTROL_PANEL_BOOTSTRAP__)
+    : storedSettings;
   const state = createShellState({
     settings,
     lastNewsSearchAt: null,

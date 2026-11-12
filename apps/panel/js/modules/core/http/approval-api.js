@@ -64,9 +64,19 @@ export function createApprovalApiClient({ getSettings, fetchImpl = fetch }) {
     }
   }
 
+  function resolveMutationBaseUrl(settings, path) {
+    // The local API keeps the historical webhook paths on the gateway. Only
+    // fall back to the n8n base URL when a deployment explicitly points the
+    // contract elsewhere.
+    if (path.startsWith('/webhook/') && globalThis.__CONTROL_PANEL_BOOTSTRAP__?.feature_flags?.localWorkflows) {
+      return resolveGatewayBaseUrl(settings);
+    }
+    return resolveServiceConfig(settings, 'n8n').baseUrl;
+  }
+
   async function post(path, payload) {
     const settings = getSettings();
-    const config = resolveServiceConfig(settings, 'n8n');
+    const config = { baseUrl: resolveMutationBaseUrl(settings, path) };
     const headers = buildGatewayHeaders({
       'Content-Type': 'application/json',
     });
@@ -100,7 +110,7 @@ export function createApprovalApiClient({ getSettings, fetchImpl = fetch }) {
 
   async function postBlob(path, payload) {
     const settings = getSettings();
-    const config = resolveServiceConfig(settings, 'n8n');
+    const config = { baseUrl: resolveMutationBaseUrl(settings, path) };
     const headers = buildGatewayHeaders({
       'Content-Type': 'application/json',
     });

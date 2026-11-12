@@ -1,5 +1,5 @@
 const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
-const DEFAULT_API_ORIGIN = 'https://api.example.local';
+const DEFAULT_API_ORIGIN = globalThis?.location?.origin || 'https://api.example.local';
 const DEFAULT_SESSION_ENDPOINT = '/panel/session';
 const DEFAULT_LOGIN_ENDPOINT = '/panel/login';
 const DEFAULT_LOGOUT_ENDPOINT = '/panel/logout';

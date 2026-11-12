@@ -1,9 +1,13 @@
-const DEFAULT_REMOTION_API_URL = 'https://remotion-api.example.local';
-const DEFAULT_APPROVAL_EDITOR_SERVICE_URL = 'https://api.example.local/approval';
+const DEFAULT_REMOTION_API_URL = globalThis?.location?.origin
+  ? `${globalThis.location.origin}/remotion`
+  : 'https://remotion-api.example.local';
+const DEFAULT_APPROVAL_EDITOR_SERVICE_URL = globalThis?.location?.origin
+  ? `${globalThis.location.origin}/approval`
+  : 'https://api.example.local/approval';
 const DEFAULT_TRANSCRIPT_SERVICE_URL = 'http://127.0.0.1:8765';
 const DEFAULT_CHANNEL_MONITOR_SERVICE_URL = 'http://127.0.0.1:8775';
 const DEFAULT_SUBTITLES_SERVICE_URL = 'http://127.0.0.1:8092';
-const DEFAULT_API_ORIGIN = 'https://api.example.local';
+const DEFAULT_API_ORIGIN = globalThis?.location?.origin || 'https://api.example.local';
 const DEFAULT_BRAND_CHANNEL = 'golazo-ecuador';
 const DEFAULT_SERVICE_OVERRIDES = Object.freeze({
   n8n: false,
