@@ -37,8 +37,84 @@ function containsPhrase(text, phrase) {
 function foreignPhrases(language) {
   return PHRASES
     .filter(([es, en]) => es !== en && !es.includes('{') && !en.includes('{'))
-    .map(([, en, es]) => (language === 'en' ? es : en))
+    .map(([es, en]) => (language === 'en' ? es : en))
     .filter(Boolean);
+}
+
+// Leftover UI copy is not always in the catalog yet (T29 fixes the current
+// set), so the spec also scans every visible chrome text node for words that
+// only belong to the other language. Data containers are excluded because
+// news titles, scripts and player names stay in their source language.
+const DATA_SELECTORS = [
+  '#cards',
+  '#scriptCards',
+  '#queueList',
+  '#videoProjectsList',
+  '#videoProjectDetail',
+  '#audioQueueList',
+  '#subtitle2RowsBody',
+  '#subtitle2SessionHistory',
+  '#subtitle2PreviewCue',
+  '#adminUsersList',
+  '#connectorsList',
+  '#errorsAuditList',
+  '#errorsAuditDetail',
+  '#activeUsersList',
+];
+
+const SPANISH_MARKERS = [
+  'modo', 'todos', 'todas', 'pendiente', 'transcripción', 'menciones', 'basura',
+  'actualizar', 'buscar', 'orden', 'relevancia', 'recientes', 'noticias',
+  'fuentes', 'países', 'país', 'guion', 'guiones', 'cola', 'palabras',
+  'ejecutar', 'limpiar', 'creado', 'editar', 'seleccioná', 'guardar',
+  'descargar', 'procesar', 'vista', 'previa', 'ajustes', 'usuarios',
+  'conectores', 'activos', 'errores', 'auditoría', 'título', 'nombre',
+  'correo', 'contraseña', 'sesión', 'servidor', 'desconectado', 'cargando',
+  'reintentar', 'vacío', 'nuevo', 'proyecto', 'proyectos', 'imágenes',
+  'subtítulos', 'voz', 'narración', 'plantilla', 'historial', 'duración',
+  'estado', 'listo', 'desde', 'hasta', 'tipo', 'últimas', 'horas', 'rango',
+  'búsqueda', 'fuente', 'selección', 'texto', 'editable', 'quitar', 'copia',
+  'cancelar', 'eliminar', 'agregar', 'refrescar', 'actualización', 'sin',
+  'todavía', 'primero', 'último', 'evento', 'detalle', 'filtrar', 'fecha',
+  'servicio', 'correlación', 'completado', 'progreso', 'descarga', 'trabajo',
+];
+
+const ENGLISH_MARKERS = [
+  'the', 'and', 'with', 'your', 'this', 'from', 'search', 'refresh', 'order',
+  'relevance', 'recent', 'news', 'sources', 'country', 'countries', 'script',
+  'queue', 'words', 'clear', 'save', 'download', 'process', 'preview',
+  'settings', 'users', 'connectors', 'active', 'errors', 'audit', 'title',
+  'name', 'email', 'password', 'session', 'server', 'disconnected', 'loading',
+  'retry', 'empty', 'new', 'project', 'projects', 'images', 'subtitles',
+  'voice', 'narration', 'preset', 'history', 'duration', 'status', 'ready',
+  'upload', 'source', 'link', 'transcript', 'mentions', 'trash', 'all',
+  'last', 'hours', 'range', 'type', 'service', 'actor', 'event', 'detail',
+  'filter', 'date', 'success', 'failure', 'completed', 'progress', 'failed',
+  'offline', 'configured', 'disabled', 'test', 'testing', 'never', 'checked',
+];
+
+const NEUTRAL_TEXT = [
+  'Newsroom Video Automation',
+  'Newsroom',
+  'Demo Sports News',
+  'Demo Wire',
+  'Demo Radio',
+  'Demo mode',
+  'Modo demo',
+];
+
+function foreignWordHits(text, language) {
+  const markers = language === 'en' ? SPANISH_MARKERS : ENGLISH_MARKERS;
+  let normalized = text;
+  for (const neutral of NEUTRAL_TEXT) {
+    normalized = normalized.replace(new RegExp(escapeRegExp(neutral), 'gi'), ' ');
+  }
+  const hits = new Set();
+  for (const marker of markers) {
+    const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegExp(marker)}($|[^\\p{L}\\p{N}])`, 'iu');
+    if (pattern.test(normalized)) hits.add(marker);
+  }
+  return [...hits];
 }
 
 async function openView(page, view, viewport) {
@@ -102,6 +178,27 @@ for (const language of LANGUAGES) {
         for (const phrase of foreign) {
           expect(containsPhrase(measured.text, phrase), `${view.key} leaks "${phrase}" in ${language}`).toBe(false);
         }
+        const foreignWords = await page.evaluate(
+          ({ dataSelectors }) => {
+            const root = document.querySelector('.app-content') || document.body;
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+            const chunks = [];
+            let node = walker.nextNode();
+            while (node) {
+              const element = node.parentElement;
+              const visible = element
+                && element.closest(dataSelectors.join(',')) === null
+                && element.closest('[hidden]') === null
+                && element.offsetParent !== null;
+              if (visible) chunks.push(node.nodeValue || '');
+              node = walker.nextNode();
+            }
+            return chunks.join(' ').replace(/\s+/g, ' ').trim();
+          },
+          { dataSelectors: DATA_SELECTORS },
+        );
+        const leaks = foreignWordHits(foreignWords, language);
+        expect(leaks, `${view.key} leaks untranslated ${language === 'en' ? 'Spanish' : 'English'} chrome: ${leaks.join(', ')}`).toEqual([]);
 
         const violations = await page.evaluate(async () => {
           const result = await globalThis.axe.run(document, {

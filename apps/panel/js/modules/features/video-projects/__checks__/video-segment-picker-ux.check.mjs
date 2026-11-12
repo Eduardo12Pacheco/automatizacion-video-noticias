@@ -328,6 +328,10 @@ test('Approval snapshot operations patch the canonical snapshot project id when 
   assert.equal(calls[0].payload.baseSnapshotHash, 'hash-1');
 });
 
+// The assignment persists with updateRow(..., { render: false }) so the row
+// table still has an image thumbnail; the editor must render exactly once more
+// to show the new video segment. video-segment-stability-check.mjs covers the
+// same contract at the command layer.
 test('Committing a video segment refreshes the preview and re-renders the editor once', async () => {
   let clickHandler = null;
   let renderCount = 0;
