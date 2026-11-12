@@ -224,3 +224,40 @@ def test_auto_routes_to_detected_language_translator(monkeypatch):
     assert len(segments) == 1
     assert segments[0]["source_text"] == "bonjour"
     assert segments[0]["translated_text"] == "<es:bonjour>"
+
+
+def test_subtitles_whisper_client_delegates_to_shared_asr_worker(tmp_path):
+    from subtitles_service.infrastructure.asr.whisper_asr import WhisperTranscriber
+
+    class _FakeClient:
+        def __init__(self):
+            self.calls = []
+
+        def transcribe(self, audio_path, language=None):
+            self.calls.append((audio_path, language))
+            return [{"text": "hola", "start_ms": 0, "end_ms": 500}], "es"
+
+    client = _FakeClient()
+    segments, info = WhisperTranscriber(client=client).transcribe(tmp_path / "audio.wav", language="auto")
+
+    assert segments == [{"text": "hola", "start_ms": 0, "end_ms": 500}]
+    assert info.language == "es"
+    assert client.calls == [(tmp_path / "audio.wav", "auto")]
+
+
+def test_subtitles_whisper_client_reports_worker_failures_as_pipeline_errors(tmp_path):
+    import pytest
+
+    from newsroom_worker_common.asr_client import AsrWorkerError
+    from subtitles_service.domain.errors import ErrorCode, PipelineError
+    from subtitles_service.infrastructure.asr.whisper_asr import WhisperTranscriber
+
+    class _BrokenClient:
+        def transcribe(self, audio_path, language=None):
+            raise AsrWorkerError("gpu_busy", "GPU slot busy", 409)
+
+    with pytest.raises(PipelineError) as failure:
+        WhisperTranscriber(client=_BrokenClient()).transcribe(tmp_path / "audio.wav")
+
+    assert failure.value.code == ErrorCode.ASR_FAILED
+    assert "GPU slot busy" in failure.value.message

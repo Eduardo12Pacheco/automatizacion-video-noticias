@@ -2,6 +2,8 @@ import importlib.util
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 import wave
 
 
@@ -48,74 +50,74 @@ def parse_whisper_device(argv: list[str]) -> str:
   return os.environ.get("STT_WHISPER_DEVICE", "cpu")
 
 
+def asr_worker_url() -> str:
+  return (os.environ.get("ASR_WORKER_URL") or os.environ.get("STT_ASR_WORKER_URL") or "http://127.0.0.1:8765").rstrip("/")
+
+
 def resolve_backend(requested_backend: str) -> tuple[str, list[str]]:
   notes = []
-  py_version = sys.version_info
-  can_use_whisper = module_available("faster_whisper")
-  can_use_deepspeech = module_available("deepspeech") or module_available("stt")
-
-  if requested_backend == "whisper":
-    if can_use_whisper:
-      notes.append("Backend seleccionado: faster-whisper.")
-      return "whisper", notes
-    raise RuntimeError(
-      "Se pidio backend whisper pero no esta instalado 'faster-whisper'. "
-      "Instala dependencias Python nuevamente."
+  if requested_backend in {"auto", "whisper"}:
+    notes.append(
+      f"Backend Whisper delegado al servicio asr-worker en {asr_worker_url()} (modelo y GPU compartidos)."
     )
+    return "whisper", notes
 
   if requested_backend == "vosk":
     return "vosk", notes
 
   if requested_backend == "deepspeech":
-    if can_use_deepspeech:
-      return "deepspeech", notes
-
     notes.append(
       "DeepSpeech oficial no esta disponible en este entorno. "
       "Se usa backend deepspeech-compatible basado en Vosk para cumplir STT con timestamps reales."
     )
     return "deepspeech-compatible-vosk", notes
 
-  if can_use_whisper:
-    notes.append(
-      "Backend auto selecciono whisper (faster-whisper) para mejorar calidad de transcripcion y alineado."
-    )
-    return "whisper", notes
-
-  if can_use_deepspeech and py_version < (3, 11):
-    notes.append("Backend auto selecciono DeepSpeech oficial.")
-    return "deepspeech", notes
-
-  notes.append(
-    "Backend auto selecciono deepspeech-compatible-vosk "
-    "(DeepSpeech oficial no soportado o no instalado en Python actual)."
-  )
-  return "deepspeech-compatible-vosk", notes
+  raise RuntimeError(f"Backend no soportado: {requested_backend}")
 
 
 def diagnose_backends() -> int:
   py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-  can_use_deepspeech = module_available("deepspeech") or module_available("stt")
+  try:
+    with urllib.request.urlopen(f"{asr_worker_url()}/api/radar/live", timeout=3) as response:
+      worker_reachable = response.status == 200
+  except Exception:
+    worker_reachable = False
   payload = {
     "pythonVersion": py_version,
-    "whisperModuleAvailable": module_available("faster_whisper"),
-    "deepspeechModuleAvailable": can_use_deepspeech,
+    "asrWorkerUrl": asr_worker_url(),
+    "asrWorkerReachable": worker_reachable,
     "voskModuleAvailable": module_available("vosk"),
-    "recommendation": (
-      "whisper"
-      if module_available("faster_whisper")
-      else "deepspeech"
-      if can_use_deepspeech and sys.version_info < (3, 11)
-      else "deepspeech-compatible-vosk"
-    ),
+    "recommendation": "whisper (asr-worker)" if worker_reachable else "start services/asr-worker",
     "notes": [
-      "Whisper (faster-whisper) funciona con audios 48kHz o 16kHz y mejora precision de texto en espanol.",
-      "Si DeepSpeech no esta disponible (comun en Python 3.11+), el proyecto usa backend compatible sobre Vosk.",
-      "La salida transcript.json mantiene segmentos y timestamps reales para alinear frases sin distribucion proporcional.",
+      "Whisper (faster-whisper) vive en services/asr-worker; este script solo envia el audio por HTTP.",
+      "El worker aplica el slot GPU compartido y el fallback CPU/small automaticamente.",
     ],
   }
   print(json.dumps(payload, ensure_ascii=False, indent=2))
   return 0
+
+
+def _split_words(text: str, start: float, end: float) -> list[dict]:
+  tokens = [token for token in str(text or "").split() if token]
+  if not tokens:
+    return []
+  span = max(0.0, float(end) - float(start))
+  weights = [max(1, len(token)) for token in tokens]
+  total = float(sum(weights))
+  words = []
+  cursor = float(start)
+  for token, weight in zip(tokens, weights):
+    duration = span * weight / total
+    words.append(
+      {
+        "word": token,
+        "start": round_ts(cursor),
+        "end": round_ts(cursor + duration),
+        "confidence": 0.0,
+      }
+    )
+    cursor += duration
+  return words
 
 
 def transcribe_with_whisper(
@@ -123,49 +125,42 @@ def transcribe_with_whisper(
   model_name: str,
   device: str,
 ) -> tuple[list[dict], list[dict]]:
-  from faster_whisper import WhisperModel
-
-  compute_type = os.environ.get("STT_WHISPER_COMPUTE_TYPE", "int8")
-  model = WhisperModel(model_name, device=device, compute_type=compute_type)
-  segments_iter, _ = model.transcribe(
-    audio_path,
-    language="es",
-    vad_filter=True,
-    word_timestamps=True,
-    condition_on_previous_text=False,
+  payload = json.dumps({"audio_path": os.path.abspath(audio_path)}).encode("utf8")
+  request = urllib.request.Request(
+    f"{asr_worker_url()}/api/radar/transcribe",
+    data=payload,
+    headers={
+      "content-type": "application/json",
+      "x-api-key": os.environ.get("TRANSCRIPT_SERVICE_API_KEY", ""),
+    },
+    method="POST",
   )
+  timeout = float(os.environ.get("STT_TRANSCRIBE_TIMEOUT_MS", "120000")) / 1000.0
+  try:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+      body = json.loads(response.read().decode("utf8"))
+  except urllib.error.HTTPError as exc:
+    detail = exc.read().decode("utf8", errors="replace")
+    raise RuntimeError(f"asr-worker HTTP {exc.code}: {detail[:500]}") from exc
+  except urllib.error.URLError as exc:
+    raise RuntimeError(f"asr-worker no disponible en {asr_worker_url()}: {exc}") from exc
 
   segments = []
   words = []
-
-  for index, segment in enumerate(segments_iter):
-    segment_words = []
-    for word in segment.words or []:
-      if word.start is None or word.end is None:
-        continue
-
-      token = (word.word or "").strip()
-      if not token:
-        continue
-
-      word_payload = {
-        "word": token,
-        "start": round_ts(float(word.start)),
-        "end": round_ts(float(word.end)),
-        "confidence": float(getattr(word, "probability", 0) or 0),
-      }
-      segment_words.append(word_payload)
-      words.append(word_payload)
-
-    if not segment_words:
+  for index, segment in enumerate(body.get("segments", []), start=1):
+    text = str(segment.get("text", "")).strip()
+    if not text:
       continue
-
+    start = float(segment.get("start_ms", 0)) / 1000.0
+    end = float(segment.get("end_ms", 0)) / 1000.0
+    segment_words = _split_words(text, start, end)
+    words.extend(segment_words)
     segments.append(
       {
-        "id": index + 1,
-        "text": (segment.text or "").strip(),
-        "start": round_ts(float(segment_words[0]["start"])),
-        "end": round_ts(float(segment_words[-1]["end"])),
+        "id": index,
+        "text": text,
+        "start": round_ts(start),
+        "end": round_ts(end),
         "words": segment_words,
       }
     )
@@ -233,7 +228,7 @@ def transcribe_with_vosk(audio_path: str, model_path: str) -> tuple[list[dict], 
 def main() -> int:
   if "--help" in sys.argv:
     print(
-      "Uso: py scripts/transcribe-audio.py [audioPath] [voskModelPath] [outputPath] [--backend=auto|whisper|vosk|deepspeech] [--whisper-model=small] [--whisper-device=cpu] [--diagnose-backends]"
+      "Uso: py scripts/transcribe-audio.py [audioPath] [voskModelPath] [outputPath] [--backend=auto|whisper|vosk|deepspeech] [--diagnose-backends]"
     )
     return 0
 

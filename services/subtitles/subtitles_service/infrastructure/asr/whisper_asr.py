@@ -1,118 +1,58 @@
 from __future__ import annotations
 
-import threading
+import os
 from pathlib import Path
-from typing import Iterable, Protocol
+
+from newsroom_worker_common.asr_client import AsrWorkerClient, AsrWorkerError
 
 from subtitles_service.domain.errors import ErrorCode, PipelineError
 
 
-class ASRSegmentLike(Protocol):
-    text: str
-    start: float
-    end: float
-
-
 class WhisperTranscriber:
-    """Lazy wrapper around faster_whisper. The model is heavy to load, so we
-    defer it to the first call and reuse it across the worker lifetime.
+    """Client for the single faster-whisper worker (`services/asr-worker`).
 
-    `model_size_or_path` defaults to the SUBS_ASR_MODEL env var so the
-    operator can swap between faster-whisper-large-v3, the turbo variant,
-    or whisper-tiny without code changes.
+    The subtitles service used to load its own faster-whisper model. Whisper
+    now lives in one place so the GPU slot, model cache and CPU fallback are
+    shared with the transcript/radar service. `ASR_WORKER_URL` selects the
+    worker (default `http://127.0.0.1:8765`).
     """
 
-    _LOCK = threading.Lock()
-    _INSTANCE: "WhisperTranscriber | None" = None
-
-    def __init__(self, model_size_or_path: str) -> None:
+    def __init__(
+        self,
+        model_size_or_path: str | None = None,
+        *,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        client: AsrWorkerClient | None = None,
+    ) -> None:
+        # Kept for callers that still pass SUBS_ASR_MODEL; the worker owns the
+        # model name now.
         self.model_size_or_path = model_size_or_path
-        self._model = None
+        self._client = client or AsrWorkerClient(
+            base_url=base_url or os.getenv("ASR_WORKER_URL") or "http://127.0.0.1:8765",
+            api_key=api_key if api_key is not None else os.getenv("TRANSCRIPT_SERVICE_API_KEY", ""),
+            timeout_seconds=float(os.getenv("ASR_WORKER_TIMEOUT_SECONDS", "1800")),
+        )
 
     @classmethod
     def default(cls) -> "WhisperTranscriber":
-        import os
-        from subtitles_service.config.contracts import ASR_MODEL_DIR
-        return cls(model_size_or_path=os.getenv("SUBS_ASR_MODEL") or str(ASR_MODEL_DIR))
-
-    def _load(self):
-        if self._model is None:
-            with self._LOCK:
-                if self._model is None:
-                    try:
-                        from faster_whisper import WhisperModel
-                    except ImportError as exc:
-                        raise PipelineError(
-                            ErrorCode.MODEL_NOT_AVAILABLE,
-                            "faster-whisper is not installed",
-                            {"hint": "pip install faster-whisper"},
-                        ) from exc
-                    try:
-                        self._model = WhisperModel(
-                            self.model_size_or_path,
-                            device="auto",
-                            compute_type="auto",
-                        )
-                    except Exception as exc:
-                        raise PipelineError(
-                            ErrorCode.MODEL_NOT_AVAILABLE,
-                            f"Could not load ASR model '{self.model_size_or_path}': {exc}",
-                            {"model": self.model_size_or_path},
-                        ) from exc
-        return self._model
+        return cls(model_size_or_path=os.getenv("SUBS_ASR_MODEL") or None)
 
     def transcribe(
         self,
         audio_path: Path,
         language: str | None = None,
     ) -> tuple[list[dict], "WhisperTranscribeInfo"]:
-        """Run the ASR and return `(segments, info)`.
-
-        `segments` is a list of `{text, start_ms, end_ms}` dicts (one per cue).
-
-        `info` is a `WhisperTranscribeInfo` carrying at least `language`
-        (the BCP-47 code Whisper used — e.g. `"fr-FR"` — or `""` if it
-        could not detect). The analyze pipeline uses this to route
-        `source_language="auto"` to the right translator.
-
-        `language` accepts 'en', 'de', 'auto' (or None for whisper auto-detect).
-        """
-        model = self._load()
         try:
-            # whisper auto-detects when language is None
-            whisper_language = None if not language or language == "auto" else language
-            segments_iter, info = model.transcribe(
-                str(audio_path),
-                language=whisper_language,
-                beam_size=5,
-                vad_filter=True,
-                condition_on_previous_text=False,
-            )
-        except Exception as exc:
+            segments, detected_language = self._client.transcribe(audio_path, language=language)
+        except AsrWorkerError as exc:
             raise PipelineError(
                 ErrorCode.ASR_FAILED,
-                f"Whisper transcription failed: {exc}",
+                exc.message,
+                {"provider": "asr-worker", "code": exc.code},
             ) from exc
-
-        out: list[dict] = []
-        for seg in segments_iter:
-            text = (getattr(seg, "text", "") or "").strip()
-            if not text:
-                continue
-            out.append(
-                {
-                    "text": text,
-                    "start_ms": int(round(float(seg.start) * 1000)),
-                    "end_ms": int(round(float(seg.end) * 1000)),
-                }
-            )
-
-        # `info.language` is BCP-47 (`fr-FR`, `en-US`, ...). Capture it so
-        # the pipeline can route `auto` requests to the right translator.
-        info_out = WhisperTranscribeInfo(
-            language=str(getattr(info, "language", "") or ""),
-        )
-        return out, info_out
+        info_out = WhisperTranscribeInfo(language=str(detected_language or ""))
+        return segments, info_out
 
 
 def normalize_to_iso639_1(code: str | None) -> str:
@@ -132,12 +72,7 @@ def normalize_to_iso639_1(code: str | None) -> str:
 
 
 class WhisperTranscribeInfo:
-    """Minimal shape for the info object `transcribe()` returns.
-
-    We avoid leaking the full `faster_whisper.TranscriptionInfo` to keep
-    the analyze pipeline's contract small and stable across faster-whisper
-    version bumps.
-    """
+    """Minimal shape for the info object `transcribe()` returns."""
 
     __slots__ = ("language",)
 

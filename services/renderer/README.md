@@ -99,13 +99,13 @@ Lo importante: después de borrar eso, el render oficial siguió funcionando y g
 |---|---|
 | Deleted in this work unit | Pipeline manual viejo: `setup`, `process`, `generate timeline`, `fix timeline`, `verify sync`, modelo Vosk trackeado y outputs históricos. |
 | Deleted in this work unit | Compatibility shims under `scripts/lib/`; callers now import the real implementation modules. |
-| Deferred, still present | `scripts/transcribe-audio.py`, servicio local legacy y `assets/overlays/`. |
+| Deferred, still present | `scripts/transcribe-audio.py` (cliente del asr-worker), servicio local legacy y `assets/overlays/`. |
 
 ## Qué todavía NO se borra
 
 | Ruta | Por qué se queda |
 |---|---|
-| `scripts/transcribe-audio.py` | `apps/panel/services/approval-editor/lib/real-alignment.js` todavía puede usarlo para STT/alineación real. |
+| `scripts/transcribe-audio.py` | Cliente de compatibilidad: el Whisper real vive en `services/asr-worker` (`ASR_WORKER_URL`); este script solo envía el audio por HTTP. |
 | `scripts/approval-pipeline-local-service.js` y `scripts/services/approval-pipeline-local-service.js` | Legacy/local service diferido. No es el flujo oficial, pero no se borró en esta tanda. |
 | `assets/overlays/` | Render final depende de estos assets para fidelidad visual. |
 
@@ -131,7 +131,8 @@ node scripts/render-video.js --project-root="projects/<id>" --profile=final
 - No volver a usar `timeline.json` como contrato principal.
 - No meter búsqueda/selección de imágenes acá.
 - No borrar `assets/overlays/` sin validar render final.
-- No borrar `scripts/transcribe-audio.py` hasta migrar el caller de Control Panel.
+- No volver a cargar faster-whisper dentro de este servicio: el modelo y el slot GPU son del asr-worker.
+- `scripts/transcribe-audio.py` se mantiene como cliente HTTP del asr-worker para el caller de Control Panel.
 - Do not run builds, heavy Remotion renders, model/CUDA/audio generation, or visual exports for this cleanup check.
 
 ## Estado actual probado
@@ -162,7 +163,7 @@ Resultado probado:
 | `pnpm run lint` | ESLint + TypeScript. No correr si el usuario dijo no build/check pesado. |
 | `approval:service:local` | Servicio local de preparación/status en `http://127.0.0.1:3041`. No es el flujo oficial de render. |
 | `legacy:approval-service:local` | Alias histórico del servicio anterior. |
-| `legacy:diagnose:stt` | Diagnóstico Python STT. Mantener mientras exista dependencia. |
+| `legacy:diagnose:stt` | Diagnóstico del cliente STT; reporta `ASR_WORKER_URL` y si el worker responde. |
 
 ## Servicio local de preparación
 
