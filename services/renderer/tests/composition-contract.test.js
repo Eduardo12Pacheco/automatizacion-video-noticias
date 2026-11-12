@@ -394,10 +394,10 @@ test("adapter maps mute controls to zero volume semantics", () => {
 
 test("adapter preserves final render fidelity contract for audio sync, alpha logo, dust, motion, and segment duration", () => {
   for (const { dustAssetId, dustRenderPath, logoRenderPath } of [
-    { dustAssetId: "particle-1", dustRenderPath: "overlays/particle-1.mp4", logoRenderPath: "overlays/logo-secondary-alpha-frames" },
-    { dustAssetId: "particle-2", dustRenderPath: "overlays/particle-2.mp4", logoRenderPath: "overlays/logo-primary-alpha-frames" },
-    { dustAssetId: "particle-3", dustRenderPath: "overlays/particle-3.mp4", logoRenderPath: "overlays/logo-secondary-alpha-frames" },
-    { dustAssetId: "particle-4", dustRenderPath: "overlays/particle-4.mp4", logoRenderPath: "overlays/logo-primary-alpha-frames" },
+    { dustAssetId: "particle-1", dustRenderPath: "overlays/particle-1.webm", logoRenderPath: "overlays/logo-secondary.webm" },
+    { dustAssetId: "particle-2", dustRenderPath: "overlays/particle-2.webm", logoRenderPath: "overlays/logo-primary.webm" },
+    { dustAssetId: "particle-3", dustRenderPath: "overlays/particle-3.webm", logoRenderPath: "overlays/logo-secondary.webm" },
+    { dustAssetId: "particle-4", dustRenderPath: "overlays/particle-4.webm", logoRenderPath: "overlays/logo-primary.webm" },
   ]) {
     const snapshot = {
       contractVersion: "approval-editor-service-v1",
@@ -1100,7 +1100,7 @@ test("Remotion final image and overlay source keeps preview fidelity rules", () 
   assert.match(source, /isGreenScreenLogoSource/, "green-screen logo sources must have an explicit render branch");
   assert.match(source, /logo-secondary\(\?:-keyed\)\?/, "keyed Montelia logo must use the full-frame branch instead of badge sizing");
   assert.match(source, /data-layer="alpha-logo-frame-sequence"/, "alpha PNG logo frame sequence must render full-frame with real transparency");
-  assert.match(source, /logo-\(\?:montelia\|aurenia\)-alpha-frames/, "both country logos must support alpha PNG frame sequences");
+  assert.ok(source.includes("logo-[a-z0-9-]+-alpha-frames"), "alpha PNG frame sequences are still supported when a project uses them");
   assert.match(source, /logoFrameSequenceSrc\(logo\.src, frame\)/, "alpha logo frame sequence must advance by Remotion frame");
 });
 

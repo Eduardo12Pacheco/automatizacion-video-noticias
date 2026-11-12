@@ -426,7 +426,7 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
   assert.equal(aurenia.globalLayers.logo.assetId, "brand-logo-primary");
   assert.equal(aurenia.globalLayers.logo.source, "logo-primary.webm");
   assert.equal(aurenia.assets["brand-logo-primary"].previewUrl, "./assets/logo-primary.webm");
-  assert.equal(aurenia.assets["brand-logo-primary"].renderPath, "overlays/logo-primary-alpha-frames");
+  assert.equal(aurenia.assets["brand-logo-primary"].renderPath, "overlays/logo-primary.webm");
   assert.equal(aurenia.globalLayers.outro.assetId, "brand-outro-primary");
   assert.equal(aurenia.assets["brand-outro-primary"].previewUrl, "./assets/outro-primary.webm");
   assert.equal(aurenia.assets["brand-outro-primary"].renderPath, "overlays/outro-primary.mp4");
@@ -435,7 +435,7 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
   assert.equal(montelia.globalLayers.logo.assetId, "brand-logo-secondary");
   assert.equal(montelia.globalLayers.outro.assetId, "brand-outro-secondary");
   assert.equal(montelia.assets["brand-logo-secondary"].previewUrl, "./assets/logo-secondary.webm");
-  assert.equal(montelia.assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary-alpha-frames");
+  assert.equal(montelia.assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary.webm");
   assert.equal(montelia.assets["brand-outro-secondary"].renderPath, "overlays/outro-secondary.mp4");
   assert.notEqual(computeApprovalSnapshotHash(aurenia), computeApprovalSnapshotHash(montelia));
 

@@ -58,3 +58,10 @@ def test_live_trafilatura_extracts_a_public_article():
 
     assert article["main_content"]
     assert article["extractor"] == "trafilatura"
+
+
+def test_download_html_rejects_non_http_urls():
+    from newsroom_local_adapters.cli import _download_html
+
+    with pytest.raises(RuntimeError, match="trafilatura_invalid_url"):
+        _download_html("file:///etc/passwd")

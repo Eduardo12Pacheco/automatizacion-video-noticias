@@ -4,6 +4,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PATH=/opt/venv/bin:$PATH \
+    PYTHONPATH=/app/services/subtitles \
     SUBTITLES_REMOTE_WORKSPACE_ROOT=/app/runtime/media/subtitles
 
 RUN apt-get update \

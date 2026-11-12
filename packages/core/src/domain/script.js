@@ -97,7 +97,7 @@ export function buildScriptPrompt(source = {}) {
     '',
     'Escribe en tercera persona, con tono informativo y periodístico, y una redacción fluida, natural y clara.',
     '',
-    'La extensión debe estar entre 200 y 280 palabras. No menos de 200 y no más de 280.',
+    'La extensión debe ser de cuatro párrafos completos y entre 200 y 280 palabras. Mínimo absoluto: 160 palabras; contá las palabras antes de responder.',
     'No inventes información. No uses markdown. No uses encabezados.',
     'Prohibido mencionar apuestas, cuotas, momios, odds, pronósticos o casas de apuestas.',
   ];

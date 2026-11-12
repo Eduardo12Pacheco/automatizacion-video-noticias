@@ -398,8 +398,8 @@ test("video engine render adapter persists canonical snapshot and invokes render
   fs.mkdirSync(path.join(videoEngineRoot, "scripts"), { recursive: true });
   fs.writeFileSync(path.join(videoEngineRoot, "scripts", "render-video.js"), "// fake render entrypoint\n", "utf8");
   fs.mkdirSync(path.join(videoEngineRoot, "assets", "overlays"), { recursive: true });
-  fs.mkdirSync(path.join(videoEngineRoot, "assets", "overlays", "logo-secondary-alpha-frames"), { recursive: true });
-  fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "logo-secondary-alpha-frames", "frame-0000.png"), "source logo png\n", "utf8");
+  fs.mkdirSync(path.join(videoEngineRoot, "assets", "overlays", "logo-secondary.webm"), { recursive: true });
+  fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "logo-secondary.webm", "frame-0000.png"), "source logo png\n", "utf8");
   fs.writeFileSync(path.join(videoEngineRoot, "assets", "overlays", "outro-secondary.mp4"), "source final mp4\n", "utf8");
   const commands = [];
   const adapter = createVideoEngineRenderAdapter({
@@ -421,8 +421,8 @@ test("video engine render adapter persists canonical snapshot and invokes render
   assert.equal(persisted.contract.snapshotHash, "hash-canonical");
   assert.equal(persisted.contract.rows[0].selectedAssetId, "image-1");
   assert.equal(persisted.contract.globalLayers.outro.assetId, "brand-outro-secondary");
-  assert.equal(persisted.manifest.assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary-alpha-frames");
-  assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "logo-secondary-alpha-frames", "frame-0000.png"), "utf8"), "source logo png\n");
+  assert.equal(persisted.manifest.assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary.webm");
+  assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "logo-secondary.webm", "frame-0000.png"), "utf8"), "source logo png\n");
   assert.equal(fs.readFileSync(path.join(projectRoot, "public", "overlays", "outro-secondary.mp4"), "utf8"), "source final mp4\n");
   assert.equal(fs.existsSync(path.join(projectRoot, "editor-project.json")), true);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(projectsRoot, "index.json"), "utf8")).projects.map((entry) => entry.id), ["draft-v1"]);
@@ -508,7 +508,7 @@ test("video engine render adapter localizes remote render assets before final re
       assert.equal(assets["music-1"].renderPath, "generated/audio/music-1.mp3");
       assert.equal(assets["image-1"].renderPath, "generated/images/image-1.webp");
       assert.equal(assets["image-2"].renderPath, "generated/images/image-2.jpg");
-      assert.equal(assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary-alpha-frames");
+      assert.equal(assets["brand-logo-secondary"].renderPath, "overlays/logo-secondary.webm");
       assert.equal(assets["brand-logo-secondary"].publicUrl, "./assets/logo-secondary.webm");
       assert.equal(assets["brand-outro-secondary"].renderPath, "overlays/outro-secondary.mp4");
       const renderProps = adaptCompositionContractToRenderProps({ contract: persisted.contract, manifest: persisted.manifest });
@@ -760,7 +760,7 @@ function baseCanonicalSnapshot() {
       "image-2": { id: "image-2", type: "image", renderPath: "generated/images/image-2.jpg", status: "ready" },
       "voice-1": { id: "voice-1", type: "audio", renderPath: "generated/audio/voice.wav", status: "ready" },
       "music-1": { id: "music-1", type: "music", renderPath: "generated/audio/music.wav", status: "ready" },
-      "brand-logo-secondary": { id: "brand-logo-secondary", type: "logo", renderPath: "overlays/logo-secondary-alpha-frames", status: "ready" },
+      "brand-logo-secondary": { id: "brand-logo-secondary", type: "logo", renderPath: "overlays/logo-secondary.webm", status: "ready" },
       "brand-outro-secondary": { id: "brand-outro-secondary", type: "outro", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 30.16, status: "ready" },
     },
   };

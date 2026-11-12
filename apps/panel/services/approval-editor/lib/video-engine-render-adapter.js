@@ -14,7 +14,7 @@ const AUTHORITATIVE_DUST_ASSETS = {
     source: { kind: "local", bridge: "approval-panel" },
     publicUrl: "./assets/particle-1.webm",
     previewUrl: "./assets/particle-1.webm",
-    renderPath: "overlays/particle-1.mp4",
+    renderPath: "overlays/particle-1.webm",
     status: "ready",
   },
   "particle-2": {
@@ -25,7 +25,7 @@ const AUTHORITATIVE_DUST_ASSETS = {
     source: { kind: "local", bridge: "approval-panel" },
     publicUrl: "./assets/particle-2.webm",
     previewUrl: "./assets/particle-2.webm",
-    renderPath: "overlays/particle-2.mp4",
+    renderPath: "overlays/particle-2.webm",
     status: "ready",
   },
   "particle-3": {
@@ -36,7 +36,7 @@ const AUTHORITATIVE_DUST_ASSETS = {
     source: { kind: "local", bridge: "approval-panel" },
     publicUrl: "./assets/particle-3.webm",
     previewUrl: "./assets/particle-3.webm",
-    renderPath: "overlays/particle-3.mp4",
+    renderPath: "overlays/particle-3.webm",
     status: "ready",
   },
   "particle-4": {
@@ -47,7 +47,7 @@ const AUTHORITATIVE_DUST_ASSETS = {
     source: { kind: "local", bridge: "approval-panel" },
     publicUrl: "./assets/particle-4.webm",
     previewUrl: "./assets/particle-4.webm",
-    renderPath: "overlays/particle-4.mp4",
+    renderPath: "overlays/particle-4.webm",
     status: "ready",
   },
 };

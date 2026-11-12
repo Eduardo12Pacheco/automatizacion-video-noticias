@@ -9,13 +9,13 @@ const BRAND_CHANNEL_ASSETS = {
   "demo-primary": {
     channel: "demo-primary",
     label: "Demo Sports Uno",
-    logo: { assetId: "brand-logo-primary", previewPath: "logo-primary.webm", renderPath: "overlays/logo-primary-alpha-frames", source: "logo-primary.webm" },
+    logo: { assetId: "brand-logo-primary", previewPath: "logo-primary.webm", renderPath: "overlays/logo-primary.webm", source: "logo-primary.webm" },
     outro: { assetId: "brand-outro-primary", previewPath: "outro-primary.webm", renderPath: "overlays/outro-primary.mp4", durationSeconds: 30.53, label: "Demo Sports Uno" },
   },
   "demo-secondary": {
     channel: "demo-secondary",
     label: "Demo Sports Dos",
-    logo: { assetId: "brand-logo-secondary", previewPath: "logo-secondary.webm", renderPath: "overlays/logo-secondary-alpha-frames", source: "logo-secondary.webm" },
+    logo: { assetId: "brand-logo-secondary", previewPath: "logo-secondary.webm", renderPath: "overlays/logo-secondary.webm", source: "logo-secondary.webm" },
     outro: { assetId: "brand-outro-secondary", previewPath: "outro-secondary.webm", renderPath: "overlays/outro-secondary.mp4", durationSeconds: 30.16, label: "Demo Sports Dos" },
   },
   "demo-final": {

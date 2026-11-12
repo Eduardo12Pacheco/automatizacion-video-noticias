@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -32,8 +33,8 @@ class PiperEngine:
         runner: Callable[..., Any] | None = None,
     ):
         generation_cfg = generation_cfg or {}
-        self.binary = binary or str(generation_cfg.get("piper_binary") or "piper")
-        model = model_path or generation_cfg.get("piper_model")
+        self.binary = binary or str(generation_cfg.get("piper_binary") or os.getenv("PIPER_BIN") or "piper")
+        model = model_path or generation_cfg.get("piper_model") or os.getenv("PIPER_MODEL")
         self.model_path = Path(str(model)) if model else None
         self.length_scale = generation_cfg.get("piper_length_scale")
         self.noise_scale = generation_cfg.get("piper_noise_scale")

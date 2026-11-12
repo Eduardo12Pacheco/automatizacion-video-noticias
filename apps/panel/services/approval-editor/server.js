@@ -343,6 +343,8 @@ function normalizeUrlAsset(item, index, role) {
   const url = typeof item === "string" ? item : (item?.public_url || item?.publicUrl || item?.url || item?.storage_public_url || "");
   const idSeed = (typeof item === "object" && (item.id || item.assetId || item.storage_path)) || url || `${role}-${index + 1}`;
   const id = `${role}-${safeProjectId(idSeed)}`;
+  const width = Number(item?.imageWidth ?? item?.image_width ?? item?.width);
+  const height = Number(item?.imageHeight ?? item?.image_height ?? item?.height);
   return {
     id,
     type: role === "music" ? "music" : role === "voice" ? "audio" : "image",
@@ -352,7 +354,34 @@ function normalizeUrlAsset(item, index, role) {
     previewUrl: url,
     renderPath: url,
     status: "ready",
+    ...(role === "image" && Number.isFinite(width) && width > 0 ? { imageWidth: width } : {}),
+    ...(role === "image" && Number.isFinite(height) && height > 0 ? { imageHeight: height } : {}),
   };
+}
+
+/**
+ * Headless project creation (API/CLI/tests) has no browser image element to
+ * measure, so the selected image metadata is the only geometry source. Fill
+ * the pan viewport from the 1280x720 render canvas and fall back to the
+ * viewport for images without declared dimensions; the editor's browser
+ * hydration replaces both with exact values when an operator edits a row.
+ */
+function buildRenderReadyRowSeeds(segments = [], imageAssets = [], canvas = { width: 1280, height: 720 }) {
+  return buildRowSeeds(segments).map((seed, index) => {
+    const image = imageAssets[index] || {};
+    const imageWidth = Number(image.imageWidth) || canvas.width;
+    const imageHeight = Number(image.imageHeight) || canvas.height;
+    return {
+      ...seed,
+      motion: {
+        ...(seed.motion && typeof seed.motion === "object" ? seed.motion : {}),
+        imageWidth,
+        imageHeight,
+        panViewportWidth: canvas.width,
+        panViewportHeight: canvas.height,
+      },
+    };
+  });
 }
 
 function previewFileUrl(projectId, relativePath) {
@@ -649,7 +678,7 @@ function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "p
           projectId,
           title: body.title || projectId,
           draftId: body.draft_id || null,
-          rowsSeed: buildRowSeeds(segments),
+          rowsSeed: buildRenderReadyRowSeeds(segments, imageAssets),
           segments,
           alignedTimings,
           alignmentStatus,
@@ -751,4 +780,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApprovalEditorService, normalizeSegments, pickAudioDurationSeconds, parseWavDurationSeconds, createRenderAdapterFromEnv };
+module.exports = { createApprovalEditorService, normalizeUrlAsset, buildRenderReadyRowSeeds, normalizeSegments, pickAudioDurationSeconds, parseWavDurationSeconds, createRenderAdapterFromEnv };

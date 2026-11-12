@@ -50,7 +50,8 @@ ENV APPROVAL_EDITOR_SERVICE_HOST=0.0.0.0 \
     REMOTION_GL=swangle
 
 WORKDIR /app
-RUN mkdir -p /app/apps/panel/services/approval-editor/projects /app/runtime/media/renderer
+RUN mkdir -p /app/node_modules/@newsroom /app/apps/panel/services/approval-editor/projects /app/runtime/media/renderer \
+    && ln -sfn /app/packages/contracts /app/node_modules/@newsroom/contracts
 
 EXPOSE 3042
 HEALTHCHECK --interval=15s --timeout=5s --retries=20 \

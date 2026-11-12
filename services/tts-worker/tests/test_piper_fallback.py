@@ -175,3 +175,15 @@ def test_resolve_engine_mode_uses_piper_for_the_local_cpu_mode() -> None:
     assert resolve_engine_mode({"NEWSROOM_MODE": "local"}, {}) == ENGINE_PIPER
     assert resolve_engine_mode({"NEWSROOM_MODE": "local", "TTS_WORKER_ENGINE": "qwen"}, {}) == ENGINE_QWEN
     assert resolve_engine_mode({"NEWSROOM_MODE": "demo"}, {}) == "auto"
+
+
+def test_piper_engine_reads_the_model_path_from_the_environment(monkeypatch, tmp_path) -> None:
+    model = tmp_path / "es_ES-davefx-medium.onnx"
+    model.write_bytes(b"fake")
+    monkeypatch.setenv("PIPER_MODEL", str(model))
+    monkeypatch.delenv("PIPER_BIN", raising=False)
+
+    engine = PiperEngine({})
+
+    engine.prepare_reference(tmp_path / "unused.wav", "")
+    assert engine.model_path == model

@@ -7,7 +7,12 @@ const WHISPER_DERIVATIVE_FILE = 'voice-whisper-16khz-mono.wav';
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 30000;
 const DEFAULT_TRANSCRIBE_TIMEOUT_MS = 20 * 60 * 1000;
 const DEFAULT_LOCAL_WHISPER_MODEL = path.resolve(__dirname, '..', '..', '..', '..', 'local', 'models', 'faster-whisper-large-v3');
-const VIDEO_ENGINE_ROOT = path.resolve(__dirname, '..', '..', '..', '..', 'services/renderer');
+// The checkout layout is `<repo>/apps/panel/...`; the renderer container
+// mounts the same code at `/app/apps/panel/...` with the engine at
+// `/app/services/renderer`. The env override is authoritative when set.
+const VIDEO_ENGINE_ROOT = path.resolve(
+  process.env.APPROVAL_EDITOR_VIDEO_ENGINE_ROOT || path.join(__dirname, '..', '..', '..', '..', 'services/renderer'),
+);
 
 function createAlignmentError(code, message, details) {
   const error = new Error(message);

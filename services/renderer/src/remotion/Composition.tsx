@@ -139,7 +139,7 @@ const getFadedMusicVolume = ({
 
 const isVideoSource = (src?: string | null) => /\.(mp4|webm|mov|m4v)$/i.test(src || "");
 const isGreenScreenLogoSource = (src?: string | null) => /(?:logo-green|logo-secondary(?:-keyed)?)\.(?:mp4|webm)$/i.test(src || "");
-const isLogoFrameSequenceSource = (src?: string | null) => /logo-(?:montelia|aurenia)-alpha-frames$/i.test(src || "");
+const isLogoFrameSequenceSource = (src?: string | null) => /logo-[a-z0-9-]+-alpha-frames$/i.test(src || "");
 const isFinalLogoSource = (src?: string | null) => /logo-final\.png$/i.test(src || "");
 const logoFrameSequenceSrc = (src: string, frame: number) => `${src}/frame-${String(frame % 900).padStart(4, "0")}.png`;
 

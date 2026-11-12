@@ -38,13 +38,35 @@ def _document_id(payload: dict[str, Any]) -> str:
     return "doc-" + hashlib.sha256(seed.encode("utf-8")).hexdigest()[:20]
 
 
+def _download_html(url: str, *, timeout_seconds: float = 30.0) -> str:
+    """Fetch a public article page with the standard library.
+
+    trafilatura's own downloader returns None for some local/LAN hosts and for
+    servers that only understand simple requests. Fetching here keeps the
+    extractor working against the local panel fixtures and against ordinary
+    public pages alike; the extraction step stays in trafilatura.
+    """
+    from urllib.parse import urlparse
+    from urllib.request import Request, urlopen
+
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise RuntimeError("trafilatura_invalid_url")
+    request = Request(url, headers={"user-agent": "newsroom-local-extractor/1.0", "accept": "text/html,*/*"})
+    with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - explicit http(s) guard above
+        return response.read().decode("utf-8", errors="replace")
+
+
 def extract_article(url: str) -> dict[str, Any]:
     try:
         import trafilatura
     except ImportError as exc:  # pragma: no cover - depends on the host install
         raise RuntimeError("trafilatura_unavailable") from exc
 
-    downloaded = trafilatura.fetch_url(url)
+    try:
+        downloaded = _download_html(url)
+    except Exception:
+        downloaded = trafilatura.fetch_url(url)
     if not downloaded:
         raise RuntimeError("trafilatura_fetch_failed")
     raw = trafilatura.extract(

@@ -11,7 +11,7 @@ RUN apt-get update \
         ca-certificates curl ffmpeg python3 python3-venv python3-pip \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m venv /opt/newsroom-python \
-    && /opt/newsroom-python/bin/pip install --no-cache-dir trafilatura python-docx
+    && /opt/newsroom-python/bin/pip install --no-cache-dir trafilatura python-docx lxml_html_clean
 
 RUN corepack enable
 

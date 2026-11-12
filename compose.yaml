@@ -239,6 +239,7 @@ services:
       - newsroom_whisper_models:/models/whisper
       - newsroom_gpu_lock:/tmp
       - newsroom_media:/app/runtime/media
+      - newsroom_renderer_editor:/app/apps/panel/services/approval-editor/projects
     expose:
       - "8765"
     restart: unless-stopped
@@ -314,8 +315,6 @@ services:
     volumes:
       - newsroom_media:/app/runtime/media
       - newsroom_renderer_editor:/app/apps/panel/services/approval-editor/projects
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     expose:
       - "3042"
     restart: unless-stopped

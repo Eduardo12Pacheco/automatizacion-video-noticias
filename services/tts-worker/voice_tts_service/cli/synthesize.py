@@ -13,7 +13,7 @@ import yaml
 
 from voice_tts_service.application.assemble import assemble_segments
 from voice_tts_service.domain.segmenter import SegmenterConfig, segment_text
-from voice_tts_service.infrastructure.engine_factory import create_tts_engine
+from voice_tts_service.infrastructure.engine_factory import create_tts_engine, resolve_engine_mode
 
 
 def parse_args() -> argparse.Namespace:
@@ -106,7 +106,10 @@ def main() -> None:
     reference_text = ref_text_path.read_text(encoding="utf-8").strip()
     if not raw_text:
         raise ValueError("El guion está vacío.")
-    if not reference_text:
+    # Piper is a fixed CPU voice and does not use the reference audio/text
+    # either for cloning or for its prompt; requiring a reference transcript
+    # would make the documented CPU local mode impossible.
+    if not reference_text and resolve_engine_mode() != "piper":
         raise ValueError("El ref_text está vacío. Debe ser la transcripción del audio de referencia.")
     seg_cfg = SegmenterConfig(**cfg.get("segmenter", {}))
     pauses_cfg = cfg.get("pauses_ms", {})
