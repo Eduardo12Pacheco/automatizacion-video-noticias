@@ -148,9 +148,12 @@ STORAGE=s3
 S3_ENDPOINT=http://minio:9000
 S3_BUCKET=newsroom
 S3_REGION=us-east-1
-S3_ACCESS_KEY=...
-S3_SECRET_KEY=...
+S3_ACCESS_KEY=newsroom                 # same as MINIO_ROOT_USER
+S3_SECRET_KEY=change-me                # same as MINIO_ROOT_PASSWORD
 ```
+
+The installer template uses `__GENERATE_MINIO_ROOT_PASSWORD__` so the API
+client secret and the MinIO root password are generated as the same value.
 
 Start MinIO and create the bucket:
 
