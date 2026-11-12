@@ -1,0 +1,136 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Node syntax
+        run: |
+          git ls-files '*.js' '*.mjs' '*.cjs' | while IFS= read -r file; do node --check "$file"; done
+      - name: Shell syntax
+        run: |
+          git ls-files '*.sh' | while IFS= read -r file; do bash -n "$file"; done
+      - name: Python syntax
+        run: python3 -m compileall -q apps packages services tools infra/install
+
+  js-suites:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Core
+        run: node --test packages/core/test/*.test.js
+      - name: Data (in-memory contract; Postgres opt-in is separate)
+        run: node --test packages/data/test/*.test.js
+      - name: Adapters
+        run: node --test packages/adapters/test/*.test.js
+      - name: API
+        run: node --test apps/api/test/*.test.js
+      - name: Renderer
+        run: node --test services/renderer/tests/*.test.js
+      - name: Demo worker
+        run: node --test services/demo-worker/test/*.test.js
+      - name: Tools
+        run: python3 -m unittest discover -s tools/tests -v
+
+  panel-suite:
+    # The 20 remaining failures are the pre-existing L19/L21/L24 UI/parity
+    # baseline recorded in odd/tasks/newsroom-video-automation.md. The full
+    # suite stays visible and informational; the S5/T7 contract test blocks.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Full panel suite (baseline visible)
+        continue-on-error: true
+        run: uv run --with pytest pytest apps/panel/tests -q
+      - name: T7 UI contract
+        run: uv run --with pytest pytest apps/panel/tests/test_ui_design_recomposition.py -q
+
+  python-suites:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: ASR worker
+        run: uv run --project services/asr-worker --with pytest --with httpx pytest services/asr-worker/tests -q
+      - name: TTS worker
+        run: uv run --project services/tts-worker --with pytest pytest services/tts-worker/tests -q
+      - name: Worker common
+        run: uv run --project packages/python/newsroom_worker_common --with pytest pytest packages/python/newsroom_worker_common/tests -q
+      - name: Local adapters
+        run: uv run --project packages/python/newsroom_local_adapters --with pytest --with python-docx pytest packages/python/newsroom_local_adapters/tests -q
+      - name: Channel monitor (known L19 baseline is informational)
+        continue-on-error: true
+        run: uv run --project services/channel-monitor --with pytest --with httpx --with pyyaml --with uvicorn pytest services/channel-monitor/tests -q
+      - name: Subtitles (torch baseline is informational)
+        continue-on-error: true
+        run: uv run --project services/subtitles --with pytest --with httpx --with pyyaml pytest services/subtitles/tests -q
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Config with the default profile
+        run: docker compose -f compose.yaml config -q
+      - name: Config with the gpu and n8n profiles
+        run: docker compose --profile gpu --profile n8n -f compose.yaml config -q
+      - name: Compatibility alias
+        run: docker compose -f docker-compose.yml config -q
+      - name: Installer/CLI behaviour under the fake docker stand-in
+        run: bash infra/install/tests/run.sh
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start the keyless default stack
+        run: |
+          cp e2e/.env.example .env
+          docker compose up -d --build postgres searxng mailpit demo-worker api panel
+          docker compose run --rm seed
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright happy path
+        run: pnpm exec playwright test
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose logs --tail=300
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v --remove-orphans

@@ -4,5 +4,12 @@ packages:
   - "packages/core"
   - "packages/adapters"
   - "services/renderer"
+  - "services/demo-worker"
   - "services/subtitles"
   - "packages/data"
+allowBuilds:
+  esbuild: true
+  ffmpeg-static: true
+onlyBuiltDependencies:
+  - esbuild
+  - ffmpeg-static

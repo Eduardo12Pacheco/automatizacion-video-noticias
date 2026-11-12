@@ -9,6 +9,11 @@
     "test:renderer": "node --test services/renderer/tests/*.test.js",
     "test:data": "node --test packages/data/test/*.test.js",
     "test:core": "node --test packages/core/test/*.test.js",
-    "test:adapters": "node --test packages/adapters/test/*.test.js"
+    "test:adapters": "node --test packages/adapters/test/*.test.js",
+    "test:demo-worker": "node --test services/demo-worker/test/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
   }
 }

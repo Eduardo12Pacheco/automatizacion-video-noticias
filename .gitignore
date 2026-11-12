@@ -84,3 +84,8 @@ services/channel-monitor/runtime-logs/
 
 # Windows reserved device-name artifact
 NUL
+
+# Playwright/browser test artifacts
+/test-results/
+/playwright-report/
+/blob-report/
