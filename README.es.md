@@ -8,10 +8,10 @@ nube.**
 
 ![Recorrido grabado del perfil por defecto](docs/images/demo.gif)
 
-El clip se grabó con el stack Docker Compose por defecto, sin claves: inicio de
-sesión, una decisión de aprobación, el borrador de guion generado y las vistas
-de voz, subtítulos y proyectos de video. También hay una versión [MP4](docs/images/demo.mp4)
-de mayor calidad.
+El GIF es un loop corto grabado con el stack Docker Compose por defecto, sin
+claves: inicio de sesión, una decisión de aprobación, el borrador de guion
+generado y las vistas de voz, subtítulos y proyectos de video. El
+[MP4](docs/images/demo.mp4) es el recorrido completo de 88 segundos.
 
 ## Qué hace
 

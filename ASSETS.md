@@ -66,11 +66,11 @@ the OFL notice and may not be redistributed under another license.
 
 ## Recorded Demo
 
-`docs/images/demo.gif` and `docs/images/demo.mp4` are screen recordings of the
-default keyless Docker Compose profile (login, approval decision, generated
-script, voice/subtitles/projects views). They are product screenshots, not
-brand media, and contain only fictional demo data. Both files are well below the
-5 MB blob limit enforced for history.
+`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (88-second full
+walkthrough) are screen recordings of the default keyless Docker Compose profile
+(login, approval decision, generated script, voice/subtitles/projects views).
+They are product screenshots, not brand media, and contain only fictional demo
+data. Both files are well below the 5 MB blob limit enforced for history.
 
 ## Not Included
 

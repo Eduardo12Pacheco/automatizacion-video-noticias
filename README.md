@@ -6,10 +6,10 @@
 
 ![Recorded walkthrough of the default profile](docs/images/demo.gif)
 
-The clip above was recorded from the default keyless Docker Compose stack:
-login, an approval decision, the generated script draft, and the voice,
-subtitles and video-project views. A higher-quality [MP4](docs/images/demo.mp4)
-is available too.
+The clip above is a short loop recorded from the default keyless Docker Compose
+stack: login, an approval decision, the generated script draft, and the voice,
+subtitles and video-project views. The [MP4](docs/images/demo.mp4) is the full
+88-second walkthrough.
 
 ## What it does
 
