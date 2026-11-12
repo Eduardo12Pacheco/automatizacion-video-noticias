@@ -60,8 +60,8 @@ const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
 });
 const context = await browser.newContext({
-  viewport: { width: 1280, height: 720 },
-  recordVideo: { dir: videoDir, size: { width: 1280, height: 720 } },
+  viewport: { width: 1440, height: 900 },
+  recordVideo: { dir: videoDir, size: { width: 1440, height: 900 } },
 });
 const page = await context.newPage();
 page.on('console', (message) => {
@@ -84,21 +84,32 @@ try {
   await page.fill('#authPass', password);
   await page.locator('#authForm button[type="submit"]').click();
   await page.waitForSelector('#appShell', { state: 'visible' });
-  await parkPointerAndBlur(page, 1280, 720);
+  await parkPointerAndBlur(page, 1440, 900);
   await page.waitForTimeout(3000);
 
   for (const view of views) {
     await page.locator(`.nav-item[data-view="${view.key}"]`).click({ force: true });
-    await parkPointerAndBlur(page, 1280, 720);
+    await parkPointerAndBlur(page, 1440, 900);
+    if (view.key === 'audio') {
+      // Show a real demo voice job finishing, not the designed empty state.
+      await page.fill('#audioTextArea', 'La selección de Aurenia prepara el partido con una alineación renovada y un mediocampo más vertical.');
+      await page.locator('#audioRunBtn').click();
+      await page.waitForFunction(
+        () => /Completado/.test(document.querySelector('#audioQueueList')?.textContent || ''),
+        undefined,
+        { timeout: 90_000 },
+      );
+      await parkPointerAndBlur(page, 1440, 900);
+    }
     await page.waitForTimeout(view.hold);
   }
 
   await page.locator('#settingsBtn').click();
   await page.waitForSelector('#settingsDialog', { state: 'visible' });
-  await parkPointerAndBlur(page, 1280, 720);
+  await parkPointerAndBlur(page, 1440, 900);
   await page.waitForTimeout(6000);
   await page.locator('#closeSettings').click();
-  await parkPointerAndBlur(page, 1280, 720);
+  await parkPointerAndBlur(page, 1440, 900);
 
   if (pageErrors.length || consoleErrors.length) {
     throw new Error(

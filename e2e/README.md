@@ -48,7 +48,7 @@ or a page exception.
 
 ## Local-mode happy path (real media)
 
-`e2e/local-mode.spec.js` is the D10 acceptance run. It is opt-in because it
+`e2e/local-mode.spec.js` is the real local-mode acceptance run. It is opt-in because it
 downloads the local models and renders real media on CPU:
 
 ```bash
@@ -88,9 +88,9 @@ machine running the spec. The media server network is derived from
 `COMPOSE_PROJECT_NAME` (default `newsroom`); set `E2E_FIXTURE_NETWORK` only to
 override it explicitly.
 
-## Visual QA (T20)
+## Visual QA
 
-`e2e/visual-qa.spec.js` implements the S10 acceptance in showcase mode: every
+`e2e/visual-qa.spec.js` implements the visual-QA acceptance in showcase mode: every
 view × {es,en} × {1440×900, 390×844}, with zero console errors, zero failed
 requests, no layout overflow, no debug/fallback copy, no foreign-language
 catalog strings and no serious/critical axe-core violations. It also covers the

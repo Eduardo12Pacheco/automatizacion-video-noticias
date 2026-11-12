@@ -33,6 +33,6 @@ The panel talks only to `apps/api`, configured from `/panel/bootstrap`.
 - Feature code stays directly inspectable in the browser.
 - Parity and behavioural tests replace some frozen grep-only assertions.
 - The team must keep discipline around tokens and i18n; nothing enforces the
-  design system at compile time. The S5/T7 contract test is the guardrail.
+  design system at compile time. The design-system contract test is the guardrail.
 - If the UI grows substantially, this decision should be revisited rather than
   silently abandoned.

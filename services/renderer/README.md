@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="./Image-Proyect-RemotionEditor.png" alt="Video Engine" />
+  <img src="../../docs/images/screens/scripts-es-desktop.png" alt="Editorial workspace that feeds the renderer" />
 </p>
 
 # Video Engine
 
-Video Engine es el motor de render final en Remotion. Su trabajo es simple y específico: recibe un contrato ya preparado por `apps/panel`, lo convierte a props de Remotion y genera un MP4 final.
+Video Engine es el motor de render final en Remotion. Su trabajo es simple y específico: recibe un snapshot ya preparado por la approval editor, lo convierte a props de Remotion y genera un MP4 final.
 
-Este proyecto ya no es el editor. No decide imágenes, no calcula el guion, no hace preview de usuario y no es el lugar para mover audio manualmente. Todo eso vive antes, principalmente en `apps/panel` y `packages/contracts`.
+Este proyecto ya no es el editor. No decide imágenes, no calcula el guion, no hace preview de usuario y no es el lugar para mover audio manualmente. Todo eso vive antes, en `apps/panel`, `packages/contracts` y el servicio `services/approval-editor`.
 
 ## Official render-only flow
 
 ```txt
 apps/panel
-  -> services/approval-editor/lib/video-engine-render-adapter.js
-  -> services/renderer/projects/<id>/composition-contract.json
-  -> services/renderer/scripts/render-video.js --profile=final
+  -> services/approval-editor/lib/renderer-client.js
+  -> POST /api/render on services/renderer/scripts/render/render-server.js
+  -> services/renderer/scripts/render/render-video.js --profile=final
   -> services/renderer/projects/<id>/output/video-final.mp4
 ```
 
@@ -49,9 +49,11 @@ projects/<id>/output/video-final.mp4
 
 | Ruta | Para qué sirve |
 |---|---|
-| `scripts/render-video.js` | Wrapper público estable. Control Panel llama este archivo. No lo borres. |
+| `scripts/render-video.js` | Wrapper público estable del CLI. No lo borres. |
 | `scripts/render/render-video.js` | Implementación real del render final. |
-| `scripts/lib/contracts/composition-contract.js` | Adapta contrato Approval Editor V1 a props de Remotion. |
+| `scripts/render/render-server.js` | Frontera HTTP (`GET /health`, `POST /api/render`) que usa la approval editor. |
+| `scripts/render/render-presets.js` | Presets `final`, `preview`, `demo` y `local`. |
+| `scripts/lib/contracts/composition-contract.js` | Adapta el snapshot del editor a props de Remotion. |
 | `src/remotion/Root.tsx` | Registro de la composición Remotion. |
 | `src/remotion/Composition.tsx` | Render visual final: imágenes/videos, logo, polvo, filtros, outro y audio. |
 | `assets/overlays/` | Assets locales necesarios para render final. Pesados y sensibles. |
@@ -63,17 +65,15 @@ Antes de renderizar localmente, estos assets deben existir bajo `assets/overlays
 
 ```txt
 assets/overlays/
-├─ particle-1.mp4
-├─ particle-2.mp4
-├─ overlay-layer-01.mp4
-├─ overlay-layer-02.mp4
+├─ particle-1.webm
+├─ particle-2.webm
+├─ overlay-layer-01.webm
+├─ overlay-layer-02.webm
 ├─ outro-secondary.mp4
 ├─ outro-primary.mp4
 ├─ logo-primary.webm
-├─ logo-secondary.mp4
-├─ logo-green.mp4
-├─ logo-secondary-alpha-frames/
-└─ logo-primary-alpha-frames/
+├─ logo-secondary.webm
+└─ logo-final.png
 ```
 
 No subas assets pesados nuevos a GitHub sin decisión explícita. El repo conserva `.gitkeep` para la carpeta, pero los archivos reales pueden vivir localmente.
@@ -137,20 +137,16 @@ node scripts/render-video.js --project-root="projects/<id>" --profile=final
 
 ## Estado actual probado
 
-Se validó el proyecto Luis Cárdenas con el flujo oficial:
+Se validó el flujo oficial con un proyecto de ejemplo y con la suite de render:
 
-```txt
-node scripts/render-video.js --project-root="projects/draft-luis-cardenas-..." --profile=final
+```bash
+node --test tests/*.test.js
+node scripts/render-video.js --project-root="projects/<id>" --profile=final
 ```
 
-Resultado probado:
-
-- MP4 generado correctamente.
-- Duración: `80.490667s`.
-- `dust.src`: `overlays/particle-2.mp4`.
-- `logo.src`: `overlays/logo-secondary-alpha-frames`.
-- `outro.src`: `overlays/outro-secondary.mp4`.
-- Polvos visibles en el render final.
+Resultado probado: MP4 final generado, con dust, logo y outro resueltos desde
+`assets/overlays/` y audio/video presentes. Los tiempos reales de la pipeline
+local (CPU y GPU) están en el README raíz y en `docs/INSTALL.md`.
 
 ## Scripts útiles
 
@@ -161,6 +157,7 @@ Resultado probado:
 | `pnpm test` | Corre tests Node. Para cambios grandes, preferí tests focalizados. |
 | `pnpm run dev` | Abre Remotion Studio para inspección local. No es el flujo productivo. |
 | `pnpm run lint` | ESLint + TypeScript. No correr si el usuario dijo no build/check pesado. |
+| `render:server` | Inicia la frontera HTTP del renderer (`POST /api/render`). Es el flujo que usa la approval editor. |
 | `approval:service:local` | Servicio local de preparación/status en `http://127.0.0.1:3041`. No es el flujo oficial de render. |
 | `legacy:approval-service:local` | Alias histórico del servicio anterior. |
 | `legacy:diagnose:stt` | Diagnóstico del cliente STT; reporta `ASR_WORKER_URL` y si el worker responde. |
@@ -168,7 +165,7 @@ Resultado probado:
 ## Servicio local de preparación
 
 `approval:service:local` es un servicio local que solo cubre preparación/status
-de proyectos para el editor: no renderiza video y el fallback de Remotion siguen igual
+de proyectos para el editor: no renderiza video, y el fallback de Remotion siguen igual
 que en el flujo oficial. Escucha en `http://127.0.0.1:3041` y el puerto se puede
 cambiar con `APPROVAL_PIPELINE_LOCAL_SERVICE_PORT`.
 
@@ -177,15 +174,19 @@ npm run approval:service:local
 node -e "fetch('http://127.0.0.1:3041/health')"
 ```
 
+Este servicio es de desarrollo: el flujo de producto usa la approval editor y la
+frontera HTTP `render:server`.
+
 ## Relación con otros subproyectos
 
 | Proyecto | Rol |
 |---|---|
 | `apps/panel` | Editor oficial, preview, selección de assets y disparador de render. |
+| `services/approval-editor` | Guarda el snapshot del editor y llama al renderer por HTTP. |
 | `packages/contracts` | Normalización y helpers compartidos: stable ID, parsing de guion, alignment. |
 | `services/renderer` | Render final Remotion. Nada más. |
 
-Si necesitás cambiar cómo se ve el MP4 final, tocá `src/remotion/`. Si necesitás cambiar qué se selecciona, qué fila se edita o qué polvo se elige, eso NO va acá: va en Control Panel o Contracts Core.
+Si necesitás cambiar cómo se ve el MP4 final, tocá `src/remotion/`. Si necesitás cambiar qué se selecciona, qué fila se edita o qué polvo se elige, eso NO va acá: va en el panel o en los contratos compartidos.
 
 ## Demo render preset (CPU)
 

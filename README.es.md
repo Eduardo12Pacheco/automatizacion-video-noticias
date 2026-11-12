@@ -1,6 +1,6 @@
 # Newsroom Video Automation
 
-[![CI](https://github.com/<tu-cuenta>/newsroom-video-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/<tu-cuenta>/newsroom-video-automation/actions/workflows/ci.yml)
+[![CI](https://github.com/Eduardo12Pacheco/newsroom-video-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/Eduardo12Pacheco/newsroom-video-automation/actions/workflows/ci.yml)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green.svg)](LICENSE)
 [![Local-first](https://img.shields.io/badge/local--first-sin%20claves%20de%20API-2ea043.svg)](#local-first-por-defecto)
 
@@ -13,8 +13,9 @@ nube.**
 ![Recorrido grabado en modo demo](docs/images/demo.gif)
 
 El GIF es un loop corto de una ejecución real en modo demo; el
-[MP4](docs/images/demo.mp4) es el recorrido completo de 34 segundos. Ambos se grabaron desde el
-stack en ejecución con la historia ficticia sembrada, no desde un mockup.
+[MP4](docs/images/demo.mp4) es el recorrido completo de 41 segundos, incluido un job
+de voz demo terminando al 100 %. Ambos se grabaron desde el stack en ejecución
+con la historia ficticia sembrada, no desde un mockup.
 
 | Guiones · ES · escritorio | Guiones · ES · móvil |
 |---|---|
@@ -23,6 +24,10 @@ stack en ejecución con la historia ficticia sembrada, no desde un mockup.
 | Prensa · EN · escritorio | Prensa · EN · móvil |
 |---|---|
 | ![Descubrimiento de noticias en escritorio](docs/images/screens/radar-en-desktop.png) | ![Descubrimiento de noticias en móvil](docs/images/screens/radar-en-mobile.png) |
+
+| Prensa · ES · tema claro |
+|---|
+| ![Descubrimiento de noticias en el tema claro](docs/images/screens/radar-es-desktop-light.png) |
 
 Hay capturas de escritorio y móvil de cada vista, en español e inglés, en
 [`docs/images/screens/`](docs/images/screens/); las genera la suite de QA visual.
@@ -125,12 +130,27 @@ el camino local tiene un job de CI nocturno/manual que valida los medios reales.
 |---|---|---|---|
 | `demo` (default) | Adaptadores deterministas, historia ficticia sembrada, sin descargas | Ninguno | Primera mirada, capturas y el happy path del navegador |
 | `local` | Guiones con Ollama (`qwen2.5:3b-instruct`), extracción con trafilatura, voz Piper en español, subtítulos faster-whisper `small` int8 y un MP4 Remotion 720p real en CPU | Ollama, Whisper y Piper | Una ejecución offline real |
-| `local --gpu` | El mismo pipeline con los workers GPU y Qwen TTS | Los mismos más modelos GPU | Una máquina NVIDIA, renders más rápidos |
+| `local --gpu` | El mismo pipeline con los workers GPU y Qwen TTS | Los mismos más el checkpoint Qwen3-TTS 1.7B (~4.5 GB) | Una máquina NVIDIA (probado en una RTX 4060 de 8 GB); mejor voz y LLM, no menos tiempo total |
 
 El panel siempre muestra el badge **Modo demo / Demo mode** cuando el set de
 adaptadores demo está activo, para que una captura no se confunda con una
 ejecución real de IA. Los workers GPU comparten un slot entre procesos para que
 una tarjeta de 8 GB nunca cargue el LLM, Whisper y TTS a la vez.
+
+### Tiempos medidos del pipeline
+
+Las dos filas son la misma ejecución de `e2e/local-mode.spec.js` en una sola
+máquina (GPU de portátil RTX 4060 de 8 GB, 12 núcleos, 31 GB de RAM): CPU es la
+referencia y `--gpu` mantiene el render de Remotion en CPU. Los números incluyen
+la spec completa, desde el descubrimiento hasta el MP4 final, no un microbench.
+
+| Etapa | CPU | GPU |
+|---|---|---|
+| Borrador con Ollama | 22.3 s | 5.1 s |
+| Voz | 17.8 s (Piper) | 90.1 s (Qwen3-TTS 1.7B) |
+| Subtítulos faster-whisper | 46.5 s | 44.9 s |
+| Render Remotion | 177.3 s (CPU) | 188.7 s (CPU) |
+| Spec completa | 5.2 min | 6.1 min |
 
 ## Local-first por defecto
 
@@ -198,7 +218,7 @@ amenazas están en [SECURITY.md](SECURITY.md).
 Linux:
 
 ```bash
-git clone https://github.com/<tu-cuenta>/newsroom-video-automation.git
+git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
 cd newsroom-video-automation
 ./install.sh
 ```
@@ -206,7 +226,7 @@ cd newsroom-video-automation
 Windows 10/11 (PowerShell 5.1+ o 7):
 
 ```powershell
-git clone https://github.com/<tu-cuenta>/newsroom-video-automation.git
+git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
 cd newsroom-video-automation
 .\install.ps1
 ```
@@ -302,12 +322,12 @@ pnpm test:all
 
 Cubre todos los paquetes Node, la suite pytest del panel y sus 46 scripts
 `__checks__`, cada servicio Python, las pruebas de tools, las de instaladores y
-la configuración de Compose: **21 suites, 0 fallos** en la revisión actual. El
-happy path demo de Playwright necesita el stack levantado; CI lo ejecuta en su
-propio job y la suite de QA visual corre sin Docker contra el showcase. El
-workflow nocturno `local-mode` descarga los modelos reales y valida con
-`ffprobe` el audio, los subtítulos y el MP4 renderizados. Todos los pasos son
-bloqueantes en CI; no hay baselines con `continue-on-error`.
+la configuración de Compose: **27 de 29 suites pasan, 0 fallos y 2 omisiones
+permitidas** en la revisión actual (el E2E demo y el E2E local necesitan el stack
+levantado; CI ejecuta ambos en sus propios jobs, y `e2e/local-mode.spec.js`
+descarga los modelos reales y valida con `ffprobe` el audio, los subtítulos y el
+MP4 renderizados). La suite de QA visual corre sin Docker contra el showcase.
+Todos los pasos son bloqueantes en CI; no hay baselines con `continue-on-error`.
 
 Ejemplos enfocados:
 
@@ -334,9 +354,15 @@ La matriz completa y las convenciones están en [CONTRIBUTING.md](CONTRIBUTING.m
   `windows-latest` (parser, chequeo de prerequisitos y dry-run) y por pruebas de
   comportamiento con PowerShell 7 en Linux; no se ejecutó en un escritorio
   Windows 10/11 físico.
-- El overlay GPU y la regla de exclusión entre LLM, Whisper y TTS están cubiertos
-  por tests de Compose y adaptadores, pero la máquina de desarrollo no tiene
-  `nvidia-container-toolkit`, así que el camino GPU no está medido aquí.
+- El modo GPU está verificado en la máquina del autor (RTX 4060 8 GB, driver
+  620.70, `nvidia-container-toolkit`): `docker run --rm --gpus all
+  nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` funciona y el E2E local pasó
+  con Ollama CUDA, faster-whisper y Qwen3-TTS reales. El pico de memoria de la
+  tarjeta fue 6,646 MB de 8,188 MB (incluido el escritorio); la variante de voz
+  1.7B cabe porque el LLM se descarga enseguida y los jobs GPU se serializan.
+  GPU no es más rápido de punta a punta que CPU (la síntesis de Qwen pesa más y
+  el render de Remotion sigue en CPU): la ejecución medida tardó 6.1 min frente
+  a 5.2 min en CPU, aunque el borrador del LLM bajó de 22.3 s a 5.1 s.
 - El chrome de la UI, la navegación, el área de administración y cada pantalla
   de la suite de QA visual están traducidos en ES/EN. El contenido editorial
   generado (titulares, guiones, nombres de jugadores) queda en su idioma de

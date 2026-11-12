@@ -434,6 +434,10 @@ test('light theme keeps every view contained and accessible (wcag21aa)', async (
         .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
     });
     expect(violations, `${view.key} light theme accessibility violations`).toEqual([]);
+    if (view.key === 'radar') {
+      await parkPointerAndBlur(page, { name: 'desktop', width: 1440, height: 900 });
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'radar-es-desktop-light.png') });
+    }
   }
 });
 

@@ -24,7 +24,7 @@ behavior unchanged during this structural migration. See the panel's
 `docs/collaboration-boundary-rollout-checklist.md` for the existing boundary
 checks; optional public deployment is outside this task.
 
-## Local data layer (T3)
+## Local data layer
 
 The gateway composes `packages/data` at startup (`src/composition.js`):
 
@@ -42,12 +42,12 @@ CSRF origin on mutations.
 
 `POST /panel/uploads/...` accepts up to `MAX_UPLOAD_BYTES` (default 500 MiB).
 
-## Core use cases and local workflow endpoints (T4)
+## Core use cases and local workflow endpoints
 
 `packages/core` ports the 16 n8n workflows into use cases: DiscoverNews,
 ClusterTopics, DecideApproval, DraftScript, PublishScript,
 CreateVideoProject, ManualCreateVideoProject, RefreshSearch, read models and
-ExportDocument. Adapters are injected through ports; T5 supplies the local
+ExportDocument. Adapters are injected through ports; the local adapter package supplies the local
 Ollama/trafilatura/SearXNG/python-docx implementations.
 
 The gateway composes them in `src/core-runtime.js` and serves the existing
@@ -65,7 +65,7 @@ Mutations still require an authenticated `editor` session and a trusted
 origin. Search refresh, publish and manual-project work run through the
 in-process `JobQueue`; the `Scheduler` periodically deletes expired sessions.
 
-## Local users and sessions (S9)
+## Local users and sessions
 
 Users, roles and sessions live in the repository (`users`, `user_roles`,
 `sessions`). Passwords are bcrypt hashes and only session-token hashes are
@@ -83,7 +83,7 @@ The gateway modules are now split by concern: `auth.js` (users/passwords),
 `data-router.js`, and `gateway-events.js`. `gateway.js` remains the HTTP
 composition point and protected proxy.
 
-## Local-first adapters (T5)
+## Local-first adapters
 
 `packages/adapters` provides the local implementations behind the core ports
 and `src/core-runtime.js` injects them from environment variables:

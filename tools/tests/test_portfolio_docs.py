@@ -1,6 +1,7 @@
-"""Structural contract for the T9 portfolio documentation deliverables."""
+"""Structural contract for the portfolio documentation deliverables."""
 
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,6 +16,28 @@ DEMO_MP4 = ROOT / "docs" / "images" / "demo.mp4"
 
 FONT_SUFFIXES = (".woff2", ".woff", ".ttf", ".otf")
 IGNORED_PARTS = {".git", "node_modules", ".venv", "__pycache__"}
+PUBLIC_DOC_GLOBS = ("*.md",)
+INTERNAL_ID = re.compile(r"\b(?:T\d{1,2}|D\d{1,2}|S(?:5|9|10|11|12)|L\d{2})\b")
+ACCOUNT_PLACEHOLDERS = ("<your-account>", "<tu-cuenta>", "<your-username>", "YOUR_ACCOUNT")
+GITHUB_ACCOUNT = "Eduardo12Pacheco"
+
+
+def _public_markdown_files() -> list[Path]:
+    files: list[Path] = []
+    for path in ROOT.rglob("*.md"):
+        if not path.is_file() or "odd" in path.parts or IGNORED_PARTS.intersection(path.parts):
+            continue
+        if "test-results" in path.parts or "playwright-report" in path.parts:
+            continue
+        files.append(path)
+    return sorted(files)
+
+
+def _relative_targets(source: str) -> list[str]:
+    without_fences = re.sub(r"```.*?```", "", source, flags=re.S)
+    targets = [match.group(1) for match in re.finditer(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)", without_fences)]
+    targets += [match.group(1) for match in re.finditer(r"<img\s[^>]*src=[\"']([^\"']+)[\"']", without_fences)]
+    return [target for target in targets if not target.startswith(("http://", "https://", "mailto:", "data:", "#"))]
 
 
 def _read(path: Path) -> str:
@@ -214,6 +237,55 @@ class PortfolioDocsTests(unittest.TestCase):
         source = _read(ASSETS)
         self.assertIn("demo mode", source.lower())
         self.assertIn("tools/record-demo.mjs", source)
+
+    def test_public_docs_use_the_published_repository_url(self) -> None:
+        for path in _public_markdown_files():
+            source = _read(path)
+            for placeholder in ACCOUNT_PLACEHOLDERS:
+                self.assertNotIn(placeholder, source, f"{path.relative_to(ROOT)} still has {placeholder}")
+        for path in (README, README_ES):
+            source = _read(path)
+            self.assertIn(f"github.com/{GITHUB_ACCOUNT}/newsroom-video-automation", source)
+            self.assertIn(f"{GITHUB_ACCOUNT}/newsroom-video-automation/actions/workflows/ci.yml", source)
+
+    def test_public_docs_do_not_expose_internal_task_or_spec_ids(self) -> None:
+        for path in _public_markdown_files():
+            source = _read(path)
+            for match in INTERNAL_ID.finditer(source):
+                line = source.count("\n", 0, match.start()) + 1
+                self.fail(f"{path.relative_to(ROOT)}:{line} exposes internal id {match.group(0)!r}")
+
+    def test_every_public_relative_link_and_image_resolves(self) -> None:
+        broken: list[str] = []
+        for path in _public_markdown_files():
+            for target in _relative_targets(_read(path)):
+                link = target.split("#", 1)[0]
+                if not link:
+                    continue
+                resolved = (path.parent / link).resolve()
+                if not resolved.exists():
+                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
+        self.assertEqual(broken, [], "\n".join(broken))
+
+    def test_readmes_show_current_dark_and_light_screenshots(self) -> None:
+        for path in (README, README_ES):
+            source = _read(path)
+            for screenshot in [
+                "docs/images/screens/approval-es-desktop.png",
+                "docs/images/screens/approval-es-mobile.png",
+                "docs/images/screens/radar-en-desktop.png",
+                "docs/images/screens/radar-en-mobile.png",
+                "docs/images/screens/radar-es-desktop-light.png",
+            ]:
+                self.assertIn(screenshot, source, f"{path.name} is missing {screenshot}")
+            target = ROOT / "docs" / "images" / "screens" / "radar-es-desktop-light.png"
+            self.assertTrue(target.is_file(), target)
+
+    def test_readmes_document_the_measured_cpu_and_gpu_timings(self) -> None:
+        for path in (README, README_ES):
+            source = _read(path)
+            for value in ["5.2 min", "6.1 min", "22.3 s", "5.1 s", "90.1 s", "188.7 s"]:
+                self.assertIn(value, source, f"{path.name} is missing timing {value}")
 
 
 if __name__ == "__main__":

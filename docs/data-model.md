@@ -1,7 +1,7 @@
 # Data model
 
 This document is the source of truth for the local Postgres schema. It was
-reverse-engineered during T3 (decision D4) from the only surviving evidence:
+reverse-engineered from the only surviving evidence:
 
 - `examples/legacy-n8n/workflows.json`: HTTP node bodies, upsert payloads and Code
   node field names/status values.
@@ -16,7 +16,7 @@ Migrations live in `infra/db/migrations/` and are applied by
 `packages/data/scripts/migrate.js`. SQL is deliberately boring: tables,
 constraints and indexes only. The former Supabase RPCs are implemented as
 repository methods (`packages/data/src/ports/repository-port.js`) and will be
-exposed as core use cases in T4, not as stored procedures.
+exposed as core use cases, not as stored procedures.
 
 ## ER diagram
 
@@ -202,7 +202,7 @@ erDiagram
 
 ## Tables
 
-### Users, roles and sessions (S9)
+### Users, roles and sessions
 
 | Table | Purpose |
 |---|---|
@@ -313,7 +313,7 @@ repository methods.
 ## Repository contract conventions
 
 - Adapters return **snake_case records**, matching the existing n8n/panel wire
-  contract, so T4 does not need a second naming layer.
+  contract, so the API does not need a second naming layer.
 - Method arguments are **camelCase** (`draftId`, `idNoticia`) because they are
   called from JavaScript use cases.
 - Timestamps are ISO-8601 strings in UTC; JSON/JSONB values are plain objects;

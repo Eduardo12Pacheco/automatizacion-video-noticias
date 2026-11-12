@@ -2,7 +2,7 @@
 
 All media in this repository is fictional demo material for the portfolio
 build. The owner's original brand media, ripped transition overlays and the
-legacy display font are intentionally **not** included (decision D5).
+legacy display font are intentionally **not** included.
 
 ## Generated Brand Assets
 
@@ -98,17 +98,19 @@ clones a reference voice instead of shipping a fixed speaker.
 
 ## Recorded Demo
 
-`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (34-second walkthrough) are
-screen recordings of the panel in **demo mode** on the keyless stack, in
-Spanish with the seeded fictional story: login, Prensa, Guiones, Voz,
-Subtítulos, Proyectos and Settings. They are product screenshots, not brand
-media, and contain only the fictional demo data.
+`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (41-second
+walkthrough, 1440x900) are screen recordings of the panel in **demo mode** on
+the keyless stack, in Spanish with the seeded fictional story: login, Guiones,
+Voz (a real voice job reaching "Completado" 100 %), Subtítulos, the script
+editor and Settings. They are product screenshots, not brand media, and contain
+only the fictional demo data.
 
 The recording is reproducible and app-viewport only:
 
 ```sh
 cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker api panel
+docker compose up -d --build postgres searxng mailpit demo-worker approval-editor api panel
+docker compose run --rm migrate
 docker compose run --rm seed
 NEWSROOM_DEMO_PASSWORD=e2e-demo-password node tools/record-demo.mjs
 ```

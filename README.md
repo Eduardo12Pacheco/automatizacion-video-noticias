@@ -1,6 +1,6 @@
 # Newsroom Video Automation
 
-[![CI](https://github.com/<your-account>/newsroom-video-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-account>/newsroom-video-automation/actions/workflows/ci.yml)
+[![CI](https://github.com/Eduardo12Pacheco/newsroom-video-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/Eduardo12Pacheco/newsroom-video-automation/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Local-first](https://img.shields.io/badge/local--first-no%20API%20keys-2ea043.svg)](#local-first-by-default)
 
@@ -12,8 +12,9 @@ rendered video without an API key or a cloud account.**
 ![Recorded demo walkthrough](docs/images/demo.gif)
 
 The clip above is a short loop of a real demo-mode run; the
-[MP4](docs/images/demo.mp4) is the full 34-second walkthrough. Both were recorded from the
-running stack with the seeded fictional story, not from a design mock.
+[MP4](docs/images/demo.mp4) is the full 41-second walkthrough, including a real
+demo voice job finishing at 100 %. Both were recorded from the running stack
+with the seeded fictional story, not from a design mock.
 
 | Guiones · ES · desktop | Guiones · ES · mobile |
 |---|---|
@@ -22,6 +23,10 @@ running stack with the seeded fictional story, not from a design mock.
 | Prensa · EN · desktop | Prensa · EN · mobile |
 |---|---|
 | ![News discovery on desktop](docs/images/screens/radar-en-desktop.png) | ![News discovery on mobile](docs/images/screens/radar-en-mobile.png) |
+
+| Prensa · ES · light theme |
+|---|
+| ![News discovery in the light theme](docs/images/screens/radar-es-desktop-light.png) |
 
 More desktop and mobile shots for every view, in Spanish and English, live in
 [`docs/images/screens/`](docs/images/screens/) and are captured by the visual-QA
@@ -133,6 +138,21 @@ TTS share one cross-process GPU slot, and the GPU profile makes Ollama unload
 the LLM immediately after each request, so an 8 GB card can run the 3B LLM and
 the 1.7B voice model back to back without both staying resident.
 
+### Measured pipeline timings
+
+Both rows are the same `e2e/local-mode.spec.js` run on one machine (RTX 4060
+8 GB laptop GPU, 12 cores, 31 GB RAM): CPU is the reference and `--gpu` keeps the
+Remotion render on CPU. The numbers include the whole spec from discovery to the
+final MP4, not a micro-benchmark.
+
+| Stage | CPU | GPU |
+|---|---|---|
+| Ollama script draft | 22.3 s | 5.1 s |
+| Voice | 17.8 s (Piper) | 90.1 s (Qwen3-TTS 1.7B) |
+| faster-whisper subtitles | 46.5 s | 44.9 s |
+| Remotion render | 177.3 s (CPU) | 188.7 s (CPU) |
+| Whole spec | 5.2 min | 6.1 min |
+
 ## Local-first by default
 
 The default configuration needs **zero API keys and zero cloud accounts**.
@@ -199,7 +219,7 @@ model are in [SECURITY.md](SECURITY.md).
 Linux:
 
 ```bash
-git clone https://github.com/<your-account>/newsroom-video-automation.git
+git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
 cd newsroom-video-automation
 ./install.sh
 ```
@@ -207,7 +227,7 @@ cd newsroom-video-automation
 Windows 10/11 (PowerShell 5.1+ or 7):
 
 ```powershell
-git clone https://github.com/<your-account>/newsroom-video-automation.git
+git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
 cd newsroom-video-automation
 .\install.ps1
 ```
@@ -303,12 +323,12 @@ pnpm test:all
 
 It covers every Node package, the panel pytest suite and its 46 `__checks__`
 scripts, each Python service, the tools tests, installer tests and the Compose
-config: **21 suites, 0 failures** on the current revision. The demo Playwright
-happy path needs the running stack; CI runs it in its own job, and the visual-QA
-suite runs without Docker against the showcase. The nightly `local-mode`
-workflow downloads the real models and asserts the rendered audio, subtitles and
-MP4 with `ffprobe`. Every suite is blocking in CI; there are no
-`continue-on-error` baselines.
+config: **27 of 29 suites pass, 0 failures, 2 allow-listed skips** on the current
+revision (the demo E2E and the local-mode E2E need a running stack; CI runs both
+in their own jobs, and `e2e/local-mode.spec.js` downloads the real models and
+asserts the rendered audio, subtitles and MP4 with `ffprobe`). The visual-QA
+suite runs without Docker against the showcase. Every suite is blocking in CI;
+there are no `continue-on-error` baselines.
 
 Focused examples:
 

@@ -2,18 +2,17 @@
 
 `install.sh` / `install.ps1` and the `newsroom` CLI are thin orchestrators. They
 do not build containers themselves; they call a root `compose.yaml` through the
-Docker Compose plugin. T8 owns that file and its images. This document is the
-contract the installers rely on, so T8 can implement it without re-reading the
-shell/PowerShell code.
+Docker Compose plugin. This document is the contract the installers rely on, so
+the stack can change without touching the shell/PowerShell code.
 
 ## Files
 
 | Path | Owner | Purpose |
 |---|---|---|
-| `compose.yaml` (repo root) | T8 | Stack definition, profiles and volumes |
-| `.env.example` → `.env` | T8b installer | Configuration; `.env` is generated with secrets and never committed |
-| `infra/db/migrations/*.sql` | T3 | Applied by the `migrate` service |
-| `apps/api/scripts/create-admin.js` | T8b | First-admin bootstrap run inside the API image |
+| `compose.yaml` (repo root) | Stack | Definition, profiles and volumes |
+| `.env.example` → `.env` | Installer | Configuration; `.env` is generated with secrets and never committed |
+| `infra/db/migrations/*.sql` | Data layer | Applied by the `migrate` service |
+| `apps/api/scripts/create-admin.js` | API image | First-admin bootstrap run inside the API image |
 
 `compose.yaml` must read the generated `.env` (Compose does this by default; the
 installers also pass `--env-file .env`).
@@ -24,7 +23,7 @@ installers also pass `--env-file .env`).
 |---|---|---|
 | `api` | long-running | Serves the gateway on port 8099. Working directory must contain `scripts/create-admin.js` (so `node scripts/create-admin.js` works). Contains the local adapters' Python helper and `yt-dlp`. Uses `${DATABASE_URL}`, `${BLOB_ROOT}` and the adapter variables from `.env`. |
 | `panel` | long-running | Serves `apps/panel` on `${PANEL_PORT}` (8080) and reverse-proxies `/panel`, `/webhook`, `/tts`, `/subtitles`, `/remotion`, `/radar`, `/monitor` and `/approval` to `api:8099`. |
-| `seed` | one-shot, default | Applies the migrations and seeds the fictional users, one pending topic and one complete story. Idempotent. |
+| `seed` | one-shot, default | Seeds the fictional users, one pending topic and one complete story (migrations run through `migrate`). Idempotent; `--reset` recreates the demo story. |
 | `demo-worker` | long-running | Deterministic TTS/subtitles/render contracts for the keyless default profile; serves a WAV and the demo MP4. |
 | `approval-editor` | long-running | Approval editor HTTP service on port 3042; stores project snapshots in the `newsroom_approval` volume, calls `renderer:3042` over HTTP through `APPROVAL_EDITOR_RENDERER_URL`, and is reached through the API at `/approval`. |
 | `renderer` | `local` / `gpu` profile | Render-only Remotion worker on port 3042; the approval editor calls `/api/render`; writes to the shared `newsroom_renderer_editor` volume. |
@@ -77,10 +76,10 @@ and refuses to run with uncommitted changes.
 
 - `model-init` and `migrate` must be safe to run repeatedly.
 - They must be excluded from the default `up` (use a profile such as
-  `tools`, `restart: "no"`, or an entrypoint that exits; whichever T8 chooses,
-  the installer invokes them explicitly with `run --rm`).
+  `tools`, `restart: "no"`, or an entrypoint that exits; the installer invokes
+  them explicitly with `run --rm`).
 - `migrate` should depend on Postgres being healthy.
-- `create-admin.js` must be idempotent (T8b implements that) and must read the
+- `create-admin.js` must be idempotent and must read the
   password from stdin, never from argv.
 
 ## Ports and volumes
@@ -100,6 +99,6 @@ Persistent data lives in named volumes: Postgres, blobs/documents, models
 
 ## Health
 
-`api` exposes `GET /health` and `GET /ready`; T8's compose healthchecks and the
+`api` exposes `GET /health` and `GET /ready`; the Compose healthchecks and the
 Playwright happy path should use them. `newsroom status` is a thin
 `docker compose ps`, so no extra API is needed.

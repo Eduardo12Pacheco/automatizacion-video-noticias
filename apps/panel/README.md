@@ -314,7 +314,7 @@ Ya se completaron refactors importantes:
 
 Si algo parece duplicado, primero buscá si es facade de compatibilidad o contrato de paridad antes de borrarlo.
 
-## UI refresh (S5) and local demo
+## UI refresh and local demo
 
 - The interface uses two families only: **Inter** for UI and **JetBrains Mono** for timecodes, IDs and counters. Every color, radius, spacing and type value lives in `styles/tokens.css`; feature CSS must reference tokens instead of raw literals.
 - **Bilingual ES/EN**: `js/modules/core/i18n/` holds `es.json` and `en.json`. Spanish is the default; the language switch lives in Settings and persists in `localStorage`. Mark new static markup with `data-i18n`, `data-i18n-placeholder`, `data-i18n-title` or `data-i18n-aria-label`.

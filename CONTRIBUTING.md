@@ -21,7 +21,7 @@ Node.js 22, pnpm and `uv` (Python is managed by `uv`) plus Docker for the demo
 E2E:
 
 ```bash
-git clone https://github.com/<your-account>/newsroom-video-automation.git
+git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
 cd newsroom-video-automation
 pnpm install --frozen-lockfile
 ```

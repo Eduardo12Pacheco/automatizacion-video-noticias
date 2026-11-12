@@ -14,9 +14,10 @@ a best-effort basis.
 fresh-clone demo install and a real CPU local-mode render. The Windows
 installer is covered by the `windows-latest` CI job (parser, prerequisite check
 and dry-run) and by PowerShell 7 behaviour tests on Linux; it has not been run on
-a physical Windows 10/11 desktop. The GPU path is covered structurally and by
-Compose tests, but the development machine has no NVIDIA container toolkit, so
-it is not benchmarked here.
+a physical Windows 10/11 desktop. The GPU path was verified for real on an
+RTX 4060 8 GB with `nvidia-container-toolkit`: the CUDA smoke image runs, the
+local-mode E2E passed with real GPU Ollama, faster-whisper and Qwen3-TTS, and
+the measured timings are in [Verified GPU run](#verified-gpu-run).
 
 ![Linux guided demo install](images/installer-linux.png)
 
@@ -38,7 +39,7 @@ The installer checks all of these before touching the host. `--check` /
 ## Quick start (Linux)
 
 ```bash
-git clone https://github.com/<your-account>/newsroom-video-automation.git
+git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
 cd newsroom-video-automation
 ./install.sh
 ```
@@ -153,7 +154,7 @@ The `gpu` path was verified on an RTX 4060 8 GB (driver 620.70,
 `nvidia-container-toolkit`) with the CUDA smoke image from the doctor check. The
 same `e2e/local-mode.spec.js` that runs on CPU passed with real GPU media:
 
-| Stage | GPU | CPU reference (T27) |
+| Stage | GPU | CPU reference |
 |---|---|---|
 | Ollama script draft | 5.1 s | 22.3 s |
 | Piper/Qwen voice | 90.1 s (Qwen3-TTS 1.7B) | 17.8 s (Piper) |
@@ -343,7 +344,7 @@ Do not commit `.env`. Do not put real API keys in `.env.example`.
 |---|---|
 | `docker is not installed or not in PATH` | Install Docker Engine/Desktop and reopen the shell. On Windows use the WSL2 backend. |
 | `docker daemon is not reachable` | Start Docker Desktop or `sudo systemctl start docker`. |
-| `compose file not found` | The T8 stack is not present in this checkout; see [the Compose contract](../infra/install/COMPOSE_CONTRACT.md). |
+| `compose file not found` | The Compose stack is not present in this checkout; see [the Compose contract](../infra/install/COMPOSE_CONTRACT.md). |
 | `docker compose ... run --rm model-init` fails | Free disk space, then re-run; the step is idempotent. |
 | Port already in use | Change `PANEL_PORT`/`API_GATEWAY_PORT`/etc. in `.env` and re-run `newsroom up`. |
 | GPU not used | Run `nvidia-smi`, install `nvidia-container-toolkit`, then `./install.sh --profile gpu`. |

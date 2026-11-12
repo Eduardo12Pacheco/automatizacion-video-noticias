@@ -38,5 +38,5 @@ If a Video Projects style guard fails, rollback only the CSS slice: restore the 
 
 ## Legacy Archive Guard (non-runtime)
 
-- The legacy archive (`js/legacy/app.js`) was removed during T2 hygiene; no tracked legacy entrypoint remains.
+- The legacy archive (`js/legacy/app.js`) was removed during the repository cleanup; no tracked legacy entrypoint remains.
 - Runtime must never import/include a legacy app entrypoint; any reference is a parity failure.
