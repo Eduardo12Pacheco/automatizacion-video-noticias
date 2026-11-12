@@ -34,7 +34,7 @@ installers also pass `--env-file .env`).
 | `mailpit` | long-running | SMTP on `${MAILPIT_SMTP_PORT}` (1025) and UI on `${MAILPIT_UI_PORT}` (8025) for the optional SMTP notification adapter. |
 | `migrate` | one-shot | `node packages/data/scripts/migrate.js` with `${DATABASE_URL}`; exits 0 after applying migrations. Idempotent. |
 | `model-init` | one-shot (`tools`) | Downloads the Piper voice `${PIPER_MODEL}` and the faster-whisper model `${WHISPER_MODEL}`. Idempotent and GPU-free; Ollama pulls its own model on first start. |
-| `tts-worker` | `gpu` profile (Piper CPU fallback) | `TTS_WORKER_ENGINE=auto`; uses the shared GPU lock volume/path. |
+| `tts-worker` | `gpu` profile (Piper CPU fallback) | `TTS_WORKER_ENGINE=piper`; the `gpu` overlay selects Qwen and both use the shared GPU lock volume/path. |
 | `asr-worker` | `gpu` profile (CPU fallback) | faster-whisper; uses `WHISPER_DEVICE` and the shared GPU lock. |
 | `n8n` | `n8n` profile, optional | Must stay off by default (`WORKFLOW=disabled`). Mounts `infra/n8n/workflows/` read-only at `/workflows`, never the legacy export. Never required by the installer. |
 | `minio` | `s3` profile, optional | S3-compatible blob storage for `STORAGE=s3`; internal only, credentials from `.env`, bucket created by the `minio-init` one-shot. |

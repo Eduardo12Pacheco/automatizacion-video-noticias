@@ -35,7 +35,6 @@ jobs:
             -e 's/^NEWSROOM_MODE=demo$/NEWSROOM_MODE=local/' \
             -e 's/^LLM=demo$/LLM=ollama/' \
             -e 's/^ARTICLE_EXTRACTOR=demo$/ARTICLE_EXTRACTOR=trafilatura/' \
-            -e 's/^TTS_WORKER_ENGINE=auto$/TTS_WORKER_ENGINE=piper/' \
             -e 's#^NEWS_DISCOVERY_FEED_URL=$#NEWS_DISCOVERY_FEED_URL=http://panel/assets/demo/discovery.xml#' \
             .env
           printf '\nCOMPOSE_PROFILES=local\n' >> .env

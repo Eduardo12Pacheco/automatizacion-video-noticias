@@ -77,7 +77,7 @@ class InstallerParityTests(unittest.TestCase):
         for key in (
             "DATABASE_URL", "LLM=ollama", "ARTICLE_EXTRACTOR=trafilatura",
             "IMAGE_SEARCH=searxng", "NOTIFY=console", "WORKFLOW=disabled",
-            "TTS_WORKER_ENGINE=auto", "NEWSROOM_GPU_LOCK_PATH",
+            "TTS_WORKER_ENGINE=piper", "NEWSROOM_GPU_LOCK_PATH",
         ):
             self.assertIn(key, template, key)
 
