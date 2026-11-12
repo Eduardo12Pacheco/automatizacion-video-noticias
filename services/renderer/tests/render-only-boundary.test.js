@@ -47,7 +47,6 @@ test("package scripts keep official commands and drop deleted legacy manual pipe
   );
 
   const retiredManualScripts = [
-    "approval:service:local",
     "diagnose:stt",
     "download:vosk-model",
     "fix:timeline",

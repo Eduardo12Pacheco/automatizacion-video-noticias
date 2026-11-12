@@ -225,7 +225,7 @@ function createEditorProject(projectRoot, { projectId, title, seedMedia = false 
         filterDefault: true,
       },
     audio: {
-      music: { volume: 0.8, muted: false },
+      music: { volume: 0.15, muted: false },
       voice: { volume: 1, muted: false },
     },
     rows,
@@ -471,7 +471,20 @@ function deriveRenderPropsFromEditorProject(projectRoot, editorProject) {
     };
   }
 
-  const props = adaptCompositionContractToRenderProps({ contract, manifest });
+  const props = adaptCompositionContractToRenderProps({
+    contract,
+    manifest,
+    options: {
+      // Editor projects carry the canvas dimensions, so manual image motion can
+      // derive its render geometry even when a legacy row omits it explicitly.
+      defaultRenderGeometry: {
+        imageWidth: prepared.canvas?.width,
+        imageHeight: prepared.canvas?.height,
+        panViewportWidth: prepared.canvas?.width,
+        panViewportHeight: prepared.canvas?.height,
+      },
+    },
+  });
   props.overlays = {
     dust: {
       src: dustOverlaySrc,

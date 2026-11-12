@@ -20,10 +20,12 @@ const {
   cleanupOwnedTempArtifacts,
   runRenderCommand,
 } = require("./render-lifecycle");
+const { buildPresetArgs, resolveRenderProfile, resolveRenderPreset } = require("./render-presets");
 
 const dryRun = process.argv.includes("--dry-run");
 const profileArg = process.argv.find((arg) => arg.startsWith("--profile="));
-const renderProfile = String(profileArg ? profileArg.split("=")[1] : "final").toLowerCase() === "preview" ? "preview" : "final";
+const renderProfile = resolveRenderProfile(profileArg ? profileArg.split("=")[1] : "final");
+const renderPreset = resolveRenderPreset(renderProfile);
 const explicitFinalProfile = profileArg && String(profileArg.split("=")[1] || "").toLowerCase() === "final";
 
 const projectRoot = resolveProjectRoot(process.argv.slice(2));
@@ -42,11 +44,16 @@ const renderSfxAssets = [
   { name: "sound-demo.wav", required: true },
   { name: "whoosh-demo.wav", required: false },
 ];
-const outputVideoPath = path.join(projectRoot, "output", renderProfile === "preview" ? "video-preview.mp4" : "video-final.mp4");
+const outputVideoFileName = renderProfile === "preview"
+  ? "video-preview.mp4"
+  : renderProfile === "demo"
+    ? "video-demo.mp4"
+    : "video-final.mp4";
+const outputVideoPath = path.join(projectRoot, "output", outputVideoFileName);
 const diagnosticsPath = path.join(projectRoot, "output", "diagnostics.json");
 const persistedCompositionContractPath = path.join(projectRoot, "composition-contract.json");
-const remotionHardwareAcceleration = process.env.REMOTION_HARDWARE_ACCELERATION || "if-possible";
-const remotionGl = process.env.REMOTION_GL || "angle";
+const remotionHardwareAcceleration = process.env.REMOTION_HARDWARE_ACCELERATION || renderPreset.hardwareAcceleration;
+const remotionGl = process.env.REMOTION_GL || renderPreset.gl;
 const renderTimeoutMs = Number.parseInt(process.env.REMOTION_RENDER_TIMEOUT_MS || "1800000", 10);
 
 function readPersistedCompositionContract() {
@@ -117,7 +124,7 @@ function finalizeRenderSuccess() {
   if (fs.existsSync(diagnosticsPath)) {
     fs.rmSync(diagnosticsPath, { force: true });
   }
-  updateProjectConfig(projectRoot, { phase: renderProfile === "preview" ? "preview_ready" : "done" });
+  updateProjectConfig(projectRoot, { phase: renderProfile === "preview" ? "preview_ready" : renderProfile === "demo" ? "demo_ready" : "done" });
   updateEditorRenderStatus({ status: "done", outputPath: outputVideoPath, diagnosticsPath: null });
   console.log(`Video exportado en: ${outputVideoPath}`);
 }
@@ -165,14 +172,13 @@ function renderWithProps(renderPropsPath) {
     "render",
     "MyComp",
     outputVideoPath,
-    "--codec=h264",
-    "--frames-per-second=30",
-    renderProfile === "preview" ? "--width=1280" : "--width=1920",
-    renderProfile === "preview" ? "--height=720" : "--height=1080",
+    ...buildPresetArgs(renderPreset).map((arg) => {
+      if (arg.startsWith("--hardware-acceleration=")) return `--hardware-acceleration=${remotionHardwareAcceleration}`;
+      if (arg.startsWith("--gl=")) return `--gl=${remotionGl}`;
+      return arg;
+    }),
     `--public-dir=${publicDir}`,
     `--props=${renderPropsPath}`,
-    `--hardware-acceleration=${remotionHardwareAcceleration}`,
-    `--gl=${remotionGl}`,
   ];
 
   if (dryRun) {

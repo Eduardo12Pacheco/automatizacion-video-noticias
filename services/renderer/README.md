@@ -160,8 +160,21 @@ Resultado probado:
 | `pnpm test` | Corre tests Node. Para cambios grandes, preferí tests focalizados. |
 | `pnpm run dev` | Abre Remotion Studio para inspección local. No es el flujo productivo. |
 | `pnpm run lint` | ESLint + TypeScript. No correr si el usuario dijo no build/check pesado. |
-| `legacy:approval-service:local` | Legacy/local service. No es el flujo oficial. |
+| `approval:service:local` | Servicio local de preparación/status en `http://127.0.0.1:3041`. No es el flujo oficial de render. |
+| `legacy:approval-service:local` | Alias histórico del servicio anterior. |
 | `legacy:diagnose:stt` | Diagnóstico Python STT. Mantener mientras exista dependencia. |
+
+## Servicio local de preparación
+
+`approval:service:local` es un servicio local que solo cubre preparación/status
+de proyectos para el editor: no renderiza video y el fallback de Remotion siguen igual
+que en el flujo oficial. Escucha en `http://127.0.0.1:3041` y el puerto se puede
+cambiar con `APPROVAL_PIPELINE_LOCAL_SERVICE_PORT`.
+
+```powershell
+npm run approval:service:local
+node -e "fetch('http://127.0.0.1:3041/health')"
+```
 
 ## Relación con otros subproyectos
 

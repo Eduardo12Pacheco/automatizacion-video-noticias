@@ -350,7 +350,23 @@ function adaptCompositionContractToRenderProps({ contract, manifest, options = {
     const endTime = Number.isFinite(Number(segment?.effectiveEndTime)) ? Number(segment.effectiveEndTime) : Number(segment?.endTime);
     const media = resolveVideoSegmentMedia(segment, assets, index, options);
     const rowId = resolveSegmentRowId(segment, index);
-    const renderGeometry = { ...motionGeometry, ...imageDimensions };
+    const defaultGeometry = options?.defaultRenderGeometry || {};
+    const renderGeometry = {
+      ...motionGeometry,
+      ...imageDimensions,
+      ...(resolvePositiveNumber(defaultGeometry.imageWidth)
+        ? {
+            imageWidth: resolvePositiveNumber(defaultGeometry.imageWidth),
+            imageHeight: resolvePositiveNumber(defaultGeometry.imageHeight),
+          }
+        : {}),
+      ...(resolvePositiveNumber(defaultGeometry.panViewportWidth)
+        ? {
+            panViewportWidth: resolvePositiveNumber(defaultGeometry.panViewportWidth),
+            panViewportHeight: resolvePositiveNumber(defaultGeometry.panViewportHeight),
+          }
+        : {}),
+    };
     if (media?.kind !== "video-segment" && isManualImageMotion(segment?.motion) && !hasCompleteRenderGeometry(renderGeometry)) {
       missingRenderGeometryRowIds.push(rowId);
     }
