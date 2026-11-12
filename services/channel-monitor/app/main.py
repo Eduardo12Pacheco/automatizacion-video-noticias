@@ -296,7 +296,9 @@ def create_app(
 
     @app.get("/api/monitor/websub")
     async def websub_challenge(request: Request) -> PlainTextResponse:
-        if settings.callback_secret and request.query_params.get("hub.verify_token") != settings.callback_secret:
+        if not settings.callback_secret:
+            raise _error("websub_not_configured", "WebSub secret is not configured", 503)
+        if request.query_params.get("hub.verify_token") != settings.callback_secret:
             raise _error("invalid_verify_token", "Invalid WebSub verify token", 403)
         challenge = request.query_params.get("hub.challenge")
         if not challenge:

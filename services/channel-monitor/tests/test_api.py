@@ -1745,3 +1745,22 @@ def test_boundary_websub_events_route_accepts_normalized_event_and_is_idempotent
         "received_at": "2026-06-05T12:00:00Z",
     }
 
+
+
+def test_websub_challenge_and_callback_fail_closed_without_a_callback_secret(tmp_path):
+    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
+    store = MonitorStore(settings.db_path)
+    store.migrate()
+    worker = FakeDiscoveryWorker()
+    client = TestClient(create_app(settings=settings, store=store, discovery_worker=worker))
+    body = b"""<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><entry><yt:videoId>abc123</yt:videoId></entry></feed>"""
+
+    challenge = client.get(
+        "/api/monitor/websub",
+        params={"hub.mode": "subscribe", "hub.challenge": "challenge-value", "hub.verify_token": ""},
+    )
+    callback = client.post("/api/monitor/websub", content=body)
+
+    assert challenge.status_code == 503
+    assert callback.status_code == 403
+    assert worker.video_ids == []

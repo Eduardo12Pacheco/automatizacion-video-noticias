@@ -687,3 +687,13 @@ La France a bien joue
     download_args = runner.calls[1][0]
     assert download_args[download_args.index("--sub-langs") + 1] == "fr"
     assert "--write-subs" in download_args
+
+
+def test_websub_callback_validation_fails_closed_without_a_secret():
+    body = b"<feed></feed>"
+    try:
+        validate_websub_callback(body, {"x-hub-signature-256": "sha256=anything"}, "")
+    except CallbackValidationError as exc:
+        assert "not configured" in str(exc).lower()
+    else:
+        raise AssertionError("expected CallbackValidationError when the WebSub secret is empty")

@@ -777,7 +777,7 @@ class WebSubClient:
 
 def validate_websub_callback(body: bytes, headers: dict[str, str], secret: str) -> None:
     if not secret:
-        return
+        raise CallbackValidationError("WebSub secret is not configured")
     signature = _header(headers, "x-hub-signature-256")
     if not signature:
         raise CallbackValidationError("Missing WebSub signature")
