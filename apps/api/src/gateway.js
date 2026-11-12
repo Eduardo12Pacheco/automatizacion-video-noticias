@@ -2176,7 +2176,7 @@ export function startGateway({
   }
   let runtimeScheduler = null;
   if (repository && !localRouter) {
-    const runtimeAdapters = adapters || createAdaptersFromEnv({ logger: console });
+    const runtimeAdapters = adapters || createAdaptersFromEnv({ logger: console, authService });
     const runtime = createCoreRuntime({ repository, adapters: runtimeAdapters, logger: console });
     runtimeScheduler = runtime.scheduler;
     localRouter = createLocalRouter({

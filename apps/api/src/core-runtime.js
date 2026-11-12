@@ -60,6 +60,7 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
   const asr = adapters.asr || null;
   const translation = adapters.translation || null;
   const videoRenderer = adapters.videoRenderer || null;
+  const auth = adapters.auth || null;
 
   const createVideoProject = new CreateVideoProject({ repository, now });
   const discoverNews = new DiscoverNews({ repository, newsSource, llm, now });
@@ -117,6 +118,7 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
       asr,
       translation,
       videoRenderer,
+      auth,
     },
   };
 }

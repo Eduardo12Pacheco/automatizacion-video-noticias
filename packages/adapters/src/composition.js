@@ -8,6 +8,7 @@ import { ConsoleNotificationAdapter, SmtpNotificationAdapter } from './notificat
 import { RssChannelFeedAdapter, RssNewsSourceAdapter } from './rss.js';
 import { N8nWorkflowTrigger } from './workflow-trigger.js';
 import { HttpASRAdapter, HttpTranslationAdapter, HttpTTSAdapter, HttpVideoRendererAdapter, workerAuthHeaders } from './worker-ports.js';
+import { createAuthAdapterFromEnv } from './auth-port.js';
 
 function choice(value, fallback) {
   return String(value || fallback || '').trim().toLowerCase();
@@ -34,6 +35,7 @@ export function createAdaptersFromEnv({
   fetchImpl = globalThis.fetch,
   runCommand = undefined,
   logger = console,
+  authService = null,
 } = {}) {
   const pythonBin = String(env.PYTHON_BIN || 'python3').trim() || 'python3';
   const adapters = {};
@@ -191,6 +193,11 @@ export function createAdaptersFromEnv({
     });
   } else if (workerKinds.renderer === 'demo') {
     adapters.videoRenderer = new DemoVideoRendererAdapter();
+  }
+
+  const authKind = choice(env.AUTH, 'local');
+  if (authService || authKind !== 'local') {
+    adapters.auth = createAuthAdapterFromEnv({ env, authService, fetchImpl });
   }
 
   return adapters;

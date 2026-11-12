@@ -236,7 +236,10 @@ describe('worker adapter composition', () => {
     assert.equal(workers.translation.constructor.name, 'HttpTranslationAdapter');
     assert.equal(workers.videoRenderer.constructor.name, 'HttpVideoRendererAdapter');
 
-    const none = createAdaptersFromEnv({ env: { TTS: 'none', ASR: 'none', TRANSLATION: 'none', RENDERER: 'none' }, fetchImpl: async () => { throw new Error('must not fetch'); } });
+    const auth = createAdaptersFromEnv({ env: { AUTH: 'demo' }, fetchImpl: async () => { throw new Error('must not fetch'); } });
+    assert.equal(auth.auth.constructor.name, 'DemoAuthAdapter');
+
+    const none = createAdaptersFromEnv({ env: { TTS: 'none', ASR: 'none', TRANSLATION: 'none', RENDERER: 'none', AUTH: 'none' }, fetchImpl: async () => { throw new Error('must not fetch'); } });
     assert.equal(none.tts, undefined);
     assert.equal(none.asr, undefined);
     assert.equal(none.translation, undefined);
