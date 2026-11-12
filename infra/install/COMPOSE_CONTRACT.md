@@ -84,11 +84,15 @@ and refuses to run with uncommitted changes.
 Defaults come from `.env.example`; every port must be overridable through `.env`:
 `PANEL_PORT=8080`, `API_GATEWAY_PORT=8099`, `POSTGRES_PORT=5432`,
 `SEARXNG_PORT=8888`, `MAILPIT_SMTP_PORT=1025`, `MAILPIT_UI_PORT=8025`,
-`OLLAMA_PORT=11434`, `N8N_PORT=5678`.
+`OLLAMA_PORT=11434`, `N8N_PORT=5678`. Only the panel and API publish ports, and
+they bind to `${NEWSROOM_BIND:-127.0.0.1}`. Internal services stay on the
+Compose network; `infra/compose/compose.debug.yaml` adds their ports for
+debugging. `POSTGRES_PASSWORD`, `SEARXNG_SECRET` and `N8N_ENCRYPTION_KEY` use
+`${VAR:?run ./install.sh first}` and have no weak fallback.
 
 Persistent data lives in named volumes: Postgres, blobs/documents, models
 (Ollama, Whisper, Piper), n8n (optional). `newsroom down` keeps them;
-`install.sh --uninstall --purge` deletes them.
+`install.sh --uninstall --purge` deletes them after the typed `delete` confirmation (`--force-purge` skips it for automation).
 
 ## Health
 
