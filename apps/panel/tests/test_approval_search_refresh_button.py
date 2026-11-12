@@ -45,10 +45,10 @@ const approvalSearch = createApprovalSearchController({
   approvalApi: {
     async post(path, payload) {
       calls.push({ path, payload, runningStatus: el.searchRefreshStatus.textContent });
-      if (path === '/webhook/approval/search-refresh/supabase/v2') {
+      if (path === '/webhook/approval/search-refresh/v2') {
         return { status: 'accepted', run_id: 'run-1' };
       }
-      if (path === '/webhook/approval/search-refresh/status/supabase/v1') {
+      if (path === '/webhook/approval/search-refresh/status/v1') {
         return { status: 'succeeded', run_id: payload.run_id, completed_at: '2026-05-23T20:40:00.000Z' };
       }
       throw new Error(`unexpected path ${path}`);
@@ -76,7 +76,7 @@ el.searchRefreshBtn.click();
 await new Promise((resolve) => setTimeout(resolve, 0));
 
 if (calls.length !== 2) throw new Error(`expected start and status POSTs, got ${calls.length}`);
-if (calls[0].path !== '/webhook/approval/search-refresh/supabase/v2') {
+if (calls[0].path !== '/webhook/approval/search-refresh/v2') {
   throw new Error(`unexpected path: ${calls[0].path}`);
 }
 if (JSON.stringify(calls[0].payload) !== JSON.stringify({ window: '24h' })) {
@@ -85,7 +85,7 @@ if (JSON.stringify(calls[0].payload) !== JSON.stringify({ window: '24h' })) {
 if (!calls[0].runningStatus.includes('Buscando noticias: Últimas 24 horas')) {
   throw new Error(`status was not updated before POST: ${calls[0].runningStatus}`);
 }
-if (calls[1].path !== '/webhook/approval/search-refresh/status/supabase/v1') {
+if (calls[1].path !== '/webhook/approval/search-refresh/status/v1') {
   throw new Error(`unexpected status path: ${calls[1].path}`);
 }
 if (JSON.stringify(calls[1].payload) !== JSON.stringify({ run_id: 'run-1' })) {
@@ -165,10 +165,10 @@ const controller = createApprovalSearchController({
   customDropdowns: { refreshAll() {} },
   approvalApi: {
     async post(path, payload) {
-      if (path === '/webhook/approval/search-refresh/supabase/v2') {
+      if (path === '/webhook/approval/search-refresh/v2') {
         return { status: 'accepted', run_id: 'run-failed' };
       }
-      if (path === '/webhook/approval/search-refresh/status/supabase/v1') {
+      if (path === '/webhook/approval/search-refresh/status/v1') {
         return { status: 'failed', run_id: payload.run_id, error: 'OpenCode quota exceeded' };
       }
       throw new Error(`unexpected path ${path}`);

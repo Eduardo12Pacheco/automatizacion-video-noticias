@@ -1,5 +1,19 @@
-export const COMPOSITION_LOCAL_OVERLAY_BASE_URL = 'http://127.0.0.1:3042/api/overlays';
-export const COMPOSITION_STATIC_ASSET_BASE_URL = './assets';
+const DEFAULT_COMPOSITION_ASSET_BASE_URL = './assets';
+let compositionAssetBaseUrl = DEFAULT_COMPOSITION_ASSET_BASE_URL;
+
+/**
+ * Point composition media at the server-provided overlay base. The panel only
+ * talks to `apps/api`, so `/panel/bootstrap` is the single source for this URL.
+ */
+export function configureCompositionAssetBaseUrl(value = '') {
+  const base = String(value || '').trim().replace(/\/+$/, '');
+  compositionAssetBaseUrl = base || DEFAULT_COMPOSITION_ASSET_BASE_URL;
+  return compositionAssetBaseUrl;
+}
+
+export function getCompositionAssetBaseUrl() {
+  return compositionAssetBaseUrl;
+}
 
 export const VIDEO_SEGMENT_EFFECT_ASSETS = [
   { assetId: 'overlay-layer-01', fileName: 'overlay-layer-01.webm', blendMode: 'screen' },
@@ -19,7 +33,7 @@ export const BRAND_CHANNEL_ASSETS = {
     },
     outro: {
       assetId: 'brand-outro-primary',
-      previewPath: 'outro-primary.webm',
+      previewPath: 'outro-primary.mp4',
       renderPath: 'overlays/outro-primary.mp4',
       durationSeconds: 30.53,
       label: 'Demo Sports Uno',
@@ -36,7 +50,7 @@ export const BRAND_CHANNEL_ASSETS = {
     },
     outro: {
       assetId: 'brand-outro-secondary',
-      previewPath: 'outro-secondary.webm',
+      previewPath: 'outro-secondary.mp4',
       renderPath: 'overlays/outro-secondary.mp4',
       durationSeconds: 30.16,
       label: 'Demo Sports Dos',
@@ -53,7 +67,7 @@ export const BRAND_CHANNEL_ASSETS = {
     },
     outro: {
       assetId: 'brand-outro-final',
-      previewPath: 'outro-final.webm',
+      previewPath: 'outro-final.mp4',
       renderPath: 'overlays/outro-final.mp4',
       durationSeconds: 30.12,
       label: 'Final Liga Demo',
@@ -77,16 +91,10 @@ export function resolveBrandChannelPreviewAssetUrl({ channel = DEFAULT_BRAND_CHA
   return resolveStaticCompositionAssetUrl(asset.previewPath);
 }
 
-export function resolveLocalOverlayAssetUrl(fileName = '') {
-  const cleanFileName = (fileName || '').toString().trim().replace(/^\/+/, '');
-  if (!cleanFileName) return '';
-  return `${COMPOSITION_LOCAL_OVERLAY_BASE_URL}/${cleanFileName}`;
-}
-
 export function resolveStaticCompositionAssetUrl(fileName = '') {
   const cleanFileName = (fileName || '').toString().trim().replace(/^\/+/, '');
   if (!cleanFileName) return '';
-  return `${COMPOSITION_STATIC_ASSET_BASE_URL}/${cleanFileName}`;
+  return `${compositionAssetBaseUrl}/${cleanFileName}`;
 }
 
 export function resolveVideoSegmentEffectAsset(assetId = '') {

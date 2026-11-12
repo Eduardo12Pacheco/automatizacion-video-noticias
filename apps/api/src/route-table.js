@@ -1,6 +1,6 @@
 import { ADMIN_MUTATION_ROUTES } from './admin-router.js';
 import { DATA_MUTATION_ROUTES } from './data-router.js';
-import { LOCAL_MUTATION_ROUTES } from './local-router.js';
+import { LOCAL_MUTATION_ROUTES, normalizeLocalWorkflowPath } from './local-router.js';
 
 /**
  * Single source of truth for every mutating panel route.
@@ -33,8 +33,9 @@ export const PANEL_MUTATION_ROUTES = Object.freeze([
 
 export function matchPanelMutation(method, pathname = '') {
   const upperMethod = String(method || '').toUpperCase();
+  const canonicalPath = normalizeLocalWorkflowPath(pathname);
   return PANEL_MUTATION_ROUTES.find(
-    (route) => route.methods.includes(upperMethod) && route.pattern.test(pathname),
+    (route) => route.methods.includes(upperMethod) && route.pattern.test(canonicalPath),
   ) || null;
 }
 

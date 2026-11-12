@@ -38,8 +38,8 @@ export function createApprovalSearchController({
   toast,
   getErrorMessage,
 }) {
-  const SEARCH_REFRESH_START_PATH = '/webhook/approval/search-refresh/supabase/v2';
-  const SEARCH_REFRESH_STATUS_PATH = '/webhook/approval/search-refresh/status/supabase/v1';
+  const SEARCH_REFRESH_START_PATH = '/webhook/approval/search-refresh/v2';
+  const SEARCH_REFRESH_STATUS_PATH = '/webhook/approval/search-refresh/status/v1';
   const SEARCH_REFRESH_POLL_INTERVAL_MS = 5000;
   const SEARCH_REFRESH_MAX_POLL_MS = 60 * 60 * 1000;
   const SEARCH_REFRESH_MAX_STATUS_ERRORS = 5;

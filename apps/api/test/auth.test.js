@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
-import { InMemoryRepository } from '../../../packages/data/src/index.js';
+import { InMemoryRepository } from '@newsroom/data';
 import { createAuthService, hashPassword, hashSessionToken, verifyPassword } from '../src/auth.js';
 
 async function createHarness() {

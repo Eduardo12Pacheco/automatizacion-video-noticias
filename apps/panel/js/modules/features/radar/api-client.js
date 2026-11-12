@@ -36,7 +36,7 @@ async function parseJsonResponse(response) {
 export function createRadarApiClient({ getSettings, fetchImpl = fetch, locationLike = globalThis?.location } = {}) {
   const resolveSettings = () => getSettings?.() || {};
   const resolveConfig = (service = 'radar') => resolveServiceConfig(resolveSettings(), service);
-  const resolveBaseUrl = (service = 'radar') => trimTrailingSlash(resolveConfig(service).baseUrl || (service === 'monitor' ? 'http://127.0.0.1:8775' : 'http://127.0.0.1:8765'));
+  const resolveBaseUrl = (service = 'radar') => trimTrailingSlash(resolveConfig(service).baseUrl || (service === 'monitor' ? 'http://127.0.0.1:8790' : 'http://127.0.0.1:8765'));
   const resolveApiKey = (service = 'radar') => (resolveConfig(service).apiKey || '').toString().trim();
 
   function isBlockedByRemoteContext() {

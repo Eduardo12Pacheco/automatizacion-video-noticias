@@ -277,9 +277,9 @@ async function replayApprovalScenario() {
   const feature = createApprovalFeature({
     api: {
       async get(path) {
-        if (path === '/webhook/approval/pending/supabase/v2') return { items: [{ cluster_id: 'c1', resumen: 'r1' }] };
-        if (path === '/webhook/approval/queue/supabase/v2') return { items: [{ cluster_id: 'c1' }] };
-        if (path.startsWith('/webhook/approval/topic/supabase/v2')) return { item: { cluster_id: 'c1', tema_principal: 'tema' } };
+        if (path === '/webhook/approval/pending/v2') return { items: [{ cluster_id: 'c1', resumen: 'r1' }] };
+        if (path === '/webhook/approval/queue/v2') return { items: [{ cluster_id: 'c1' }] };
+        if (path.startsWith('/webhook/approval/topic/v2')) return { item: { cluster_id: 'c1', tema_principal: 'tema' } };
         return {};
       },
       async post() {
@@ -367,13 +367,13 @@ async function replayScriptsScenario() {
       },
       async post(endpoint, payload) {
         posts.push({ endpoint, payload });
-        if (endpoint === '/webhook/mvp-script-publish/supabase/v2' && publishMode === 'async-failed') {
+        if (endpoint === '/webhook/mvp-script-publish/v2' && publishMode === 'async-failed') {
           return { job_id: 'job-failed', status: 'queued', stage: 'queued' };
         }
-        if (endpoint === '/webhook/mvp-script-publish-status/supabase/v1') {
+        if (endpoint === '/webhook/mvp-script-publish-status/v1') {
           return { status: 'failed', stage: 'failed', error: 'Falló desde replay' };
         }
-        if (endpoint === '/webhook/mvp-script-publish/supabase/v2') {
+        if (endpoint === '/webhook/mvp-script-publish/v2') {
           return { doc_id: 'doc-sync', doc_url: 'https://docs.local/doc-sync', estado_guion: 'publicado' };
         }
         return { ok: true };
@@ -404,8 +404,8 @@ async function replayScriptsScenario() {
   const saveThenPublish = assertTokenOrder(
     posts.map((entry) => entry.endpoint).join('\n'),
     [
-      '/webhook/mvp-script-draft-save/supabase/v2',
-      '/webhook/mvp-script-publish/supabase/v2',
+      '/webhook/mvp-script-draft-save/v2',
+      '/webhook/mvp-script-publish/v2',
     ],
     'scripts save-before-publish endpoint order drift',
   );
@@ -418,13 +418,13 @@ async function replayScriptsScenario() {
     doc_id: 'doc-sync',
   };
   await feature.downloadSelectedScriptDocx();
-  if (blobs[0]?.endpoint !== '/webhook/mvp-script-download-doc/supabase/v1') return { ok: false, reason: 'scripts DOCX endpoint drift' };
+  if (blobs[0]?.endpoint !== '/webhook/mvp-script-download-doc/v1') return { ok: false, reason: 'scripts DOCX endpoint drift' };
   if (blobs[0]?.payload?.format !== 'docx' || blobs[0]?.payload?.draft_id !== 'docx-fallback') return { ok: false, reason: 'scripts DOCX payload drift' };
   if (downloads[0]?.filename !== 'Jugador Agil - Titulo con acento.docx') return { ok: false, reason: 'scripts DOCX filename fallback drift' };
 
   await feature.dismissProcessedScript('processed-1');
   const dismissPost = posts.find((entry) => entry.payload?.action === 'dismiss_processed');
-  if (!dismissPost || dismissPost.endpoint !== '/webhook/mvp-script-draft-save/supabase/v2') return { ok: false, reason: 'scripts processed dismiss contract drift' };
+  if (!dismissPost || dismissPost.endpoint !== '/webhook/mvp-script-draft-save/v2') return { ok: false, reason: 'scripts processed dismiss contract drift' };
   if (state.scriptDrafts.some((row) => row.draft_id === 'processed-1')) return { ok: false, reason: 'scripts processed dismiss list drift' };
 
   publishMode = 'async-failed';
@@ -535,11 +535,11 @@ async function replayScriptsFacadeParityScenario() {
   const staticContracts = assertContainsAll(
     source,
     [
-      '/webhook/mvp-script-drafts-pending/supabase/v2',
-      '/webhook/mvp-script-draft-save/supabase/v2',
-      '/webhook/mvp-script-publish/supabase/v2',
-      '/webhook/mvp-script-publish-status/supabase/v1',
-      '/webhook/mvp-script-download-doc/supabase/v1',
+      '/webhook/mvp-script-drafts-pending/v2',
+      '/webhook/mvp-script-draft-save/v2',
+      '/webhook/mvp-script-publish/v2',
+      '/webhook/mvp-script-publish-status/v1',
+      '/webhook/mvp-script-download-doc/v1',
       'SCRIPT_PUBLISH_POLL_INTERVAL_MS = 8000',
       'guion_editado',
       'dismiss_processed',

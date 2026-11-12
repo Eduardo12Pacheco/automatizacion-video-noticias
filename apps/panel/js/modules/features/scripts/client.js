@@ -1,8 +1,8 @@
-export const SCRIPT_DRAFTS_ENDPOINT = '/webhook/mvp-script-drafts-pending/supabase/v2';
-export const SCRIPT_DRAFT_SAVE_ENDPOINT = '/webhook/mvp-script-draft-save/supabase/v2';
-export const SCRIPT_PUBLISH_ENDPOINT = '/webhook/mvp-script-publish/supabase/v2';
-export const SCRIPT_PUBLISH_STATUS_ENDPOINT = '/webhook/mvp-script-publish-status/supabase/v1';
-export const SCRIPT_DOWNLOAD_DOCX_ENDPOINT = '/webhook/mvp-script-download-doc/supabase/v1';
+export const SCRIPT_DRAFTS_ENDPOINT = '/webhook/mvp-script-drafts-pending/v2';
+export const SCRIPT_DRAFT_SAVE_ENDPOINT = '/webhook/mvp-script-draft-save/v2';
+export const SCRIPT_PUBLISH_ENDPOINT = '/webhook/mvp-script-publish/v2';
+export const SCRIPT_PUBLISH_STATUS_ENDPOINT = '/webhook/mvp-script-publish-status/v1';
+export const SCRIPT_DOWNLOAD_DOCX_ENDPOINT = '/webhook/mvp-script-download-doc/v1';
 
 export async function fetchScriptDrafts(api) {
   return api.get(SCRIPT_DRAFTS_ENDPOINT);

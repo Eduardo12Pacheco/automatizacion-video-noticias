@@ -120,39 +120,8 @@ export function bindCoreEvents({
   el.closeDialog.addEventListener('click', () => el.topicDialog.close());
 
   el.saveSettingsBtn.addEventListener('click', () => {
-    const defaults = defaultSettings();
     saveSettings({
-      apiProfileMode: 'unified',
-      apiOrigin: el.apiOriginInput?.value?.trim() || defaults.apiOrigin,
-      sharedApiKey: '',
-      sharedBasicUser: '',
-      sharedBasicPass: '',
-      serviceOverrides: {
-        n8n: false,
-        tts: false,
-        subtitles: false,
-        radar: false,
-        monitor: false,
-        remotion: false,
-        approvalPipeline: true,
-      },
-      baseUrl: el.baseUrlInput.value.trim() || defaults.baseUrl,
-      secret: el.secretInput.value.trim(),
-      ttsBaseUrl: el.ttsBaseUrlInput.value.trim() || defaults.ttsBaseUrl,
-      ttsApiKey: '',
-      ttsBasicUser: '',
-      ttsBasicPass: '',
-      subtitlesBaseUrl: el.subtitlesBaseUrlInput?.value?.trim() || defaults.subtitlesBaseUrl,
-      subtitlesApiKey: '',
-      subtitlesBasicUser: '',
-      subtitlesBasicPass: '',
-      remotionApiUrl: el.remotionApiUrlInput?.value?.trim() || defaults.remotionApiUrl,
-      approvalPipelineBaseUrl: el.approvalPipelineBaseUrlInput?.value?.trim() || '',
-      brandChannel: el.brandChannelSelect?.value || defaults.brandChannel,
-      transcriptServiceBaseUrl: el.transcriptServiceBaseUrlInput?.value?.trim() || defaults.transcriptServiceBaseUrl,
-      transcriptServiceApiKey: '',
-      channelMonitorBaseUrl: defaults.channelMonitorBaseUrl,
-      channelMonitorApiKey: '',
+      brandChannel: el.brandChannelSelect?.value || 'demo-primary',
     });
     el.settingsDialog.close();
     toast('Configuración guardada');

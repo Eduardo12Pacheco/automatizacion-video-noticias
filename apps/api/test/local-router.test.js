@@ -12,10 +12,10 @@ import {
   PublishScript,
   RefreshSearch,
   createExportDocument,
-} from '../../../packages/core/src/index.js';
-import { InMemoryRepository } from '../../../packages/data/src/index.js';
+} from '@newsroom/core';
+import { InMemoryRepository } from '@newsroom/data';
 import { createLocalRouter } from '../src/local-router.js';
-import { DemoArticleExtractor, DemoLLMAdapter } from '../../../packages/adapters/src/demo.js';
+import { DemoArticleExtractor, DemoLLMAdapter } from '@newsroom/adapters/demo';
 
 const NOW = new Date('2026-11-10T12:00:00.000Z');
 

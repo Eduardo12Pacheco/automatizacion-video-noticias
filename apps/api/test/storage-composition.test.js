@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { S3BlobStorage } from '../../../packages/data/src/index.js';
+import { S3BlobStorage } from '@newsroom/data';
 import { createRuntimeDataRouter } from '../src/composition.js';
 
 describe('blob storage composition', () => {

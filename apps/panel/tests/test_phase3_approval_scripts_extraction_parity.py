@@ -34,13 +34,13 @@ def test_approval_api_contract_preserves_gateway_read_headers_and_webhook_routes
     assert "postBlob(" in source
 
     for endpoint in [
-        "/webhook/approval/pending/supabase/v2",
-        "/webhook/approval/queue/supabase/v2",
-        "/webhook/approval/decision/supabase/v2",
-        "/webhook/mvp-script-drafts-pending/supabase/v2",
-        "/webhook/mvp-script-draft-save/supabase/v2",
-        "/webhook/mvp-script-publish/supabase/v2",
-        "/webhook/mvp-script-download-doc/supabase/v1",
+        "/webhook/approval/pending/v2",
+        "/webhook/approval/queue/v2",
+        "/webhook/approval/decision/v2",
+        "/webhook/mvp-script-drafts-pending/v2",
+        "/webhook/mvp-script-draft-save/v2",
+        "/webhook/mvp-script-publish/v2",
+        "/webhook/mvp-script-download-doc/v1",
     ]:
         assert endpoint in source, f"Missing parity endpoint marker in approval API module: {endpoint}"
 

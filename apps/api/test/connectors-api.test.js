@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { InMemoryRepository, FsBlobStorage } from '../../../packages/data/src/index.js';
+import { InMemoryRepository, FsBlobStorage } from '@newsroom/data';
 import { createAdminRouter } from '../src/admin-router.js';
 import { createAuthService } from '../src/auth.js';
-import { createConnectorRegistry } from '../../../packages/adapters/src/connectors.js';
+import { createConnectorRegistry } from '@newsroom/adapters/connectors';
 import { createGatewayServer } from '../src/gateway.js';
 import { createJobsRouter } from '../src/jobs-router.js';
 

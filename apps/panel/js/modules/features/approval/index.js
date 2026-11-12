@@ -277,7 +277,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
       state.approvalLoading = true;
       state.approvalError = null;
       renderCards();
-      const data = await api.get('/webhook/approval/pending/supabase/v2');
+      const data = await api.get('/webhook/approval/pending/v2');
       state.items = (data.items || []).map((item) => ({
         ...item,
         resumen_cluster: (item.resumen_cluster ?? item.resumen ?? '').toString(),
@@ -300,7 +300,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
   async function refreshQueue({ silent = false } = {}) {
     const state = store.getState();
     try {
-      const data = await api.get('/webhook/approval/queue/supabase/v2');
+      const data = await api.get('/webhook/approval/queue/v2');
       state.queue = normalizeApprovalQueueItems(data);
       renderQueue();
     } catch (err) {
@@ -314,7 +314,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
   async function openDetail(clusterId) {
     const state = store.getState();
     try {
-      const data = await api.get(`/webhook/approval/topic/supabase/v2?cluster_id=${encodeURIComponent(clusterId)}`);
+      const data = await api.get(`/webhook/approval/topic/v2?cluster_id=${encodeURIComponent(clusterId)}`);
       state.selectedCardId = clusterId;
       state.selectedTopic = data.item;
       renderTopicDetail();
@@ -353,7 +353,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
     renderTopicDetail();
 
     try {
-      await api.post('/webhook/approval/decision/supabase/v2', buildDecisionPayload(state.selectedTopic, sourceToRemove, 'reject'));
+      await api.post('/webhook/approval/decision/v2', buildDecisionPayload(state.selectedTopic, sourceToRemove, 'reject'));
       ui.toast('Fuente eliminada');
       await refreshPending();
       await openDetail(clusterId);
@@ -384,7 +384,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
       state.approvingSourceId = idNoticia;
       renderTopicDetail();
 
-      await api.post('/webhook/approval/decision/supabase/v2', buildDecisionPayload(state.selectedTopic, source, 'approve'));
+      await api.post('/webhook/approval/decision/v2', buildDecisionPayload(state.selectedTopic, source, 'approve'));
 
       const optimisticTopic = createOptimisticApprovedTopic(previousTopic, source);
       state.selectedTopic = optimisticTopic;
@@ -427,7 +427,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
 
   async function decision(clusterId, action, refreshAll) {
     try {
-      await api.post('/webhook/approval/decision/supabase/v2', { cluster_id: clusterId, action });
+      await api.post('/webhook/approval/decision/v2', { cluster_id: clusterId, action });
       ui.toast(`Tema ${action === 'approve' ? 'aprobado' : 'rechazado'}`);
       await refreshAll();
     } catch (err) {

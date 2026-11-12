@@ -179,8 +179,6 @@ export async function handleLocalRouterRequest(req, res, options, router, { admi
 export function createGatewayServer({
   routes = DEFAULT_ROUTES,
   allowedOrigins = [
-    'https://panel.example.local',
-    'https://example.local',
     'http://localhost:5500',
     'http://127.0.0.1:5500',
     'http://127.0.0.1:4177',

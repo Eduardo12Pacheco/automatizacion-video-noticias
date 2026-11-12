@@ -8,18 +8,18 @@ import {
 } from './shared-read-models.js';
 
 export const APPROVAL_PARITY_ENDPOINTS = [
-  '/webhook/approval/pending/supabase/v2',
-  '/webhook/approval/queue/supabase/v2',
-  '/webhook/approval/topic/supabase/v2',
-  '/webhook/approval/decision/supabase/v2',
-  '/webhook/approval/search-refresh/supabase/v2',
-  '/webhook/approval/search-refresh/status/supabase/v1',
-  '/webhook/mvp-script-drafts-pending/supabase/v2',
-  '/webhook/mvp-script-draft-save/supabase/v2',
-  '/webhook/mvp-script-publish/supabase/v2',
-  '/webhook/mvp-script-publish-status/supabase/v1',
+  '/webhook/approval/pending/v2',
+  '/webhook/approval/queue/v2',
+  '/webhook/approval/topic/v2',
+  '/webhook/approval/decision/v2',
+  '/webhook/approval/search-refresh/v2',
+  '/webhook/approval/search-refresh/status/v1',
+  '/webhook/mvp-script-drafts-pending/v2',
+  '/webhook/mvp-script-draft-save/v2',
+  '/webhook/mvp-script-publish/v2',
+  '/webhook/mvp-script-publish-status/v1',
   '/webhook/video-projects/manual-create/v1',
-  '/webhook/mvp-script-download-doc/supabase/v1',
+  '/webhook/mvp-script-download-doc/v1',
 ];
 
 function buildGatewayHeaders(extra = {}) {

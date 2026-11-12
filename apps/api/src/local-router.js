@@ -2,48 +2,68 @@ import { DomainError, SaveScriptDraft, buildReadModels } from '@newsroom/core';
 
 const JSON_LIMIT = 1024 * 1024;
 
+// Deprecated Supabase-era paths stay accepted for existing n8n webhooks, but
+// the panel and all new integrations use the neutral paths.
+export const LEGACY_WEBHOOK_ALIASES = Object.freeze({
+  '/webhook/approval/pending/supabase/v2': '/webhook/approval/pending/v2',
+  '/webhook/approval/queue/supabase/v2': '/webhook/approval/queue/v2',
+  '/webhook/approval/topic/supabase/v2': '/webhook/approval/topic/v2',
+  '/webhook/approval/decision/supabase/v2': '/webhook/approval/decision/v2',
+  '/webhook/approval/search-refresh/supabase/v2': '/webhook/approval/search-refresh/v2',
+  '/webhook/approval/search-refresh/status/supabase/v1': '/webhook/approval/search-refresh/status/v1',
+  '/webhook/mvp-script-drafts-pending/supabase/v2': '/webhook/mvp-script-drafts-pending/v2',
+  '/webhook/mvp-script-draft-save/supabase/v2': '/webhook/mvp-script-draft-save/v2',
+  '/webhook/mvp-script-publish/supabase/v2': '/webhook/mvp-script-publish/v2',
+  '/webhook/mvp-script-publish-status/supabase/v1': '/webhook/mvp-script-publish-status/v1',
+  '/webhook/mvp-script-download-doc/supabase/v1': '/webhook/mvp-script-download-doc/v1',
+});
+
+export function normalizeLocalWorkflowPath(pathname = '') {
+  return LEGACY_WEBHOOK_ALIASES[pathname] || pathname;
+}
+
 export const LOCAL_MUTATION_ROUTES = Object.freeze([
   {
     id: 'local-decision',
     methods: ['POST'],
-    path: '/webhook/approval/decision/supabase/v2',
-    examplePath: '/webhook/approval/decision/supabase/v2',
+    path: '/webhook/approval/decision/v2',
+    examplePath: '/webhook/approval/decision/v2',
   },
   {
     id: 'local-search-refresh',
     methods: ['POST'],
-    path: '/webhook/approval/search-refresh/supabase/v2',
-    examplePath: '/webhook/approval/search-refresh/supabase/v2',
+    path: '/webhook/approval/search-refresh/v2',
+    examplePath: '/webhook/approval/search-refresh/v2',
   },
   {
     id: 'local-search-refresh-status',
     methods: ['POST'],
-    path: '/webhook/approval/search-refresh/status/supabase/v1',
-    examplePath: '/webhook/approval/search-refresh/status/supabase/v1',
+    path: '/webhook/approval/search-refresh/status/v1',
+    examplePath: '/webhook/approval/search-refresh/status/v1',
   },
   {
     id: 'local-save-draft',
     methods: ['POST'],
-    path: '/webhook/mvp-script-draft-save/supabase/v2',
-    examplePath: '/webhook/mvp-script-draft-save/supabase/v2',
+    path: '/webhook/mvp-script-draft-save/v2',
+    examplePath: '/webhook/mvp-script-draft-save/v2',
   },
   {
     id: 'local-publish',
     methods: ['POST'],
-    path: '/webhook/mvp-script-publish/supabase/v2',
-    examplePath: '/webhook/mvp-script-publish/supabase/v2',
+    path: '/webhook/mvp-script-publish/v2',
+    examplePath: '/webhook/mvp-script-publish/v2',
   },
   {
     id: 'local-publish-status',
     methods: ['POST'],
-    path: '/webhook/mvp-script-publish-status/supabase/v1',
-    examplePath: '/webhook/mvp-script-publish-status/supabase/v1',
+    path: '/webhook/mvp-script-publish-status/v1',
+    examplePath: '/webhook/mvp-script-publish-status/v1',
   },
   {
     id: 'local-download-document',
     methods: ['POST'],
-    path: '/webhook/mvp-script-download-doc/supabase/v1',
-    examplePath: '/webhook/mvp-script-download-doc/supabase/v1',
+    path: '/webhook/mvp-script-download-doc/v1',
+    examplePath: '/webhook/mvp-script-download-doc/v1',
   },
   {
     id: 'local-manual-create',
@@ -54,17 +74,17 @@ export const LOCAL_MUTATION_ROUTES = Object.freeze([
 ]);
 
 const ROUTES = Object.freeze([
-  '/webhook/approval/pending/supabase/v2',
-  '/webhook/approval/queue/supabase/v2',
-  '/webhook/approval/topic/supabase/v2',
-  '/webhook/approval/decision/supabase/v2',
-  '/webhook/approval/search-refresh/supabase/v2',
-  '/webhook/approval/search-refresh/status/supabase/v1',
-  '/webhook/mvp-script-drafts-pending/supabase/v2',
-  '/webhook/mvp-script-draft-save/supabase/v2',
-  '/webhook/mvp-script-publish/supabase/v2',
-  '/webhook/mvp-script-publish-status/supabase/v1',
-  '/webhook/mvp-script-download-doc/supabase/v1',
+  '/webhook/approval/pending/v2',
+  '/webhook/approval/queue/v2',
+  '/webhook/approval/topic/v2',
+  '/webhook/approval/decision/v2',
+  '/webhook/approval/search-refresh/v2',
+  '/webhook/approval/search-refresh/status/v1',
+  '/webhook/mvp-script-drafts-pending/v2',
+  '/webhook/mvp-script-draft-save/v2',
+  '/webhook/mvp-script-publish/v2',
+  '/webhook/mvp-script-publish-status/v1',
+  '/webhook/mvp-script-download-doc/v1',
   '/webhook/video-projects/manual-create/v1',
   '/panel/read-models/approval/pending',
   '/panel/read-models/approval/queue',
@@ -125,7 +145,7 @@ export function createLocalRouter({
   const models = readModels || buildReadModels({ repository });
 
   function matches(pathname = '') {
-    return ROUTES.includes(pathname);
+    return ROUTES.includes(normalizeLocalWorkflowPath(pathname));
   }
 
   async function startRefresh(body) {
@@ -201,29 +221,30 @@ export function createLocalRouter({
 
   async function handle({ method = 'GET', pathname, searchParams = new URLSearchParams(), readBody } = {}) {
     const upperMethod = String(method || 'GET').toUpperCase();
+    const routePath = normalizeLocalWorkflowPath(pathname);
     const read = readBody || (async () => Buffer.alloc(0));
     try {
-      if (pathname === '/webhook/approval/pending/supabase/v2' || pathname === '/panel/read-models/approval/pending') {
+      if (routePath === '/webhook/approval/pending/v2' || pathname === '/panel/read-models/approval/pending') {
         const wrong = assertMethod(upperMethod, 'GET');
         return wrong || json(200, await models.pendingApproval());
       }
-      if (pathname === '/webhook/approval/queue/supabase/v2' || pathname === '/panel/read-models/approval/queue') {
+      if (routePath === '/webhook/approval/queue/v2' || pathname === '/panel/read-models/approval/queue') {
         const wrong = assertMethod(upperMethod, 'GET');
         return wrong || json(200, await models.approvalQueue());
       }
-      if (pathname === '/webhook/approval/topic/supabase/v2' || pathname === '/panel/read-models/approval/topic') {
+      if (routePath === '/webhook/approval/topic/v2' || pathname === '/panel/read-models/approval/topic') {
         const wrong = assertMethod(upperMethod, 'GET');
         if (wrong) return wrong;
         const clusterId = String(searchParams.get('cluster_id') || '').trim();
         if (!clusterId) return json(400, { ok: false, error: 'cluster_id_required', message: 'cluster_id is required' });
         return json(200, await models.approvalTopic(clusterId));
       }
-      if (pathname === '/webhook/approval/search-refresh/status/supabase/v1' || pathname === '/panel/read-models/approval/search-refresh/status') {
+      if (routePath === '/webhook/approval/search-refresh/status/v1' || pathname === '/panel/read-models/approval/search-refresh/status') {
         if (upperMethod === 'GET') return searchRefreshStatus(searchParams);
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || searchRefreshStatus(searchParams, await readJson(read));
       }
-      if (pathname === '/webhook/approval/decision/supabase/v2') {
+      if (routePath === '/webhook/approval/decision/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
         if (wrong) return wrong;
         if (!useCases.decideApproval) throw new DomainError('approval adapter is not configured', { statusCode: 503 });
@@ -242,31 +263,31 @@ export function createLocalRouter({
         }
         return json(200, result);
       }
-      if (pathname === '/webhook/approval/search-refresh/supabase/v2') {
+      if (routePath === '/webhook/approval/search-refresh/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || startRefresh(await readJson(read));
       }
-      if (pathname === '/webhook/mvp-script-drafts-pending/supabase/v2' || pathname === '/panel/read-models/scripts/drafts') {
+      if (routePath === '/webhook/mvp-script-drafts-pending/v2' || pathname === '/panel/read-models/scripts/drafts') {
         const wrong = assertMethod(upperMethod, 'GET');
         return wrong || json(200, await models.scriptDrafts());
       }
-      if (pathname === '/webhook/mvp-script-draft-save/supabase/v2') {
+      if (routePath === '/webhook/mvp-script-draft-save/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || saveDraft(await readJson(read));
       }
-      if (pathname === '/webhook/mvp-script-publish/supabase/v2') {
+      if (routePath === '/webhook/mvp-script-publish/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || startPublish(await readJson(read));
       }
-      if (pathname === '/webhook/mvp-script-publish-status/supabase/v1') {
+      if (routePath === '/webhook/mvp-script-publish-status/v1') {
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || publishStatus(await readJson(read));
       }
-      if (pathname === '/webhook/mvp-script-download-doc/supabase/v1') {
+      if (routePath === '/webhook/mvp-script-download-doc/v1') {
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || downloadDocument(await readJson(read));
       }
-      if (pathname === '/webhook/video-projects/manual-create/v1') {
+      if (routePath === '/webhook/video-projects/manual-create/v1') {
         const wrong = assertMethod(upperMethod, 'POST');
         return wrong || startManual(await readJson(read));
       }

@@ -103,7 +103,7 @@ def test_showcase_answers_every_service_prefix_with_no_network():
       const showcase = await import('./js/modules/core/showcase/showcase-mode.js');
       const prefixes = ['/panel/read-models/approval/pending', '/radar/api/radar/health', '/monitor/api/monitor/cards',
         '/tts/api/tts/jobs/demo', '/subtitles/api/subtitles/health', '/remotion/render', '/approval/prepare',
-        '/webhook/approval/pending/supabase/v2'];
+        '/webhook/approval/pending/v2'];
       const intercepted = prefixes.map((path) => showcase.isShowcasePath(path));
       const response = async (path, options = {}, scenario = 'default') => {
         const res = await showcase.createShowcaseResponse(path, options, { scenario });

@@ -94,7 +94,7 @@ const api = createApprovalApiClient({
   },
 });
 
-await api.get('/webhook/approval/queue/supabase/v2');
+await api.get('/webhook/approval/queue/v2');
 const getCall = calls[0];
 if (getCall.url !== '/panel/read-models/approval/queue') throw new Error(`get shared read url drift: ${getCall.url}`);
 if ('x-approval-secret' in getCall.options.headers) throw new Error('get must not send browser approval secret');
@@ -234,8 +234,8 @@ const fetchImpl = async (url, options = {}) => {
 };
 
 const approval = createApprovalApiClient({ getSettings: () => settings, fetchImpl });
-await approval.post('/webhook/approval/decision/supabase/v2', { cluster_id: 'c-1' });
-if (calls[0].url !== 'https://api.example.test/n8n/webhook/approval/decision/supabase/v2') throw new Error(`approval URL drift: ${calls[0].url}`);
+await approval.post('/webhook/approval/decision/v2', { cluster_id: 'c-1' });
+if (calls[0].url !== 'https://api.example.test/n8n/webhook/approval/decision/v2') throw new Error(`approval URL drift: ${calls[0].url}`);
 if ('x-approval-secret' in calls[0].options.headers) throw new Error('approval browser secret header drift');
 if (calls[0].options.credentials !== 'include') throw new Error('approval credentials drift');
 
@@ -291,8 +291,8 @@ const fetchImpl = async (url, options = {}) => {
 };
 
 const approval = createApprovalApiClient({ getSettings: () => settings, fetchImpl });
-const queue = await approval.get('/webhook/approval/queue/supabase/v2');
-const drafts = await approval.get('/webhook/mvp-script-drafts-pending/supabase/v2');
+const queue = await approval.get('/webhook/approval/queue/v2');
+const drafts = await approval.get('/webhook/mvp-script-drafts-pending/v2');
 const tts = createTtsApiClient({ getSettings: () => settings, fetchImpl, btoaImpl: (value) => Buffer.from(value).toString('base64') });
 const audioJobs = await tts.get('/api/tts/jobs');
 const audioJob = await tts.get('/api/tts/jobs/audio-shared-1');
@@ -800,9 +800,9 @@ const feature = createApprovalFeature({
   api: {
     async get(path) {
       calls.push({ kind: 'get', path });
-      if (path === '/webhook/approval/queue/supabase/v2') throw new Error('queue refresh failed after success');
-      if (path === '/webhook/approval/pending/supabase/v2') return { items: [] };
-      if (path.startsWith('/webhook/approval/topic/supabase/v2')) return { item: state.selectedTopic };
+      if (path === '/webhook/approval/queue/v2') throw new Error('queue refresh failed after success');
+      if (path === '/webhook/approval/pending/v2') return { items: [] };
+      if (path.startsWith('/webhook/approval/topic/v2')) return { item: state.selectedTopic };
       throw new Error(`unexpected get ${path}`);
     },
     async post(path, payload) {
@@ -832,9 +832,9 @@ await feature.approveSourceFromTopic(state.selectedTopic.sources[0]);
 
 const decisionCall = calls.find((entry) => entry.kind === 'post');
 if (!decisionCall) throw new Error('missing decision call');
-if (decisionCall.path !== '/webhook/approval/decision/supabase/v2') throw new Error(`decision path drift: ${decisionCall.path}`);
+if (decisionCall.path !== '/webhook/approval/decision/v2') throw new Error(`decision path drift: ${decisionCall.path}`);
 if (refreshScriptDraftsCount !== 1) throw new Error(`expected script drafts refresh after approve, got ${refreshScriptDraftsCount}`);
-if (!calls.some((entry) => entry.kind === 'get' && entry.path === '/webhook/approval/queue/supabase/v2')) {
+if (!calls.some((entry) => entry.kind === 'get' && entry.path === '/webhook/approval/queue/v2')) {
   throw new Error('missing queue v2 refresh after approve');
 }
 if (toasts.length !== 1 || toasts[0] !== 'Noticia aprobada y encolada para guion') {
@@ -898,7 +898,7 @@ let renderEditorCount = 0;
 const feature = createScriptsFeature({
   api: {
     async get(path) {
-      if (path !== '/webhook/mvp-script-drafts-pending/supabase/v2') throw new Error(`unexpected get ${path}`);
+      if (path !== '/webhook/mvp-script-drafts-pending/v2') throw new Error(`unexpected get ${path}`);
       return {
         items: [{
           draft_id: 'draft-1',
@@ -973,7 +973,7 @@ let renderEditorCount = 0;
 const feature = createScriptsFeature({
   api: {
     async get(path) {
-      if (path !== '/webhook/mvp-script-drafts-pending/supabase/v2') throw new Error(`unexpected get ${path}`);
+      if (path !== '/webhook/mvp-script-drafts-pending/v2') throw new Error(`unexpected get ${path}`);
       return {
         items: [{
           draft_id: 'draft-1',
@@ -1127,7 +1127,7 @@ const feature = createScriptsFeature({
 
 await feature.downloadSelectedScriptDocx();
 
-if (posted?.path !== '/webhook/mvp-script-download-doc/supabase/v1') {
+if (posted?.path !== '/webhook/mvp-script-download-doc/v1') {
   throw new Error(`unexpected download endpoint: ${posted?.path}`);
 }
 if (posted.payload.draft_id !== 'draft-1' || posted.payload.id_noticia !== 'news-1' || posted.payload.cluster_id !== 'cluster-1') {
@@ -1186,12 +1186,12 @@ let renderEditorCount = 0;
 const feature = createScriptsFeature({
   api: {
     async get(path) {
-      if (path !== '/webhook/mvp-script-drafts-pending/supabase/v2') throw new Error(`unexpected get ${path}`);
+      if (path !== '/webhook/mvp-script-drafts-pending/v2') throw new Error(`unexpected get ${path}`);
       return { items: [] };
     },
     async post(path, payload) {
       postPaths.push({ path, payload });
-      if (path === '/webhook/mvp-script-publish/supabase/v2') {
+      if (path === '/webhook/mvp-script-publish/v2') {
         return { ok: true, draft_id: 'draft-1', id_noticia: 'news-1', cluster_id: 'cluster-1', estado_guion: 'publicado', doc_id: 'doc-1', doc_url: 'https://docs.example/doc-1' };
       }
       return { ok: true };
@@ -1210,7 +1210,7 @@ const feature = createScriptsFeature({
 await feature.publishSelectedScript();
 
 if (!selectors.publishConfirmDialog.closed) throw new Error('publish confirm dialog was not closed');
-if (postPaths.map((entry) => entry.path).join('|') !== '/webhook/mvp-script-draft-save/supabase/v2|/webhook/mvp-script-publish/supabase/v2') {
+if (postPaths.map((entry) => entry.path).join('|') !== '/webhook/mvp-script-draft-save/v2|/webhook/mvp-script-publish/v2') {
   throw new Error(`publish post sequence drift: ${JSON.stringify(postPaths)}`);
 }
 if (postPaths[0].payload.guion_editado !== selectors.scriptEditedArea.value.trim()) {
@@ -1270,7 +1270,7 @@ const feature = createScriptsFeature({
 await feature.dismissProcessedScript('processed-1');
 
 if (postCalls.length !== 1) throw new Error(`expected one backend dismissal call, got ${postCalls.length}`);
-if (postCalls[0].path !== '/webhook/mvp-script-draft-save/supabase/v2') {
+if (postCalls[0].path !== '/webhook/mvp-script-draft-save/v2') {
   throw new Error(`dismiss endpoint drift: ${postCalls[0].path}`);
 }
 if (postCalls[0].payload.action !== 'dismiss_processed') {

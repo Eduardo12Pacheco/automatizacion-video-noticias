@@ -82,5 +82,13 @@ test('each run mode resolves its own worker routes and explicit targets win', ()
   assert.deepEqual(resolveModeRouteTargets({ NEWSROOM_MODE: 'local' }), { ...LOCAL_ROUTE_TARGETS });
   assert.equal(DEMO_ROUTE_TARGETS.tts, 'http://demo-worker:8088');
   assert.equal(LOCAL_ROUTE_TARGETS.tts, 'http://tts-worker:8766');
-  assert.equal(LOCAL_ROUTE_TARGETS.approval, 'http://renderer:3042');
+  assert.equal(LOCAL_ROUTE_TARGETS.approval, 'http://approval-editor:3042');
+  for (const prefix of ['radar', 'monitor', 'remotion', 'approval']) {
+    const demo = resolveModeRouteTargets({ NEWSROOM_MODE: 'demo' });
+    const local = resolveModeRouteTargets({ NEWSROOM_MODE: 'local' });
+    assert.equal(typeof demo[prefix], 'string', `demo mode must resolve the ${prefix} prefix`);
+    assert.equal(typeof local[prefix], 'string', `local mode must resolve the ${prefix} prefix`);
+    assert.match(demo[prefix], /^https?:\/\//);
+    assert.match(local[prefix], /^https?:\/\//);
+  }
 });

@@ -65,14 +65,14 @@ export function resolveGatewayPresenceHeartbeatPath() {
 
 export function resolveApprovalSharedReadPath(path = '') {
   const value = (path || '').toString();
-  if (value === '/webhook/approval/pending/supabase/v2') return '/panel/read-models/approval/pending';
-  if (value === '/webhook/approval/queue/supabase/v2') return '/panel/read-models/approval/queue';
-  if (value.startsWith('/webhook/approval/topic/supabase/v2')) {
+  if (value === '/webhook/approval/pending/v2') return '/panel/read-models/approval/pending';
+  if (value === '/webhook/approval/queue/v2') return '/panel/read-models/approval/queue';
+  if (value.startsWith('/webhook/approval/topic/v2')) {
     const query = value.includes('?') ? value.slice(value.indexOf('?')) : '';
     return `/panel/read-models/approval/topic${query}`;
   }
-  if (value === '/webhook/mvp-script-drafts-pending/supabase/v2') return '/panel/read-models/scripts/drafts';
-  if (value === '/webhook/approval/search-refresh/status/supabase/v1') return '/panel/read-models/approval/search-refresh/status';
+  if (value === '/webhook/mvp-script-drafts-pending/v2') return '/panel/read-models/scripts/drafts';
+  if (value === '/webhook/approval/search-refresh/status/v1') return '/panel/read-models/approval/search-refresh/status';
   return '';
 }
 

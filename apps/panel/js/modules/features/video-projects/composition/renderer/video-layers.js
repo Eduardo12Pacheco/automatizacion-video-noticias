@@ -3,8 +3,6 @@ import { clamp, finiteNumber } from './frame-math.js';
 
 export const VIDEO_SEGMENT_OVERLAY_COLOR = '#3835AF';
 export const VIDEO_SEGMENT_OVERLAY_OPACITY = 0.3;
-export const VIDEO_SEGMENT_EFFECT_02_URL = resolveVideoSegmentEffectUrl('overlay-layer-02');
-export const VIDEO_SEGMENT_EFFECT_01_URL = resolveVideoSegmentEffectUrl('overlay-layer-01');
 export const VIDEO_METADATA_READY_STATE = 1;
 export const MANAGED_VIDEO_PENDING_SYNC_KEY = Symbol('managedVideoPendingSync');
 export const CANONICAL_VIDEO_RENDER_WIDTH = 1920;
@@ -71,8 +69,8 @@ export function buildVideoSegmentPreviewLayerPlan({ media = {}, localTime = 0, v
     layers: [
       { name: 'background-video', src: sourceVideoSrc, currentTimeSeconds, objectFit: 'cover' },
       { name: 'color-overlay', backgroundColor: media.overlayColor || VIDEO_SEGMENT_OVERLAY_COLOR, opacity: Number(media.overlayOpacity ?? VIDEO_SEGMENT_OVERLAY_OPACITY) },
-      { name: 'overlay-layer-02', src: media.effect2Src || VIDEO_SEGMENT_EFFECT_02_URL, currentTimeSeconds: effectTimeSeconds, mixBlendMode: media.effect2BlendMode || 'multiply' },
-      { name: 'overlay-layer-01', src: media.effect1Src || VIDEO_SEGMENT_EFFECT_01_URL, currentTimeSeconds: effectTimeSeconds, mixBlendMode: media.effect1BlendMode || 'screen' },
+      { name: 'overlay-layer-02', src: media.effect2Src || resolveVideoSegmentEffectUrl('overlay-layer-02'), currentTimeSeconds: effectTimeSeconds, mixBlendMode: media.effect2BlendMode || 'multiply' },
+      { name: 'overlay-layer-01', src: media.effect1Src || resolveVideoSegmentEffectUrl('overlay-layer-01'), currentTimeSeconds: effectTimeSeconds, mixBlendMode: media.effect1BlendMode || 'screen' },
       { name: 'foreground-video', src: sourceVideoSrc, currentTimeSeconds, objectFit: 'contain', foregroundTransform, transform: buildVideoForegroundTransformStyle(foregroundTransform, viewport), transformOrigin: 'center center' },
     ],
   };

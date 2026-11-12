@@ -22,11 +22,13 @@ export function normalizeImageLookupKey(value = '') {
     .replace(/[^a-z0-9]+/g, '-');
 }
 
-const VIDEO_SEGMENT_EFFECTS = VIDEO_SEGMENT_EFFECT_ASSETS.map((asset) => ({
-  assetId: asset.assetId,
-  mediaUrl: resolveVideoSegmentEffectUrl(asset.assetId),
-  blendMode: asset.blendMode,
-}));
+function videoSegmentEffects() {
+  return VIDEO_SEGMENT_EFFECT_ASSETS.map((asset) => ({
+    assetId: asset.assetId,
+    mediaUrl: resolveVideoSegmentEffectUrl(asset.assetId),
+    blendMode: asset.blendMode,
+  }));
+}
 
 function resolveLegacyCandidateUrl(candidate = {}) {
   return (
@@ -91,7 +93,7 @@ export function normalizePreviewAssetManifest(project = {}) {
         return { rowId: row.rowId || row.id, assetId: row.selectedAssetId, mediaUrl: asset.previewUrl || asset.publicUrl || asset.renderPath || '' };
       }).filter((item) => item.assetId),
       videos,
-      effects: VIDEO_SEGMENT_EFFECTS,
+      effects: videoSegmentEffects(),
       audio: {
         voice: { assetId: canonical.audio?.voice?.assetId, mediaUrl: canonical.audio?.voice?.previewUrl || assets[canonical.audio?.voice?.assetId]?.previewUrl || assets[canonical.audio?.voice?.assetId]?.publicUrl || '' },
         music: { assetId: canonical.audio?.music?.assetId, mediaUrl: canonical.audio?.music?.previewUrl || assets[canonical.audio?.music?.assetId]?.previewUrl || assets[canonical.audio?.music?.assetId]?.publicUrl || '' },

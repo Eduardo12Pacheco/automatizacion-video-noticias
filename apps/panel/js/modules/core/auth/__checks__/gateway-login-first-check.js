@@ -91,7 +91,7 @@ bindCoreEvents({
     remotionApiUrl: 'https://remotion-api.example.local',
     brandChannel: 'default',
     transcriptServiceBaseUrl: 'http://127.0.0.1:8765',
-    channelMonitorBaseUrl: 'http://127.0.0.1:8775',
+    channelMonitorBaseUrl: 'http://127.0.0.1:8790',
   }),
   toast: (message) => calls.push(`toast:${message}`),
   renderCards: () => {},

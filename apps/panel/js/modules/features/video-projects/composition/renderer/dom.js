@@ -6,9 +6,8 @@ import {
   LOGO_TOP,
   LOGO_WIDTH,
 } from './logo-chroma.js';
+import { resolveVideoSegmentEffectUrl } from '../overlay-assets.js';
 import {
-  VIDEO_SEGMENT_EFFECT_01_URL,
-  VIDEO_SEGMENT_EFFECT_02_URL,
   VIDEO_SEGMENT_OVERLAY_COLOR,
   VIDEO_SEGMENT_OVERLAY_OPACITY,
 } from './video-layers.js';
@@ -49,7 +48,7 @@ export function buildCompositionDOM(container) {
   videoEffect2.loop = true;
   videoEffect2.playsInline = true;
   videoEffect2.preload = 'auto';
-  videoEffect2.src = VIDEO_SEGMENT_EFFECT_02_URL;
+  videoEffect2.src = resolveVideoSegmentEffectUrl('overlay-layer-02');
   stage.appendChild(videoEffect2);
 
   const videoEffect1 = document.createElement('video');
@@ -59,7 +58,7 @@ export function buildCompositionDOM(container) {
   videoEffect1.loop = true;
   videoEffect1.playsInline = true;
   videoEffect1.preload = 'auto';
-  videoEffect1.src = VIDEO_SEGMENT_EFFECT_01_URL;
+  videoEffect1.src = resolveVideoSegmentEffectUrl('overlay-layer-01');
   stage.appendChild(videoEffect1);
 
   const videoForeground = document.createElement('video');

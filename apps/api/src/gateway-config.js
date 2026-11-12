@@ -8,8 +8,8 @@ export const DEFAULT_ROUTES = Object.freeze({
   tts: { prefix: '/tts', target: 'http://127.0.0.1:8088' },
   subtitles: { prefix: '/subtitles', target: 'http://127.0.0.1:8092' },
   radar: { prefix: '/radar', target: 'http://127.0.0.1:8765' },
-  monitor: { prefix: '/monitor', target: 'http://127.0.0.1:8775' },
-  remotion: { prefix: '/remotion', target: 'https://remotion-api.example.local' },
+  monitor: { prefix: '/monitor', target: 'http://127.0.0.1:8790' },
+  remotion: { prefix: '/remotion', target: 'http://127.0.0.1:3042' },
   approval: { prefix: '/approval', target: 'http://127.0.0.1:3042' },
 });
 
@@ -37,7 +37,7 @@ export const DEFAULT_EXPOSED_HEADERS = Object.freeze([
 export const DEFAULT_PANEL_BOOTSTRAP = Object.freeze({
   appVersion: '0.1.0',
   settingsVersion: 'gateway-defaults-v1',
-  apiOrigin: 'https://api.example.local',
+  apiOrigin: '',
   minShellVersion: '0.1.0',
   runMode: 'local',
   featureFlags: {},
@@ -415,12 +415,20 @@ export function routePrefixesForBootstrap(routes = DEFAULT_ROUTES) {
   );
 }
 
+function deriveAssetBaseUrl(apiOrigin, routes = DEFAULT_ROUTES) {
+  const prefix = normalizePrefix(routes?.approval?.prefix) || '/approval';
+  const origin = String(apiOrigin || '').replace(/\/+$/, '');
+  return `${origin}${prefix}/api/overlays`;
+}
+
 export function normalizePanelBootstrap(panelBootstrap = {}, routes = DEFAULT_ROUTES) {
   const merged = { ...DEFAULT_PANEL_BOOTSTRAP, ...(panelBootstrap || {}) };
+  const apiOrigin = String(merged.apiOrigin || DEFAULT_PANEL_BOOTSTRAP.apiOrigin).replace(/\/+$/, '');
   return {
     app_version: String(merged.appVersion || DEFAULT_PANEL_BOOTSTRAP.appVersion),
     settings_version: String(merged.settingsVersion || DEFAULT_PANEL_BOOTSTRAP.settingsVersion),
-    api_origin: String(merged.apiOrigin || DEFAULT_PANEL_BOOTSTRAP.apiOrigin).replace(/\/+$/, ''),
+    api_origin: apiOrigin,
+    asset_base_url: String(merged.assetBaseUrl || '').trim() || deriveAssetBaseUrl(apiOrigin, routes),
     min_shell_version: String(merged.minShellVersion || DEFAULT_PANEL_BOOTSTRAP.minShellVersion),
     run_mode: merged.runMode === 'demo' ? 'demo' : 'local',
     routes: routePrefixesForBootstrap(routes),

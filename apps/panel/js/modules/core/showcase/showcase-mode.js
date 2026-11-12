@@ -167,7 +167,7 @@ const GATEWAY_EVENTS = Object.freeze([
     message: 'Approval decision applied',
     correlation_id: 'demo-corr-1',
     timestamp: '2026-11-12T09:01:00.000Z',
-    context: { route: '/webhook/approval/decision/supabase/v2' },
+    context: { route: '/webhook/approval/decision/v2' },
   },
   {
     event_id: 'demo-event-2',
@@ -410,6 +410,7 @@ export function installShowcaseMode({ windowRef = globalThis.window, locationLik
     app_version: 'showcase',
     run_mode: 'demo',
     feature_flags: { localWorkflows: true },
+    asset_base_url: './assets',
     routes: { approval: '/panel/read-models/approval' },
   };
 

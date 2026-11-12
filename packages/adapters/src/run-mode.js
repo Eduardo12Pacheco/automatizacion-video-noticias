@@ -42,6 +42,8 @@ export const DEMO_ROUTE_TARGETS = Object.freeze({
   tts: 'http://demo-worker:8088',
   subtitles: 'http://demo-worker:8088',
   remotion: 'http://demo-worker:8088',
+  radar: 'http://demo-worker:8088',
+  monitor: 'http://demo-worker:8088',
   approval: 'http://approval-editor:3042',
 });
 
@@ -49,7 +51,7 @@ export const LOCAL_ROUTE_TARGETS = Object.freeze({
   tts: 'http://tts-worker:8766',
   subtitles: 'http://subtitles:8092',
   remotion: 'http://renderer:3042',
-  approval: 'http://renderer:3042',
+  approval: 'http://approval-editor:3042',
   radar: 'http://asr-worker:8765',
   monitor: 'http://channel-monitor:8790',
 });

@@ -6,7 +6,7 @@ import { after, before, describe, it } from 'node:test';
 
 import { createGatewayServer } from '../src/gateway.js';
 import { createDataRouter } from '../src/data-router.js';
-import { InMemoryRepository, FsBlobStorage } from '../../../packages/data/src/index.js';
+import { InMemoryRepository, FsBlobStorage } from '@newsroom/data';
 
 const MP4_HEADER = Buffer.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20, 0, 0, 0, 0]);
 

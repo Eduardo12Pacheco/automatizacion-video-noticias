@@ -1,4 +1,5 @@
 import { bootCompositionRoot } from './modules/composition-root.js';
+import { configureCompositionAssetBaseUrl } from './modules/features/video-projects/composition/overlay-assets.js';
 
 async function loadServerBootstrap() {
   try {
@@ -20,6 +21,7 @@ async function boot() {
     console.warn('Showcase mode unavailable:', error);
   }
   if (!globalThis.__CONTROL_PANEL_BOOTSTRAP__) await loadServerBootstrap();
+  configureCompositionAssetBaseUrl(globalThis.__CONTROL_PANEL_BOOTSTRAP__?.asset_base_url || './assets');
   bootCompositionRoot();
 }
 

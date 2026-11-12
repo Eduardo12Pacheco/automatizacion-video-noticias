@@ -5,7 +5,7 @@ const DEFAULT_APPROVAL_EDITOR_SERVICE_URL = globalThis?.location?.origin
   ? `${globalThis.location.origin}/approval`
   : 'https://api.example.local/approval';
 const DEFAULT_TRANSCRIPT_SERVICE_URL = 'http://127.0.0.1:8765';
-const DEFAULT_CHANNEL_MONITOR_SERVICE_URL = 'http://127.0.0.1:8775';
+const DEFAULT_CHANNEL_MONITOR_SERVICE_URL = 'http://127.0.0.1:8790';
 const DEFAULT_SUBTITLES_SERVICE_URL = 'http://127.0.0.1:8092';
 const DEFAULT_API_ORIGIN = globalThis?.location?.origin || 'https://api.example.local';
 const DEFAULT_BRAND_CHANNEL = 'demo-primary';
@@ -133,27 +133,9 @@ export function defaultSettingsFactory() {
   return {
     apiProfileMode: 'unified',
     apiOrigin: DEFAULT_API_ORIGIN,
-    sharedApiKey: '',
-    sharedBasicUser: '',
-    sharedBasicPass: '',
     serviceOverrides: { ...DEFAULT_SERVICE_OVERRIDES },
-    baseUrl: 'http://localhost:5678',
-    secret: '',
-    ttsBaseUrl: 'http://localhost:8088',
-    ttsApiKey: '',
-    ttsBasicUser: '',
-    ttsBasicPass: '',
-    subtitlesBaseUrl: DEFAULT_SUBTITLES_SERVICE_URL,
-    subtitlesApiKey: '',
-    subtitlesBasicUser: '',
-    subtitlesBasicPass: '',
-    remotionApiUrl: DEFAULT_REMOTION_API_URL,
-    approvalPipelineBaseUrl: DEFAULT_APPROVAL_EDITOR_SERVICE_URL,
+    approvalRoutePrefix: 'approval',
     brandChannel: DEFAULT_BRAND_CHANNEL,
-    transcriptServiceBaseUrl: DEFAULT_TRANSCRIPT_SERVICE_URL,
-    transcriptServiceApiKey: '',
-    channelMonitorBaseUrl: DEFAULT_CHANNEL_MONITOR_SERVICE_URL,
-    channelMonitorApiKey: '',
   };
 }
 
@@ -321,7 +303,10 @@ export function resolveServiceConfig(rawSettings = {}, service) {
   }
   if (service === 'approvalPipeline') {
     const hasExplicitApprovalPipeline = Object.prototype.hasOwnProperty.call(rawSettings || {}, 'approvalPipelineBaseUrl');
-    return { baseUrl: hasExplicitApprovalPipeline ? trimTrailingSlash(rawSettings.approvalPipelineBaseUrl) : '' };
+    if (hasExplicitApprovalPipeline) return { baseUrl: trimTrailingSlash(rawSettings.approvalPipelineBaseUrl) };
+    const origin = trimTrailingSlash(settings.apiOrigin);
+    const prefix = (settings.approvalRoutePrefix || 'approval').toString().trim().replace(/^\/+|\/+$/g, '');
+    return { baseUrl: origin && prefix ? `${origin}/${prefix}` : '' };
   }
   return { baseUrl: '' };
 }

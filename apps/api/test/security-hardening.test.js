@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { InMemoryRepository, FsBlobStorage } from '../../../packages/data/src/index.js';
+import { InMemoryRepository, FsBlobStorage } from '@newsroom/data';
 import { createAdminRouter } from '../src/admin-router.js';
 import { createAuthService } from '../src/auth.js';
 import { createDataRouter } from '../src/data-router.js';

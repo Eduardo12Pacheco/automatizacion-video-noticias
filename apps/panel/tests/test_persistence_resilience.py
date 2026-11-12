@@ -444,7 +444,7 @@ const current = {
   ttsBaseUrl: 'http://127.0.0.1:8088',
   subtitlesBaseUrl: 'http://127.0.0.1:8092',
   transcriptServiceBaseUrl: 'http://127.0.0.1:8765',
-  channelMonitorBaseUrl: 'http://127.0.0.1:8775',
+  channelMonitorBaseUrl: 'http://127.0.0.1:8790',
   remotionApiUrl: 'http://127.0.0.1:3037',
   approvalPipelineBaseUrl: 'http://127.0.0.1:3042',
   brandChannel: 'demo-secondary',
@@ -490,7 +490,7 @@ const current = {
   ttsBaseUrl: 'http://127.0.0.1:8088',
   subtitlesBaseUrl: 'http://127.0.0.1:8092',
   transcriptServiceBaseUrl: 'http://127.0.0.1:8765',
-  channelMonitorBaseUrl: 'http://127.0.0.1:8775',
+  channelMonitorBaseUrl: 'http://127.0.0.1:8790',
   remotionApiUrl: 'http://127.0.0.1:3037',
 };
 
@@ -507,7 +507,7 @@ if (resolveServiceConfig(remote, 'monitor').baseUrl !== 'https://api.example.loc
 if (resolveServiceConfig(local, 'tts').baseUrl !== 'http://127.0.0.1:8088') {
   throw new Error(`local operator tts origin should be preserved, got ${resolveServiceConfig(local, 'tts').baseUrl}`);
 }
-if (resolveServiceConfig(local, 'monitor').baseUrl !== 'http://127.0.0.1:8775') {
+if (resolveServiceConfig(local, 'monitor').baseUrl !== 'http://127.0.0.1:8790') {
   throw new Error(`local operator monitor origin should be preserved, got ${resolveServiceConfig(local, 'monitor').baseUrl}`);
 }
 """

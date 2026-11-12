@@ -389,84 +389,12 @@
             <h3 data-i18n="settings.project">Configuración del proyecto</h3>
             <p class="meta settings-help" data-i18n="settings.projectHelp">Una sola configuración compartida para conectar el panel con el gateway autenticado.</p>
 
-            <select id="apiProfileModeSelect" class="hidden" hidden aria-hidden="true" tabindex="-1">
-              <option value="unified" selected>Unified</option>
-            </select>
-
-            <label class="settings-field">
-              <span data-i18n="settings.apiOrigin">API Origin / Endpoint del proyecto</span>
-              <input id="apiOriginInput" placeholder="https://api.example.local" />
-              <span class="meta" data-i18n="settings.apiOriginHelp">Se usa como origen compartido para n8n, Audio, Subtítulos, Radar, Remotion y Approval.</span>
-            </label>
-
             <aside class="settings-server-credentials-note" aria-label="Credenciales administradas por el Gateway" data-i18n-aria-label="settings.credentialsAria">
               <strong data-i18n="settings.credentials">Credenciales de servicios</strong>
               <span class="meta" data-i18n="settings.credentialsHelp">Las API keys y Basic Auth ya no se configuran en el navegador. Se administran en el API Gateway para que todos usen la misma configuración segura.</span>
             </aside>
           </section>
 
-          <div id="advancedSettingsSection" class="settings-compatibility hidden" hidden aria-hidden="true">
-
-          <section class="settings-legacy-group">
-            <h3 data-i18n="settings.legacyEditor">Panel editorial (n8n)</h3>
-            <p class="meta settings-help" data-i18n="settings.legacyEditorHelp">Estos datos se usan para aprobar temas, editar y publicar guiones.</p>
-
-            <label class="settings-field">
-              Base URL n8n
-              <input id="baseUrlInput" placeholder="http://localhost:5678" />
-            </label>
-
-            <label class="settings-field">
-              x-approval-secret (opcional)
-              <input id="secretInput" placeholder="Solo si habilitás secret en n8n" data-i18n-placeholder="settings.secretPlaceholder" />
-            </label>
-
-            <label class="settings-field">
-              Remotion API URL
-              <input id="remotionApiUrlInput" placeholder="http://127.0.0.1:3037" />
-            </label>
-
-            <label class="settings-field">
-              <span data-i18n="settings.approvalPipeline">Approval Pipeline URL (opcional, solo preparación)</span>
-              <input id="approvalPipelineBaseUrlInput" placeholder="http://127.0.0.1:3042" />
-              <span class="meta" data-i18n="settings.approvalPipelineHelp">Si lo dejás vacío, sigue el fallback a Remotion.</span>
-            </label>
-
-          </section>
-
-          <section class="settings-legacy-group">
-            <h3 data-i18n="settings.ttsTitle">Creación de audios (TTS)</h3>
-            <p class="meta settings-help" data-i18n="settings.ttsHelp">Estos datos protegen la API de audio que ejecuta la RTX local.</p>
-
-            <label class="settings-field">
-              Base URL Audio API
-              <input id="ttsBaseUrlInput" placeholder="http://localhost:8088" />
-            </label>
-
-          </section>
-
-          <section class="settings-legacy-group">
-            <h3 data-i18n="settings.subtitlesTitle">Subtítulos</h3>
-            <p class="meta settings-help" data-i18n="settings.subtitlesHelp">Servicio remoto/local de Subtítulos 2. No depende de la API de voz.</p>
-
-            <label class="settings-field">
-              <span data-i18n="settings.subtitlesBaseUrl">Base URL Subtítulos</span>
-              <input id="subtitlesBaseUrlInput" placeholder="http://127.0.0.1:8092" />
-            </label>
-
-          </section>
-
-          <section class="settings-legacy-group">
-            <h3 data-i18n="settings.radarTitle">Radar / Prensa</h3>
-            <p class="meta settings-help" data-i18n="settings.radarHelp">Servicio local de transcripción y menciones. local-only por defecto si apunta a localhost; la API key no se muestra en errores ni historial.</p>
-
-            <label class="settings-field">
-              Base URL Transcript Service
-              <input id="transcriptServiceBaseUrlInput" placeholder="http://127.0.0.1:8765" />
-            </label>
-
-          </section>
-          </div>
         </div>
 
         <footer class="dialog-actions">

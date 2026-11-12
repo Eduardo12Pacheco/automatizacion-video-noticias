@@ -93,11 +93,11 @@ export function resolvePanelReadModelRoute(rawUrl, routes = DEFAULT_ROUTES) {
     return { service, target: configured.target, upstreamPath: `${upstreamPath}${query}` };
   };
 
-  if (path === '/approval/pending') return routeFor('n8n', '/webhook/approval/pending/supabase/v2');
-  if (path === '/approval/queue') return routeFor('n8n', '/webhook/approval/queue/supabase/v2');
-  if (path === '/approval/topic') return routeFor('n8n', '/webhook/approval/topic/supabase/v2');
-  if (path === '/approval/search-refresh/status') return routeFor('n8n', '/webhook/approval/search-refresh/status/supabase/v1');
-  if (path === '/scripts/drafts') return routeFor('n8n', '/webhook/mvp-script-drafts-pending/supabase/v2');
+  if (path === '/approval/pending') return routeFor('n8n', '/webhook/approval/pending/v2');
+  if (path === '/approval/queue') return routeFor('n8n', '/webhook/approval/queue/v2');
+  if (path === '/approval/topic') return routeFor('n8n', '/webhook/approval/topic/v2');
+  if (path === '/approval/search-refresh/status') return routeFor('n8n', '/webhook/approval/search-refresh/status/v1');
+  if (path === '/scripts/drafts') return routeFor('n8n', '/webhook/mvp-script-drafts-pending/v2');
   if (path === '/audio/jobs') return routeFor('tts', '/api/tts/jobs');
   const audioJobMatch = path.match(/^\/audio\/jobs\/([^/]+)$/);
   if (audioJobMatch?.[1]) {

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { InMemoryRepository, FsBlobStorage } from '../../../packages/data/src/index.js';
+import { InMemoryRepository, FsBlobStorage } from '@newsroom/data';
 import { createDataRouter } from '../src/data-router.js';
 
 function bodyReader(bytes) {

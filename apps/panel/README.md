@@ -60,7 +60,7 @@ http://localhost:8080/apps/panel/
 El servicio local activo vive en:
 
 ```text
-apps/panel/services/approval-editor/
+services/approval-editor/
 ```
 
 Antes de ejecutar los comandos, definí `$env:NEWSROOM_ROOT` con la ruta absoluta del repositorio.
@@ -68,7 +68,7 @@ Antes de ejecutar los comandos, definí `$env:NEWSROOM_ROOT` con la ruta absolut
 Se levanta con:
 
 ```powershell
-cd $env:NEWSROOM_ROOT\apps\panel
+cd $env:NEWSROOM_ROOT
 node .\services\approval-editor\server.js
 ```
 
@@ -103,7 +103,7 @@ apps/panel/approval-editor-service/projects/
 hacia:
 
 ```text
-apps/panel/services/approval-editor/projects/
+services/approval-editor/projects/
 ```
 
 ## Arquitectura

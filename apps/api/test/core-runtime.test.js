@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { InMemoryRepository } from '../../../packages/data/src/index.js';
+import { InMemoryRepository } from '@newsroom/data';
 import { createCoreRuntime } from '../src/core-runtime.js';
 
 describe('core runtime adapter injection', () => {

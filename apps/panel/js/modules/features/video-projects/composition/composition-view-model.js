@@ -1,7 +1,6 @@
 import { resolveCandidateImageUrl } from '../domain/image-candidates.js';
 import { findProjectVideoAsset } from '../domain/video-assets.js';
 import {
-  COMPOSITION_LOCAL_OVERLAY_BASE_URL,
   resolveBrandChannelAssets,
   resolveBrandChannelPreviewAssetUrl,
   resolveVideoSegmentEffectAsset,

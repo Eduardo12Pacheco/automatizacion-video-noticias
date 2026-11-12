@@ -193,7 +193,7 @@ def test_control_panel_and_workspace_ignores_protect_runtime_and_python_caches()
         assert expected in control_panel_ignore
 
     for expected in [
-        "apps/panel/services/approval-editor/projects/",
+        "services/approval-editor/projects/",
         "__pycache__/",
         "*.py[cod]",
         ".pytest_cache/",
@@ -201,77 +201,33 @@ def test_control_panel_and_workspace_ignores_protect_runtime_and_python_caches()
         assert expected in root_ignore
 
 
-def test_approval_pipeline_settings_placeholder_and_help_match_local_service_contract():
+def test_settings_are_server_managed_and_expose_no_worker_or_api_origin_inputs():
     source = _read(INDEX_PATH)
-    assert 'id="approvalPipelineBaseUrlInput" placeholder="http://127.0.0.1:3042"' in source
-    assert "Approval Pipeline URL (opcional, solo preparación)" in source
-    assert "Si lo dejás vacío, sigue el fallback a Remotion" in source
-
-
-def test_settings_presents_single_unified_config_and_hides_legacy_compatibility_fields():
-    source = _read(INDEX_PATH)
-    for selector_id in [
+    for removed_selector_id in [
         "apiProfileModeSelect",
         "apiOriginInput",
         "advancedSettingsSection",
-    ]:
-        assert f'id="{selector_id}"' in source
-
-    visible_settings = source.split('<div class="settings-form">', 1)[1].split('<footer class="dialog-actions">', 1)[0]
-    compatibility_markup = visible_settings.split('id="advancedSettingsSection"', 1)[1]
-    assert "Endpoint del proyecto" in visible_settings
-    assert "Las API keys y Basic Auth ya no se configuran en el navegador" in visible_settings
-    assert "API Gateway" in visible_settings
-    assert "x-api-key compartida" not in visible_settings
-    assert "Usuario Basic Auth compartido" not in visible_settings
-    assert "Contraseña Basic Auth compartida" not in visible_settings
-    assert "Configuración avanzada" not in visible_settings
-    assert "Modo avanzado" not in visible_settings
-    assert "Futuro gateway" not in visible_settings
-    assert '<section class="settings-section"' in visible_settings
-    assert visible_settings.count('<section class="settings-section"') == 4
-    assert 'id="openConnectorsBtn"' in visible_settings
-    assert 'id="languageSelect"' in visible_settings
-    assert 'id="advancedSettingsSection"' in visible_settings
-    assert 'hidden' in compatibility_markup.split('>', 1)[0]
-    assert 'aria-hidden="true"' in compatibility_markup.split('>', 1)[0]
-
-    for legacy_id in [
+        "approvalPipelineBaseUrlInput",
         "baseUrlInput",
         "secretInput",
         "ttsBaseUrlInput",
         "subtitlesBaseUrlInput",
         "transcriptServiceBaseUrlInput",
         "remotionApiUrlInput",
-        "approvalPipelineBaseUrlInput",
+        "channelMonitorBaseUrlInput",
     ]:
-        assert f'id="{legacy_id}"' in source
+        assert f'id="{removed_selector_id}"' not in source
 
-    for removed_service_credential_id in [
-        "ttsApiKeyInput",
-        "ttsBasicUserInput",
-        "ttsBasicPassInput",
-        "subtitlesApiKeyInput",
-        "subtitlesBasicUserInput",
-        "subtitlesBasicPassInput",
-        "transcriptServiceApiKeyInput",
-    ]:
-        assert f'id="{removed_service_credential_id}"' not in source
-
-    script = r"""
-import { getDomSelectors } from './js/modules/shared/dom/selectors.js';
-
-const requested = [];
-const selectors = getDomSelectors({ getElementById(id) { requested.push(id); return { id }; } });
-for (const name of ['apiProfileModeSelect', 'apiOriginInput', 'advancedSettingsSection']) {
-  if (selectors[name]?.id !== name) throw new Error(`missing selector ${name}`);
-}
-for (const legacy of ['baseUrlInput', 'ttsBaseUrlInput', 'subtitlesBaseUrlInput', 'approvalPipelineBaseUrlInput']) {
-  if (!requested.includes(legacy)) throw new Error(`legacy selector no longer requested: ${legacy}`);
-}
-"""
-    result = _run_node(script)
-    assert result.returncode == 0, result.stderr
+    visible_settings = source.split('<div class="settings-form">', 1)[1].split('<footer class="dialog-actions">', 1)[0]
+    assert "Endpoint del proyecto" not in visible_settings
+    assert "Las API keys y Basic Auth ya no se configuran en el navegador" in visible_settings
+    assert "API Gateway" in visible_settings
+    assert 'id="openConnectorsBtn"' in visible_settings
+    assert 'id="languageSelect"' in visible_settings
+    assert 'id="themeSelect"' in visible_settings
+    assert visible_settings.count('<section class="settings-section"') == 4
+    for section in ("Configuración del proyecto", "Conectores", "Idioma", "Tema"):
+        assert section in visible_settings
 
 
 def test_approval_pipeline_unhealthy_service_still_falls_back_to_remotion():
@@ -397,69 +353,17 @@ for (const expected of ['approval-health', 'approval-create']) {
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize(
-    "approval_base_url",
-    [None, '   '],
-    ids=['absent', 'blank'],
-)
-def test_approval_pipeline_blank_or_absent_setting_uses_remotion_fallback_without_health_probe(approval_base_url):
-    script = rf"""
-import {{ prepareVideoCompositionContract }} from './js/modules/features/video-projects/contract-pipeline-client.js';
+def test_approval_pipeline_defaults_to_the_api_route_derived_from_the_origin():
+    script = r"""
+import { defaultSettingsFactory, resolveServiceConfig } from './js/modules/core/state/app-store.js';
 
-const calls = [];
-const api = {{
-  createApprovalPipelineClient() {{
-    calls.push({{ type: 'approval-adapter' }});
-    throw new Error('approval provider health should not be probed when the setting is blank or absent');
-  }},
-  createRemotionClient({{ resolveBaseUrl }}) {{
-    calls.push({{ type: 'remotion-adapter', baseUrl: resolveBaseUrl() }});
-    return {{
-      async createFromApproval() {{
-        return {{
-          alignmentStatus: {{ status: 'ready' }},
-          projectId: 'remotion-123',
-          snapshot: {{ project: {{ rows: [{{ id: 'row-1', phrase: 'fallback', startTime: 0, endTime: 2 }}] }} }},
-        }};
-      }},
-      async status() {{
-        return {{ project: {{ rows: [{{ id: 'row-1', phrase: 'fallback', startTime: 0, endTime: 2 }}] }} }};
-      }},
-    }};
-  }},
-}};
+const defaults = defaultSettingsFactory();
+const resolved = resolveServiceConfig(defaults, 'approvalPipeline');
+const expected = `${defaults.apiOrigin.replace(/\/+$/, '')}/approval`;
+if (resolved.baseUrl !== expected) throw new Error(`approval default drift: ${resolved.baseUrl} !== ${expected}`);
 
-const result = await prepareVideoCompositionContract({{
-  project: {{
-    draft_id: 'draft-blank',
-    title: 'Proyecto fallback',
-    guion_piped: 'una|dos',
-    selected_images: [],
-    voice_audio: {{ public_url: 'https://cdn.example.com/voice.mp3' }},
-    background_audio: {{ public_url: 'https://cdn.example.com/music.mp3' }},
-  }},
-  settings: {{ remotionApiUrl: 'https://remotion.local'{'' if approval_base_url is None else f", approvalPipelineBaseUrl: '{approval_base_url}'"} }},
-  api,
-}});
-
-if (result.provider !== 'remotion') {{
-  throw new Error(`expected remotion fallback, got ${{result.provider}}`);
-}}
-if (result.providerMetadata?.baseUrl !== 'https://remotion.local') {{
-  throw new Error('expected remotion baseUrl to be preserved in provider metadata');
-}}
-if (result.providerMetadata?.fallbackFrom !== '') {{
-  throw new Error('expected no approval fallback origin when the approval setting is blank or absent');
-}}
-if (result.providerMetadata?.health !== null) {{
-  throw new Error('expected no approval health probe metadata when the setting is blank or absent');
-}}
-if (calls.some((entry) => entry.type === 'approval-adapter')) {{
-  throw new Error('expected approval provider client not to be created when the setting is blank or absent');
-}}
-if (!calls.some((entry) => entry.type === 'remotion-adapter' && entry.baseUrl === 'https://remotion.local')) {{
-  throw new Error('expected remotion client to be used directly as the fallback path');
-}}
+const explicit = resolveServiceConfig({ ...defaults, apiOrigin: 'https://panel.example.test', approvalRoutePrefix: 'approval' }, 'approvalPipeline');
+if (explicit.baseUrl !== 'https://panel.example.test/approval') throw new Error(`approval origin drift: ${explicit.baseUrl}`);
 """
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
