@@ -13,7 +13,7 @@ name: newsroom
 # to NEWSROOM_BIND (127.0.0.1 by default) instead of every interface. Postgres,
 # Ollama, SearXNG, Mailpit and n8n stay on the internal network; when you really
 # need their ports for debugging, add infra/compose/compose.debug.yaml and run
-#   docker compose --profile debug -f compose.yaml -f infra/compose/compose.debug.yaml up
+#   docker compose -f compose.yaml -f infra/compose/compose.debug.yaml up
 # The API keeps API_GATEWAY_HOST=0.0.0.0 inside the container network because it
 # is never published directly: the panel nginx proxy reaches it over the Compose
 # network while only the loopback-bound panel port is exposed to the host.

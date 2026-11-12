@@ -265,7 +265,7 @@ Postgres, Ollama, SearXNG, Mailpit and n8n are not published. For debugging,
 add the optional override:
 
 ```bash
-docker compose --profile debug -f compose.yaml -f infra/compose/compose.debug.yaml up
+docker compose -f compose.yaml -f infra/compose/compose.debug.yaml up
 ```
 
 Sessions are HTTP-only, SameSite=Lax cookies with a server-side store and
