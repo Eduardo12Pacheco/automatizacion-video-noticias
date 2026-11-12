@@ -93,7 +93,7 @@ class RuntimeServiceTest(unittest.TestCase):
         self.assertTrue((ROOT / "services/approval-editor/Dockerfile").is_file())
         self.assertEqual(compose.count("dockerfile: services/approval-editor/Dockerfile"), 1, "exactly one approval-editor container")
         renderer_dockerfile = (ROOT / "services/renderer/Dockerfile").read_text(encoding="utf-8")
-        self.assertNotIn("apps/panel/services", renderer_dockerfile)
+        self.assertNotIn("apps/panel", renderer_dockerfile)
         self.assertNotIn("approval-editor/server.js", renderer_dockerfile)
         self.assertIn("scripts/render/render-server.js", renderer_dockerfile)
 

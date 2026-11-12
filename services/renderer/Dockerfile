@@ -18,7 +18,6 @@ RUN apt-get update \
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
-COPY apps/panel/package.json apps/panel/package.json
 COPY packages/adapters/package.json packages/adapters/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/core/package.json packages/core/package.json
