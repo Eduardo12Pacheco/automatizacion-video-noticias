@@ -91,7 +91,10 @@ export const DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS = 120_000;
 export const DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS = 15 * 60 * 1000;
 export const DEFAULT_PANEL_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 export const DEFAULT_PRESENCE_TTL_MS = 60_000;
-export const DEFAULT_TRUSTED_PROXY_CIDRS = Object.freeze(['172.16.0.0/12']);
+// No proxy is trusted by default: a direct connection to the published API
+// must never be able to spoof X-Forwarded-For. Compose sets the panel
+// container's own address explicitly.
+export const DEFAULT_TRUSTED_PROXY_CIDRS = Object.freeze([]);
 
 export const SERVICE_CREDENTIAL_ENV = Object.freeze({
   n8n: Object.freeze({ apiKey: 'API_GATEWAY_N8N_API_KEY' }),

@@ -343,15 +343,26 @@ export function isIpInCidrs(value, cidrs = []) {
 
 /**
  * Resolve the client address without trusting a spoofed X-Forwarded-For.
- * Forwarded headers are honoured only when the TCP peer is the bundled panel
- * proxy (TRUSTED_PROXY_CIDRS, default the private Compose network).
+ *
+ * Forwarded headers are honoured only when the TCP peer is a trusted proxy
+ * (TRUSTED_PROXY_CIDRS, the panel container in Compose). The chain is read
+ * right-to-left and the first address that is not itself a trusted proxy is
+ * the client, so a caller cannot prepend a fake entry. A request that arrives
+ * directly at the published API port has an untrusted peer and its XFF header
+ * is ignored entirely.
  */
 export function resolveClientIp(req = {}, { trustedProxyCidrs = DEFAULT_TRUSTED_PROXY_CIDRS } = {}) {
   const peer = normalizeIp(req.socket?.remoteAddress || req.connection?.remoteAddress);
   if (!peer) return 'unknown';
   if (!isIpInCidrs(peer, trustedProxyCidrs)) return peer;
-  const forwarded = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim();
-  return normalizeIp(forwarded) || peer;
+  const forwarded = String(req.headers?.['x-forwarded-for'] || '')
+    .split(',')
+    .map((entry) => normalizeIp(entry))
+    .filter(Boolean);
+  for (let index = forwarded.length - 1; index >= 0; index -= 1) {
+    if (!isIpInCidrs(forwarded[index], trustedProxyCidrs)) return forwarded[index];
+  }
+  return peer;
 }
 
 export function loginThrottleKey(user, clientIp) {

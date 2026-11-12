@@ -90,6 +90,11 @@ class ComposeStackTests(unittest.TestCase):
                     f"{name} must bind to ${{NEWSROOM_BIND:-127.0.0.1}}, got {entry}",
                 )
 
+    def test_panel_proxy_overwrites_the_forwarded_for_header(self) -> None:
+        nginx = (ROOT / "infra" / "panel" / "nginx.conf").read_text(encoding="utf-8")
+        self.assertIn("proxy_set_header X-Forwarded-For $remote_addr;", nginx)
+        self.assertNotIn("proxy_add_x_forwarded_for", nginx)
+
     def test_internal_services_are_not_published_by_default(self) -> None:
         for name in ("postgres", "searxng", "mailpit", "ollama", "n8n"):
             self.assertNotIn("ports", self.services[name], name)

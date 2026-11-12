@@ -10,6 +10,7 @@ import { createAdminRouter } from '../src/admin-router.js';
 import { createAuthService } from '../src/auth.js';
 import { createDataRouter } from '../src/data-router.js';
 import { createGatewayServer, readPanelUsersFromEnv, startGateway } from '../src/gateway.js';
+import { resolveClientIp } from '../src/gateway-auth.js';
 import { createLocalRouter } from '../src/local-router.js';
 import { PANEL_MUTATION_ROUTES } from '../src/route-table.js';
 
@@ -273,6 +274,26 @@ describe('login throttling behind the bundled proxy (S12)', () => {
     });
   }
 
+  it('ignores a spoofed X-Forwarded-For from an untrusted peer', () => {
+    assert.equal(
+      resolveClientIp({
+        socket: { remoteAddress: '127.0.0.1' },
+        headers: { 'x-forwarded-for': '203.0.113.99' },
+      }),
+      '127.0.0.1',
+    );
+  });
+
+  it('uses the right-most non-proxy address when the peer is trusted', () => {
+    assert.equal(
+      resolveClientIp({
+        socket: { remoteAddress: '172.28.240.10' },
+        headers: { 'x-forwarded-for': '198.51.100.7, 203.0.113.10' },
+      }, { trustedProxyCidrs: ['172.28.240.10/32'] }),
+      '203.0.113.10',
+    );
+  });
+
   it('keys the lockout on username and forwarded client IP', async () => {
     assert.equal((await badLogin({ forwardedFor: '203.0.113.10' })).status, 401);
     assert.equal((await badLogin({ forwardedFor: '203.0.113.10' })).status, 429);
@@ -287,6 +308,11 @@ describe('login throttling behind the bundled proxy (S12)', () => {
       401,
       'a different username must have its own bucket',
     );
+  });
+
+  it('cannot rotate buckets by prepending a spoofed forwarding chain', async () => {
+    assert.equal((await badLogin({ forwardedFor: '198.51.100.1, 203.0.113.50' })).status, 401);
+    assert.equal((await badLogin({ forwardedFor: '198.51.100.2, 203.0.113.50' })).status, 429);
   });
 });
 
