@@ -10,7 +10,15 @@ from pathlib import Path
 PIPER_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 VOICE_PATHS = {
     "en_US-lessac-medium": "en/en_US/lessac/medium/en_US-lessac-medium",
-    "es_ES-demo-medium": "es/es_ES/demo/medium/es_ES-demo-medium",
+    "es_ES-davefx-medium": "es/es_ES/davefx/medium/es_ES-davefx-medium",
+}
+PIPER_SIZE_HINT = "~60 MB per voice"
+WHISPER_SIZE_HINTS = {
+    "tiny": "~75 MB",
+    "base": "~145 MB",
+    "small": "~480 MB",
+    "medium": "~1.5 GB",
+    "large-v3": "~3 GB",
 }
 
 
@@ -37,6 +45,7 @@ def init_piper() -> None:
     if not path:
         print(f"model-init: unknown Piper voice {model}; set PIPER_MODEL to a supported voice", file=sys.stderr)
         return
+    print(f"model-init: Piper {model} ({PIPER_SIZE_HINT})")
     for suffix in (".onnx", ".onnx.json"):
         download(f"{PIPER_BASE}/{path}{suffix}", root / f"{model}{suffix}")
 
@@ -49,6 +58,7 @@ def init_whisper() -> None:
         return
     from huggingface_hub import snapshot_download
 
+    print(f"model-init: Whisper {model} ({WHISPER_SIZE_HINTS.get(model, 'unknown size')})")
     snapshot_download(
         repo_id=f"Systran/faster-whisper-{model}",
         local_dir=str(root),

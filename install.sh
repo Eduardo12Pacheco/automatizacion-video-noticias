@@ -19,6 +19,7 @@ Usage:
 Options:
   -y, --yes                 Non-interactive; generate the admin password
       --profile <name>      auto (default), cpu or gpu
+      --mode <name>         demo (default) or local: real local AI stack
       --check               Check host prerequisites and exit
       --dry-run             Print every action without changing the host
       --uninstall           Stop and remove the stack
@@ -36,7 +37,7 @@ Options:
       --version             Show the installer version
 
 Environment:
-  NEWSROOM_PROFILE, NEWSROOM_PROJECT_DIR, NEWSROOM_COMPOSE_FILE,
+  NEWSROOM_MODE, NEWSROOM_PROFILE, NEWSROOM_PROJECT_DIR, NEWSROOM_COMPOSE_FILE,
   NEWSROOM_ADMIN_EMAIL, NEWSROOM_ADMIN_PASSWORD, NEWSROOM_BIN_DIR
 
 The installer never reads or writes API keys. It creates .env from
@@ -53,12 +54,15 @@ REQUESTED_PROFILE=""
 PROJECT_DIR_OVERRIDE=""
 COMPOSE_FILE_OVERRIDE=""
 ADMIN_EMAIL_OVERRIDE=""
+MODE_OVERRIDE=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -y|--yes) NR_YES=1 ;;
     --profile) REQUESTED_PROFILE="${2:-}"; shift ;;
     --profile=*) REQUESTED_PROFILE="${1#*=}" ;;
+    --mode) MODE_OVERRIDE="${2:-}"; shift ;;
+    --mode=*) MODE_OVERRIDE="${1#*=}" ;;
     --check) ACTION=check ;;
     --dry-run) NR_DRY_RUN=1 ;;
     --uninstall) ACTION=uninstall ;;
@@ -91,6 +95,12 @@ if [ -n "$COMPOSE_FILE_OVERRIDE" ]; then
   NEWSROOM_COMPOSE_FILE="$COMPOSE_FILE_OVERRIDE"
 fi
 nr_reinit_paths
+
+NR_RUN_MODE="${MODE_OVERRIDE:-${NEWSROOM_MODE:-demo}}"
+case "$NR_RUN_MODE" in
+  demo|local) ;;
+  *) nr_die "unknown mode: $NR_RUN_MODE (expected demo or local)" ;;
+esac
 
 if [ -n "$ADMIN_EMAIL_OVERRIDE" ]; then
   NEWSROOM_ADMIN_EMAIL="$ADMIN_EMAIL_OVERRIDE"
@@ -161,6 +171,12 @@ if [ "$NR_DRY_RUN" = "0" ]; then
   nr_require_compose
   nr_env_ensure
   nr_env_set NEWSROOM_PROFILE "$NR_PROFILE"
+  nr_env_set NEWSROOM_MODE "$NR_RUN_MODE"
+  if [ "$NR_RUN_MODE" = "local" ]; then
+    nr_env_set COMPOSE_PROFILES "local"
+  else
+    nr_env_set COMPOSE_PROFILES ""
+  fi
   if [ -n "$ADMIN_EMAIL_OVERRIDE" ]; then
     nr_env_set NEWSROOM_ADMIN_EMAIL "$ADMIN_EMAIL_OVERRIDE"
   fi
@@ -172,6 +188,7 @@ else
 fi
 
 nr_info "installation profile: $NR_PROFILE"
+nr_info "run mode: $NR_RUN_MODE"
 
 nr_install_cli "$NR_BIN_DIR"
 

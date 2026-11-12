@@ -592,9 +592,10 @@ function createVideoEngineRenderAdapter({
     const videoProjectId = resolveProjectId(projectId, snapshot);
     const projectRoot = await persistSnapshotForVideoEngine({ projectsRoot: resolvedProjectsRoot, projectId: videoProjectId, snapshot, snapshotHash, fetchImpl, assetSourceRoot: path.join(resolvedVideoEngineRoot, "assets"), retryDelaysMs: renderAssetRetryDelaysMs });
     const outputPath = path.join(projectRoot, "output", "video-final.mp4");
+    const renderProfile = String((env.RENDERER_PROFILE || process.env.RENDERER_PROFILE) || "final").trim().toLowerCase() || "final";
     const command = {
       scriptPath,
-      args: [scriptPath, `--project-root=${projectRoot}`, "--profile=final"],
+      args: [scriptPath, `--project-root=${projectRoot}`, `--profile=${renderProfile}`],
       cwd: resolvedVideoEngineRoot,
       env: { ...process.env, ...env },
       projectRoot,

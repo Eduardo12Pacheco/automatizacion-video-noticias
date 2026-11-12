@@ -21,6 +21,8 @@ COPY services/tts-worker/voice_tts_service /app/services/tts-worker/voice_tts_se
 COPY services/tts-worker/src /app/services/tts-worker/src
 COPY services/tts-worker/config /app/services/tts-worker/config
 COPY services/tts-worker/refs /app/services/tts-worker/refs
+COPY services/tts-worker/scripts /app/services/tts-worker/scripts
+RUN chmod +x /app/services/tts-worker/scripts/run-local.sh
 WORKDIR /app/services/tts-worker
 
 ARG TTS_EXTRAS=piper
@@ -29,4 +31,4 @@ RUN pip install ".[${TTS_EXTRAS}]" \
     && touch refs/voz.wav refs/voz.txt
 
 EXPOSE 8766
-CMD ["uvicorn", "voice_tts_service.api.worker_app:app", "--host", "0.0.0.0", "--port", "8766"]
+CMD ["/app/services/tts-worker/scripts/run-local.sh"]

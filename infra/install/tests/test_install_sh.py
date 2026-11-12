@@ -151,8 +151,11 @@ class InstallTests(InstallerTestCase):
         self.assertEqual(stat.S_IMODE((self.project / ".env").stat().st_mode), 0o600)
 
         log = self.read_log()
-        for expected in ("--profile cpu", "BUILD", "MODEL_INIT", "MIGRATE", "ADMIN_CREATED", "STACK_UP"):
+        # The default demo mode is instant and never downloads models (D10).
+        for expected in ("--profile cpu", "BUILD", "MIGRATE", "ADMIN_CREATED", "STACK_UP"):
             self.assertIn(expected, log)
+        self.assertNotIn("MODEL_INIT", log)
+        self.assertIn("demo mode needs no models", result.stdout)
         self.assertIn("ADMIN_STDIN_LEN=", log)
         self.assertNotIn(values["POSTGRES_PASSWORD"], log)
 
@@ -163,8 +166,26 @@ class InstallTests(InstallerTestCase):
 
         state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
         self.assertIn("ADMIN_CREATED=1", state)
-        self.assertIn("MODELS_DOWNLOADED=1", state)
+        self.assertNotIn("MODELS_DOWNLOADED=1", state)
         self.assertIn("MIGRATIONS_APPLIED=1", state)
+        self.assertEqual(values["NEWSROOM_MODE"], "demo")
+        self.assertEqual(values["COMPOSE_PROFILES"], "")
+
+    def test_local_mode_downloads_models_and_activates_the_local_profile(self):
+        result = self.run_installer(
+            *self.install_args("--mode", "local", "--profile", "cpu"),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        log = self.read_log()
+        self.assertIn("MODEL_INIT", log)
+        self.assertIn("OLLAMA_PULL", log)
+        self.assertIn("~2 GB", result.stdout)
+        self.assertIn("~0.5 GB", result.stdout)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_MODE"], "local")
+        self.assertEqual(values["COMPOSE_PROFILES"], "local")
+        state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
+        self.assertIn("MODELS_DOWNLOADED=1", state)
 
     def test_second_install_is_idempotent(self):
         first = self.run_installer(*self.install_args("--profile", "cpu"))

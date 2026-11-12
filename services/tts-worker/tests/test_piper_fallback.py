@@ -169,3 +169,9 @@ def test_create_engine_qwen_mode_can_disable_cpu_fallback(tmp_path) -> None:
             },
             qwen_factory=lambda cfg, device: (_ for _ in ()).throw(RuntimeError("no cuda")),
         )
+
+
+def test_resolve_engine_mode_uses_piper_for_the_local_cpu_mode() -> None:
+    assert resolve_engine_mode({"NEWSROOM_MODE": "local"}, {}) == ENGINE_PIPER
+    assert resolve_engine_mode({"NEWSROOM_MODE": "local", "TTS_WORKER_ENGINE": "qwen"}, {}) == ENGINE_QWEN
+    assert resolve_engine_mode({"NEWSROOM_MODE": "demo"}, {}) == "auto"

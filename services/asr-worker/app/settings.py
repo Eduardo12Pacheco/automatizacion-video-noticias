@@ -38,6 +38,9 @@ def _optional_path_env(name: str, default: Path) -> Path | None:
 class Settings:
     api_key: str
     runtime_dir: Path
+    # `NEWSROOM_MODE=local` is the CPU-first local product default; the GPU
+    # preset stays available by setting the explicit TRANSCRIPT_SERVICE_* vars.
+    run_mode: str = "local"
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:8080"])
     whisper_model: str = "large-v3"
     whisper_model_path: str | None = None
@@ -68,15 +71,23 @@ class Settings:
         return self.whisper_model_path or self.whisper_model
 
 
+def _run_mode() -> str:
+    value = os.environ.get("NEWSROOM_MODE", "local").strip().lower()
+    return "demo" if value == "demo" else "local"
+
+
 def load_settings() -> Settings:
+    run_mode = _run_mode()
+    local_defaults = run_mode == "local"
     return Settings(
+        run_mode=run_mode,
         api_key=os.environ.get("TRANSCRIPT_SERVICE_API_KEY", ""),
         runtime_dir=Path(os.environ.get("TRANSCRIPT_SERVICE_RUNTIME_DIR", "runtime")),
         cors_origins=_split_csv(os.environ.get("TRANSCRIPT_SERVICE_CORS_ORIGINS", "http://localhost:8080")),
-        whisper_model=os.environ.get("TRANSCRIPT_SERVICE_WHISPER_MODEL", "large-v3"),
+        whisper_model=os.environ.get("TRANSCRIPT_SERVICE_WHISPER_MODEL", "small" if local_defaults else "large-v3"),
         whisper_model_path=os.environ.get("TRANSCRIPT_SERVICE_WHISPER_MODEL_PATH") or None,
-        device=os.environ.get("TRANSCRIPT_SERVICE_DEVICE", "cuda"),
-        compute_type=os.environ.get("TRANSCRIPT_SERVICE_COMPUTE_TYPE", "float16"),
+        device=os.environ.get("TRANSCRIPT_SERVICE_DEVICE", "cpu" if local_defaults else "cuda"),
+        compute_type=os.environ.get("TRANSCRIPT_SERVICE_COMPUTE_TYPE", "int8" if local_defaults else "float16"),
         ffmpeg_binary=os.environ.get("TRANSCRIPT_SERVICE_FFMPEG_BINARY", "ffmpeg"),
         yt_dlp_binary=os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_BINARY", "yt-dlp"),
         yt_dlp_cookies_path=_optional_path_env("TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH", DEFAULT_YT_DLP_COOKIES_PATH),

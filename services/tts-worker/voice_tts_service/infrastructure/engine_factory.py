@@ -24,8 +24,12 @@ def resolve_engine_mode(env: dict[str, str] | os._Environ[str] | None = None, ge
     configured = str(
         values.get("TTS_WORKER_ENGINE")
         or (generation_cfg or {}).get("engine")
-        or ENGINE_AUTO
+        or ""
     ).strip().lower()
+    if not configured and str(values.get("NEWSROOM_MODE", "")).strip().lower() == "local":
+        # The local product runs Piper on CPU by default; GPU users opt into
+        # Qwen with TTS_WORKER_ENGINE=qwen (or the gpu profile).
+        return ENGINE_PIPER
     return configured if configured in ENGINE_MODES else ENGINE_AUTO
 
 

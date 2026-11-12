@@ -23,12 +23,41 @@ nr_download_models() {
     nr_info "skipping model download (--no-models)"
     return 0
   fi
+
+  local mode ollama_model piper_model whisper_model
+  mode="$(nr_env_get NEWSROOM_MODE)"
+  mode="${mode:-demo}"
+  if [ "$mode" = "demo" ]; then
+    nr_info "demo mode needs no models; skipping the download (use --mode local for real local AI)"
+    return 0
+  fi
   if [ "$(nr_state_get MODELS_DOWNLOADED)" = "1" ]; then
     nr_ok "local models already downloaded"
     return 0
   fi
-  nr_info "downloading local models (Ollama, Whisper, Piper); this can take a while"
-  nr_run_compose run --rm model-init
+
+  ollama_model="$(nr_env_get OLLAMA_MODEL)"
+  ollama_model="${ollama_model:-qwen2.5:3b-instruct}"
+  piper_model="$(nr_env_get PIPER_MODEL)"
+  piper_model="${piper_model:-es_ES-davefx-medium}"
+  whisper_model="$(nr_env_get WHISPER_MODEL)"
+  whisper_model="${whisper_model:-small}"
+
+  nr_info "local model download sizes (approximate):"
+  nr_info "  Ollama ${ollama_model}: ~2 GB"
+  nr_info "  Whisper ${whisper_model}: ~0.5 GB"
+  nr_info "  Piper ${piper_model}: ~60 MB"
+  nr_info "Downloading local models; this can take a while"
+
+  nr_run_compose --profile local run --rm model-init
+  # `ollama pull` needs the server; start only that service for the download
+  # and leave the full stack start to the installer's normal step.
+  if ! nr_compose ps --status running --services 2>/dev/null | grep -qx ollama; then
+    nr_run_compose --profile local up -d ollama
+  fi
+  if ! nr_run_compose --profile local exec -T ollama /bin/ollama pull "$ollama_model"; then
+    nr_warn "Ollama model pull failed; run 'newsroom models pull' after the stack is healthy"
+  fi
   nr_state_set MODELS_DOWNLOADED 1
   nr_ok "local models ready"
 }

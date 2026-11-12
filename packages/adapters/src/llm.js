@@ -23,11 +23,13 @@ export class OllamaLLMAdapter {
     model = 'qwen2.5:7b-instruct',
     fetchImpl = globalThis.fetch,
     timeoutMs = 300_000,
+    keepAlive = '30s',
   } = {}) {
     this.baseUrl = trimBaseUrl(baseUrl);
     this.model = String(model || '').trim();
     this.fetchImpl = fetchImpl;
     this.timeoutMs = Math.max(1, Number(timeoutMs) || 300_000);
+    this.keepAlive = String(keepAlive || '30s');
   }
 
   async complete({ prompt = '', system = '', temperature = 0.2, maxTokens = null } = {}) {
@@ -44,6 +46,7 @@ export class OllamaLLMAdapter {
         model: this.model,
         messages: buildMessages({ prompt, system }),
         stream: false,
+        keep_alive: this.keepAlive,
         options,
       }),
     });

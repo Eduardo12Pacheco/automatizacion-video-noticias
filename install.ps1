@@ -9,6 +9,7 @@
 param(
     [switch]$Yes,
     [ValidateSet('auto', 'cpu', 'gpu')][string]$Profile = 'auto',
+    [ValidateSet('demo', 'local')][string]$Mode = 'demo',
     [switch]$Check,
     [switch]$DryRun,
     [switch]$Uninstall,
@@ -42,6 +43,7 @@ Usage:
 Options:
   -Yes                  Non-interactive; generate the admin password
   -Profile <name>       auto (default), cpu or gpu
+  -Mode <name>          demo (default) or local: real local AI stack
   -Check                Check host prerequisites and exit
   -DryRun               Print every action without changing the host
   -Uninstall            Stop and remove the stack
@@ -58,7 +60,7 @@ Options:
   -Help                 Show this help
 
 Environment:
-  NEWSROOM_PROFILE, NEWSROOM_PROJECT_DIR, NEWSROOM_COMPOSE_FILE,
+  NEWSROOM_MODE, NEWSROOM_PROFILE, NEWSROOM_PROJECT_DIR, NEWSROOM_COMPOSE_FILE,
   NEWSROOM_ADMIN_EMAIL, NEWSROOM_ADMIN_PASSWORD, NEWSROOM_BIN_DIR
 
 The installer never reads or writes API keys. It creates .env from
@@ -78,6 +80,7 @@ try {
     Set-NrOption -Name Yes -Value ([bool]$Yes)
     Set-NrOption -Name ForcePurge -Value ([bool]$ForcePurge)
     Set-NrOption -Name DryRun -Value ([bool]$DryRun)
+    Set-NrOption -Name Mode -Value $Mode
     Set-NrOption -Name DownloadModels -Value (-not [bool]$NoModels)
     Set-NrOption -Name StartStack -Value (-not [bool]$NoStart)
     Set-NrOption -Name OpenPanel -Value ([bool]$Open)
@@ -124,6 +127,12 @@ try {
         }
         Update-NrEnvFile
         Set-NrEnvValue -Key 'NEWSROOM_PROFILE' -Value $config.Profile
+        Set-NrEnvValue -Key 'NEWSROOM_MODE' -Value $Mode
+        if ($Mode -eq 'local') {
+            Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'
+        } else {
+            Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value ''
+        }
         if ($AdminEmail) {
             Set-NrEnvValue -Key 'NEWSROOM_ADMIN_EMAIL' -Value $AdminEmail
         }
@@ -132,6 +141,7 @@ try {
     }
 
     Write-NrInfo "installation profile: $($config.Profile)"
+    Write-NrInfo "run mode: $Mode"
 
     Install-NrCli -BinDir $BinDir
 

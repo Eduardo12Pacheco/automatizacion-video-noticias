@@ -33,6 +33,18 @@ const PRESETS = {
     concurrency: 1,
     crf: 30,
   },
+  // 720p CPU preset for the local product pipeline (D10). It keeps the final
+  // handoff honest (video-final.mp4) while staying renderable without a GPU.
+  local: {
+    width: 1280,
+    height: 720,
+    fps: 30,
+    codec: "h264",
+    hardwareAcceleration: "disable",
+    gl: "swangle",
+    concurrency: 1,
+    crf: 26,
+  },
 };
 
 function resolveRenderProfile(value) {

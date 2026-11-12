@@ -87,8 +87,9 @@ class RuntimeServiceTest(unittest.TestCase):
     def test_approval_editor_is_a_compose_service(self) -> None:
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
         self.assertIn("  approval-editor:\n", compose)
-        self.assertIn("API_GATEWAY_APPROVAL_TARGET: http://approval-editor:3042", compose)
         self.assertIn("dockerfile: apps/panel/services/approval-editor/Dockerfile", compose)
+        self.assertIn("  renderer:\n", compose)
+        self.assertIn("dockerfile: services/renderer/Dockerfile", compose)
         self.assertTrue((ROOT / "apps/panel/services/approval-editor/Dockerfile").is_file())
 
     def test_script_draft_save_is_a_core_use_case(self) -> None:

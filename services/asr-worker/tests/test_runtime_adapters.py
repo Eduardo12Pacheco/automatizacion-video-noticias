@@ -504,3 +504,26 @@ def test_faster_whisper_transcriber_reports_gpu_busy_as_dependency_failure():
         FasterWhisperTranscriber(settings=settings, gpu_slot=BusySlot()).transcribe(Path("audio.wav"))
 
     assert failure.value.code == "gpu_busy"
+
+
+def test_settings_default_to_cpu_small_in_local_mode(monkeypatch):
+    for name in ("NEWSROOM_MODE", "TRANSCRIPT_SERVICE_WHISPER_MODEL", "TRANSCRIPT_SERVICE_WHISPER_MODEL_PATH", "TRANSCRIPT_SERVICE_DEVICE", "TRANSCRIPT_SERVICE_COMPUTE_TYPE"):
+        monkeypatch.delenv(name, raising=False)
+
+    local = load_settings()
+    assert local.run_mode == "local"
+    assert local.whisper_model == "small"
+    assert local.device == "cpu"
+    assert local.compute_type == "int8"
+
+    monkeypatch.setenv("NEWSROOM_MODE", "demo")
+    assert load_settings().run_mode == "demo"
+
+    # Explicit worker variables still win over the mode defaults.
+    monkeypatch.setenv("TRANSCRIPT_SERVICE_DEVICE", "cuda")
+    monkeypatch.setenv("TRANSCRIPT_SERVICE_COMPUTE_TYPE", "float16")
+    monkeypatch.setenv("TRANSCRIPT_SERVICE_WHISPER_MODEL", "large-v3")
+    explicit = load_settings()
+    assert explicit.whisper_model == "large-v3"
+    assert explicit.device == "cuda"
+    assert explicit.compute_type == "float16"

@@ -12,6 +12,7 @@ $script:NrConfig = @{
     StateDir       = ''
     StateFile      = ''
     Profile        = 'auto'
+    Mode           = 'demo'
     DryRun         = $false
     Yes            = $false
     ForcePurge     = $false
@@ -395,7 +396,7 @@ function Get-NrEnvValue {
 function Set-NrEnvValue {
     param(
         [Parameter(Mandatory = $true)][string]$Key,
-        [Parameter(Mandatory = $true)][string]$Value
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
     )
     $path = $script:NrConfig.EnvFile
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return }

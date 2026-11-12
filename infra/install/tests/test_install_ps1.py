@@ -88,8 +88,9 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertFalse((self.project / ".env").read_bytes().startswith(b"\xef\xbb\xbf"))
 
         log = self.read_log()
-        for expected in ("--profile cpu", "BUILD", "MODEL_INIT", "MIGRATE", "ADMIN_CREATED", "STACK_UP"):
+        for expected in ("--profile cpu", "BUILD", "MIGRATE", "ADMIN_CREATED", "STACK_UP"):
             self.assertIn(expected, log)
+        self.assertNotIn("MODEL_INIT", log)
         self.assertNotIn(values["POSTGRES_PASSWORD"], log)
         self.assertTrue((self.bin_dir / "newsroom.ps1").is_file())
         self.assertTrue((self.bin_dir / "newsroom.cmd").is_file())
@@ -173,7 +174,7 @@ class PowerShellInstallerTests(InstallerTestCase):
         doctor = self.run_cli("--project-dir", str(self.project), "doctor")
         self.assertEqual(doctor.returncode, 0, doctor.stdout + doctor.stderr)
         self.assertIn("prerequisites OK", doctor.stdout)
-        self.assertIn("Models: downloaded", doctor.stdout)
+        self.assertIn("Models: not required (demo mode)", doctor.stdout)
         self.assertIn("Admin:  initialized", doctor.stdout)
 
     def test_cli_help_and_unknown_command(self):

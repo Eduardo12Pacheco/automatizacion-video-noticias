@@ -64,22 +64,37 @@ If PowerShell blocks the script, run it explicitly:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
+## Run modes
+
+`NEWSROOM_MODE` selects which real pipeline runs. The installer defaults to
+`demo`; pass `--mode local` (bash) or `-Mode local` (PowerShell) for the real
+local AI stack. The panel labels the demo run in its header.
+
+| Mode | What runs | Downloads |
+|---|---|---|
+| `demo` (default) | deterministic stub adapters behind the API; the panel shows **Modo demo / Demo mode** | none |
+| `local` | real Ollama script writing, trafilatura extraction, Piper voice, faster-whisper subtitles and a Remotion 720p MP4 on CPU (GPU optional) | Ollama `qwen2.5:3b-instruct` (~2 GB), Whisper `small` (~0.5 GB), Piper `es_ES-davefx-medium` (~60 MB) |
+
+Model downloads only happen in the installer or with `newsroom models pull`;
+the Ollama container never downloads a model at start-up. Demo mode skips the
+model step entirely.
+
 ## Profiles
 
 | Profile | Selected when | Contains |
 |---|---|---|
-| default/`cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, `demo-worker`, Postgres, SearXNG, Mailpit, Ollama (CPU) and the deterministic seed; no API keys |
-| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the CPU stack plus GPU access and the optional `asr-worker`, `tts-worker` and `channel-monitor` services |
+| default/`cpu` | no NVIDIA GPU, or `--profile cpu` / `-Profile cpu` | API, panel, `demo-worker`, Postgres, SearXNG, Mailpit and the deterministic seed; no API keys |
+| `local` | `--mode local` (activated through `COMPOSE_PROFILES=local` in `.env`) | the real CPU workers: `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` |
+| `gpu` | `nvidia-smi` reports a GPU and the container runtime is ready | the local stack plus GPU access for the workers |
 | `n8n` | explicit `--profile n8n` | the optional n8n container for `WORKFLOW=n8n` |
 | `tools` | never started by `up` | one-shot `migrate` and `model-init` services invoked with `docker compose run --rm` |
 | `auto` | default | picks `gpu` or `cpu` as described above |
 
-The default CPU worker is deliberately deterministic: it serves the TTS,
-subtitles and render contracts with small local assets so the demo and the
-Playwright test can run without a GPU or a model download. Set
-`LLM=ollama` (the default in `.env.example`) for real script generation; the
-`ollama` service pulls `OLLAMA_MODEL` on first start. The `gpu` profile adds the
-heavy Qwen/faster-whisper workers for operators who want them.
+The demo worker is deliberately deterministic: it serves the TTS, subtitles and
+render contracts with small local assets so the browser test can run without a
+GPU or a model download. Selecting `local` mode swaps every media route to the
+real workers (Piper on CPU, faster-whisper `small` int8, Remotion 720p); the
+`gpu` profile only adds GPU access for operators who have it.
 
 ### Seed data and the demo story
 

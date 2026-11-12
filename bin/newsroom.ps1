@@ -189,7 +189,11 @@ try {
             }
             if (Test-Path -LiteralPath $config.EnvFile -PathType Leaf) {
                 $models = 'pending'
-                if ((Get-NrStateValue -Key 'MODELS_DOWNLOADED') -eq '1') { $models = 'downloaded' }
+                if ((Get-NrEnvValue -Key 'NEWSROOM_MODE') -eq 'demo') {
+                    $models = 'not required (demo mode)'
+                } elseif ((Get-NrStateValue -Key 'MODELS_DOWNLOADED') -eq '1') {
+                    $models = 'downloaded'
+                }
                 $admin = 'pending'
                 if ((Get-NrStateValue -Key 'ADMIN_CREATED') -eq '1') { $admin = 'initialized' }
                 Write-Host ''

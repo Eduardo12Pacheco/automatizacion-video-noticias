@@ -48,7 +48,8 @@ export function createAdaptersFromEnv({
   if (llmKind === 'ollama') {
     adapters.llm = new OllamaLLMAdapter({
       baseUrl: env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
-      model: env.OLLAMA_MODEL || 'qwen2.5:7b-instruct',
+      model: env.OLLAMA_MODEL || 'qwen2.5:3b-instruct',
+      keepAlive: env.OLLAMA_KEEP_ALIVE || '30s',
       fetchImpl,
       timeoutMs: intEnv(env, 'LLM_TIMEOUT_MS', 300_000),
     });
@@ -57,7 +58,7 @@ export function createAdaptersFromEnv({
   } else if (llmKind === 'openai') {
     adapters.llm = new OpenAICompatibleLLMAdapter({
       baseUrl: env.OPENAI_BASE_URL || 'http://127.0.0.1:11434/v1',
-      model: env.OPENAI_MODEL || env.OLLAMA_MODEL || 'qwen2.5:7b-instruct',
+      model: env.OPENAI_MODEL || env.OLLAMA_MODEL || 'qwen2.5:3b-instruct',
       apiKey: env.OPENAI_API_KEY || '',
       fetchImpl,
       timeoutMs: intEnv(env, 'LLM_TIMEOUT_MS', 300_000),

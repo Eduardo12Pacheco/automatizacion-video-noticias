@@ -66,13 +66,36 @@ function Install-NrModels {
         Write-NrInfo 'skipping model download (-NoModels)'
         return
     }
+    $mode = Get-NrEnvValue -Key 'NEWSROOM_MODE'
+    if (-not $mode) { $mode = 'demo' }
+    if ($mode -eq 'demo') {
+        Write-NrInfo 'demo mode needs no models; skipping the download (-Mode local selects real local AI)'
+        return
+    }
     if ((Get-NrStateValue -Key 'MODELS_DOWNLOADED') -eq '1') {
         Write-NrOk 'local models already downloaded'
         return
     }
-    Write-NrInfo 'downloading local models (Ollama, Whisper, Piper); this can take a while'
-    $code = Invoke-NrCompose -Arguments @('run', '--rm', 'model-init')
+
+    $ollamaModel = Get-NrEnvValue -Key 'OLLAMA_MODEL'
+    if (-not $ollamaModel) { $ollamaModel = 'qwen2.5:3b-instruct' }
+    $piperModel = Get-NrEnvValue -Key 'PIPER_MODEL'
+    if (-not $piperModel) { $piperModel = 'es_ES-davefx-medium' }
+    $whisperModel = Get-NrEnvValue -Key 'WHISPER_MODEL'
+    if (-not $whisperModel) { $whisperModel = 'small' }
+    Write-NrInfo 'local model download sizes (approximate):'
+    Write-NrInfo "  Ollama $ollamaModel`: ~2 GB"
+    Write-NrInfo "  Whisper $whisperModel`: ~0.5 GB"
+    Write-NrInfo "  Piper $piperModel`: ~60 MB"
+    Write-NrInfo 'downloading local models; this can take a while'
+
+    $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'run', '--rm', 'model-init')
     if ($code -ne 0) { Stop-NrInstall 'model download failed' }
+    $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'up', '-d', 'ollama')
+    if ($code -eq 0) {
+        $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'exec', '-T', 'ollama', '/bin/ollama', 'pull', $ollamaModel)
+    }
+    if ($code -ne 0) { Write-NrWarn "Ollama model pull failed; run 'newsroom models pull' after the stack is healthy" }
     Set-NrStateValue -Key 'MODELS_DOWNLOADED' -Value '1'
     Write-NrOk 'local models ready'
 }

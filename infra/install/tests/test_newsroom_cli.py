@@ -77,7 +77,7 @@ class NewsroomCliTests(InstallerTestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("prerequisites OK", result.stdout)
         self.assertIn("Installation state", result.stdout)
-        self.assertIn("Models: downloaded", result.stdout)
+        self.assertIn("Models: not required (demo mode)", result.stdout)
         self.assertIn("Admin:  initialized", result.stdout)
 
     def test_doctor_without_an_install_still_checks_the_host(self):

@@ -715,7 +715,19 @@ test('subtitle render proxy gets an extended upstream timeout', () => {
 
   assert.equal(policy.kind, 'proxy');
   assert.equal(policy.route.service, 'subtitles');
-  assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS);
+  assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS);
+});
+
+test('local final renders get the long prepare timeout', () => {
+  const policy = resolveRoutePolicy({
+    method: 'POST',
+    url: '/remotion/api/projects/project_42/render-final',
+  }, {
+    routes: { remotion: { prefix: '/remotion', target: 'http://renderer:3042' } },
+  });
+
+  assert.equal(policy.kind, 'proxy');
+  assert.equal(policy.route.upstreamTimeoutMs, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS);
 });
 
 test('subtitle session upload route gets an extended body limit', () => {

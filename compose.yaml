@@ -37,17 +37,12 @@ x-api-base: &api-base
     API_GATEWAY_ALLOWED_ORIGINS: ${API_GATEWAY_ALLOWED_ORIGINS:-http://127.0.0.1:8080,http://localhost:8080}
     API_GATEWAY_TRUSTED_MUTATION_ORIGINS: ${API_GATEWAY_TRUSTED_MUTATION_ORIGINS:-http://127.0.0.1:8080,http://localhost:8080}
     PANEL_PUBLIC_ORIGIN: ${PANEL_PUBLIC_ORIGIN:-}
-    API_GATEWAY_TTS_TARGET: http://demo-worker:8088
-    API_GATEWAY_SUBTITLES_TARGET: http://demo-worker:8088
-    API_GATEWAY_REMOTION_TARGET: http://demo-worker:8088
-    API_GATEWAY_APPROVAL_TARGET: http://approval-editor:3042
     API_GATEWAY_N8N_TARGET: http://n8n:5678
-    API_GATEWAY_RADAR_TARGET: http://asr-worker:8765
-    API_GATEWAY_MONITOR_TARGET: http://channel-monitor:8790
     PYTHON_BIN: /opt/newsroom-python/bin/python
     LLM: ${LLM:-ollama}
     OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
     OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b-instruct}
+    OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30s}
     NEWS_SOURCE: ${NEWS_SOURCE:-rss}
     ARTICLE_EXTRACTOR: ${ARTICLE_EXTRACTOR:-trafilatura}
     IMAGE_SEARCH: ${IMAGE_SEARCH:-searxng}
@@ -56,6 +51,10 @@ x-api-base: &api-base
     DOCUMENT_EXPORT: ${DOCUMENT_EXPORT:-local}
     MEDIA_DOWNLOAD: ${MEDIA_DOWNLOAD:-worker}
     ASR_BASE_URL: http://asr-worker:8765
+    TTS_BASE_URL: ${TTS_BASE_URL:-http://tts-worker:8766}
+    SUBTITLES_BASE_URL: ${SUBTITLES_BASE_URL:-http://subtitles:8092}
+    RENDERER_BASE_URL: ${RENDERER_BASE_URL:-http://renderer:3042}
+    RENDERER_PROFILE: ${RENDERER_PROFILE:-local}
     NOTIFY: ${NOTIFY:-console}
     SMTP_HOST: ${SMTP_HOST:-mailpit}
     SMTP_PORT: ${SMTP_PORT:-1025}
@@ -188,16 +187,13 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        ollama serve &
-        pid=$$!
-        until ollama list >/dev/null 2>&1; do sleep 1; done
-        ollama pull "$${OLLAMA_MODEL}" || true
-        wait $$pid
+    profiles: ["local", "gpu"]
+    # Models are downloaded by the installer / `newsroom models pull`, never
+    # by the container command (S11/T17). keep_alive unloads the model shortly
+    # after the last request so it shares the 8 GB GPU with the other workers.
+    command: ["serve"]
     environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b-instruct}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30s}
     volumes:
       - newsroom_ollama:/root/.ollama
     healthcheck:
@@ -213,7 +209,7 @@ services:
       dockerfile: infra/models/Dockerfile
     profiles: ["tools"]
     environment:
-      PIPER_MODEL: ${PIPER_MODEL:-en_US-lessac-medium}
+      PIPER_MODEL: ${PIPER_MODEL:-es_ES-davefx-medium}
       WHISPER_MODEL: ${WHISPER_MODEL:-small}
       PIPER_MODEL_DIR: /models/piper
       WHISPER_MODEL_DIR: /models/whisper
@@ -226,13 +222,19 @@ services:
     build:
       context: .
       dockerfile: services/asr-worker/Dockerfile
-    profiles: ["gpu"]
+    profiles: ["local", "gpu"]
     environment:
-      WHISPER_MODEL: /models/whisper/${WHISPER_MODEL:-small}
-      WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
-      NEWSROOM_GPU_LOCK_PATH: /tmp/newsroom-gpu.lock
+      NEWSROOM_MODE: ${NEWSROOM_MODE:-demo}
+      # The worker reads TRANSCRIPT_SERVICE_* (see app/settings.py), not the
+      # generic WHISPER_* names. Keep both in sync for the GPU preset.
+      TRANSCRIPT_SERVICE_API_KEY: ${API_GATEWAY_RADAR_API_KEY:?run ./install.sh first}
+      TRANSCRIPT_SERVICE_WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      TRANSCRIPT_SERVICE_WHISPER_MODEL_PATH: /models/whisper/${WHISPER_MODEL:-small}
+      TRANSCRIPT_SERVICE_DEVICE: ${WHISPER_DEVICE:-cpu}
+      TRANSCRIPT_SERVICE_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
       TRANSCRIPT_SERVICE_MEDIA_DOWNLOAD_ROOT: /app/runtime/media
       TRANSCRIPT_SERVICE_RUNTIME_DIR: /app/runtime
+      NEWSROOM_GPU_LOCK_PATH: /tmp/newsroom-gpu.lock
     volumes:
       - newsroom_whisper_models:/models/whisper
       - newsroom_gpu_lock:/tmp
@@ -247,24 +249,82 @@ services:
       dockerfile: services/tts-worker/Dockerfile
       args:
         TTS_EXTRAS: piper
-    profiles: ["gpu"]
+    profiles: ["local", "gpu"]
     environment:
-      TTS_WORKER_ENGINE: ${TTS_WORKER_ENGINE:-auto}
+      NEWSROOM_MODE: ${NEWSROOM_MODE:-demo}
+      TTS_WORKER_ENGINE: ${TTS_WORKER_ENGINE:-piper}
       TTS_WORKER_ALLOW_CPU_FALLBACK: ${TTS_WORKER_ALLOW_CPU_FALLBACK:-1}
-      PIPER_MODEL: /models/piper/${PIPER_MODEL:-en_US-lessac-medium}/${PIPER_MODEL:-en_US-lessac-medium}.onnx
+      PIPER_MODEL: /models/piper/${PIPER_MODEL:-es_ES-davefx-medium}/${PIPER_MODEL:-es_ES-davefx-medium}.onnx
+      TTS_WORKER_INTERNAL_TOKEN: ${TTS_WORKER_INTERNAL_TOKEN:?run ./install.sh first}
+      TTS_ORCH_WORKER_INTERNAL_TOKEN: ${TTS_WORKER_INTERNAL_TOKEN:?run ./install.sh first}
+      TTS_ORCH_WORKER_BASE_URL: http://127.0.0.1:8767
+      TTS_ORCH_FRONTEND_API_KEY: ${API_GATEWAY_TTS_API_KEY:?run ./install.sh first}
+      TTS_ORCH_BASIC_USER: ${API_GATEWAY_TTS_BASIC_USER:-local-tts}
+      TTS_ORCH_BASIC_PASS: ${API_GATEWAY_TTS_BASIC_PASS:?run ./install.sh first}
+      TTS_ORCH_RUNTIME_DIR: /app/runtime/tts-orchestrator
+      TTS_WORKER_RUNTIME_DIR: /app/runtime/tts-worker
       NEWSROOM_GPU_LOCK_PATH: /tmp/newsroom-gpu.lock
     volumes:
       - newsroom_piper_models:/models/piper
       - newsroom_gpu_lock:/tmp
+      - newsroom_tts:/app/runtime
     expose:
       - "8766"
+    restart: unless-stopped
+
+  subtitles:
+    build:
+      context: .
+      dockerfile: services/subtitles/Dockerfile
+    profiles: ["local", "gpu"]
+    environment:
+      SUBTITLES_REMOTE_WORKSPACE_ROOT: /app/runtime/media/subtitles
+      SUBTITLES_REMOTE_API_KEY: ${API_GATEWAY_SUBTITLES_API_KEY:?run ./install.sh first}
+      SUBTITLES_REMOTE_BASIC_USER: ${API_GATEWAY_SUBTITLES_BASIC_USER:-local-subtitles}
+      SUBTITLES_REMOTE_BASIC_PASS: ${API_GATEWAY_SUBTITLES_BASIC_PASS:?run ./install.sh first}
+      SUBTITLES_REMOTE_HOST: 0.0.0.0
+      SUBTITLES_REMOTE_PORT: "8092"
+      ASR_WORKER_URL: http://asr-worker:8765
+      TRANSCRIPT_SERVICE_API_KEY: ${API_GATEWAY_RADAR_API_KEY:?run ./install.sh first}
+      NEWSROOM_MODE: ${NEWSROOM_MODE:-demo}
+    volumes:
+      - newsroom_media:/app/runtime/media
+    expose:
+      - "8092"
+    restart: unless-stopped
+
+  renderer:
+    build:
+      context: .
+      dockerfile: services/renderer/Dockerfile
+    profiles: ["local", "gpu"]
+    environment:
+      NEWSROOM_MODE: ${NEWSROOM_MODE:-demo}
+      RENDERER_PROFILE: ${RENDERER_PROFILE:-local}
+      APPROVAL_EDITOR_SERVICE_HOST: 0.0.0.0
+      APPROVAL_EDITOR_SERVICE_PORT: "3042"
+      APPROVAL_EDITOR_RENDER_ADAPTER: video-engine
+      APPROVAL_EDITOR_VIDEO_ENGINE_ROOT: /app/services/renderer
+      APPROVAL_EDITOR_VIDEO_ENGINE_PROJECTS_ROOT: /app/runtime/media/renderer
+      APPROVAL_EDITOR_PYTHON_BIN: python3
+      ASR_WORKER_URL: http://asr-worker:8765
+      TRANSCRIPT_SERVICE_API_KEY: ${API_GATEWAY_RADAR_API_KEY:?run ./install.sh first}
+      REMOTION_HARDWARE_ACCELERATION: disable
+      REMOTION_GL: swangle
+    volumes:
+      - newsroom_media:/app/runtime/media
+      - newsroom_renderer_editor:/app/apps/panel/services/approval-editor/projects
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "3042"
     restart: unless-stopped
 
   channel-monitor:
     build:
       context: .
       dockerfile: services/channel-monitor/Dockerfile
-    profiles: ["gpu"]
+    profiles: ["local", "gpu"]
     expose:
       - "8790"
     restart: unless-stopped
@@ -293,4 +353,6 @@ volumes:
   newsroom_whisper_models:
   newsroom_gpu_lock:
   newsroom_approval:
+  newsroom_tts:
+  newsroom_renderer_editor:
   newsroom_n8n:

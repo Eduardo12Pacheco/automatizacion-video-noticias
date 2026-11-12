@@ -64,8 +64,15 @@ if command == "run":
         logged("ADMIN_CREATED")
     elif "model-init" in joined:
         logged("MODEL_INIT")
+    elif "/bin/ollama" in joined and "pull" in joined:
+        logged("OLLAMA_PULL")
     elif "migrate" in joined:
         logged("MIGRATE")
+    sys.exit(0)
+
+if command == "exec":
+    if "ollama" in rest and "pull" in rest:
+        logged("OLLAMA_PULL")
     sys.exit(0)
 
 if command == "up":

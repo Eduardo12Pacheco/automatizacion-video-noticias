@@ -136,9 +136,13 @@ export const PREPARE_ROUTE_SERVICES = new Set(['approval', 'remotion']);
 
 export function resolveRouteUpstreamTimeoutMs(service, upstreamPath) {
   if (service === 'subtitles' && /^\/api\/subtitles\/sessions\/[^/]+\/render(?:\?|$)/.test(upstreamPath)) {
-    return DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS;
+    // CPU rendering can legitimately take several minutes in local mode.
+    return DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS;
   }
-  if (PREPARE_ROUTE_SERVICES.has(service) && /^\/api\/projects\/create-from-approval(?:\?|$)/.test(upstreamPath)) {
+  if (PREPARE_ROUTE_SERVICES.has(service) && (
+    /^\/api\/projects\/create-from-approval(?:\?|$)/.test(upstreamPath)
+    || /^\/api\/projects\/[^/]+\/render-final(?:\?|$)/.test(upstreamPath)
+  )) {
     return DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS;
   }
   return null;

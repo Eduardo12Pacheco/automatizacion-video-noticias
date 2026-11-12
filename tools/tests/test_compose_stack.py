@@ -21,23 +21,30 @@ class ComposeStackTests(unittest.TestCase):
         for name in (
             "api", "panel", "demo-worker", "postgres", "searxng", "mailpit",
             "seed", "migrate", "model-init", "ollama", "tts-worker",
-            "asr-worker", "n8n",
+            "asr-worker", "subtitles", "renderer", "n8n",
         ):
             self.assertIn(name, self.services)
         self.assertEqual(self.services["migrate"].get("profiles"), ["tools"])
         self.assertEqual(self.services["model-init"].get("profiles"), ["tools"])
-        self.assertEqual(self.services["tts-worker"].get("profiles"), ["gpu"])
-        self.assertEqual(self.services["asr-worker"].get("profiles"), ["gpu"])
+        self.assertEqual(self.services["tts-worker"].get("profiles"), ["local", "gpu"])
+        self.assertEqual(self.services["asr-worker"].get("profiles"), ["local", "gpu"])
+        self.assertEqual(self.services["subtitles"].get("profiles"), ["local", "gpu"])
+        self.assertEqual(self.services["renderer"].get("profiles"), ["local", "gpu"])
+        self.assertEqual(self.services["ollama"].get("profiles"), ["local", "gpu"])
         self.assertEqual(self.services["n8n"].get("profiles"), ["n8n"])
         for required in ("api", "panel", "demo-worker", "postgres", "searxng", "mailpit", "seed"):
             self.assertNotIn("profiles", self.services[required], required)
 
-    def test_api_targets_the_local_compose_services(self) -> None:
+    def test_api_lets_the_run_mode_own_the_worker_targets(self) -> None:
         env = self.services["api"]["environment"]
-        self.assertEqual(env["API_GATEWAY_TTS_TARGET"], "http://demo-worker:8088")
-        self.assertEqual(env["API_GATEWAY_SUBTITLES_TARGET"], "http://demo-worker:8088")
-        self.assertEqual(env["API_GATEWAY_REMOTION_TARGET"], "http://demo-worker:8088")
+        # T17: the gateway resolves demo/local worker targets from
+        # NEWSROOM_MODE; a hard-coded Compose target would defeat the mode.
+        self.assertNotIn("API_GATEWAY_TTS_TARGET", env)
+        self.assertNotIn("API_GATEWAY_SUBTITLES_TARGET", env)
+        self.assertNotIn("API_GATEWAY_REMOTION_TARGET", env)
+        self.assertNotIn("API_GATEWAY_APPROVAL_TARGET", env)
         self.assertEqual(env["API_GATEWAY_N8N_TARGET"], "http://n8n:5678")
+        self.assertEqual(env["NEWSROOM_MODE"], "${NEWSROOM_MODE:-demo}")
         self.assertEqual(env["LLM"], "${LLM:-ollama}")
         self.assertIn("DATABASE_URL", env)
 
@@ -53,6 +60,8 @@ class ComposeStackTests(unittest.TestCase):
             ROOT / "apps/api/Dockerfile",
             ROOT / "apps/panel/Dockerfile",
             ROOT / "services/demo-worker/Dockerfile",
+            ROOT / "services/subtitles/Dockerfile",
+            ROOT / "services/renderer/Dockerfile",
             ROOT / "infra/models/Dockerfile",
             ROOT / "docker-compose.yml",
         ):
@@ -93,11 +102,34 @@ class ComposeStackTests(unittest.TestCase):
         for entry in debug["n8n"]["ports"]:
             self.assertTrue(entry.startswith("${NEWSROOM_BIND:-127.0.0.1}:"), entry)
 
+    def test_local_workers_read_the_env_names_they_actually_use(self) -> None:
+        asr = self.services["asr-worker"]["environment"]
+        self.assertIn("TRANSCRIPT_SERVICE_WHISPER_MODEL_PATH", asr)
+        self.assertIn("TRANSCRIPT_SERVICE_DEVICE", asr)
+        self.assertIn("TRANSCRIPT_SERVICE_COMPUTE_TYPE", asr)
+        self.assertIn("TRANSCRIPT_SERVICE_API_KEY", asr)
+        subtitles = self.services["subtitles"]["environment"]
+        self.assertEqual(subtitles["ASR_WORKER_URL"], "http://asr-worker:8765")
+        self.assertIn("SUBTITLES_REMOTE_API_KEY", subtitles)
+        tts = self.services["tts-worker"]["environment"]
+        self.assertIn("TTS_ORCH_FRONTEND_API_KEY", tts)
+        self.assertIn("TTS_WORKER_INTERNAL_TOKEN", tts)
+        renderer = self.services["renderer"]["environment"]
+        self.assertEqual(renderer["APPROVAL_EDITOR_RENDER_ADAPTER"], "video-engine")
+        self.assertEqual(renderer["RENDERER_PROFILE"], "${RENDERER_PROFILE:-local}")
+
+    def test_ollama_never_pulls_models_from_its_container_command(self) -> None:
+        ollama = self.services["ollama"]
+        self.assertEqual(ollama["command"], ["serve"])
+        self.assertNotIn("ollama pull", str(ollama))
+        self.assertEqual(ollama["environment"]["OLLAMA_KEEP_ALIVE"], "${OLLAMA_KEEP_ALIVE:-30s}")
+
     def test_internal_secrets_have_no_weak_defaults(self) -> None:
         text = COMPOSE.read_text(encoding="utf-8")
         self.assertIn("${POSTGRES_PASSWORD:?run ./install.sh first}", text)
         self.assertIn("${SEARXNG_SECRET:?run ./install.sh first}", text)
         self.assertIn("${N8N_ENCRYPTION_KEY:?run ./install.sh first}", text)
+        self.assertIn("${API_GATEWAY_RADAR_API_KEY:?run ./install.sh first}", text)
         self.assertNotIn("POSTGRES_PASSWORD:-", text)
         self.assertNotIn("local-change-me", text)
         self.assertNotIn("newsroom-local-search", text)

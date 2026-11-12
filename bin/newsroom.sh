@@ -24,7 +24,7 @@ Commands:
   logs [service]     Follow logs (use --no-follow to print and exit)
   update             Pull the checkout, rebuild images and apply migrations
   doctor             Check Docker, GPU, models, ports and disk
-  models             Download the local models if they are missing
+  models [pull]      Download the local models if they are missing
   version            Print the CLI version
   help               Show this help
 
@@ -69,6 +69,8 @@ fi
 if [ "${#POSITIONAL[@]}" -gt 0 ]; then
   if [ "$COMMAND" = "logs" ]; then
     SERVICE="${POSITIONAL[0]}"
+  elif [ "$COMMAND" = "models" ] && [ "${POSITIONAL[0]}" = "pull" ]; then
+    :
   else
     nr_die "unexpected argument: ${POSITIONAL[0]}"
   fi
@@ -173,7 +175,12 @@ case "$COMMAND" in
       printf '  not installed yet\n'
     fi
     if [ -f "$NR_ENV_FILE" ]; then
-      printf '\nModels: %s\n' "$( [ "$(nr_state_get MODELS_DOWNLOADED)" = "1" ] && echo downloaded || echo pending )"
+      run_mode="$(nr_env_get NEWSROOM_MODE)"
+      if [ "$run_mode" = "demo" ]; then
+        printf '\nModels: not required (demo mode)\n'
+      else
+        printf '\nModels: %s\n' "$( [ "$(nr_state_get MODELS_DOWNLOADED)" = "1" ] && echo downloaded || echo pending )"
+      fi
       printf 'Admin:  %s\n' "$( [ "$(nr_state_get ADMIN_CREATED)" = "1" ] && echo initialized || echo pending )"
     fi
     ;;

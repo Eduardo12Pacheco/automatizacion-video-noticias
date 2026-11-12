@@ -42,8 +42,18 @@ test("preset arguments carry the profile resolution and CPU switches", () => {
   assert.equal(buildPresetArgs("final").some((arg) => arg.startsWith("--concurrency")), false);
 });
 
+test("local preset renders 720p on CPU for the local product mode", () => {
+  const preset = resolveRenderPreset("local");
+  assert.equal(preset.width, 1280);
+  assert.equal(preset.height, 720);
+  assert.equal(preset.fps, 30);
+  assert.equal(preset.hardwareAcceleration, "disable");
+  assert.equal(preset.concurrency, 1);
+  assert.equal(resolveRenderProfile("local"), "local");
+});
+
 test("presets only expose the documented profiles", () => {
-  assert.deepEqual(Object.keys(PRESETS).sort(), ["demo", "final", "preview"]);
+  assert.deepEqual(Object.keys(PRESETS).sort(), ["demo", "final", "local", "preview"]);
 });
 
 test("render CLI dry-run uses the demo resolution and CPU switches", () => {
