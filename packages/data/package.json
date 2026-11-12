@@ -11,7 +11,8 @@
     "./ports/blob-storage-port": "./src/ports/blob-storage-port.js",
     "./adapters/in-memory-repository": "./src/adapters/in-memory-repository.js",
     "./adapters/postgres-repository": "./src/adapters/postgres-repository.js",
-    "./adapters/fs-blob-storage": "./src/adapters/fs-blob-storage.js"
+    "./adapters/fs-blob-storage": "./src/adapters/fs-blob-storage.js",
+    "./adapters/s3-blob-storage": "./src/adapters/s3-blob-storage.js"
   },
   "scripts": {
     "test": "node --test test/*.test.js",

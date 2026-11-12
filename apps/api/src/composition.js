@@ -8,15 +8,28 @@ import { createDataRouter } from './data-router.js';
  * in-memory adapter so the showcase/demo mode still works with no services.
  */
 export async function createRuntimeDataRouter({ env = process.env } = {}) {
-  const { InMemoryRepository, PostgresRepository, FsBlobStorage } = await import('@newsroom/data');
+  const { InMemoryRepository, PostgresRepository, FsBlobStorage, S3BlobStorage } = await import('@newsroom/data');
   const connectionString = String(env.DATABASE_URL || '').trim();
   const repository = connectionString
     ? new PostgresRepository({ connectionString })
     : new InMemoryRepository();
-  const blobStorage = new FsBlobStorage({
-    root: env.BLOB_ROOT || './data/blobs',
-    publicPath: '/panel/blobs',
-  });
+  const blobKind = String(env.STORAGE || 'fs').trim().toLowerCase();
+  if (blobKind !== 'fs' && blobKind !== 's3') {
+    throw new Error(`Unsupported STORAGE adapter: ${blobKind}`);
+  }
+  const blobStorage = blobKind === 's3'
+    ? new S3BlobStorage({
+      endpoint: env.S3_ENDPOINT || 'http://127.0.0.1:9000',
+      bucket: env.S3_BUCKET || 'newsroom',
+      region: env.S3_REGION || 'us-east-1',
+      accessKey: env.S3_ACCESS_KEY || '',
+      secretKey: env.S3_SECRET_KEY || '',
+      publicPath: '/panel/blobs',
+    })
+    : new FsBlobStorage({
+      root: env.BLOB_ROOT || './data/blobs',
+      publicPath: '/panel/blobs',
+    });
   const maxUploadBytes = Number(env.MAX_UPLOAD_BYTES || '') || undefined;
   return {
     dataRouter: createDataRouter({
@@ -26,5 +39,6 @@ export async function createRuntimeDataRouter({ env = process.env } = {}) {
     }),
     repository,
     blobStorage,
+    blobKind,
   };
 }
