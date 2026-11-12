@@ -1,8 +1,17 @@
+import secrets
 import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# Never hardcode a credential-shaped literal in a test; generate one per run.
+TEST_USER = f"test-user-{secrets.token_hex(4)}"
+TEST_PASSWORD = secrets.token_urlsafe(18)
+
+
+def _with_random_credentials(script: str) -> str:
+    return script.replace("'paneladmin'", repr(TEST_USER)).replace("'Guiones2026!'", repr(TEST_PASSWORD))
 
 
 def _run_node(script: str):
@@ -187,6 +196,7 @@ if (calls[2].options.method !== 'POST' || calls[2].options.credentials !== 'incl
   throw new Error(`logout request drift: ${JSON.stringify(calls[2])}`);
 }
 """
+    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
@@ -221,6 +231,7 @@ if (calls[1].url !== 'https://api.example.local/panel/login') throw new Error(`l
 if (calls[2].url !== 'https://api.example.local/panel/logout') throw new Error(`logout endpoint drift: ${calls[2].url}`);
 if (calls[1].options.credentials !== 'include') throw new Error('login must include Gateway cookies');
 """
+    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
@@ -327,6 +338,7 @@ await new Promise((resolve) => setTimeout(resolve, 0));
 if (toasts.join('|') !== 'Usuario o contraseña incorrectos') throw new Error(`unexpected toast flow: ${JSON.stringify(toasts)}`);
 if (classCalls.length) throw new Error(`remote gateway rejection opened shell: ${JSON.stringify(classCalls)}`);
 """
+    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
 
@@ -387,5 +399,6 @@ await new Promise((resolve) => setTimeout(resolve, 0));
 if (events.some((event) => event[0] === 'persist')) throw new Error(`hardcoded fallback still logs in: ${JSON.stringify(events)}`);
 if (!events.some((event) => event[0] === 'toast' && event[1] === 'Usuario o contraseña incorrectos')) throw new Error(`unexpected toast flow: ${JSON.stringify(events)}`);
 """
+    script = _with_random_credentials(script)
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
