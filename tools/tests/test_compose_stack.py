@@ -35,6 +35,11 @@ class ComposeStackTests(unittest.TestCase):
         for required in ("api", "panel", "demo-worker", "postgres", "searxng", "mailpit", "seed"):
             self.assertNotIn("profiles", self.services[required], required)
 
+    def test_panel_serves_es_modules_with_a_javascript_content_type(self) -> None:
+        nginx = (ROOT / "infra" / "panel" / "nginx.conf").read_text(encoding="utf-8")
+        self.assertIn(r"\.mjs$", nginx)
+        self.assertIn("application/javascript", nginx)
+
     def test_api_lets_the_run_mode_own_the_worker_targets(self) -> None:
         env = self.services["api"]["environment"]
         # T17: the gateway resolves demo/local worker targets from
