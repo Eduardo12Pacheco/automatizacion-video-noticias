@@ -123,6 +123,22 @@ nr_env_set() {
   mv "$tmp" "$NR_ENV_FILE"
 }
 
+# Keeps the browser origin allow-lists in sync when --port changes the
+# published panel port. Only the documented localhost defaults are rewritten.
+nr_env_apply_panel_port() {
+  local port="$1" key value updated
+  [ -n "$port" ] || return 0
+  for key in API_GATEWAY_ALLOWED_ORIGINS API_GATEWAY_TRUSTED_MUTATION_ORIGINS PANEL_PUBLIC_ORIGIN; do
+    value="$(nr_env_get "$key")"
+    [ -n "$value" ] || continue
+    updated="${value//http:\/\/127.0.0.1:8080/http://127.0.0.1:${port}}"
+    updated="${updated//http:\/\/localhost:8080/http://localhost:${port}}"
+    if [ "$updated" != "$value" ]; then
+      nr_env_set "$key" "$updated"
+    fi
+  done
+}
+
 # --- Installation state ----------------------------------------------------
 
 nr_state_get() {

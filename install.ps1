@@ -186,6 +186,7 @@ try {
         Set-NrEnvValue -Key 'NEWSROOM_MODE' -Value $Mode
         if ($Port) {
             Set-NrEnvValue -Key 'PANEL_PORT' -Value $Port
+            Update-NrPanelOrigins -Port $Port
         }
         if ($Mode -eq 'local') {
             Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'

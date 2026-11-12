@@ -440,6 +440,19 @@ function Set-NrEnvValue {
 
 # --- Installation state ----------------------------------------------------
 
+function Update-NrPanelOrigins {
+    param([Parameter(Mandatory = $true)][string]$Port)
+    foreach ($key in @('API_GATEWAY_ALLOWED_ORIGINS', 'API_GATEWAY_TRUSTED_MUTATION_ORIGINS', 'PANEL_PUBLIC_ORIGIN')) {
+        $value = Get-NrEnvValue -Key $key
+        if (-not $value) { continue }
+        $updated = $value.Replace('http://127.0.0.1:8080', "http://127.0.0.1:$Port")
+        $updated = $updated.Replace('http://localhost:8080', "http://localhost:$Port")
+        if ($updated -ne $value) {
+            Set-NrEnvValue -Key $key -Value $updated
+        }
+    }
+}
+
 function Get-NrStateValue {
     param([Parameter(Mandatory = $true)][string]$Key)
     $values = Read-NrEnvFile -Path $script:NrConfig.StateFile

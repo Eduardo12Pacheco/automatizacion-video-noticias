@@ -259,8 +259,12 @@ class InstallTests(InstallerTestCase):
     def test_port_flag_sets_the_published_panel_port(self):
         result = self.run_installer(*self.install_args("--port", "18080"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(self.env_values()["PANEL_PORT"], "18080")
+        values = self.env_values()
+        self.assertEqual(values["PANEL_PORT"], "18080")
         self.assertIn("http://127.0.0.1:18080", result.stdout)
+        for key in ("API_GATEWAY_ALLOWED_ORIGINS", "API_GATEWAY_TRUSTED_MUTATION_ORIGINS"):
+            self.assertIn("http://127.0.0.1:18080", values[key], key)
+            self.assertNotIn(":8080", values[key], key)
 
     def test_port_flag_rejects_invalid_values(self):
         for value in ("0", "70000", "eighty"):

@@ -239,6 +239,7 @@ if [ "$NR_DRY_RUN" = "0" ]; then
   fi
   if [ -n "$NR_PORT_OVERRIDE" ]; then
     nr_env_set PANEL_PORT "$NR_PORT_OVERRIDE"
+    nr_env_apply_panel_port "$NR_PORT_OVERRIDE"
   fi
 else
   # A dry run is allowed before the T8 stack exists; it only prints the plan.
