@@ -51,9 +51,8 @@ infra/windows/logs/
 profesor/data/runtime/
 subtitles-local-minimal/runtime-remote/
 apps/panel/services/approval-editor/projects/
-services/renderer/assets/overlays/
 services/renderer/projects/
-services/renderer/public/
+services/renderer/public/generated/
 services/tts-worker/output/
 services/tts-worker/segments/
 services/tts-worker/runtime/
