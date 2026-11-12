@@ -29,6 +29,11 @@ test('login -> approve -> script -> voice -> subtitles -> render on the default 
   await page.locator('#authPass').fill(EDITOR_PASSWORD);
   await page.locator('#authForm button[type="submit"]').click();
   await expect(page.locator('#appShell')).toBeVisible();
+  await expect(page.locator('#runModeBadge')).toBeVisible();
+  await expect(page.locator('#runModeBadge')).toHaveText(/demo/i);
+  await expect(page.locator('#runModeBanner')).toBeVisible();
+  const bootstrap = await json(await request.get('/panel/bootstrap'));
+  expect(bootstrap.run_mode).toBe('demo');
 
   const before = await json(await request.get('/panel/read-models/scripts/drafts'));
   const beforeIds = new Set((before.drafts || []).map((draft) => draft.draft_id));

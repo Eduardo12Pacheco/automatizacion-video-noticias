@@ -1,0 +1,70 @@
+name: local-mode
+
+# Nightly/manual real local pipeline: Ollama + Piper + faster-whisper + Remotion
+# on CPU. This is intentionally separate from the fast demo CI because it
+# downloads ~2.5 GB of models and renders real media.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+concurrency:
+  group: local-mode-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Prepare the local-mode environment
+        run: |
+          cp e2e/.env.example .env
+          sed -i \
+            -e 's/^NEWSROOM_MODE=demo$/NEWSROOM_MODE=local/' \
+            -e 's/^LLM=demo$/LLM=ollama/' \
+            -e 's/^ARTICLE_EXTRACTOR=demo$/ARTICLE_EXTRACTOR=trafilatura/' \
+            -e 's/^TTS_WORKER_ENGINE=auto$/TTS_WORKER_ENGINE=piper/' \
+            .env
+          printf '\nCOMPOSE_PROFILES=local\n' >> .env
+      - name: Download the local models
+        run: |
+          docker compose --profile local run --rm model-init
+          docker compose --profile local run --rm --no-deps --entrypoint /bin/ollama ollama pull qwen2.5:3b-instruct
+      - name: Start the local stack
+        run: |
+          docker compose --profile local up -d --build postgres searxng mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles renderer api panel
+          docker compose run --rm seed
+      - name: Wait for the API and panel
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8099/panel/bootstrap >/dev/null && curl -fsS http://127.0.0.1:8080/ >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "stack did not become healthy" >&2
+          docker compose ps
+          exit 1
+      - name: Local-mode Playwright happy path
+        env:
+          NEWSROOM_E2E_LOCAL: "1"
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE: ""
+        run: pnpm exec playwright test e2e/local-mode.spec.js
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose --profile local logs --tail=500
+      - name: Stop the stack
+        if: always()
+        run: docker compose --profile local down -v --remove-orphans
