@@ -198,18 +198,10 @@ describe('ClusterTopics', () => {
 });
 
 describe('DecideApproval', () => {
-  it('applies an approval, enqueues a script job and triggers the worker', async () => {
+  it('applies an approval and records one pending script job', async () => {
     const { repository } = await createHarness();
     await seedApprovalCluster(repository);
-    const triggers = [];
-    const useCase = new DecideApproval({
-      repository,
-      workflowTrigger: {
-        async trigger(name, payload) {
-          triggers.push({ name, payload });
-        },
-      },
-    });
+    const useCase = new DecideApproval({ repository });
 
     const result = await useCase.execute({
       id_noticia: 'news-1',
@@ -220,7 +212,6 @@ describe('DecideApproval', () => {
     assert.equal(result.enqueued, true);
     assert.equal(result.job_id, 'news-1');
     assert.equal(result.status, 'pendiente');
-    assert.deepEqual(triggers, [{ name: 'script-job-worker', payload: { id_noticia: 'news-1' } }]);
     assert.equal((await repository.getScriptQueueMonitor()).length, 1);
   });
 

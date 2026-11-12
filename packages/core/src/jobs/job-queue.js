@@ -8,17 +8,19 @@ export class JobQueue {
   #concurrency;
   #handlers;
   #logger;
+  #onComplete;
   #jobs = [];
   #pending = [];
   #active = 0;
   #waiters = [];
 
-  constructor({ concurrency = 1, handlers = {}, logger = console } = {}) {
+  constructor({ concurrency = 1, handlers = {}, logger = console, onComplete = null } = {}) {
     const value = Number(concurrency);
     if (!Number.isSafeInteger(value) || value <= 0) throw new Error('concurrency must be a positive integer');
     this.#concurrency = value;
     this.#handlers = { ...handlers };
     this.#logger = logger;
+    this.#onComplete = typeof onComplete === 'function' ? onComplete : null;
   }
 
   register(name, handler) {
@@ -81,6 +83,13 @@ export class JobQueue {
       this.#logger?.error?.('job failed', { job: job.name, id: job.id, error: job.error });
     } finally {
       job.finished_at = new Date().toISOString();
+      if (this.#onComplete) {
+        try {
+          await this.#onComplete(job);
+        } catch (error) {
+          this.#logger?.error?.('job completion hook failed', { job: job.name, id: job.id, error: String(error?.message || error) });
+        }
+      }
       this.#active -= 1;
       void this.#pump();
     }

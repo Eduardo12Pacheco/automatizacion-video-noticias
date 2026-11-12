@@ -213,7 +213,7 @@ describe('local API router', () => {
     assert.equal(missing.status, 400);
   });
 
-  it('enqueues the script draft job after an approval', async () => {
+  it('enqueues exactly one script draft job after an approval', async () => {
     await repository.upsertNews(structuredClone(NEWS));
     await repository.persistClusters(structuredClone(CLUSTER));
     const response = await router.handle({
@@ -222,7 +222,7 @@ describe('local API router', () => {
       readBody: jsonBody({ id_noticia: 'news-1', cluster_id: CLUSTER.cluster_id, action: 'approve' }),
     });
     assert.equal(response.status, 200);
-    assert.equal(jobQueue.list().some((job) => job.name === 'draft-script'), true);
+    assert.equal(jobQueue.list().filter((job) => job.name === 'draft-script').length, 1);
     await jobQueue.drain();
     const drafts = await repository.getPendingScriptDrafts();
     assert.equal(drafts.some((draft) => draft.id_noticia === 'news-1'), true);

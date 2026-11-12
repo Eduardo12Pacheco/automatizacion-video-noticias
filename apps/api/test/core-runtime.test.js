@@ -42,6 +42,46 @@ describe('core runtime adapter injection', () => {
     assert.equal(result.status, 'completed');
   });
 
+  it('notifies the optional workflow trigger when a queued job finishes', async () => {
+    class Extractor {
+      async extract() {
+        return { article: { title: 'Andrade vuelve', main_content: 'Andrade vuelve a entrenar con Aurenia. '.repeat(20) } };
+      }
+    }
+    class Llm {
+      async complete() { return { text: 'Aurenia ajusta su mediocampo. '.repeat(50) }; }
+    }
+    const triggers = [];
+    const repository = new InMemoryRepository();
+    await repository.migrate();
+    const runtime = createCoreRuntime({
+      repository,
+      adapters: {
+        articleExtractor: new Extractor(),
+        llm: new Llm(),
+        workflowTrigger: { async trigger(name, payload) { triggers.push({ name, payload }); } },
+      },
+    });
+    await repository.upsertNews([{
+      id_noticia: 'news-2',
+      seleccion: 'Aurenia',
+      jugador: 'Nicolás Andrade',
+      titular: 'Andrade vuelve',
+      link: 'https://example.local/news-2',
+      estado_revision: 'aprobado',
+      tema_principal: 'Andrade vuelve',
+    }]);
+    await repository.applyApprovalDecision({ idNoticia: 'news-2', clusterId: null, action: 'approve' });
+    runtime.jobQueue.enqueue('draft-script', { id_noticia: 'news-2' });
+    await runtime.jobQueue.drain();
+
+    assert.equal(triggers.length, 1);
+    assert.equal(triggers[0].name, 'job-completed');
+    assert.equal(triggers[0].payload.job_name, 'draft-script');
+    assert.equal(triggers[0].payload.status, 'completed');
+    assert.equal(triggers[0].payload.subject_id, 'news-2');
+  });
+
   it('exposes the save-draft use case and injected worker ports', async () => {
     const repository = new InMemoryRepository();
     await repository.migrate();

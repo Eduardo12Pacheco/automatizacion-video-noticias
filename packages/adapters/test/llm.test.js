@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import test from 'node:test';
 
 import { OllamaLLMAdapter, OpenAICompatibleLLMAdapter } from '../src/llm.js';
@@ -74,4 +75,34 @@ test('OpenAI-compatible adapter maps choices and only sends an authorization hea
   assert.equal(calls[0].url, 'http://llm.local/v1/chat/completions');
   assert.equal(calls[0].options.headers.authorization, 'Bearer not-a-real-key');
   assert.equal(JSON.parse(calls[0].options.body).max_tokens, undefined);
+});
+
+
+test('OpenAI-compatible adapter reaches a local mock server end to end', async () => {
+  const requests = [];
+  const server = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    requests.push({ url: req.url, authorization: req.headers.authorization, body: JSON.parse(Buffer.concat(chunks).toString('utf8')) });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ model: 'qwen2.5:3b-instruct', choices: [{ message: { content: 'Guion local' } }] }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const adapter = new OpenAICompatibleLLMAdapter({
+      baseUrl: `http://127.0.0.1:${server.address().port}/v1`,
+      model: 'qwen2.5:3b-instruct',
+      apiKey: 'local-test-key',
+      timeoutMs: 5_000,
+    });
+    const result = await adapter.complete({ prompt: 'Escribe un guion', maxTokens: 64 });
+    assert.equal(result.text, 'Guion local');
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, '/v1/chat/completions');
+    assert.equal(requests[0].authorization, 'Bearer local-test-key');
+    assert.equal(requests[0].body.model, 'qwen2.5:3b-instruct');
+    assert.equal(requests[0].body.stream, false);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });

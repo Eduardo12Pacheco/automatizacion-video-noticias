@@ -71,6 +71,41 @@ describe('JobQueue', () => {
     const queue = new JobQueue({ handlers: {} });
     assert.throws(() => queue.enqueue('missing', {}), /handler/i);
   });
+
+  it('reports completed and failed jobs once through the completion hook', async () => {
+    const completions = [];
+    const hooks = [];
+    const queue = new JobQueue({
+      handlers: {
+        async ok() { return 'ok'; },
+        async fail() { throw new Error('boom'); },
+      },
+      onComplete: async (job) => {
+        hooks.push(job.status);
+        completions.push({ name: job.name, status: job.status, error: job.error });
+      },
+    });
+    queue.enqueue('ok', { id_noticia: 'news-1' });
+    queue.enqueue('fail', {});
+    await queue.drain();
+
+    assert.deepEqual(hooks, ['completed', 'failed']);
+    assert.deepEqual(completions, [
+      { name: 'ok', status: 'completed', error: null },
+      { name: 'fail', status: 'failed', error: 'boom' },
+    ]);
+  });
+
+  it('keeps a job completed when the completion hook fails', async () => {
+    const queue = new JobQueue({
+      handlers: { async ok() { return 'ok'; } },
+      onComplete: async () => { throw new Error('webhook down'); },
+      logger: { error() {} },
+    });
+    queue.enqueue('ok', {});
+    await queue.drain();
+    assert.equal(queue.list()[0].status, 'completed');
+  });
 });
 
 describe('Scheduler', () => {

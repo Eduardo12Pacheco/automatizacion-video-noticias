@@ -72,7 +72,7 @@ export function createCoreRuntime({ repository, adapters = {}, discovery = {}, n
     now,
   });
   const clusterTopics = new ClusterTopics({ repository, llm, now });
-  const decideApproval = new DecideApproval({ repository, workflowTrigger });
+  const decideApproval = new DecideApproval({ repository });
   const draftScript = new DraftScript({ repository, articleExtractor, llm, now });
   const publishScript = new PublishScript({
     repository,
@@ -95,6 +95,18 @@ export function createCoreRuntime({ repository, adapters = {}, discovery = {}, n
       'manual-video': (payload) => manualCreateVideoProject.process(payload.job_id),
       'draft-script': (payload) => draftScript.execute(payload),
     },
+    // With the optional n8n trigger enabled, n8n owns the notification
+    // workflow. Completion events stay small and contain no article or secret
+    // content.
+    onComplete: workflowTrigger
+      ? (job) => workflowTrigger.trigger('job-completed', {
+        job_id: job.id,
+        job_name: job.name,
+        status: job.status,
+        finished_at: job.finished_at,
+        subject_id: job.payload?.id_noticia || job.payload?.job_id || job.payload?.run_id || null,
+      })
+      : null,
   });
   const scheduler = new Scheduler({ logger });
 

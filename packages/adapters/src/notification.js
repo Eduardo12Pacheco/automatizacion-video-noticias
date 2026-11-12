@@ -101,6 +101,55 @@ export class SmtpNotificationAdapter {
     });
   }
 
+  async verify() {
+    let socket = await this._connect();
+    let buffer = '';
+    const replies = [];
+    const waiters = [];
+    const onData = (chunk) => {
+      buffer += chunk.toString('utf8');
+      let newline = buffer.indexOf('\n');
+      while (newline !== -1) {
+        const line = buffer.slice(0, newline).replace(/\r$/, '');
+        buffer = buffer.slice(newline + 1);
+        const match = line.match(/^(\d{3})([ -])(.*)$/);
+        if (match) {
+          if (!pending) pending = { code: Number(match[1]), lines: [] };
+          pending.lines.push(match[3]);
+          if (match[2] === ' ') {
+            const reply = { code: pending.code, text: pending.lines.join('\n') };
+            pending = null;
+            const waiter = waiters.shift();
+            if (waiter) waiter.resolve(reply);
+            else replies.push(reply);
+          }
+        }
+        newline = buffer.indexOf('\n');
+      }
+    };
+    let pending = null;
+    socket.on('data', onData);
+    socket.resume?.();
+    const readReply = () => {
+      const queued = replies.shift();
+      if (queued) return Promise.resolve(queued);
+      return new Promise((resolve) => waiters.push({ resolve }));
+    };
+    try {
+      const greeting = await readReply();
+      if (greeting.code !== 220) throw new AdapterError('smtp_command_failed', `SMTP greeting failed (SMTP ${greeting.code})`);
+      socket.write(`EHLO ${this.hostname}\r\n`);
+      const ehlo = await readReply();
+      if (ehlo.code !== 250) throw new AdapterError('smtp_command_failed', `SMTP EHLO failed (SMTP ${ehlo.code})`);
+      socket.write('QUIT\r\n');
+      await readReply().catch(() => null);
+      return { ok: true, adapter: 'smtp', host: this.host, port: this.port };
+    } finally {
+      socket.removeListener?.('data', onData);
+      socket.end?.();
+    }
+  }
+
   async _deliver({ recipients, message }) {
     let socket = await this._connect();
     let buffer = '';

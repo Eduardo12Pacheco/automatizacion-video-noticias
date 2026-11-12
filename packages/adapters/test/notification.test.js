@@ -99,6 +99,18 @@ test('SmtpNotificationAdapter speaks enough SMTP for Mailpit with auth', async (
   }
 });
 
+test('SmtpNotificationAdapter verifies the greeting without sending a message', async () => {
+  const fake = await startFakeSmtp();
+  try {
+    const adapter = new SmtpNotificationAdapter({ host: '127.0.0.1', port: fake.port });
+    const result = await adapter.verify();
+    assert.equal(result.ok, true);
+    assert.equal(fake.received.length, 0);
+  } finally {
+    await fake.close();
+  }
+});
+
 test('ConsoleNotificationAdapter logs a redacted line and does not require SMTP', async () => {
   const lines = [];
   const adapter = new ConsoleNotificationAdapter({ logger: { info: (line) => lines.push(line), debug: () => {} } });
