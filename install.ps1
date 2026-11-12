@@ -188,6 +188,12 @@ try {
             Set-NrEnvValue -Key 'PANEL_PORT' -Value $Port
             Update-NrPanelOrigins -Port $Port
         }
+        if ($Mode -eq 'local' -and $config.Profile -ne 'gpu') {
+            $ttsEngine = Get-NrEnvValue -Key 'TTS_WORKER_ENGINE'
+            if (-not $ttsEngine -or $ttsEngine -eq 'auto') {
+                Set-NrEnvValue -Key 'TTS_WORKER_ENGINE' -Value 'piper'
+            }
+        }
         if ($Mode -eq 'local') {
             Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'
         } else {

@@ -197,6 +197,7 @@ class InstallTests(InstallerTestCase):
         self.assertEqual(values["COMPOSE_PROFILES"], "local")
         state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
         self.assertIn("MODELS_DOWNLOADED=1", state)
+        self.assertEqual(self.env_values()["TTS_WORKER_ENGINE"], "piper")
 
     def test_second_install_is_idempotent(self):
         first = self.run_installer(*self.install_args("--profile", "cpu"))

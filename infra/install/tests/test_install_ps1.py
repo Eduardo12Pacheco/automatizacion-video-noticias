@@ -118,6 +118,7 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertIn("MODEL_INIT", log)
         stack_up = [line for line in log.splitlines() if " up -d --build" in line][-1]
         self.assertIn("--profile local", stack_up)
+        self.assertEqual(self.env_values()["TTS_WORKER_ENGINE"], "piper")
 
     def test_second_install_is_idempotent(self):
         first = self.run_ps(*self.ps_args())

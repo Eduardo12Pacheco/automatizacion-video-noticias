@@ -241,6 +241,14 @@ if [ "$NR_DRY_RUN" = "0" ]; then
     nr_env_set PANEL_PORT "$NR_PORT_OVERRIDE"
     nr_env_apply_panel_port "$NR_PORT_OVERRIDE"
   fi
+  # On CPU the local product uses Piper; auto would require a reference
+  # transcript for the Qwen path before it can fall back.
+  if [ "$NR_RUN_MODE" = "local" ] && [ "$NR_PROFILE" != "gpu" ]; then
+    tts_engine="$(nr_env_get TTS_WORKER_ENGINE)"
+    if [ -z "$tts_engine" ] || [ "$tts_engine" = "auto" ]; then
+      nr_env_set TTS_WORKER_ENGINE piper
+    fi
+  fi
 else
   # A dry run is allowed before the T8 stack exists; it only prints the plan.
   NR_COMPOSE_MISSING_WARN=1
