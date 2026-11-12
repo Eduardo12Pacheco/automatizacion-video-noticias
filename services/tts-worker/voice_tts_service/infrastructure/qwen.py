@@ -36,6 +36,7 @@ class QwenCloneEngine:
             except Exception as exc:
                 raise RuntimeError(f"CUDA es obligatoria para TTS pero no esta operativa. Dispositivo solicitado: {selected_device}. Error: {type(exc).__name__}: {exc}. Verifica drivers NVIDIA, CUDA toolkit y VRAM disponible.") from exc
         print(f"[INFO] TTS device resuelto: device={device} requested={selected_device} cuda_available={cuda_available} cuda_device_count={cuda_device_count}")
+        self.device = selected_device
         dtype_raw = str(generation_cfg.get("dtype", "bfloat16")).lower()
         dtype = torch.bfloat16 if dtype_raw in ("bfloat16", "bf16") else torch.float16 if dtype_raw in ("float16", "fp16") else torch.float32
         use_flash = bool(generation_cfg.get("use_flash_attention", True))

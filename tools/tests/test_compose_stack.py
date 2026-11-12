@@ -153,11 +153,27 @@ class ComposeStackTests(unittest.TestCase):
             self.assertRegex(image, r":[^:\s]+$", f"{name} needs an explicit tag")
 
     def test_gpu_overlay_reserves_devices_and_selects_qwen(self) -> None:
-        overlay = yaml.safe_load((ROOT / "infra" / "compose" / "compose.gpu.yaml").read_text(encoding="utf-8"))["services"]
+        overlay_doc = yaml.safe_load((ROOT / "infra" / "compose" / "compose.gpu.yaml").read_text(encoding="utf-8"))
+        overlay = overlay_doc["services"]
         for name in ("ollama", "asr-worker", "tts-worker"):
             self.assertEqual(overlay[name].get("gpus"), "all", name)
         self.assertEqual(overlay["asr-worker"]["environment"]["TRANSCRIPT_SERVICE_DEVICE"], "cuda")
         self.assertEqual(overlay["tts-worker"]["environment"]["TTS_WORKER_ENGINE"], "qwen")
+        # The GPU voice engine needs the Qwen extra, a local checkpoint volume
+        # and a reference voice that the model can clone.
+        self.assertEqual(overlay["tts-worker"]["build"]["args"]["TTS_EXTRAS"], "piper,gpu")
+        self.assertEqual(overlay["tts-worker"]["environment"]["TTS_WORKER_MODEL"], "/models/qwen-tts")
+        self.assertIn("newsroom_qwen_models:/models/qwen-tts", overlay["tts-worker"]["volumes"])
+        self.assertIn("newsroom_qwen_models", overlay_doc["volumes"])
+        # model-init downloads that checkpoint in the same explicit step.
+        self.assertEqual(overlay["model-init"]["environment"]["TTS_WORKER_ENGINE"], "qwen")
+        self.assertIn("newsroom_qwen_models:/models/qwen-tts", overlay["model-init"]["volumes"])
+        # Ollama must unload before Qwen needs the same 8 GB card. The API
+        # sends keep_alive per request, so the override has to cover it too.
+        self.assertEqual(overlay["ollama"]["environment"]["OLLAMA_KEEP_ALIVE"], "${OLLAMA_GPU_KEEP_ALIVE:-0s}")
+        self.assertEqual(overlay["api"]["environment"]["OLLAMA_KEEP_ALIVE"], "${OLLAMA_GPU_KEEP_ALIVE:-0s}")
+        for name in ("voz.wav", "voz.txt"):
+            self.assertGreater((ROOT / "services" / "tts-worker" / "refs" / name).stat().st_size, 0, name)
 
     def test_ollama_never_pulls_models_from_its_container_command(self) -> None:
         ollama = self.services["ollama"]

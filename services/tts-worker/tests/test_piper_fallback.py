@@ -96,7 +96,7 @@ class _FakeEngine:
 def test_create_engine_uses_qwen_on_gpu_and_returns_slot(tmp_path, monkeypatch) -> None:
     created = {}
 
-    def qwen_factory(cfg, device):
+    def qwen_factory(cfg, device, gpu_slot=None):
         created["qwen"] = (cfg, device)
         return _FakeEngine("qwen")
 
@@ -116,7 +116,7 @@ def test_create_engine_uses_qwen_on_gpu_and_returns_slot(tmp_path, monkeypatch) 
 def test_create_engine_falls_back_to_piper_when_qwen_fails(tmp_path) -> None:
     calls = []
 
-    def broken_qwen(cfg, device):
+    def broken_qwen(cfg, device, gpu_slot=None):
         raise RuntimeError("CUDA out of memory")
 
     def piper_factory(cfg, device):
@@ -154,7 +154,7 @@ def test_create_engine_fails_when_qwen_fails_without_fallback(tmp_path) -> None:
         create_tts_engine(
             {},
             env={"NEWSROOM_GPU_LOCK_PATH": str(tmp_path / "gpu.lock")},
-            qwen_factory=lambda cfg, device: (_ for _ in ()).throw(RuntimeError("no cuda")),
+            qwen_factory=lambda cfg, device, gpu_slot=None: (_ for _ in ()).throw(RuntimeError("no cuda")),
         )
 
 
@@ -167,7 +167,7 @@ def test_create_engine_qwen_mode_can_disable_cpu_fallback(tmp_path) -> None:
                 "TTS_WORKER_ALLOW_CPU_FALLBACK": "0",
                 "NEWSROOM_GPU_LOCK_PATH": str(tmp_path / "gpu.lock"),
             },
-            qwen_factory=lambda cfg, device: (_ for _ in ()).throw(RuntimeError("no cuda")),
+            qwen_factory=lambda cfg, device, gpu_slot=None: (_ for _ in ()).throw(RuntimeError("no cuda")),
         )
 
 
@@ -187,3 +187,22 @@ def test_piper_engine_reads_the_model_path_from_the_environment(monkeypatch, tmp
 
     engine.prepare_reference(tmp_path / "unused.wav", "")
     assert engine.model_path == model
+
+
+def test_generation_can_override_the_model_path_for_the_gpu_volume() -> None:
+    from voice_tts_service.cli.synthesize import resolve_generation_with_preset
+
+    cfg = {
+        "generation": {"model_name": "Qwen/Qwen3-TTS-12Hz-1.7B-Base", "preset": "balanced_default"},
+        "presets": {"balanced_default": {"temperature": 0.8}},
+    }
+    merged, preset, _ = resolve_generation_with_preset(
+        cfg,
+        None,
+        env={"TTS_WORKER_MODEL": "/models/qwen-tts"},
+    )
+    assert merged["model_name"] == "/models/qwen-tts"
+    assert preset == "balanced_default"
+
+    unchanged, _, _ = resolve_generation_with_preset(cfg, None, env={})
+    assert unchanged["model_name"] == "Qwen/Qwen3-TTS-12Hz-1.7B-Base"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
 from datetime import datetime
@@ -74,8 +75,18 @@ def model_output_tag(model_name: str) -> str:
     return safe or "model"
 
 
-def resolve_generation_with_preset(cfg: dict, cli_preset: str | None) -> tuple[dict, str | None, dict]:
+def resolve_generation_with_preset(
+    cfg: dict,
+    cli_preset: str | None,
+    env: dict[str, str] | None = None,
+) -> tuple[dict, str | None, dict]:
     generation_cfg = dict(cfg.get("generation", {}) or {})
+    # The GPU installer downloads Qwen to a local volume; this override keeps
+    # the model path out of the committed YAML and lets CPU installs ignore it.
+    values = os.environ if env is None else env
+    model_override = (values.get("TTS_WORKER_MODEL") or "").strip()
+    if model_override:
+        generation_cfg["model_name"] = model_override
     presets = dict(cfg.get("presets", {}) or {})
     selected_preset = (cli_preset or generation_cfg.get("preset") or "").strip() or None
     if selected_preset is None:

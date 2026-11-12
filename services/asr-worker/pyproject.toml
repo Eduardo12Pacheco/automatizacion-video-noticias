@@ -13,6 +13,9 @@ dependencies = [
 
 [project.optional-dependencies]
 asr = ["faster-whisper>=1.1,<1.2", "huggingface-hub>=0.26,<1", "av>=14,<19"]
+# CUDA 12 libraries for ctranslate2 on the GPU profile. Installing them
+# from PyPI keeps the CPU image small and avoids a CUDA base image.
+gpu = ["nvidia-cublas-cu12>=12.4,<13", "nvidia-cudnn-cu12>=9,<10", "nvidia-cuda-runtime-cu12>=12.4,<13", "nvidia-cuda-nvrtc-cu12>=12.4,<13"]
 fetch = ["yt-dlp>=2025.1"]
 dev = ["pytest>=8", "httpx>=0.27"]
 

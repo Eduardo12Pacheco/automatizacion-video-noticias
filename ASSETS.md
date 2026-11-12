@@ -79,6 +79,23 @@ Anton font; the reserved-name rules do not apply because Anton's copyright
 notice does not declare a Reserved Font Name. The generated display face keeps
 the OFL notice and may not be redistributed under another license.
 
+## GPU Voice Reference
+
+`services/tts-worker/refs/voz.wav` + `voz.txt` are a 6.1-second synthetic
+speech sample used as the voice-cloning reference by the GPU Qwen3-TTS engine.
+They are generated, not recorded: the text in `voz.txt` is synthesized with the
+`es_ES-davefx-medium` Piper voice (the same GPL-compatible voice model the CPU
+mode downloads; the generated audio is not a copy of any recording).
+
+```sh
+docker run --rm -v newsroom_piper_models:/models/piper \
+  newsroom-tts-worker:latest \
+  sh -c 'cat refs/voz.txt | piper -m /models/piper/es_ES-davefx-medium/es_ES-davefx-medium.onnx -f refs/voz.wav'
+```
+
+The CPU Piper mode ignores both files; the GPU engine needs them because Qwen
+clones a reference voice instead of shipping a fixed speaker.
+
 ## Recorded Demo
 
 `docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (34-second walkthrough) are

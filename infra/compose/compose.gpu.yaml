@@ -1,16 +1,35 @@
-# Optional GPU override (D10). The base compose file keeps every worker on CPU
-# so the default install never needs an NVIDIA runtime; add this file on a host
-# with nvidia-container-toolkit to give Ollama, ASR and TTS the GPU and to let
-# the TTS worker use Qwen instead of the Piper CPU voice.
+# Optional GPU override (D10/T30). The base compose file keeps every worker on
+# CPU so the default install never needs an NVIDIA runtime; add this file on a
+# host with nvidia-container-toolkit to give Ollama, ASR and TTS the GPU and to
+# let the TTS worker use Qwen instead of the Piper CPU voice.
 #
 #   docker compose -f compose.yaml -f infra/compose/compose.gpu.yaml \
 #     --profile gpu up -d
+#
+# The installers and `newsroom up` add this file automatically whenever the
+# `gpu` profile is active. Models are still downloaded by the installer /
+# `newsroom models pull`, never by a container command.
 services:
+  # The API passes OLLAMA_KEEP_ALIVE on every LLM request, which overrides the
+  # Ollama server default. The GPU preset must unload the LLM as soon as the
+  # response returns so Qwen3-TTS can take the same 8 GB card.
+  api:
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_GPU_KEEP_ALIVE:-0s}
+
   ollama:
     gpus: all
+    environment:
+      # Qwen3-TTS (1.7B) and Ollama's 3B model cannot both stay resident in
+      # 8 GB of VRAM. Jobs are serial already; unloading Ollama immediately
+      # keeps the slot free for Whisper/TTS without evicting it mid-request.
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_GPU_KEEP_ALIVE:-0s}
 
   asr-worker:
     gpus: all
+    build:
+      args:
+        ASR_EXTRAS: asr,fetch,gpu
     environment:
       TRANSCRIPT_SERVICE_DEVICE: cuda
       TRANSCRIPT_SERVICE_COMPUTE_TYPE: float16
@@ -18,7 +37,25 @@ services:
 
   tts-worker:
     gpus: all
+    build:
+      args:
+        TTS_EXTRAS: piper,gpu
     environment:
       TTS_WORKER_ENGINE: qwen
-      TTS_WORKER_DEVICE: cuda
+      TTS_WORKER_DEVICE: cuda:0
+      TTS_WORKER_MODEL: /models/qwen-tts
       TTS_WORKER_ALLOW_CPU_FALLBACK: "1"
+    volumes:
+      - newsroom_qwen_models:/models/qwen-tts
+
+  # model-init is a one-shot tools service; it must download the Qwen
+  # checkpoint too when the GPU profile is active.
+  model-init:
+    environment:
+      TTS_WORKER_ENGINE: qwen
+      QWEN_TTS_MODEL_DIR: /models/qwen-tts
+    volumes:
+      - newsroom_qwen_models:/models/qwen-tts
+
+volumes:
+  newsroom_qwen_models:

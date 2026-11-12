@@ -265,6 +265,11 @@ services:
       WHISPER_MODEL: ${WHISPER_MODEL:-small}
       PIPER_MODEL_DIR: /models/piper
       WHISPER_MODEL_DIR: /models/whisper
+      # The GPU override switches this to qwen so the installer also downloads
+      # the Qwen3-TTS checkpoint used by the GPU voice worker.
+      TTS_WORKER_ENGINE: ${TTS_WORKER_ENGINE:-piper}
+      QWEN_TTS_MODEL: ${QWEN_TTS_MODEL:-Qwen/Qwen3-TTS-12Hz-1.7B-Base}
+      QWEN_TTS_MODEL_DIR: /models/qwen-tts
     volumes:
       - newsroom_piper_models:/models/piper
       - newsroom_whisper_models:/models/whisper

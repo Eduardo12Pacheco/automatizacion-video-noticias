@@ -67,7 +67,34 @@ def init_whisper() -> None:
     print(f"model-init: downloaded {root}")
 
 
+def init_qwen_tts() -> None:
+    """Download the GPU voice checkpoint only when the GPU engine is selected.
+
+    The reference WAV/TXT shipped with the worker stay in the image; this is
+    just the 1.7B model (~4.5 GB) that the Qwen engine loads from a local path.
+    """
+    engine = os.environ.get("TTS_WORKER_ENGINE", "piper").strip().lower()
+    if engine != "qwen":
+        print(f"model-init: Qwen TTS not selected (TTS_WORKER_ENGINE={engine})")
+        return
+    model = os.environ.get("QWEN_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-1.7B-Base").strip()
+    root = Path(os.environ.get("QWEN_TTS_MODEL_DIR", "/models/qwen-tts"))
+    if (root / "model.safetensors").is_file():
+        print(f"model-init: present {root}")
+        return
+    from huggingface_hub import snapshot_download
+
+    print(f"model-init: Qwen TTS {model} (~4.5 GB)")
+    snapshot_download(
+        repo_id=model,
+        local_dir=str(root),
+        allow_patterns=["*.json", "*.txt", "*.safetensors", "speech_tokenizer/*"],
+    )
+    print(f"model-init: downloaded {root}")
+
+
 if __name__ == "__main__":
     init_piper()
     init_whisper()
+    init_qwen_tts()
     print("model-init: done")

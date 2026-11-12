@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     TTS_WORKER_RUNTIME_DIR=/app/services/tts-worker/runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends ffmpeg sox libsox-fmt-all ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

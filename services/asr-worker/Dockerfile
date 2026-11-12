@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+ARG ASR_EXTRAS=asr,fetch
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -17,8 +19,9 @@ RUN pip install /app/packages/python/newsroom_worker_common /app/packages/python
 
 COPY services/asr-worker/pyproject.toml /app/services/asr-worker/pyproject.toml
 COPY services/asr-worker/app /app/services/asr-worker/app
+COPY services/asr-worker/scripts /app/services/asr-worker/scripts
 WORKDIR /app/services/asr-worker
-RUN pip install ".[asr,fetch]"
+RUN pip install ".[${ASR_EXTRAS}]"
 
 EXPOSE 8765
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["/app/services/asr-worker/scripts/run.sh"]

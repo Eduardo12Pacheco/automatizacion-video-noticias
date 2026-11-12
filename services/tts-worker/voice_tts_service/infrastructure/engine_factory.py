@@ -69,7 +69,9 @@ def create_tts_engine(
     )
     slot.acquire()
     try:
-        engine = qwen_factory(generation_cfg, device)
+        # Share the slot with the engine: Qwen releases it after loading the
+        # model and re-acquires it around each synthesis call.
+        engine = qwen_factory(generation_cfg, device, gpu_slot=slot)
         return engine, slot
     except Exception as exc:
         slot.release()

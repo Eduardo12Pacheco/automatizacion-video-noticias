@@ -60,6 +60,10 @@ input/*
 !input/.gitkeep
 refs/*
 !refs/.gitkeep
+# The GPU voice engine needs a small synthetic reference to clone. It is
+# generated once with the Piper voice model and committed deliberately.
+!refs/voz.wav
+!refs/voz.txt
 
 # Models / checkpoints / ML caches
 models/
