@@ -14,7 +14,10 @@ from subtitles_service.application.analyze_session import AnalyzeSessionService
 from subtitles_service.application.render_session import RenderSessionService
 from subtitles_service.config.contracts import ALLOWED_INPUT_EXTENSIONS, MAX_VIDEO_INPUT_BYTES
 from subtitles_service.domain.errors import ErrorCode, PipelineError
-from subtitles_service.infrastructure.translation import SUPPORTED_SOURCE_LANGUAGES
+from subtitles_service.infrastructure.translation import (
+    SUPPORTED_SOURCE_LANGUAGES,
+    resolve_translator_for_source,
+)
 from subtitles_service.storage.sqlite_store import SubtitleStore
 
 
@@ -251,6 +254,69 @@ def register_subtitle_routes(
 
         media_type = "video/mp4" if preview_path.suffix.lower() == ".mp4" else "video/quicktime"
         return FileResponse(path=str(preview_path), media_type=media_type)
+
+
+    @app.post("/api/subtitles/translate")
+    async def translate_segments(
+        payload: dict[str, Any],
+        x_api_key: str | None = Header(None),
+        authorization: str | None = Header(None),
+    ) -> dict[str, Any]:
+        """Translate existing transcript segments without re-running ASR.
+
+        This is the HTTP contract used by `TranslationPort`; it shares the
+        subtitle service's translation resolver and auth so a split deployment
+        has one translation implementation instead of a second copy.
+        """
+        try:
+            require_auth(x_api_key=x_api_key, authorization=authorization)
+            raw_segments = payload.get("segments")
+            if not isinstance(raw_segments, list) or not raw_segments:
+                raise PipelineError(
+                    code=ErrorCode.VIDEO_INPUT_CONTRACT_VIOLATION,
+                    message="segments must be a non-empty array",
+                    details={"received": type(raw_segments).__name__},
+                )
+            target = str(payload.get("target_language") or "es").strip().lower()
+            source = _validate_source_language(payload.get("source_language"))
+            if source == "auto":
+                detected = str(payload.get("detected_language") or "").strip().lower()
+                source = detected if detected and detected != "auto" else source
+            if source == "auto":
+                raise PipelineError(
+                    code=ErrorCode.UNSUPPORTED_SOURCE_LANGUAGE,
+                    message="detected_language is required when source_language is auto",
+                    details={"received": "auto"},
+                )
+            segments = []
+            for index, segment in enumerate(raw_segments):
+                if not isinstance(segment, dict):
+                    raise PipelineError(
+                        code=ErrorCode.VIDEO_INPUT_CONTRACT_VIOLATION,
+                        message="each segment must be an object",
+                        details={"index": index},
+                    )
+                text = str(segment.get("text") or "").strip()
+                if not text:
+                    raise PipelineError(
+                        code=ErrorCode.VIDEO_INPUT_CONTRACT_VIOLATION,
+                        message="each segment requires text",
+                        details={"index": index},
+                    )
+                segments.append({
+                    "text": text,
+                    "start_ms": int(segment.get("start_ms") or 0),
+                    "end_ms": int(segment.get("end_ms") or 0),
+                })
+            translator = resolve_translator_for_source(source, target)
+            translated = translator.translate(segments, target=target)
+            return {
+                "segments": translated,
+                "source_language": source,
+                "target_language": target,
+            }
+        except PipelineError as error:
+            raise http_error(error) from error
 
     @app.get("/api/subtitles/health")
     def subtitles_health(
