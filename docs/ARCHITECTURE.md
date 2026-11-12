@@ -226,10 +226,15 @@ See [data-model.md](data-model.md) for tables, keys and the RPC mapping.
 
 ## Runtime profiles
 
+`NEWSROOM_MODE` selects the adapter set, and the gateway derives the media
+proxy targets from it: `demo` routes TTS/subtitles/render to `demo-worker`;
+`local` routes them to the real workers.
+
 | Profile | Services | Use |
 |---|---|---|
-| default (CPU, no keys) | `api`, `panel`, `demo-worker`, `postgres`, `searxng`, `mailpit`, `seed`, `ollama` | Demo and evaluation |
-| `gpu` | `asr-worker`, `tts-worker`, `channel-monitor` | Real local ASR/TTS and monitoring |
+| default (CPU, no keys) | `api`, `panel`, `demo-worker`, `postgres`, `searxng`, `mailpit`, `seed` | Demo and evaluation |
+| `local` | `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` | Real local AI on CPU |
+| `gpu` | the local workers with GPU access | Real local AI with an NVIDIA card |
 | `n8n` | `n8n` | Optional external trigger adapter |
 | `tools` | `migrate`, `model-init` | One-shot migrations and model download |
 

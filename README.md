@@ -101,7 +101,7 @@ services are optional and off by default.
 
 | Capability | Local default | Optional adapter |
 |---|---|---|
-| Script writing / clustering | **Ollama** (`qwen2.5:7b-instruct` or any local model) | Any OpenAI-compatible endpoint through `.env` |
+| Script writing / clustering | **Ollama** (`qwen2.5:3b-instruct` by default, any local model) | Any OpenAI-compatible endpoint through `.env` |
 | Article extraction | **trafilatura** (fetch + main-text extraction) | — |
 | Image search | **SearXNG** container + Wikimedia Commons (no key) | — |
 | Database | **Postgres** 16 container with tracked migrations | Point `DATABASE_URL` at any Postgres |
@@ -123,7 +123,8 @@ Linux / macOS:
 ```bash
 git clone https://github.com/<your-account>/newsroom-video-automation.git
 cd newsroom-video-automation
-./install.sh --yes
+./install.sh --yes                 # demo mode: instant, no model download
+./install.sh --yes --mode local    # real local AI on CPU (models downloaded)
 ```
 
 Windows 10/11:
@@ -131,13 +132,20 @@ Windows 10/11:
 ```powershell
 git clone https://github.com/<your-account>/newsroom-video-automation.git
 cd newsroom-video-automation
-.\install.ps1 -Yes
+.\install.ps1 -Yes                  # demo mode
+.\install.ps1 -Yes -Mode local     # real local AI on CPU
 ```
 
 The installer checks Docker, disk, RAM and ports, detects an NVIDIA GPU, writes
-a `.env` with fresh random secrets, downloads the local models, runs the
-migrations, creates the first administrator and starts the stack. Re-running it
-repairs or upgrades the installation.
+a `.env` with fresh random secrets, runs the migrations, creates the first
+administrator and starts the stack. The default `demo` mode needs no models;
+`--mode local` downloads Ollama, Piper and faster-whisper models once. Re-running
+it repairs or upgrades the installation.
+
+| Mode | What runs | Panel label |
+|---|---|---|
+| `demo` | deterministic stub adapters, seeded fictional story | **Modo demo / Demo mode** |
+| `local` | Ollama script writing, trafilatura extraction, Piper voice, faster-whisper subtitles and a Remotion 720p MP4 on CPU | real local run |
 
 Then use the control CLI:
 
@@ -151,8 +159,7 @@ newsroom down
 The panel is served at **http://127.0.0.1:8080**. The detailed path, including
 the manual `docker compose` flow and LAN access, is in [docs/INSTALL.md](docs/INSTALL.md).
 
-For a pure demo without downloading an LLM, the repository also ships a
-deterministic CPU profile used by the browser test:
+The demo profile is also the keyless stack used by the browser test:
 
 ```bash
 cp e2e/.env.example .env

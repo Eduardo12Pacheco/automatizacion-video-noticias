@@ -182,14 +182,17 @@ a {
 
 
 .run-mode-badge {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-4);
+  z-index: 120;
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  margin-top: var(--space-1);
-  padding: 2px var(--space-2);
+  padding: 4px var(--space-3);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  background: var(--accent-soft);
+  background: var(--surface-0);
   color: var(--accent);
   font-size: var(--fs-12);
   font-weight: 600;
