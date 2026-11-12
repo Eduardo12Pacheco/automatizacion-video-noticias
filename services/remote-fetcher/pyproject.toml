@@ -1,0 +1,17 @@
+[project]
+name = "newsroom-remote-fetcher"
+version = "0.1.0"
+description = "Local authenticated yt-dlp media fetch boundary."
+requires-python = ">=3.11"
+dependencies = [
+  "flask>=3.1,<4",
+  "gunicorn>=23",
+  "yt-dlp",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

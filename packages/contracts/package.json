@@ -1,0 +1,11 @@
+{
+  "name": "@newsroom/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Shared approval and render contracts.",
+  "main": "approval-contract-pipeline/index.js",
+  "scripts": {
+    "test": "node --test"
+  }
+}

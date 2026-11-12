@@ -1,0 +1,11 @@
+{
+  "name": "@newsroom/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local authenticated API gateway for the newsroom panel.",
+  "scripts": {
+    "start": "node src/gateway.js",
+    "test": "node --test test/"
+  }
+}
