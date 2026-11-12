@@ -1,0 +1,115 @@
+.connectors-shell {
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.connectors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.connector-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+
+.connector-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.connector-card__head h3 {
+  margin: 0 0 2px;
+  font-size: var(--fs-16);
+}
+
+.connector-card__port {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+}
+
+.connector-card__meta {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.connector-card__meta div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.connector-card__meta dt {
+  color: var(--muted);
+  font-size: var(--fs-12);
+}
+
+.connector-card__meta dd {
+  margin: 0;
+  font-size: var(--fs-14);
+  overflow-wrap: anywhere;
+}
+
+.connector-card__message {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  color: var(--text-soft);
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+.connector-card__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.status-chip--local {
+  color: var(--success-text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.status-chip--configured {
+  color: var(--text-soft);
+  border-color: var(--border-strong);
+  background: var(--surface-muted);
+}
+
+.status-chip--error {
+  color: var(--danger-text);
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.connector-empty {
+  grid-column: 1 / -1;
+  padding: var(--space-5);
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 1180px) {
+  .connectors-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .connector-card__meta div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

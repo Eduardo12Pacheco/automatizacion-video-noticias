@@ -94,6 +94,10 @@
                 <span class="nav-item__icon" aria-hidden="true">+</span>
                 <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.users">Usuarios</span></span>
               </button>
+              <button class="nav-item" data-view="connectors" title="Conectores" aria-label="Conectores">
+                <span class="nav-item__icon" aria-hidden="true">⇄</span>
+                <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.connectors">Conectores</span></span>
+              </button>
             </div>
           </nav>
 
@@ -290,6 +294,7 @@
         <section id="viewSubtitulos2" class="view hidden subtitle2-screen"></section>
 
         <section id="viewAdminUsers" class="view hidden admin-users-screen"></section>
+        <section id="viewConnectors" class="view hidden connectors-screen"></section>
       </section>
     </div>
 
@@ -328,6 +333,12 @@
                 <option value="en">English</option>
               </select>
             </label>
+          </section>
+
+          <section class="settings-section">
+            <h3 data-i18n="settings.connectors">Conectores</h3>
+            <p class="meta" data-i18n="settings.connectorsHelp">Revisá el adaptador activo de cada puerto, su estado y probá la conexión sin salir del panel.</p>
+            <button id="openConnectorsBtn" class="secondary" type="button" data-i18n="connectors.open">Abrir conectores</button>
           </section>
 
           <section class="settings-section">

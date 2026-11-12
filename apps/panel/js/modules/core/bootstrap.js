@@ -68,6 +68,10 @@ export function bindCoreEvents({
     reloadPage();
   });
   el.closeSettings.addEventListener('click', () => el.settingsDialog.close());
+  el.openConnectorsBtn?.addEventListener('click', () => {
+    el.settingsDialog.close();
+    setView('connectors');
+  });
   el.closeDialog.addEventListener('click', () => el.topicDialog.close());
 
   el.saveSettingsBtn.addEventListener('click', () => {

@@ -129,6 +129,7 @@ const {
   errorsAuditController,
   activeUsersController,
   adminUsersController,
+  connectorsController,
   subtitlesController,
   audioFeature,
   ttsApi,
@@ -144,6 +145,7 @@ const {
   _ensureErrorsAuditFeature,
   _ensureActiveUsersFeature,
   _ensureAdminUsersFeature,
+  _ensureConnectorsFeature,
   _cssLoaded,
   _domInjected,
   _visited,
@@ -244,6 +246,7 @@ const navigation = createShellNavigationController({
   errorsAuditController,
   activeUsersController,
   adminUsersController,
+  connectorsController,
   approvalFeature,
   scriptsFeature,
   videoProjectsFeature,
@@ -259,6 +262,7 @@ const navigation = createShellNavigationController({
   _ensureErrorsAuditFeature,
   _ensureActiveUsersFeature,
   _ensureAdminUsersFeature,
+  _ensureConnectorsFeature,
   _cssLoaded,
   _domInjected,
   _visited,
@@ -390,6 +394,7 @@ function bindEvents() {
     bindErrorsAudit: () => errorsAuditController.bindEvents?.(),
     bindActiveUsers: () => activeUsersController.bindEvents?.(),
     bindAdminUsers: () => adminUsersController.bindEvents?.(),
+    bindConnectors: () => connectorsController.bindEvents?.(),
     bindScripts: () => bindScriptEvents({
       state,
       el,
@@ -453,6 +458,10 @@ function bindViewEvents(viewName) {
   }
   if (viewName === 'admin-users') {
     adminUsersController.bindEvents?.();
+    return;
+  }
+  if (viewName === 'connectors') {
+    connectorsController.bindEvents?.();
     return;
   }
   if (viewName === 'subtitulos2') {

@@ -229,7 +229,8 @@ def test_settings_presents_single_unified_config_and_hides_legacy_compatibility_
     assert "Modo avanzado" not in visible_settings
     assert "Futuro gateway" not in visible_settings
     assert '<section class="settings-section"' in visible_settings
-    assert visible_settings.count('<section class="settings-section"') == 2
+    assert visible_settings.count('<section class="settings-section"') == 3
+    assert 'id="openConnectorsBtn"' in visible_settings
     assert 'id="languageSelect"' in visible_settings
     assert 'id="advancedSettingsSection"' in visible_settings
     assert 'hidden' in compatibility_markup.split('>', 1)[0]

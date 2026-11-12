@@ -97,6 +97,8 @@ export function createAppShellComposition({
   const activeUsersController = createActiveUsersStub();
   state.adminUsers = { _stub: true };
   const adminUsersController = createAdminUsersStub();
+  state.connectors = { _stub: true };
+  const connectorsController = createConnectorsStub();
 
   const ttsApi = createTtsApiStub();
   const subtitlesController = createSubtitlesStub();
@@ -318,6 +320,29 @@ export function createAppShellComposition({
     return _adminUsersModules;
   }
 
+  let _connectorsModules = null;
+  async function _ensureConnectorsFeature() {
+    if (_connectorsModules) return _connectorsModules;
+    const [featureMod] = await Promise.all([
+      import(versionedModule('../features/connectors/index.js', import.meta.url)),
+    ]);
+    const realState = featureMod.createConnectorsState();
+    Object.assign(state.connectors, realState);
+    const connectorsApi = featureMod.createConnectorsApiClient({
+      getSettings: () => state.settings,
+      fetchImpl,
+    });
+    const realController = featureMod.createConnectorsController({
+      state: state.connectors,
+      el,
+      api: connectorsApi,
+      ui,
+    });
+    Object.assign(connectorsController, realController);
+    _connectorsModules = { controller: connectorsController, api: connectorsApi };
+    return _connectorsModules;
+  }
+
   let _activeUsersModules = null;
   async function _ensureActiveUsersFeature() {
     if (_activeUsersModules) return _activeUsersModules;
@@ -355,6 +380,7 @@ export function createAppShellComposition({
     errorsAuditController,
     activeUsersController,
     adminUsersController,
+    connectorsController,
     subtitlesController,
     audioFeature,
     ttsApi,
@@ -372,6 +398,7 @@ export function createAppShellComposition({
     _ensureErrorsAuditFeature,
     _ensureActiveUsersFeature,
     _ensureAdminUsersFeature,
+    _ensureConnectorsFeature,
 
     // Tracker Sets — populated by navigation guards
     _cssLoaded,
@@ -445,6 +472,16 @@ function createAdminUsersStub() {
     activate() { return Promise.resolve(); },
     deactivate() {},
     render() {},
+  };
+}
+function createConnectorsStub() {
+  return {
+    bindEvents() {},
+    activate() { return Promise.resolve(); },
+    deactivate() {},
+    render() {},
+    refresh() { return Promise.resolve(); },
+    testConnector() { return Promise.resolve(); },
   };
 }
 function createTtsApiStub() {
