@@ -93,8 +93,17 @@ class HelpAndCheckTests(InstallerTestCase):
     def test_help_lists_the_supported_flags(self):
         result = self.run_installer("--help")
         self.assertEqual(result.returncode, 0, result.stderr)
-        for flag in ("--yes", "--profile", "--check", "--dry-run", "--uninstall", "--purge", "--force-purge", "--no-models"):
+        for flag in (
+            "--yes", "--mode", "--profile", "--gpu", "--no-gpu", "--port",
+            "--check", "--dry-run", "--uninstall", "--purge", "--force-purge",
+            "--no-models", "--no-start", "--version",
+        ):
             self.assertIn(flag, result.stdout)
+
+    def test_version_is_printed_without_docker(self):
+        result = self.run_installer("--version")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("newsroom installer", result.stdout)
 
     def test_check_reports_success_with_a_usable_docker(self):
         result = self.run_installer("--check", "--project-dir", str(self.project), env_extra={})
@@ -232,12 +241,82 @@ class InstallTests(InstallerTestCase):
         self.assertIn("--profile cpu", self.read_log())
         self.assertEqual(self.env_values()["NEWSROOM_PROFILE"], "cpu")
 
+    def test_gpu_flag_selects_the_gpu_profile(self):
+        result = self.run_installer(*self.install_args("--gpu"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("--profile gpu", self.read_log())
+        self.assertEqual(self.env_values()["NEWSROOM_PROFILE"], "gpu")
+
+    def test_no_gpu_flag_wins_over_detected_hardware(self):
+        result = self.run_installer(
+            *self.install_args("--no-gpu"), env_extra={"FAKE_GPU": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("--profile cpu", self.read_log())
+        self.assertNotIn("--profile gpu", self.read_log())
+        self.assertEqual(self.env_values()["NEWSROOM_PROFILE"], "cpu")
+
+    def test_port_flag_sets_the_published_panel_port(self):
+        result = self.run_installer(*self.install_args("--port", "18080"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.env_values()["PANEL_PORT"], "18080")
+        self.assertIn("http://127.0.0.1:18080", result.stdout)
+
+    def test_port_flag_rejects_invalid_values(self):
+        for value in ("0", "70000", "eighty"):
+            result = self.run_installer(*self.install_args("--port", value))
+            self.assertNotEqual(result.returncode, 0, value)
+            self.assertIn("invalid --port", result.stdout + result.stderr)
+
+    def test_gpu_and_no_gpu_flags_conflict(self):
+        result = self.run_installer(*self.install_args("--gpu", "--no-gpu"))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("conflicts", result.stdout + result.stderr)
+
+    def test_no_start_skips_the_stack_and_says_so(self):
+        result = self.run_installer(*self.install_args("--no-start"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("STACK_UP", self.read_log())
+        self.assertIn("(not started)", result.stdout)
+
+    def test_compose_file_override_is_used(self):
+        alternate = self.project / "compose-alt.yaml"
+        alternate.write_text("services: {}\n", encoding="utf-8")
+        result = self.run_installer(*self.install_args("--compose-file", str(alternate)))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"-f {alternate}", self.read_log())
+
     def test_no_models_skips_the_download_and_marks_state(self):
         result = self.run_installer(*self.install_args("--profile", "cpu", "--no-models"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn("MODEL_INIT", self.read_log())
         state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
         self.assertNotIn("MODELS_DOWNLOADED=1", state)
+
+    def test_no_models_skips_the_local_mode_download(self):
+        result = self.run_installer(
+            *self.install_args("--mode", "local", "--profile", "cpu", "--no-models"),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("skipping model download (--no-models)", result.stdout)
+        self.assertNotIn("MODEL_INIT", self.read_log())
+        self.assertNotIn("OLLAMA_PULL", self.read_log())
+        state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
+        self.assertNotIn("MODELS_DOWNLOADED=1", state)
+
+    def test_summary_box_lists_panel_admin_and_lifecycle_commands(self):
+        result = self.run_installer(*self.install_args("--profile", "cpu"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for line in (
+            "Newsroom installation summary",
+            "Panel:    http://127.0.0.1:8080 (running)",
+            "Admin:    admin@example.local",
+            "Start:    newsroom up",
+            "Stop:     newsroom down",
+            "Logs:     newsroom logs [service]",
+            "Health:   newsroom doctor",
+        ):
+            self.assertIn(line, result.stdout)
 
     def test_admin_email_option_is_written_to_env_and_used(self):
         result = self.run_installer(
@@ -251,7 +330,7 @@ class InstallTests(InstallerTestCase):
         result = self.run_installer(*self.install_args("--profile", "cpu"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("Generated administrator password", result.stdout)
-        match = re.search(r"Generated administrator password.*\n([0-9a-f]{16,})", result.stdout)
+        match = re.search(r"Generated administrator password.*\n\| ([0-9a-f]{16,}) +\|", result.stdout)
         self.assertIsNotNone(match, result.stdout)
         password = match.group(1)
         for path in self.project.rglob("*"):

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Deterministic node stand-in for the "newsroom test" wiring.
+# It only records the invocation; it never runs the real suites.
+log_path="${FAKE_DOCKER_LOG:-}"
+if [ -n "$log_path" ]; then
+  printf 'node %s\n' "$*" >> "$log_path"
+fi
+exit 0

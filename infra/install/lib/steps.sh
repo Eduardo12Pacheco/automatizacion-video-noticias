@@ -19,6 +19,7 @@ EOF
 }
 
 nr_download_models() {
+  local force="${1:-0}"
   if [ "$NR_DOWNLOAD_MODELS" = "0" ]; then
     nr_info "skipping model download (--no-models)"
     return 0
@@ -31,7 +32,7 @@ nr_download_models() {
     nr_info "demo mode needs no models; skipping the download (use --mode local for real local AI)"
     return 0
   fi
-  if [ "$(nr_state_get MODELS_DOWNLOADED)" = "1" ]; then
+  if [ "$force" = "0" ] && [ "$(nr_state_get MODELS_DOWNLOADED)" = "1" ]; then
     nr_ok "local models already downloaded"
     return 0
   fi
@@ -90,6 +91,8 @@ nr_prompt_admin_email() {
 
 nr_create_admin() {
   if [ "$(nr_state_get ADMIN_CREATED)" = "1" ]; then
+    NR_ADMIN_STATE="existing"
+    NR_ADMIN_EMAIL_VALUE="$(nr_env_get NEWSROOM_ADMIN_EMAIL)"
     nr_ok "administrator account already initialized"
     return 0
   fi
@@ -127,19 +130,58 @@ nr_create_admin() {
 
   if [ "$generated" = "1" ] && [ "$NR_DRY_RUN" = "0" ]; then
     NR_ADMIN_PASSWORD_PRINTED="$password"
+    NR_ADMIN_STATE="created"
+  elif [ "$NR_DRY_RUN" = "1" ]; then
+    NR_ADMIN_STATE="would-create"
+  else
+    NR_ADMIN_STATE="created"
   fi
+  NR_ADMIN_EMAIL_VALUE="$email"
   unset password
 }
 
-nr_print_generated_admin_password() {
-  if [ -n "$NR_ADMIN_PASSWORD_PRINTED" ]; then
-    printf '\n'
-    nr_info "Generated administrator password (shown once, not written to disk):"
-    printf '%s\n' "$NR_ADMIN_PASSWORD_PRINTED"
-    nr_info "Sign in with ${NEWSROOM_ADMIN_EMAIL:-admin@example.local} and change it in Settings."
-    printf '\n'
-    NR_ADMIN_PASSWORD_PRINTED=""
+# S11: one summary box with the panel URL, the administrator and the lifecycle
+# commands. The generated password is printed here once and never written.
+nr_print_summary() {
+  local port mode profile status
+  port="$(nr_env_get PANEL_PORT)"
+  port="${port:-8080}"
+  if [ -n "$NR_PORT_OVERRIDE" ]; then
+    port="$NR_PORT_OVERRIDE"
   fi
+  mode="$(nr_env_get NEWSROOM_MODE)"
+  mode="${mode:-$NR_RUN_MODE}"
+  profile="$NR_PROFILE"
+  [ "$profile" = "auto" ] && profile="cpu"
+  if [ "$NR_START_STACK" = "0" ] || [ "$NR_DRY_RUN" = "1" ]; then
+    status="not started"
+  else
+    status="running"
+  fi
+
+  printf '\n'
+  printf '+----------------------------------------------------------------------+\n'
+  printf '| %-68s |\n' "Newsroom installation summary"
+  printf '+----------------------------------------------------------------------+\n'
+  printf '| %-68s |\n' "Panel:    http://127.0.0.1:${port} (${status})"
+  printf '| %-68s |\n' "Mode:     ${mode}"
+  printf '| %-68s |\n' "Profile:  ${profile}"
+  printf '| %-68s |\n' "Admin:    ${NR_ADMIN_EMAIL_VALUE:-admin@example.local}"
+  if [ -n "$NR_ADMIN_PASSWORD_PRINTED" ]; then
+    printf '| %-68s |\n' "Generated administrator password (shown once):"
+    printf '| %-68s |\n' "$NR_ADMIN_PASSWORD_PRINTED"
+  elif [ "$NR_ADMIN_STATE" = "created" ]; then
+    printf '| %-68s |\n' "Password: the one you entered during installation"
+  else
+    printf '| %-68s |\n' "Password: unchanged from the previous installation"
+  fi
+  printf '| %-68s |\n' "Start:    newsroom up"
+  printf '| %-68s |\n' "Stop:     newsroom down"
+  printf '| %-68s |\n' "Logs:     newsroom logs [service]"
+  printf '| %-68s |\n' "Health:   newsroom doctor"
+  printf '+----------------------------------------------------------------------+\n'
+  printf '\n'
+  NR_ADMIN_PASSWORD_PRINTED=""
 }
 
 nr_start_stack() {

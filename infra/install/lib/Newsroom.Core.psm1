@@ -24,6 +24,10 @@ $script:NrConfig = @{
     CheckWarnings  = 0
     AllowMissingDocker = $false
     PendingAdminPassword = ''
+    PendingAdminEmail = ''
+    AdminState = 'none'
+    Port = ''
+    StepIndex = 0
 }
 
 function Get-NrConfig {
@@ -51,6 +55,25 @@ function Set-NrOption {
 function Write-NrInfo {
     param([string]$Message)
     Write-Host "[nr] $Message" -ForegroundColor Blue
+}
+
+function Write-NrBanner {
+    Write-Host ''
+    Write-Host '+--------------------------------------------------------------+' -ForegroundColor Blue
+    Write-Host '|  Newsroom - local-first news video pipeline                   |' -ForegroundColor Blue
+    Write-Host '|  demo or local mode - no API keys required                    |' -ForegroundColor Blue
+    Write-Host '+--------------------------------------------------------------+' -ForegroundColor Blue
+    Write-Host ''
+}
+
+function Write-NrStep {
+    param(
+        [Parameter(Mandatory = $true)][int]$Index,
+        [Parameter(Mandatory = $true)][int]$Total,
+        [Parameter(Mandatory = $true)][string]$Message
+    )
+    $script:NrConfig.StepIndex = $Index
+    Write-Host ("[{0}/{1}] {2}" -f $Index, $Total, $Message) -ForegroundColor Blue
 }
 
 function Write-NrOk {
@@ -504,7 +527,19 @@ function Test-NrGpuContainerReady {
 }
 
 function Resolve-NrProfile {
-    param([string]$Requested = 'auto')
+    param(
+        [string]$Requested = 'auto',
+        [switch]$Interactive
+    )
+    if ($Interactive -and $Requested -eq 'auto' -and (Test-NrGpuPresent) -and (Test-NrGpuContainerReady)) {
+        Write-NrInfo 'NVIDIA GPU detected and the container runtime is ready.'
+        $answer = Read-Host -Prompt 'Use the GPU profile? [Y/n]'
+        if ($answer -match '^(n|no)$') {
+            $Requested = 'cpu'
+        } else {
+            $Requested = 'gpu'
+        }
+    }
     switch ($Requested) {
         'cpu' { $script:NrConfig.Profile = 'cpu' }
         'gpu' { $script:NrConfig.Profile = 'gpu' }
@@ -523,6 +558,26 @@ function Resolve-NrProfile {
             }
         }
         default { Stop-NrInstall "unknown profile: $Requested (expected auto, cpu or gpu)" }
+    }
+}
+
+function Resolve-NrMode {
+    param([switch]$Interactive)
+    if ($Interactive) {
+        Write-NrInfo 'Choose the run mode:'
+        Write-NrInfo '  demo  - instant, deterministic stubs, no model download (default)'
+        Write-NrInfo '  local - real Ollama, Whisper and Piper models on this machine'
+        do {
+            $answer = Read-Host -Prompt 'Run mode [demo/local] (demo)'
+            if (-not $answer) { $answer = 'demo' }
+            if ($answer -ne 'demo' -and $answer -ne 'local') {
+                Write-NrWarn 'please answer demo or local'
+            }
+        } while ($answer -ne 'demo' -and $answer -ne 'local')
+        $script:NrConfig.Mode = $answer
+    }
+    if ($script:NrConfig.Mode -ne 'demo' -and $script:NrConfig.Mode -ne 'local') {
+        Stop-NrInstall "unknown mode: $($script:NrConfig.Mode) (expected demo or local)"
     }
 }
 
@@ -600,6 +655,7 @@ function Test-NrEnvironment {
     $portDefaults = @('8080', '8099', '5432', '8888')
     for ($i = 0; $i -lt $portKeys.Count; $i++) {
         $portValue = Get-NrEnvValue -Key $portKeys[$i]
+        if ($i -eq 0 -and $script:NrConfig.Port) { $portValue = $script:NrConfig.Port }
         if (-not $portValue) { $portValue = $portDefaults[$i] }
         $port = 0
         if (-not [int]::TryParse($portValue, [ref]$port)) { $port = [int]$portDefaults[$i] }

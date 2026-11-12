@@ -62,6 +62,7 @@ exit /b %ERRORLEVEL%
 }
 
 function Install-NrModels {
+    param([switch]$Force)
     if (-not $script:NrConfig.DownloadModels) {
         Write-NrInfo 'skipping model download (-NoModels)'
         return
@@ -72,7 +73,7 @@ function Install-NrModels {
         Write-NrInfo 'demo mode needs no models; skipping the download (-Mode local selects real local AI)'
         return
     }
-    if ((Get-NrStateValue -Key 'MODELS_DOWNLOADED') -eq '1') {
+    if (-not $Force -and (Get-NrStateValue -Key 'MODELS_DOWNLOADED') -eq '1') {
         Write-NrOk 'local models already downloaded'
         return
     }
@@ -113,6 +114,8 @@ function Install-NrMigrations {
 
 function Install-NrAdmin {
     if ((Get-NrStateValue -Key 'ADMIN_CREATED') -eq '1') {
+        $script:NrConfig.AdminState = 'existing'
+        $script:NrConfig.PendingAdminEmail = Get-NrEnvValue -Key 'NEWSROOM_ADMIN_EMAIL'
         Write-NrOk 'administrator account already initialized'
         return
     }
@@ -155,19 +158,51 @@ function Install-NrAdmin {
         Set-NrStateValue -Key 'ADMIN_CREATED' -Value '1'
         if ($generated) {
             $script:NrConfig.PendingAdminPassword = $password
-            $script:NrConfig.PendingAdminEmail = $email
         }
+        $script:NrConfig.PendingAdminEmail = $email
+        $script:NrConfig.AdminState = 'created'
+    }
+    if ($script:NrConfig.DryRun) {
+        $script:NrConfig.PendingAdminEmail = $email
+        $script:NrConfig.AdminState = 'would-create'
     }
     $password = $null
 }
 
-function Write-NrGeneratedAdminPassword {
-    if (-not $script:NrConfig.PendingAdminPassword) { return }
+function Write-NrInstallSummary {
+    $port = Get-NrEnvValue -Key 'PANEL_PORT'
+    if ($script:NrConfig.Port) { $port = $script:NrConfig.Port }
+    if (-not $port) { $port = '8080' }
+    $mode = Get-NrEnvValue -Key 'NEWSROOM_MODE'
+    if (-not $mode) { $mode = $script:NrConfig.Mode }
+    $profile = $script:NrConfig.Profile
+    if ($profile -eq 'auto' -or -not $profile) { $profile = 'cpu' }
+    $status = 'running'
+    if (-not $script:NrConfig.StartStack -or $script:NrConfig.DryRun) { $status = 'not started' }
+    $admin = $script:NrConfig.PendingAdminEmail
+    if (-not $admin) { $admin = 'admin@example.local' }
+
     Write-Host ''
-    Write-NrInfo 'Generated administrator password (shown once, not written to disk):'
-    Write-Host $script:NrConfig.PendingAdminPassword
-    $email = $script:NrConfig.PendingAdminEmail
-    Write-NrInfo "Sign in with $email and change it in Settings."
+    Write-Host '+----------------------------------------------------------------------+'
+    Write-Host ('| {0,-68} |' -f 'Newsroom installation summary')
+    Write-Host '+----------------------------------------------------------------------+'
+    Write-Host ('| {0,-68} |' -f "Panel:    http://127.0.0.1:$port ($status)")
+    Write-Host ('| {0,-68} |' -f "Mode:     $mode")
+    Write-Host ('| {0,-68} |' -f "Profile:  $profile")
+    Write-Host ('| {0,-68} |' -f "Admin:    $admin")
+    if ($script:NrConfig.PendingAdminPassword) {
+        Write-Host ('| {0,-68} |' -f 'Generated administrator password (shown once):')
+        Write-Host ('| {0,-68} |' -f $script:NrConfig.PendingAdminPassword)
+    } elseif ($script:NrConfig.AdminState -eq 'created') {
+        Write-Host ('| {0,-68} |' -f 'Password: the one you entered during installation')
+    } else {
+        Write-Host ('| {0,-68} |' -f 'Password: unchanged from the previous installation')
+    }
+    Write-Host ('| {0,-68} |' -f 'Start:    newsroom up')
+    Write-Host ('| {0,-68} |' -f 'Stop:     newsroom down')
+    Write-Host ('| {0,-68} |' -f 'Logs:     newsroom logs [service]')
+    Write-Host ('| {0,-68} |' -f 'Health:   newsroom doctor')
+    Write-Host '+----------------------------------------------------------------------+'
     Write-Host ''
     $script:NrConfig.PendingAdminPassword = ''
 }

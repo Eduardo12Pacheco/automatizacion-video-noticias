@@ -18,8 +18,11 @@ Usage:
 
 Options:
   -y, --yes                 Non-interactive; generate the admin password
-      --profile <name>      auto (default), cpu or gpu
       --mode <name>         demo (default) or local: real local AI stack
+      --profile <name>      auto (default), cpu or gpu
+      --gpu                 Use the gpu profile
+      --no-gpu              Use the cpu profile even when a GPU is present
+      --port <number>       Published panel port (default 8080)
       --check               Check host prerequisites and exit
       --dry-run             Print every action without changing the host
       --uninstall           Stop and remove the stack
@@ -51,18 +54,41 @@ EOF
 ACTION=install
 PURGE=0
 REQUESTED_PROFILE=""
+PROFILE_EXPLICIT=0
 PROJECT_DIR_OVERRIDE=""
 COMPOSE_FILE_OVERRIDE=""
 ADMIN_EMAIL_OVERRIDE=""
 MODE_OVERRIDE=""
+MODE_EXPLICIT=0
+PORT_OVERRIDE=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -y|--yes) NR_YES=1 ;;
-    --profile) REQUESTED_PROFILE="${2:-}"; shift ;;
-    --profile=*) REQUESTED_PROFILE="${1#*=}" ;;
-    --mode) MODE_OVERRIDE="${2:-}"; shift ;;
-    --mode=*) MODE_OVERRIDE="${1#*=}" ;;
+    --profile)
+      if [ "$PROFILE_EXPLICIT" = "1" ] && [ -n "$REQUESTED_PROFILE" ] && [ "$REQUESTED_PROFILE" != "${2:-}" ]; then
+        nr_die "--profile ${2:-} conflicts with the earlier --profile $REQUESTED_PROFILE"
+      fi
+      REQUESTED_PROFILE="${2:-}"
+      PROFILE_EXPLICIT=1
+      shift ;;
+    --profile=*) REQUESTED_PROFILE="${1#*=}"; PROFILE_EXPLICIT=1 ;;
+    --gpu)
+      if [ "$PROFILE_EXPLICIT" = "1" ] && [ "$REQUESTED_PROFILE" != "gpu" ] && [ "$REQUESTED_PROFILE" != "auto" ]; then
+        nr_die "--gpu conflicts with --profile $REQUESTED_PROFILE"
+      fi
+      REQUESTED_PROFILE=gpu
+      PROFILE_EXPLICIT=1 ;;
+    --no-gpu)
+      if [ "$PROFILE_EXPLICIT" = "1" ] && [ "$REQUESTED_PROFILE" != "cpu" ] && [ "$REQUESTED_PROFILE" != "auto" ]; then
+        nr_die "--no-gpu conflicts with --profile $REQUESTED_PROFILE"
+      fi
+      REQUESTED_PROFILE=cpu
+      PROFILE_EXPLICIT=1 ;;
+    --mode) MODE_OVERRIDE="${2:-}"; MODE_EXPLICIT=1; shift ;;
+    --mode=*) MODE_OVERRIDE="${1#*=}"; MODE_EXPLICIT=1 ;;
+    --port) PORT_OVERRIDE="${2:-}"; shift ;;
+    --port=*) PORT_OVERRIDE="${1#*=}" ;;
     --check) ACTION=check ;;
     --dry-run) NR_DRY_RUN=1 ;;
     --uninstall) ACTION=uninstall ;;
@@ -95,12 +121,25 @@ if [ -n "$COMPOSE_FILE_OVERRIDE" ]; then
   NEWSROOM_COMPOSE_FILE="$COMPOSE_FILE_OVERRIDE"
 fi
 nr_reinit_paths
+NR_PORT_OVERRIDE="$PORT_OVERRIDE"
 
-NR_RUN_MODE="${MODE_OVERRIDE:-${NEWSROOM_MODE:-demo}}"
-case "$NR_RUN_MODE" in
-  demo|local) ;;
-  *) nr_die "unknown mode: $NR_RUN_MODE (expected demo or local)" ;;
-esac
+if [ -n "$NR_PORT_OVERRIDE" ]; then
+  case "$NR_PORT_OVERRIDE" in
+    ''|*[!0-9]*) nr_die "invalid --port: $NR_PORT_OVERRIDE (expected 1-65535)" ;;
+  esac
+  if [ "$NR_PORT_OVERRIDE" -lt 1 ] || [ "$NR_PORT_OVERRIDE" -gt 65535 ]; then
+    nr_die "invalid --port: $NR_PORT_OVERRIDE (expected 1-65535)"
+  fi
+fi
+
+if [ -z "$MODE_OVERRIDE" ] && [ -n "${NEWSROOM_MODE:-}" ]; then
+  MODE_OVERRIDE="$NEWSROOM_MODE"
+  MODE_EXPLICIT=1
+fi
+if [ -z "$REQUESTED_PROFILE" ] && [ -n "${NEWSROOM_PROFILE:-}" ]; then
+  REQUESTED_PROFILE="$NEWSROOM_PROFILE"
+  PROFILE_EXPLICIT=1
+fi
 
 if [ -n "$ADMIN_EMAIL_OVERRIDE" ]; then
   NEWSROOM_ADMIN_EMAIL="$ADMIN_EMAIL_OVERRIDE"
@@ -128,6 +167,19 @@ if [ "$NR_DRY_RUN" = "1" ]; then
   nr_info "dry-run: no files, containers, volumes or models will be changed"
 fi
 
+# S11: guided choices. Explicit flags, --yes, CI and non-interactive shells
+# skip the prompts and keep the documented defaults.
+if [ "$ACTION" = "install" ] && [ "$MODE_EXPLICIT" = "0" ] && [ "$NR_DRY_RUN" = "0" ] && nr_is_interactive; then
+  nr_prompt_mode
+  MODE_OVERRIDE="$NR_RUN_MODE"
+fi
+
+NR_RUN_MODE="${MODE_OVERRIDE:-demo}"
+case "$NR_RUN_MODE" in
+  demo|local) ;;
+  *) nr_die "unknown mode: $NR_RUN_MODE (expected demo or local)" ;;
+esac
+
 # --- Check -----------------------------------------------------------------
 
 if [ "$ACTION" = "check" ]; then
@@ -151,6 +203,7 @@ fi
 
 # --- Install ---------------------------------------------------------------
 
+nr_step 1 7 "Checking Docker, host requirements and ports"
 if [ "$NR_ALLOW_MISSING_DOCKER" = "1" ] && [ "$NR_DRY_RUN" = "1" ]; then
   nr_info "docker checks skipped (--allow-missing-docker with --dry-run)"
 else
@@ -165,8 +218,12 @@ else
   fi
 fi
 
-nr_resolve_profile "${REQUESTED_PROFILE:-${NEWSROOM_PROFILE:-auto}}"
+if [ "$PROFILE_EXPLICIT" = "0" ] && [ "$NR_DRY_RUN" = "0" ] && nr_is_interactive; then
+  nr_prompt_profile
+fi
+nr_resolve_profile "${REQUESTED_PROFILE:-${NR_PROFILE:-auto}}"
 
+nr_step 2 7 "Preparing the environment file and run mode"
 if [ "$NR_DRY_RUN" = "0" ]; then
   nr_require_compose
   nr_env_ensure
@@ -180,6 +237,9 @@ if [ "$NR_DRY_RUN" = "0" ]; then
   if [ -n "$ADMIN_EMAIL_OVERRIDE" ]; then
     nr_env_set NEWSROOM_ADMIN_EMAIL "$ADMIN_EMAIL_OVERRIDE"
   fi
+  if [ -n "$NR_PORT_OVERRIDE" ]; then
+    nr_env_set PANEL_PORT "$NR_PORT_OVERRIDE"
+  fi
 else
   # A dry run is allowed before the T8 stack exists; it only prints the plan.
   NR_COMPOSE_MISSING_WARN=1
@@ -190,18 +250,24 @@ fi
 nr_info "installation profile: $NR_PROFILE"
 nr_info "run mode: $NR_RUN_MODE"
 
+nr_step 3 7 "Installing the newsroom control CLI"
 nr_install_cli "$NR_BIN_DIR"
 
-nr_info "pulling and building images"
+nr_step 4 7 "Pulling and building container images"
 nr_run_compose build --pull
 
+nr_step 5 7 "Preparing local models"
 nr_download_models
+
+nr_step 6 7 "Applying migrations and creating the administrator"
 nr_run_migrations
 nr_create_admin
+
+nr_step 7 7 "Starting the stack"
 nr_start_stack
 nr_open_panel
 
-nr_print_generated_admin_password
+nr_print_summary
 
 if [ "$NR_DRY_RUN" = "1" ]; then
   nr_ok "dry-run complete; re-run without --dry-run to install"

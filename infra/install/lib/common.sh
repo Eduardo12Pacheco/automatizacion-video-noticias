@@ -28,6 +28,11 @@ NR_ALLOW_MISSING_DOCKER="${NR_ALLOW_MISSING_DOCKER:-0}"
 NR_CHECK_FAILURES=0
 NR_CHECK_WARNINGS=0
 NR_ADMIN_PASSWORD_PRINTED=""
+NR_ADMIN_EMAIL_VALUE=""
+NR_ADMIN_STATE="none"
+NR_PORT_OVERRIDE=""
+NR_STEP_INDEX=0
+NR_STEP_TOTAL=0
 
 # --- Logging ---------------------------------------------------------------
 
@@ -53,8 +58,25 @@ nr_is_interactive() { [ -t 0 ] && [ -t 1 ] && [ "$NR_YES" = "0" ] && [ "${CI:-}"
 
 nr_can_use_tty() { [ -t 0 ]; }
 
+nr_print_banner() {
+  printf '\n'
+  printf '+--------------------------------------------------------------+\n'
+  printf '|  Newsroom - local-first news video pipeline                   |\n'
+  printf '|  demo or local mode - no API keys required                    |\n'
+  printf '+--------------------------------------------------------------+\n'
+  printf '\n'
+}
+
+# Prints one progress line per install phase (S11: progress per step).
+nr_step() {
+  local index="$1" total="$2" title="$3"
+  NR_STEP_INDEX="$index"
+  NR_STEP_TOTAL="$total"
+  printf '%s[%s/%s]%s %s\n' "$NR_C_BLUE" "$index" "$total" "$NR_C_RESET" "$title"
+}
+
 nr_print_header() {
-  nr_info "Newsroom local installer"
+  nr_print_banner
   nr_info "repository: $NR_REPO_ROOT"
   nr_info "project:    $NR_PROJECT_DIR"
 }

@@ -68,6 +68,44 @@ nr_resolve_profile() {
   esac
 }
 
+# S11: guided install. Both prompts are skipped with --yes, a non-interactive
+# terminal or CI, and when the matching explicit flag/environment is present.
+nr_prompt_mode() {
+  local answer=""
+  nr_info "Choose the run mode:"
+  nr_info "  demo  - instant, deterministic stubs, no model download (default)"
+  nr_info "  local - real Ollama, Whisper and Piper models on this machine"
+  while :; do
+    printf 'Run mode [demo/local] (demo): ' >&2
+    IFS= read -r answer || answer=""
+    answer="${answer:-demo}"
+    case "$answer" in
+      demo|local) NR_RUN_MODE="$answer"; return 0 ;;
+      *) nr_warn "please answer demo or local" ;;
+    esac
+  done
+}
+
+nr_prompt_profile() {
+  local answer=""
+  if ! nr_gpu_present; then
+    return 0
+  fi
+  if ! nr_gpu_container_ready; then
+    return 0
+  fi
+  nr_info "NVIDIA GPU detected and the container runtime is ready."
+  while :; do
+    printf 'Use the GPU profile? [Y/n]: ' >&2
+    IFS= read -r answer || answer=""
+    case "${answer:-y}" in
+      y|Y|yes|YES|Yes) NR_PROFILE=gpu; return 0 ;;
+      n|N|no|NO|No) NR_PROFILE=cpu; return 0 ;;
+      *) nr_warn "please answer yes or no" ;;
+    esac
+  done
+}
+
 # --- Checks ----------------------------------------------------------------
 
 nr_check_environment() {
@@ -124,7 +162,7 @@ nr_check_environment() {
   fi
 
   local configured_ports=()
-  configured_ports+=("$(nr_env_get PANEL_PORT)")
+  configured_ports+=("${NR_PORT_OVERRIDE:-$(nr_env_get PANEL_PORT)}")
   configured_ports+=("$(nr_env_get API_GATEWAY_PORT)")
   configured_ports+=("$(nr_env_get POSTGRES_PORT)")
   configured_ports+=("$(nr_env_get SEARXNG_PORT)")

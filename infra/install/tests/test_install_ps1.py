@@ -60,6 +60,21 @@ class PowerShellInstallerTests(InstallerTestCase):
             *extra,
         )
 
+    def set_env(self, key, value):
+        path = self.project / ".env"
+        lines = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith(key + "="):
+                lines.append(f"{key}={value}")
+            else:
+                lines.append(line)
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def test_version_is_printed_without_docker(self):
+        result = self.run_ps("-Version")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("newsroom installer", result.stdout)
+
     def test_check_reports_prerequisites(self):
         result = self.run_ps("-Check", "-ProjectDir", str(self.project))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -118,6 +133,59 @@ class PowerShellInstallerTests(InstallerTestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("--profile gpu", self.read_log())
+
+    def test_gpu_and_no_gpu_switches(self):
+        gpu = self.run_ps(
+            "-Yes", "-ProjectDir", str(self.project), "-BinDir", str(self.bin_dir),
+            "-NoOpen", "-Gpu",
+        )
+        self.assertEqual(gpu.returncode, 0, gpu.stdout + gpu.stderr)
+        self.assertIn("--profile gpu", self.read_log())
+        self.assertEqual(self.env_values()["NEWSROOM_PROFILE"], "gpu")
+
+        self.log.write_text("", encoding="utf-8")
+        cpu = self.run_ps(
+            "-Yes", "-ProjectDir", str(self.project), "-BinDir", str(self.bin_dir),
+            "-NoOpen", "-NoGpu",
+            env_extra={"FAKE_GPU": "1"},
+        )
+        self.assertEqual(cpu.returncode, 0, cpu.stdout + cpu.stderr)
+        self.assertIn("--profile cpu", self.read_log())
+        self.assertNotIn("--profile gpu", self.read_log())
+        self.assertEqual(self.env_values()["NEWSROOM_PROFILE"], "cpu")
+
+    def test_port_sets_the_published_panel_port(self):
+        result = self.run_ps(*self.ps_args("-Port", "18080"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.env_values()["PANEL_PORT"], "18080")
+        self.assertIn("http://127.0.0.1:18080", result.stdout)
+
+    def test_port_rejects_invalid_values(self):
+        for value in ("0", "70000", "eighty"):
+            result = self.run_ps(*self.ps_args("-Port", value))
+            self.assertNotEqual(result.returncode, 0, value)
+            self.assertIn("invalid -Port", result.stdout + result.stderr)
+
+    def test_no_start_skips_the_stack_and_says_so(self):
+        result = self.run_ps(*self.ps_args("-NoStart"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("STACK_UP", self.read_log())
+        self.assertIn("(not started)", result.stdout)
+
+    def test_compose_file_override_is_used(self):
+        alternate = self.project / "compose-alt.yaml"
+        alternate.write_text("services: {}\n", encoding="utf-8")
+        result = self.run_ps(*self.ps_args("-ComposeFile", str(alternate)))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(str(alternate), self.read_log())
+
+    def test_no_models_skips_the_local_download(self):
+        result = self.run_ps(*self.ps_args("-Mode", "local", "-NoModels"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("skipping model download (-NoModels)", result.stdout)
+        self.assertNotIn("MODEL_INIT", self.read_log())
+        state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
+        self.assertNotIn("MODELS_DOWNLOADED=1", state)
 
     def test_dry_run_writes_nothing(self):
         result = self.run_ps(
@@ -180,11 +248,38 @@ class PowerShellInstallerTests(InstallerTestCase):
     def test_cli_help_and_unknown_command(self):
         help_result = self.run_cli("help")
         self.assertEqual(help_result.returncode, 0, help_result.stderr)
-        for command in ("up", "down", "status", "logs", "update", "doctor", "models"):
+        for command in (
+            "up", "down", "status", "logs", "update", "mode", "doctor",
+            "models", "test",
+        ):
             self.assertIn(command, help_result.stdout)
         unknown = self.run_cli("--project-dir", str(self.project), "explode")
         self.assertNotEqual(unknown.returncode, 0)
         self.assertIn("unknown command", unknown.stdout + unknown.stderr)
+
+    def test_cli_models_pull_and_mode(self):
+        self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
+        self.set_env("NEWSROOM_MODE", "local")
+        self.log.write_text("", encoding="utf-8")
+        pull = self.run_cli("--project-dir", str(self.project), "models", "pull")
+        self.assertEqual(pull.returncode, 0, pull.stdout + pull.stderr)
+        self.assertIn("MODEL_INIT", self.read_log())
+
+        self.log.write_text("", encoding="utf-8")
+        mode = self.run_cli("--project-dir", str(self.project), "mode", "demo")
+        self.assertEqual(mode.returncode, 0, mode.stdout + mode.stderr)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_MODE"], "demo")
+        self.assertEqual(values["COMPOSE_PROFILES"], "")
+        self.assertIn("run mode set to demo", mode.stdout)
+
+    def test_cli_test_runs_the_ci_runner(self):
+        self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_cli("--project-dir", str(self.project), "test")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("tools/run-all-tests.mjs", self.read_log())
+        self.assertIn("test suite passed", result.stdout)
 
 
 if __name__ == "__main__":

@@ -42,7 +42,12 @@ class InstallerParityTests(unittest.TestCase):
             "no-start": "nostart",
             "no-open": "noopen",
             "check": "check",
+            "mode": "mode",
             "profile": "profile",
+            "gpu": "gpu",
+            "no-gpu": "nogpu",
+            "port": "port",
+            "version": "version",
             "bin-dir": "bindir",
             "admin-email": "adminemail",
             "project-dir": "projectdir",
@@ -60,7 +65,10 @@ class InstallerParityTests(unittest.TestCase):
             self.assertIn(snippet, INSTALL_PS1, snippet)
 
     def test_both_clis_expose_the_same_commands(self):
-        for command in ("up", "down", "status", "logs", "update", "doctor", "models", "version"):
+        for command in (
+            "up", "down", "status", "logs", "update", "mode", "doctor",
+            "models", "test", "version",
+        ):
             self.assertIn(command, CLI_SH, command)
             self.assertIn(command, CLI_PS1, command)
 

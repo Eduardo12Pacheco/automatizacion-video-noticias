@@ -10,6 +10,9 @@ param(
     [switch]$Yes,
     [ValidateSet('auto', 'cpu', 'gpu')][string]$Profile = 'auto',
     [ValidateSet('demo', 'local')][string]$Mode = 'demo',
+    [switch]$Gpu,
+    [switch]$NoGpu,
+    [string]$Port = '',
     [switch]$Check,
     [switch]$DryRun,
     [switch]$Uninstall,
@@ -20,6 +23,7 @@ param(
     [switch]$NoOpen,
     [switch]$Open,
     [switch]$Help,
+    [switch]$Version,
     [switch]$AllowMissingDocker,
     [string]$BinDir = '',
     [string]$AdminEmail = '',
@@ -42,8 +46,11 @@ Usage:
 
 Options:
   -Yes                  Non-interactive; generate the admin password
-  -Profile <name>       auto (default), cpu or gpu
   -Mode <name>          demo (default) or local: real local AI stack
+  -Profile <name>       auto (default), cpu or gpu
+  -Gpu                  Use the gpu profile
+  -NoGpu                Use the cpu profile even when a GPU is present
+  -Port <number>        Published panel port (default 8080)
   -Check                Check host prerequisites and exit
   -DryRun               Print every action without changing the host
   -Uninstall            Stop and remove the stack
@@ -58,6 +65,7 @@ Options:
   -ComposeFile <path>   Docker Compose file
   -AllowMissingDocker   CI/self-check: warn instead of failing without Docker
   -Help                 Show this help
+  -Version              Show the installer version
 
 Environment:
   NEWSROOM_MODE, NEWSROOM_PROFILE, NEWSROOM_PROJECT_DIR, NEWSROOM_COMPOSE_FILE,
@@ -74,6 +82,28 @@ if ($Help) {
     exit 0
 }
 
+if ($Version) {
+    if ($env:NEWSROOM_VERSION) { $versionText = $env:NEWSROOM_VERSION } else { $versionText = '0.1.0' }
+    Write-Host ("newsroom installer {0}" -f $versionText)
+    exit 0
+}
+
+if ($Gpu -and $NoGpu) {
+    Write-NrFail '-Gpu and -NoGpu cannot be combined'
+    exit 1
+}
+if ($Port -and $Port -notmatch '^[0-9]+$') {
+    Write-NrFail "invalid -Port: $Port (expected 1-65535)"
+    exit 1
+}
+if ($Port) {
+    $portNumber = [int]$Port
+    if ($portNumber -lt 1 -or $portNumber -gt 65535) {
+        Write-NrFail "invalid -Port: $Port (expected 1-65535)"
+        exit 1
+    }
+}
+
 try {
     Initialize-NrPaths -ProjectDir $ProjectDir -ComposeFile $ComposeFile
     $config = Get-NrConfig
@@ -81,6 +111,7 @@ try {
     Set-NrOption -Name ForcePurge -Value ([bool]$ForcePurge)
     Set-NrOption -Name DryRun -Value ([bool]$DryRun)
     Set-NrOption -Name Mode -Value $Mode
+    if ($Port) { Set-NrOption -Name Port -Value $Port }
     Set-NrOption -Name DownloadModels -Value (-not [bool]$NoModels)
     Set-NrOption -Name StartStack -Value (-not [bool]$NoStart)
     Set-NrOption -Name OpenPanel -Value ([bool]$Open)
@@ -93,7 +124,7 @@ try {
         Set-NrOption -Name OpenPanel -Value $true
     }
 
-    Write-NrInfo 'Newsroom local installer'
+    Write-NrBanner
     Write-NrInfo "repository: $($config.RepoRoot)"
     Write-NrInfo "project:    $($config.ProjectDir)"
     if ($DryRun) {
@@ -112,6 +143,7 @@ try {
         exit 0
     }
 
+    Write-NrStep -Index 1 -Total 7 -Message 'Checking Docker, host requirements and ports'
     $allowNoDocker = $AllowMissingDocker -and $DryRun
     if (-not $allowNoDocker) {
         if (-not (Test-NrDockerCli)) { Stop-NrInstall 'docker is not installed or not in PATH' }
@@ -119,8 +151,32 @@ try {
         if (-not (Test-NrComposeCli)) { Stop-NrInstall 'the docker compose v2 plugin is required' }
     }
 
-    Resolve-NrProfile -Requested $Profile
+    $modeExplicit = $PSBoundParameters.ContainsKey('Mode') -or [bool]$env:NEWSROOM_MODE
+    if (-not $PSBoundParameters.ContainsKey('Mode') -and $env:NEWSROOM_MODE) {
+        $Mode = $env:NEWSROOM_MODE
+        Set-NrOption -Name Mode -Value $Mode
+    }
+    if (-not $modeExplicit -and -not $DryRun -and (Test-NrInteractive)) {
+        Resolve-NrMode -Interactive
+        $Mode = $config.Mode
+    } else {
+        Resolve-NrMode
+        $Mode = $config.Mode
+    }
 
+    $requestedProfile = $Profile
+    if ($Gpu) { $requestedProfile = 'gpu' }
+    if ($NoGpu) { $requestedProfile = 'cpu' }
+    if (($Gpu -or $NoGpu) -and $PSBoundParameters.ContainsKey('Profile') -and $Profile -ne 'auto' -and $requestedProfile -ne $Profile) {
+        Stop-NrInstall "-Gpu/-NoGpu conflict with -Profile $Profile"
+    }
+    $profileExplicit = $Gpu -or $NoGpu -or $PSBoundParameters.ContainsKey('Profile') -or [bool]$env:NEWSROOM_PROFILE
+    if (-not $PSBoundParameters.ContainsKey('Profile') -and -not $Gpu -and -not $NoGpu -and $env:NEWSROOM_PROFILE) {
+        $requestedProfile = $env:NEWSROOM_PROFILE
+    }
+    Resolve-NrProfile -Requested $requestedProfile -Interactive:(-not $profileExplicit -and -not $DryRun -and (Test-NrInteractive))
+
+    Write-NrStep -Index 2 -Total 7 -Message 'Preparing the environment file and run mode'
     if (-not $DryRun) {
         if (-not (Test-Path -LiteralPath $config.ComposeFile -PathType Leaf)) {
             Stop-NrInstall "compose file not found: $($config.ComposeFile)"
@@ -128,6 +184,9 @@ try {
         Update-NrEnvFile
         Set-NrEnvValue -Key 'NEWSROOM_PROFILE' -Value $config.Profile
         Set-NrEnvValue -Key 'NEWSROOM_MODE' -Value $Mode
+        if ($Port) {
+            Set-NrEnvValue -Key 'PANEL_PORT' -Value $Port
+        }
         if ($Mode -eq 'local') {
             Set-NrEnvValue -Key 'COMPOSE_PROFILES' -Value 'local'
         } else {
@@ -143,18 +202,24 @@ try {
     Write-NrInfo "installation profile: $($config.Profile)"
     Write-NrInfo "run mode: $Mode"
 
+    Write-NrStep -Index 3 -Total 7 -Message 'Installing the newsroom control CLI'
     Install-NrCli -BinDir $BinDir
 
-    Write-NrInfo 'pulling and building images'
+    Write-NrStep -Index 4 -Total 7 -Message 'Pulling and building container images'
     $buildCode = Invoke-NrCompose -Arguments @('build', '--pull')
     if ($buildCode -ne 0) { Stop-NrInstall 'image build failed' }
 
+    Write-NrStep -Index 5 -Total 7 -Message 'Preparing local models'
     Install-NrModels
+
+    Write-NrStep -Index 6 -Total 7 -Message 'Applying migrations and creating the administrator'
     Install-NrMigrations
     Install-NrAdmin
+
+    Write-NrStep -Index 7 -Total 7 -Message 'Starting the stack'
     Start-NrStack
     Open-NrPanel
-    Write-NrGeneratedAdminPassword
+    Write-NrInstallSummary
 
     if ($DryRun) {
         Write-NrOk 'dry-run complete; re-run without -DryRun to install'
