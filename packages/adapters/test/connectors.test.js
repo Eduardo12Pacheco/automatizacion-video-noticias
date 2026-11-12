@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { FsBlobStorage } from '../../../packages/data/src/index.js';
+import { FsBlobStorage } from '@newsroom/data';
 import { createAdaptersFromEnv } from '../src/composition.js';
 import { createConnectorRegistry } from '../src/connectors.js';
 

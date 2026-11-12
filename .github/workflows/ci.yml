@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.12.0
+          version: 11.13.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.12.0
+          version: 11.13.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -56,6 +56,8 @@ jobs:
         run: node --test apps/api/test/*.test.js
       - name: Renderer
         run: node --test services/renderer/tests/*.test.js
+      - name: Approval editor
+        run: node --test services/approval-editor/test/*.test.js services/approval-editor/__checks__/*.mjs
       - name: Demo worker
         run: node --test services/demo-worker/test/*.test.js
       - name: Tools
@@ -98,7 +100,7 @@ jobs:
       - name: Config with the gpu and n8n profiles
         run: docker compose --env-file e2e/.env.example --profile gpu --profile n8n -f compose.yaml config -q
       - name: Compatibility alias
-        run: docker compose --env-file e2e/.env.example -f docker-compose.yml config -q
+        run: docker compose --env-file e2e/.env.example -f compose.yaml config -q
       - name: Installer/CLI behaviour under the fake docker stand-in
         run: bash infra/install/tests/run.sh
 
@@ -108,7 +110,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.12.0
+          version: 11.13.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -126,7 +128,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.12.0
+          version: 11.13.1
       - uses: actions/setup-node@v4
         with:
           node-version: 22

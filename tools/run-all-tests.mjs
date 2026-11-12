@@ -27,6 +27,7 @@ const steps = [
   { name: 'adapters', command: 'node', args: ['--test', 'packages/adapters/test/*.test.js'] },
   { name: 'api', command: 'node', args: ['--test', 'apps/api/test/*.test.js'] },
   { name: 'renderer', command: 'node', args: ['--test', 'services/renderer/tests/*.test.js'] },
+  { name: 'approval-editor', command: 'node', args: ['--test', 'services/approval-editor/test/*.test.js', 'services/approval-editor/__checks__/*.mjs'] },
   { name: 'demo-worker', command: 'node', args: ['--test', 'services/demo-worker/test/*.test.js'] },
   { name: 'tools', command: python, args: ['-m', 'unittest', 'discover', '-s', 'tools/tests', '-v'] },
   { name: 'panel', command: 'uv', args: ['run', '--with', 'pytest', 'pytest', 'apps/panel/tests', '-q'] },

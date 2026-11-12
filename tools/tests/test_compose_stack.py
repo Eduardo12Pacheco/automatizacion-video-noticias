@@ -60,7 +60,7 @@ class ComposeStackTests(unittest.TestCase):
         self.assertEqual(self.services["seed"]["command"], ["node", "scripts/seed-demo.js"])
         self.assertEqual(self.services["migrate"]["command"], ["node", "packages/data/scripts/migrate.js"])
 
-    def test_images_and_compatibility_alias_exist(self) -> None:
+    def test_images_exist_and_the_duplicate_compose_alias_is_gone(self) -> None:
         for path in (
             ROOT / "apps/api/Dockerfile",
             ROOT / "apps/panel/Dockerfile",
@@ -68,12 +68,9 @@ class ComposeStackTests(unittest.TestCase):
             ROOT / "services/subtitles/Dockerfile",
             ROOT / "services/renderer/Dockerfile",
             ROOT / "infra/models/Dockerfile",
-            ROOT / "docker-compose.yml",
         ):
             self.assertTrue(path.is_file(), str(path))
-        alias = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-        self.assertIn("include:", alias)
-        self.assertIn("compose.yaml", alias)
+        self.assertFalse((ROOT / "docker-compose.yml").exists(), "compose.yaml is the only root compose file")
 
     def test_env_template_has_generated_demo_password_and_no_real_keys(self) -> None:
         env = (ROOT / ".env.example").read_text(encoding="utf-8")
@@ -121,11 +118,23 @@ class ComposeStackTests(unittest.TestCase):
         self.assertEqual(subtitles["ASR_WORKER_URL"], "http://asr-worker:8765")
         self.assertIn("SUBTITLES_REMOTE_API_KEY", subtitles)
         tts = self.services["tts-worker"]["environment"]
-        self.assertIn("TTS_ORCH_FRONTEND_API_KEY", tts)
+        self.assertNotIn("TTS_ORCH_FRONTEND_API_KEY", tts)
         self.assertIn("TTS_WORKER_INTERNAL_TOKEN", tts)
         renderer = self.services["renderer"]["environment"]
-        self.assertEqual(renderer["APPROVAL_EDITOR_RENDER_ADAPTER"], "video-engine")
+        self.assertEqual(renderer["RENDER_SERVER_PORT"], "3042")
         self.assertEqual(renderer["RENDERER_PROFILE"], "${RENDERER_PROFILE:-local}")
+        approval_editor = self.services["approval-editor"]["environment"]
+        self.assertEqual(approval_editor["APPROVAL_EDITOR_RENDER_ADAPTER"], "${APPROVAL_EDITOR_RENDER_ADAPTER:-http}")
+        self.assertIn("APPROVAL_EDITOR_RENDERER_URL", approval_editor)
+
+
+    def test_worker_healthchecks_and_pinned_images(self) -> None:
+        for name in ("asr-worker", "tts-worker", "channel-monitor", "searxng", "renderer", "approval-editor"):
+            self.assertIn("healthcheck", self.services[name], f"{name} needs a healthcheck")
+        for name in ("searxng", "mailpit", "ollama", "minio", "minio-init"):
+            image = self.services[name]["image"]
+            self.assertNotIn(":latest", image, f"{name} must be pinned to an explicit tag")
+            self.assertRegex(image, r":[^:\s]+$", f"{name} needs an explicit tag")
 
     def test_gpu_overlay_reserves_devices_and_selects_qwen(self) -> None:
         overlay = yaml.safe_load((ROOT / "infra" / "compose" / "compose.gpu.yaml").read_text(encoding="utf-8"))["services"]

@@ -6,9 +6,14 @@
   "description": "Local-first adapters for the newsroom ports (Ollama, trafilatura, SearXNG, RSS, yt-dlp, docx, SMTP).",
   "main": "src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./demo": "./src/demo.js",
+    "./connectors": "./src/connectors.js"
   },
   "scripts": {
     "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@newsroom/data": "workspace:*"
   }
 }

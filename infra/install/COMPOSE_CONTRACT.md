@@ -11,7 +11,6 @@ shell/PowerShell code.
 | Path | Owner | Purpose |
 |---|---|---|
 | `compose.yaml` (repo root) | T8 | Stack definition, profiles and volumes |
-| `docker-compose.yml` (repo root) | T8 | Compatibility alias (`include:`) for tools that look for the old filename |
 | `.env.example` → `.env` | T8b installer | Configuration; `.env` is generated with secrets and never committed |
 | `infra/db/migrations/*.sql` | T3 | Applied by the `migrate` service |
 | `apps/api/scripts/create-admin.js` | T8b | First-admin bootstrap run inside the API image |
@@ -27,8 +26,9 @@ installers also pass `--env-file .env`).
 | `panel` | long-running | Serves `apps/panel` on `${PANEL_PORT}` (8080) and reverse-proxies `/panel`, `/webhook`, `/tts`, `/subtitles`, `/remotion`, `/radar`, `/monitor` and `/approval` to `api:8099`. |
 | `seed` | one-shot, default | Applies the migrations and seeds the fictional users, one pending topic and one complete story. Idempotent. |
 | `demo-worker` | long-running | Deterministic TTS/subtitles/render contracts for the keyless default profile; serves a WAV and the demo MP4. |
-| `approval-editor` | long-running | Approval editor HTTP service on port 3042; stores project snapshots in the `newsroom_approval` volume and is reached through the API at `/approval`. |
-| `ollama` | default (CPU) / `gpu` | Local LLM server. Its entrypoint pulls `${OLLAMA_MODEL}` into the model volume on first start. |
+| `approval-editor` | long-running | Approval editor HTTP service on port 3042; stores project snapshots in the `newsroom_approval` volume, calls `renderer:3042` over HTTP through `APPROVAL_EDITOR_RENDERER_URL`, and is reached through the API at `/approval`. |
+| `renderer` | `local` / `gpu` profile | Render-only Remotion worker on port 3042; the approval editor calls `/api/render`; writes to the shared `newsroom_renderer_editor` volume. |
+| `ollama` | default (CPU) / `gpu` | Local LLM server. Models are pulled by the installer / `newsroom models pull`, never by the container command. |
 | `postgres` | long-running | `postgres:16`, database `${POSTGRES_DB}`, user `${POSTGRES_USER}`, password `${POSTGRES_PASSWORD}`, volume `postgres_data`, healthcheck. |
 | `searxng` | long-running | JSON API enabled on `${SEARXNG_PORT}` (8888) for `ImageSearchPort`. |
 | `mailpit` | long-running | SMTP on `${MAILPIT_SMTP_PORT}` (1025) and UI on `${MAILPIT_UI_PORT}` (8025) for the optional SMTP notification adapter. |

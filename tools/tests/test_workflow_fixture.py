@@ -42,7 +42,7 @@ class WorkflowFixtureTests(unittest.TestCase):
             self.assertNotIn("firecrawl", text.lower(), f"{filename} still targets Firecrawl")
 
     def test_legacy_export_is_never_mounted_or_imported_by_compose(self):
-        for compose in ("compose.yaml", "docker-compose.yml", "infra/n8n/docker-compose.yml"):
+        for compose in ("compose.yaml", "infra/n8n/docker-compose.yml"):
             text = (ROOT / compose).read_text(encoding="utf-8")
             self.assertNotIn("examples/legacy-n8n", text, f"{compose} mounts the legacy export")
             self.assertNotIn("examples/n8n", text, f"{compose} mounts the old export")
