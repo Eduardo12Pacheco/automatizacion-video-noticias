@@ -594,7 +594,13 @@ function Test-NrEnvironment {
         Write-NrInfo 'NVIDIA GPU: not detected (cpu profile)'
     }
 
-    foreach ($port in @(8080, 8099, 5432, 8888)) {
+    $portKeys = @('PANEL_PORT', 'API_GATEWAY_PORT', 'POSTGRES_PORT', 'SEARXNG_PORT')
+    $portDefaults = @('8080', '8099', '5432', '8888')
+    for ($i = 0; $i -lt $portKeys.Count; $i++) {
+        $portValue = Get-NrEnvValue -Key $portKeys[$i]
+        if (-not $portValue) { $portValue = $portDefaults[$i] }
+        $port = 0
+        if (-not [int]::TryParse($portValue, [ref]$port)) { $port = [int]$portDefaults[$i] }
         if (Test-NrPortInUse -Port $port) {
             Write-NrWarn "port $port is already in use; change it in .env if the stack fails"
         } else {

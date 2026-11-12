@@ -15,7 +15,6 @@ nr_install_cli() {
 exec "$NR_REPO_ROOT/bin/newsroom.sh" "\$@"
 EOF
   chmod 755 "$launcher"
-  ln -sfn "$NR_REPO_ROOT/bin/newsroom.sh" "$bin_dir/newsroom-cli" 2>/dev/null || true
   nr_ok "installed CLI: $launcher"
 }
 
@@ -182,7 +181,7 @@ nr_uninstall() {
   fi
 
   if [ -n "$NR_BIN_DIR" ] && [ "$NR_DRY_RUN" = "0" ]; then
-    rm -f "$NR_BIN_DIR/newsroom" "$NR_BIN_DIR/newsroom-cli"
+    rm -f "$NR_BIN_DIR/newsroom"
     nr_ok "removed CLI from $NR_BIN_DIR"
   fi
 

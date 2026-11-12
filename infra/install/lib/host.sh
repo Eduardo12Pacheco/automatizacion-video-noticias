@@ -123,7 +123,15 @@ nr_check_environment() {
     nr_info "NVIDIA GPU: not detected (cpu profile)"
   fi
 
-  for port in 8080 8099 5432 8888; do
+  local configured_ports=()
+  configured_ports+=("$(nr_env_get PANEL_PORT)")
+  configured_ports+=("$(nr_env_get API_GATEWAY_PORT)")
+  configured_ports+=("$(nr_env_get POSTGRES_PORT)")
+  configured_ports+=("$(nr_env_get SEARXNG_PORT)")
+  local defaults=(8080 8099 5432 8888)
+  local index
+  for index in 0 1 2 3; do
+    port="${configured_ports[$index]:-${defaults[$index]}}"
     if nr_port_in_use "$port"; then
       nr_warn "port ${port} is already in use; change it in .env if the stack fails to start"
     else
