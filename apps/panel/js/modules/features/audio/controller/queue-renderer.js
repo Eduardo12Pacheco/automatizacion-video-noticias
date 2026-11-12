@@ -12,7 +12,11 @@ export function createAudioQueueRenderer({ context, callbacks }) {
     if (!visibleJobs.length) {
       el.audioQueueMeta.textContent = '';
       el.audioQueueList.classList.add('is-empty');
-      el.audioQueueList.innerHTML = '<p class="audio-queue-empty">Sin jobs todavía.</p>';
+      el.audioQueueList.innerHTML = renderEmptyState({
+        icon: 'audio',
+        titleKey: 'audio.emptyTitle',
+        messageKey: 'audio.emptyMessage',
+      });
       return;
     }
 

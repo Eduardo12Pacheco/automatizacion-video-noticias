@@ -4,12 +4,14 @@ export function isTerminalAudioStatus(status) {
 }
 
 export function normalizeAudioProgressPercent(status, rawPercent, stage) {
+  const normalizedStatus = (status || '').toLowerCase();
+  // A finished job is always 100%: the demo worker reports progress 0 while
+  // the job is queued, and a stale 0 must never label a finished job "0%".
+  if (normalizedStatus === 'done') return 100;
   if (typeof rawPercent === 'number' && Number.isFinite(rawPercent)) {
     return Math.max(0, Math.min(100, Math.round(rawPercent)));
   }
 
-  const normalizedStatus = (status || '').toLowerCase();
-  if (normalizedStatus === 'done') return 100;
   if (normalizedStatus === 'error' || normalizedStatus === 'cancelled') return 0;
   if (normalizedStatus === 'queued') return 0;
 

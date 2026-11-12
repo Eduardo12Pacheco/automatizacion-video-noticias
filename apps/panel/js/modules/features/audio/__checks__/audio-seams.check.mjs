@@ -136,7 +136,7 @@ test('Audio controller preserves endpoint, payload, selector, copy, data-action,
     'El texto es demasiado corto para generar audio',
     'Job enviado. Comienza el procesamiento...',
     'Audio listo para descarga',
-    'Sin jobs todavía.',
+    'audio.emptyTitle',
     'Descargar audio',
     'Ocultar job',
   ]) {
