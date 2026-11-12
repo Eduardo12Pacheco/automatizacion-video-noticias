@@ -118,8 +118,11 @@ class UpdateTests(InstallerTestCase):
         (root / "bin").mkdir(parents=True)
         (root / "infra" / "install" / "lib").mkdir(parents=True)
         (root / "bin" / "newsroom.sh").write_text(CLI.read_text(encoding="utf-8"), encoding="utf-8")
-        common = (REPO_ROOT / "infra" / "install" / "lib" / "common.sh").read_text(encoding="utf-8")
-        (root / "infra" / "install" / "lib" / "common.sh").write_text(common, encoding="utf-8")
+        for name in ("common.sh", "env.sh", "host.sh", "steps.sh"):
+            source = REPO_ROOT / "infra" / "install" / "lib" / name
+            (root / "infra" / "install" / "lib" / name).write_text(
+                source.read_text(encoding="utf-8"), encoding="utf-8",
+            )
         (root / ".env").write_text("NEWSROOM_PROFILE=cpu\n", encoding="utf-8")
         (root / "compose.yaml").write_text("services: {}\n", encoding="utf-8")
         subprocess.run(["git", "init", "-q"], cwd=str(root), check=True)
