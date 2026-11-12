@@ -169,7 +169,11 @@ test('local mode discovers, drafts with a real LLM, voices, subtitles and render
     writeFileSync(join(workDir, 'voice.wav'), readFileSync(voicePath));
 
     const subtitleSource = join(workDir, 'subtitle-source.mp4');
-    run('ffmpeg', ['-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360:d=8', '-i', voicePath, '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', subtitleSource]);
+    // Use the synthesized voice duration: a fixed 8 s window truncated the
+    // last sentence of a longer Piper voice, so fewer than three cues reached
+    // faster-whisper. The source still needs video for the subtitles renderer.
+    const voiceSeconds = Math.ceil(Number(voiceProbe.format.duration)) + 1;
+    run('ffmpeg', ['-y', '-f', 'lavfi', '-i', `color=c=black:s=640x360:d=${voiceSeconds}`, '-i', voicePath, '-shortest', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', subtitleSource]);
     const subtitles = await json(await request.post('/subtitles/api/subtitles/sessions', {
       ...mutation,
       multipart: {
