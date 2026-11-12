@@ -1,99 +1,25 @@
+import { RepositoryPort } from '../ports/repository-port.js';
+import { nowIso, clone, textOrNull, numberOrNull, integerOrDefault, jsonValue, wordCount, normalizeTimestamps, makeQueueId } from './in-memory-shared.js';
+import { inMemoryUserMethods } from './in-memory-users.js';
+import { inMemoryVideoProjectMethods } from './in-memory-video-projects.js';
 import { randomUUID } from 'node:crypto';
 
-import { RepositoryPort } from '../ports/repository-port.js';
-
-const SCHEMA_TIMESTAMP_FIELDS = new Set([
-  'created_at',
-  'updated_at',
-  'fecha_publicacion',
-  'fecha_detectada',
-  'fecha_creacion_cluster',
-  'fecha_borrador',
-  'approval_updated_at',
-  'queued_at',
-  'started_at',
-  'completed_at',
-  'finished_at',
-  'requested_at',
-  'expires_at',
-  'last_seen_at',
-  'revoked_at',
-  'last_login_at',
-  'published_at',
-  'disabled_at',
-]);
-
-function nowIso(now = () => new Date()) {
-  const value = typeof now === 'function' ? now() : now;
-  return new Date(value).toISOString();
-}
-
-function toIso(value) {
-  if (value == null || value === '') return null;
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value.toISOString();
-  }
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toISOString();
-}
-
-function clone(value) {
-  return value == null ? value : structuredClone(value);
-}
-
-function textOrNull(value) {
-  if (value == null) return null;
-  const text = String(value).trim();
-  return text === '' ? null : text;
-}
-
-function numberOrNull(value) {
-  if (value == null || value === '') return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function integerOrDefault(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
-}
-
-function jsonValue(value, fallback) {
-  return value === undefined ? fallback : clone(value);
-}
-
-function wordCount(value) {
-  return String(value || '').split(/\s+/).filter(Boolean).length;
-}
-
-function normalizeTimestamps(row) {
-  const output = {};
-  for (const [key, value] of Object.entries(row)) {
-    output[key] = SCHEMA_TIMESTAMP_FIELDS.has(key) ? toIso(value) : value;
-  }
-  return output;
-}
-
-function makeQueueId(idNoticia) {
-  return String(idNoticia);
-}
-
 export class InMemoryRepository extends RepositoryPort {
-  #options;
+  _options;
 
-  #news = new Map();
-  #clusters = new Map();
-  #scriptJobs = new Map();
-  #drafts = new Map();
-  #publishJobs = new Map();
-  #videoProjects = new Map();
-  #runs = new Map();
-  #stagedNews = new Map();
-  #stagedClusters = new Map();
-  #users = new Map();
-  #userRoles = new Map();
-  #sessions = new Map();
-  #roles = new Map([
+  _news = new Map();
+  _clusters = new Map();
+  _scriptJobs = new Map();
+  _drafts = new Map();
+  _publishJobs = new Map();
+  _videoProjects = new Map();
+  _runs = new Map();
+  _stagedNews = new Map();
+  _stagedClusters = new Map();
+  _users = new Map();
+  _userRoles = new Map();
+  _sessions = new Map();
+  _roles = new Map([
     ['admin', { role: 'admin', description: 'Full access' }],
     ['editor', { role: 'editor', description: 'Can edit' }],
     ['viewer', { role: 'viewer', description: 'Read-only' }],
@@ -101,11 +27,11 @@ export class InMemoryRepository extends RepositoryPort {
 
   constructor({ now } = {}) {
     super();
-    this.#options = { now: now || (() => new Date()) };
+    this._options = { now: now || (() => new Date()) };
   }
 
-  #nowIso() {
-    return nowIso(this.#options.now);
+  _nowIso() {
+    return nowIso(this._options.now);
   }
 
   async migrate() {
@@ -124,7 +50,7 @@ export class InMemoryRepository extends RepositoryPort {
 
   async upsertNews(rows = [], { runId = null } = {}) {
     const input = Array.isArray(rows) ? rows : [];
-    const now = this.#nowIso();
+    const now = this._nowIso();
     let valid = 0;
     let upserted = 0;
 
@@ -161,16 +87,16 @@ export class InMemoryRepository extends RepositoryPort {
 
       if (runId) {
         const key = `${runId}::${id}`;
-        const existing = this.#stagedNews.get(key);
-        this.#stagedNews.set(key, {
+        const existing = this._stagedNews.get(key);
+        this._stagedNews.set(key, {
           run_id: runId,
           id_noticia: id,
           payload: { ...(existing?.payload || {}), ...clone(normalized) },
           created_at: existing?.created_at || now,
         });
       } else {
-        const existing = this.#news.get(id);
-        this.#news.set(id, {
+        const existing = this._news.get(id);
+        this._news.set(id, {
           ...(existing || {}),
           ...clone(normalized),
           created_at: existing?.created_at || normalized.created_at,
@@ -185,11 +111,11 @@ export class InMemoryRepository extends RepositoryPort {
   async listNewsForClustering({ runId = null } = {}) {
     let rows;
     if (runId) {
-      rows = [...this.#stagedNews.values()]
+      rows = [...this._stagedNews.values()]
         .filter((entry) => entry.run_id === runId)
         .map((entry) => entry.payload);
     } else {
-      rows = [...this.#news.values()];
+      rows = [...this._news.values()];
     }
     rows.sort((left, right) => {
       const byPosition = (left.google_position ?? Number.POSITIVE_INFINITY)
@@ -201,11 +127,11 @@ export class InMemoryRepository extends RepositoryPort {
   }
 
   async resetDiscoveryState() {
-    const newsCount = this.#news.size;
-    this.#news.clear();
-    this.#clusters.clear();
-    for (const [id, job] of this.#scriptJobs) {
-      if (job.status === 'pendiente' || job.status === 'running') this.#scriptJobs.delete(id);
+    const newsCount = this._news.size;
+    this._news.clear();
+    this._clusters.clear();
+    for (const [id, job] of this._scriptJobs) {
+      if (job.status === 'pendiente' || job.status === 'running') this._scriptJobs.delete(id);
     }
     return { deleted_news: newsCount };
   }
@@ -214,15 +140,15 @@ export class InMemoryRepository extends RepositoryPort {
     if (!runId) throw new Error('runId is required');
     let deletedNews = 0;
     let deletedClusters = 0;
-    for (const key of [...this.#stagedNews.keys()]) {
+    for (const key of [...this._stagedNews.keys()]) {
       if (key.startsWith(`${runId}::`)) {
-        this.#stagedNews.delete(key);
+        this._stagedNews.delete(key);
         deletedNews += 1;
       }
     }
-    for (const key of [...this.#stagedClusters.keys()]) {
+    for (const key of [...this._stagedClusters.keys()]) {
       if (key.startsWith(`${runId}::`)) {
-        this.#stagedClusters.delete(key);
+        this._stagedClusters.delete(key);
         deletedClusters += 1;
       }
     }
@@ -231,7 +157,7 @@ export class InMemoryRepository extends RepositoryPort {
 
   async persistClusters(clusters = [], { runId = null } = {}) {
     const input = Array.isArray(clusters) ? clusters : [];
-    const now = this.#nowIso();
+    const now = this._nowIso();
     let upserted = 0;
 
     for (const cluster of input) {
@@ -255,8 +181,8 @@ export class InMemoryRepository extends RepositoryPort {
 
       if (runId) {
         const key = `${runId}::${clusterId}`;
-        const existing = this.#stagedClusters.get(key);
-        this.#stagedClusters.set(key, {
+        const existing = this._stagedClusters.get(key);
+        this._stagedClusters.set(key, {
           run_id: runId,
           cluster_id: clusterId,
           payload: { ...(existing?.payload || {}), ...clone(cluster), ...normalized, sources: clone(sources) },
@@ -266,19 +192,19 @@ export class InMemoryRepository extends RepositoryPort {
           const id = textOrNull(source?.id_noticia);
           if (!id) continue;
           const newsKey = `${runId}::${id}`;
-          const staged = this.#stagedNews.get(newsKey);
+          const staged = this._stagedNews.get(newsKey);
           if (staged) staged.payload.cluster_id = clusterId;
         }
       } else {
-        const existing = this.#clusters.get(clusterId);
-        this.#clusters.set(clusterId, {
+        const existing = this._clusters.get(clusterId);
+        this._clusters.set(clusterId, {
           ...normalized,
           created_at: existing?.created_at || now,
           updated_at: now,
         });
         for (const source of sources) {
           const id = textOrNull(source?.id_noticia);
-          const news = id ? this.#news.get(id) : null;
+          const news = id ? this._news.get(id) : null;
           if (news) {
             news.cluster_id = clusterId;
             news.updated_at = now;
@@ -292,7 +218,7 @@ export class InMemoryRepository extends RepositoryPort {
   }
 
   async createNewsSearchRun({ requestedWindow = '24h' } = {}) {
-    const now = this.#nowIso();
+    const now = this._nowIso();
     const runId = `run-${Date.now()}-${randomUUID().slice(0, 8)}`;
     const row = normalizeTimestamps({
       run_id: runId,
@@ -306,17 +232,17 @@ export class InMemoryRepository extends RepositoryPort {
       created_at: now,
       updated_at: now,
     });
-    this.#runs.set(runId, row);
+    this._runs.set(runId, row);
     return clone(row);
   }
 
   async getNewsSearchRun(runId) {
-    const row = this.#runs.get(String(runId));
+    const row = this._runs.get(String(runId));
     return row ? clone(row) : null;
   }
 
   async updateNewsSearchRun(runId, patch = {}) {
-    const current = this.#runs.get(String(runId));
+    const current = this._runs.get(String(runId));
     if (!current) return null;
     const allowed = ['status', 'stats', 'error', 'started_at', 'finished_at', 'requested_window'];
     const next = { ...current };
@@ -324,30 +250,30 @@ export class InMemoryRepository extends RepositoryPort {
       if (!(key in patch)) continue;
       next[key] = key === 'stats' ? jsonValue(patch[key], {}) : clone(patch[key]);
     }
-    next.updated_at = this.#nowIso();
+    next.updated_at = this._nowIso();
     const normalized = normalizeTimestamps(next);
-    this.#runs.set(String(runId), normalized);
+    this._runs.set(String(runId), normalized);
     return clone(normalized);
   }
 
   async promoteNewsSearchRun(runId) {
-    const run = this.#runs.get(String(runId));
+    const run = this._runs.get(String(runId));
     if (!run) return null;
     let promotedNews = 0;
     let promotedClusters = 0;
 
-    for (const cluster of this.#stagedClusters.values()) {
+    for (const cluster of this._stagedClusters.values()) {
       if (cluster.run_id !== runId) continue;
       const payload = { ...cluster.payload, run_id: runId };
       const result = await this.persistClusters([payload], {});
       promotedClusters += result.upserted;
     }
 
-    for (const entry of this.#stagedNews.values()) {
+    for (const entry of this._stagedNews.values()) {
       if (entry.run_id !== runId) continue;
       const news = { ...entry.payload, run_id: runId };
-      const existing = this.#news.get(news.id_noticia);
-      this.#news.set(news.id_noticia, {
+      const existing = this._news.get(news.id_noticia);
+      this._news.set(news.id_noticia, {
         ...(existing || {}),
         ...clone(news),
         created_at: existing?.created_at || news.created_at,
@@ -356,14 +282,14 @@ export class InMemoryRepository extends RepositoryPort {
     }
 
     await this.resetStaging(runId);
-    const now = this.#nowIso();
+    const now = this._nowIso();
     const next = normalizeTimestamps({
       ...run,
       status: 'promoted',
       finished_at: now,
       updated_at: now,
     });
-    this.#runs.set(runId, next);
+    this._runs.set(runId, next);
     return { run: clone(next), promoted_news: promotedNews, promoted_clusters: promotedClusters };
   }
 
@@ -371,14 +297,14 @@ export class InMemoryRepository extends RepositoryPort {
 
   async listPendingApprovalClusters() {
     const counts = new Map();
-    for (const news of this.#news.values()) {
+    for (const news of this._news.values()) {
       if (news.estado_revision !== 'pendiente' || !news.cluster_id) continue;
       counts.set(news.cluster_id, (counts.get(news.cluster_id) || 0) + 1);
     }
 
     const rows = [];
     for (const [clusterId, count] of counts) {
-      const cluster = this.#clusters.get(clusterId);
+      const cluster = this._clusters.get(clusterId);
       if (!cluster) continue;
       rows.push({
         ...clone(cluster),
@@ -395,9 +321,9 @@ export class InMemoryRepository extends RepositoryPort {
 
   async getApprovalTopicDetail(clusterId) {
     if (!clusterId) return null;
-    const cluster = this.#clusters.get(String(clusterId));
+    const cluster = this._clusters.get(String(clusterId));
     if (!cluster) return null;
-    const sources = [...this.#news.values()]
+    const sources = [...this._news.values()]
       .filter((news) => news.cluster_id === cluster.cluster_id)
       .sort((left, right) => {
         const byPosition = (left.google_position ?? Number.POSITIVE_INFINITY)
@@ -421,9 +347,9 @@ export class InMemoryRepository extends RepositoryPort {
     if (!['approve', 'reject'].includes(normalizedAction)) {
       throw new Error('action must be approve or reject');
     }
-    const news = this.#news.get(id);
+    const news = this._news.get(id);
     if (!news) return null;
-    const now = this.#nowIso();
+    const now = this._nowIso();
     news.estado_revision = normalizedAction === 'approve' ? 'aprobado' : 'rechazado';
     news.approval_action = normalizedAction;
     news.approval_updated_at = now;
@@ -431,8 +357,8 @@ export class InMemoryRepository extends RepositoryPort {
     if (clusterId && !news.cluster_id) news.cluster_id = String(clusterId);
 
     if (normalizedAction === 'approve') {
-      if (!this.#scriptJobs.has(id)) {
-        this.#scriptJobs.set(id, normalizeTimestamps({
+      if (!this._scriptJobs.has(id)) {
+        this._scriptJobs.set(id, normalizeTimestamps({
           id_noticia: id,
           queue_id: makeQueueId(id),
           status: 'pendiente',
@@ -447,14 +373,14 @@ export class InMemoryRepository extends RepositoryPort {
         }));
       }
     } else {
-      const job = this.#scriptJobs.get(id);
-      if (job && job.status === 'pendiente') this.#scriptJobs.delete(id);
+      const job = this._scriptJobs.get(id);
+      if (job && job.status === 'pendiente') this._scriptJobs.delete(id);
     }
 
     if (news.cluster_id) {
-      const cluster = this.#clusters.get(news.cluster_id);
+      const cluster = this._clusters.get(news.cluster_id);
       if (cluster) {
-        const sourceStates = [...this.#news.values()]
+        const sourceStates = [...this._news.values()]
           .filter((row) => row.cluster_id === cluster.cluster_id)
           .map((row) => row.estado_revision);
         if (sourceStates.includes('pendiente')) cluster.estado_revision = 'pendiente';
@@ -470,9 +396,9 @@ export class InMemoryRepository extends RepositoryPort {
 
   // Script queue -----------------------------------------------------------
 
-  #joinJob(job) {
-    const news = this.#news.get(job.id_noticia) || {};
-    const cluster = news.cluster_id ? this.#clusters.get(news.cluster_id) || {} : {};
+  _joinJob(job) {
+    const news = this._news.get(job.id_noticia) || {};
+    const cluster = news.cluster_id ? this._clusters.get(news.cluster_id) || {} : {};
     return {
       ...clone(news),
       ...clone(cluster),
@@ -499,34 +425,34 @@ export class InMemoryRepository extends RepositoryPort {
 
   async claimScriptJob({ idNoticia } = {}) {
     const id = textOrNull(idNoticia);
-    const job = id ? this.#scriptJobs.get(id) : null;
+    const job = id ? this._scriptJobs.get(id) : null;
     if (!job || job.status !== 'pendiente') return null;
-    const now = this.#nowIso();
+    const now = this._nowIso();
     job.status = 'running';
     job.stage = 'claimed';
     job.percent = 5;
     job.attempts = Number(job.attempts || 0) + 1;
     job.started_at = job.started_at || now;
     job.updated_at = now;
-    return this.#joinJob(job);
+    return this._joinJob(job);
   }
 
   async updateScriptJobProgress({ idNoticia, status, stage, percent, error } = {}) {
-    const job = this.#scriptJobs.get(String(idNoticia));
+    const job = this._scriptJobs.get(String(idNoticia));
     if (!job) return null;
     if (status != null) job.status = String(status);
     if (stage != null) job.stage = String(stage);
     if (percent != null) job.percent = Math.max(0, Math.min(100, integerOrDefault(percent, job.percent)));
     if (error != null) job.last_error = String(error).slice(0, 500);
-    job.updated_at = this.#nowIso();
-    return this.#joinJob(job);
+    job.updated_at = this._nowIso();
+    return this._joinJob(job);
   }
 
   async completeScriptJob({ idNoticia, draftId, guionDraft, guionEditado, wordCount: count } = {}) {
     const id = String(idNoticia);
-    const news = this.#news.get(id) || {};
-    const cluster = news.cluster_id ? this.#clusters.get(news.cluster_id) || {} : {};
-    const now = this.#nowIso();
+    const news = this._news.get(id) || {};
+    const cluster = news.cluster_id ? this._clusters.get(news.cluster_id) || {} : {};
+    const now = this._nowIso();
     const finalText = guionEditado ?? guionDraft ?? '';
     const draft = await this.saveScriptDraft({
       draftId: draftId || `draft-${id}`,
@@ -544,9 +470,9 @@ export class InMemoryRepository extends RepositoryPort {
     draft.estado_guion = 'borrador';
     draft.fecha_borrador = draft.fecha_borrador || now;
     draft.updated_at = now;
-    this.#drafts.set(draft.draft_id, draft);
+    this._drafts.set(draft.draft_id, draft);
 
-    let job = this.#scriptJobs.get(id);
+    let job = this._scriptJobs.get(id);
     if (!job) {
       job = normalizeTimestamps({
         id_noticia: id,
@@ -568,28 +494,28 @@ export class InMemoryRepository extends RepositoryPort {
     job.last_error = null;
     job.completed_at = now;
     job.updated_at = now;
-    this.#scriptJobs.set(id, job);
+    this._scriptJobs.set(id, job);
 
-    return { job: this.#joinJob(job), draft: clone(draft) };
+    return { job: this._joinJob(job), draft: clone(draft) };
   }
 
   async failScriptJob({ idNoticia, error } = {}) {
-    const job = this.#scriptJobs.get(String(idNoticia));
+    const job = this._scriptJobs.get(String(idNoticia));
     if (!job) return null;
-    const now = this.#nowIso();
+    const now = this._nowIso();
     job.status = 'fallido';
     job.stage = 'failed';
     job.last_error = String(error ?? 'Script job failed').slice(0, 500);
     job.completed_at = now;
     job.updated_at = now;
-    return this.#joinJob(job);
+    return this._joinJob(job);
   }
 
   async getScriptQueueMonitor() {
-    return [...this.#scriptJobs.values()]
+    return [...this._scriptJobs.values()]
       .sort((left, right) => String(left.queued_at).localeCompare(String(right.queued_at)))
       .map((job) => {
-        const joined = this.#joinJob(job);
+        const joined = this._joinJob(job);
         return {
           queue_id: job.queue_id,
           cluster_id: joined.cluster_id,
@@ -614,9 +540,9 @@ export class InMemoryRepository extends RepositoryPort {
 
   // Drafts -----------------------------------------------------------------
 
-  #joinDraft(draft) {
-    const news = draft.id_noticia ? this.#news.get(draft.id_noticia) || {} : {};
-    const cluster = draft.cluster_id ? this.#clusters.get(draft.cluster_id) || {} : {};
+  _joinDraft(draft) {
+    const news = draft.id_noticia ? this._news.get(draft.id_noticia) || {} : {};
+    const cluster = draft.cluster_id ? this._clusters.get(draft.cluster_id) || {} : {};
     return {
       ...clone(draft),
       titulo_noticia: news.titular ?? cluster.tema_principal ?? draft.tema_principal ?? null,
@@ -633,17 +559,17 @@ export class InMemoryRepository extends RepositoryPort {
   }
 
   async getPendingScriptDrafts() {
-    return [...this.#drafts.values()]
+    return [...this._drafts.values()]
       .filter((draft) => draft.estado_guion === 'borrador')
       .sort((left, right) => String(right.fecha_borrador).localeCompare(String(left.fecha_borrador)))
-      .map((draft) => this.#joinDraft(draft));
+      .map((draft) => this._joinDraft(draft));
   }
 
   async saveScriptDraft({ draftId, idNoticia, clusterId, guionDraft, guionEditado } = {}) {
     const key = textOrNull(draftId) || (idNoticia ? `draft-${idNoticia}` : null);
     if (!key) throw new Error('draftId is required');
-    const existing = this.#drafts.get(key);
-    const now = this.#nowIso();
+    const existing = this._drafts.get(key);
+    const now = this._nowIso();
     const text = guionEditado ?? guionDraft ?? existing?.guion_editado ?? '';
     const draft = normalizeTimestamps({
       ...(existing || {}),
@@ -658,21 +584,21 @@ export class InMemoryRepository extends RepositoryPort {
       created_at: existing?.created_at || now,
       updated_at: now,
     });
-    this.#drafts.set(key, draft);
-    return this.#joinDraft(draft);
+    this._drafts.set(key, draft);
+    return this._joinDraft(draft);
   }
 
   async dismissScriptFromPanel({ draftId, idNoticia, clusterId } = {}) {
     const key = textOrNull(draftId) || (idNoticia ? `draft-${idNoticia}` : null);
     if (!key) throw new Error('draftId is required');
-    const existing = this.#drafts.get(key);
-    const now = this.#nowIso();
+    const existing = this._drafts.get(key);
+    const now = this._nowIso();
     if (existing) {
       existing.estado_guion = 'descartado';
       existing.updated_at = now;
       if (clusterId && !existing.cluster_id) existing.cluster_id = String(clusterId);
     } else {
-      this.#drafts.set(key, normalizeTimestamps({
+      this._drafts.set(key, normalizeTimestamps({
         draft_id: key,
         id_noticia: textOrNull(idNoticia),
         cluster_id: textOrNull(clusterId),
@@ -689,14 +615,14 @@ export class InMemoryRepository extends RepositoryPort {
   }
 
   async getPublishableScriptDraft({ draftId, idNoticia, clusterId } = {}) {
-    let draft = draftId ? this.#drafts.get(String(draftId)) : null;
+    let draft = draftId ? this._drafts.get(String(draftId)) : null;
     if (!draft && idNoticia) {
-      draft = [...this.#drafts.values()].find((row) => row.id_noticia === String(idNoticia));
+      draft = [...this._drafts.values()].find((row) => row.id_noticia === String(idNoticia));
     }
     if (!draft && clusterId) {
-      draft = [...this.#drafts.values()].find((row) => row.cluster_id === String(clusterId));
+      draft = [...this._drafts.values()].find((row) => row.cluster_id === String(clusterId));
     }
-    return draft ? this.#joinDraft(draft) : null;
+    return draft ? this._joinDraft(draft) : null;
   }
 
   async finalizeScriptPublish(payload = {}) {
@@ -705,8 +631,8 @@ export class InMemoryRepository extends RepositoryPort {
     const clusterId = payload.clusterId ?? payload.p_cluster_id;
     const key = textOrNull(draftId) || (idNoticia ? `draft-${idNoticia}` : null);
     if (!key) throw new Error('draftId is required');
-    const now = this.#nowIso();
-    const existing = this.#drafts.get(key);
+    const now = this._nowIso();
+    const existing = this._drafts.get(key);
     const body = payload.guionEditado ?? payload.p_guion_editado ?? existing?.guion_editado ?? '';
     const draft = normalizeTimestamps({
       ...(existing || {}),
@@ -724,8 +650,8 @@ export class InMemoryRepository extends RepositoryPort {
       created_at: existing?.created_at || now,
       updated_at: now,
     });
-    this.#drafts.set(key, draft);
-    return this.#joinDraft(draft);
+    this._drafts.set(key, draft);
+    return this._joinDraft(draft);
   }
 
   // Publish jobs -----------------------------------------------------------
@@ -733,7 +659,7 @@ export class InMemoryRepository extends RepositoryPort {
   async createPublishJob(job = {}) {
     const jobId = textOrNull(job.job_id);
     if (!jobId) throw new Error('job_id is required');
-    const now = this.#nowIso();
+    const now = this._nowIso();
     const row = normalizeTimestamps({
       job_id: jobId,
       draft_id: textOrNull(job.draft_id),
@@ -749,12 +675,12 @@ export class InMemoryRepository extends RepositoryPort {
       created_at: now,
       updated_at: now,
     });
-    this.#publishJobs.set(jobId, row);
+    this._publishJobs.set(jobId, row);
     return clone(row);
   }
 
   async updatePublishJob(jobId, patch = {}, { onlyActive = false } = {}) {
-    const current = this.#publishJobs.get(String(jobId));
+    const current = this._publishJobs.get(String(jobId));
     if (!current) return null;
     if (onlyActive && (['completed', 'failed'].includes(current.status) || current.finished_at)) {
       return null;
@@ -765,287 +691,18 @@ export class InMemoryRepository extends RepositoryPort {
       if (!(key in patch)) continue;
       next[key] = key === 'result' ? jsonValue(patch[key], {}) : clone(patch[key]);
     }
-    next.updated_at = this.#nowIso();
+    next.updated_at = this._nowIso();
     const normalized = normalizeTimestamps(next);
-    this.#publishJobs.set(String(jobId), normalized);
+    this._publishJobs.set(String(jobId), normalized);
     return clone(normalized);
   }
 
   async getPublishJob(jobId) {
-    const row = this.#publishJobs.get(String(jobId));
+    const row = this._publishJobs.get(String(jobId));
     return row ? clone(row) : null;
   }
 
   // Video projects ---------------------------------------------------------
-
-  async upsertVideoProject(project = {}) {
-    const draftId = textOrNull(project.draft_id ?? project.draftId);
-    if (!draftId) throw new Error('draft_id is required');
-    const existing = this.#videoProjects.get(draftId);
-    const now = this.#nowIso();
-    const row = normalizeTimestamps({
-      ...(existing || {}),
-      draft_id: draftId,
-      id_noticia: textOrNull(project.id_noticia) ?? existing?.id_noticia ?? null,
-      cluster_id: textOrNull(project.cluster_id) ?? existing?.cluster_id ?? null,
-      jugador: textOrNull(project.jugador) ?? existing?.jugador ?? null,
-      seleccion: textOrNull(project.seleccion) ?? existing?.seleccion ?? null,
-      tema_principal: textOrNull(project.tema_principal) ?? existing?.tema_principal ?? null,
-      guion_editado: project.guion_editado ?? existing?.guion_editado ?? null,
-      guion_piped: project.guion_piped ?? existing?.guion_piped ?? null,
-      segments: jsonValue(project.segments, existing?.segments ?? []),
-      image_candidates: jsonValue(project.image_candidates, existing?.image_candidates ?? []),
-      image_search_meta: jsonValue(project.image_search_meta, existing?.image_search_meta ?? {}),
-      selected_images: jsonValue(project.selected_images, existing?.selected_images ?? []),
-      voice_audio: jsonValue(project.voice_audio, existing?.voice_audio ?? {}),
-      background_audio: jsonValue(project.background_audio, existing?.background_audio ?? {}),
-      editor_state: jsonValue(project.editor_state, existing?.editor_state ?? {}),
-      status: textOrNull(project.status) ?? existing?.status ?? 'pending',
-      published_at: project.published_at ?? existing?.published_at ?? null,
-      disabled_at: project.disabled_at ?? existing?.disabled_at ?? null,
-      created_at: existing?.created_at || now,
-      updated_at: now,
-    });
-    this.#videoProjects.set(draftId, row);
-    return clone(row);
-  }
-
-  async getVideoEditProjects({ draftId = null, limit = 50, includeDetail = true } = {}) {
-    if (draftId) {
-      const row = this.#videoProjects.get(String(draftId));
-      if (!row || row.disabled_at) return { ok: true, projects: [] };
-      return { ok: true, projects: [this.#shapeVideoProject(row, includeDetail)] };
-    }
-    const max = Math.max(1, integerOrDefault(limit, 50));
-    const rows = [...this.#videoProjects.values()]
-      .filter((row) => !row.disabled_at)
-      .sort((left, right) => String(right.updated_at).localeCompare(String(left.updated_at)))
-      .slice(0, max)
-      .map((row) => this.#shapeVideoProject(row, includeDetail));
-    return { ok: true, projects: rows };
-  }
-
-  #shapeVideoProject(row, includeDetail) {
-    const output = clone(row);
-    if (!includeDetail) {
-      for (const key of [
-        'segments',
-        'image_candidates',
-        'image_search_meta',
-        'selected_images',
-        'voice_audio',
-        'background_audio',
-        'editor_state',
-      ]) {
-        delete output[key];
-      }
-    }
-    return output;
-  }
-
-  #requireVideoProject(draftId) {
-    const row = this.#videoProjects.get(String(draftId));
-    if (!row || row.disabled_at) throw new Error(`video project not found: ${draftId}`);
-    return row;
-  }
-
-  async saveVideoProjectSelections({ draftId, selectedImageIds = [] } = {}) {
-    const row = this.#requireVideoProject(draftId);
-    row.selected_images = clone(Array.isArray(selectedImageIds) ? selectedImageIds : []);
-    row.updated_at = this.#nowIso();
-    return { ok: true, draft_id: row.draft_id, selected_images: clone(row.selected_images) };
-  }
-
-  async saveVideoProjectEditorState({ draftId, editorState = {} } = {}) {
-    const row = this.#requireVideoProject(draftId);
-    row.editor_state = jsonValue(editorState, {});
-    row.updated_at = this.#nowIso();
-    return { ok: true, draft_id: row.draft_id, editor_state: clone(row.editor_state) };
-  }
-
-  async saveVideoProjectAudio({ draftId, voiceAudio = {}, backgroundAudio = {} } = {}) {
-    const row = this.#requireVideoProject(draftId);
-    row.voice_audio = jsonValue(voiceAudio, {});
-    row.background_audio = jsonValue(backgroundAudio, {});
-    row.updated_at = this.#nowIso();
-    return {
-      ok: true,
-      draft_id: row.draft_id,
-      voice_audio: clone(row.voice_audio),
-      background_audio: clone(row.background_audio),
-    };
-  }
-
-  async addVideoProjectCustomImages({ draftId, customCandidates = [] } = {}) {
-    const row = this.#requireVideoProject(draftId);
-    const input = Array.isArray(customCandidates) ? customCandidates : [];
-    row.image_candidates = [...(row.image_candidates || []), ...clone(input)];
-    row.updated_at = this.#nowIso();
-    return {
-      ok: true,
-      draft_id: row.draft_id,
-      added_count: input.length,
-      image_candidates: clone(row.image_candidates),
-      selected_images: clone(row.selected_images || []),
-    };
-  }
-
-  async disableVideoEditProject({ draftId } = {}) {
-    const row = this.#videoProjects.get(String(draftId));
-    if (!row) return { ok: false, draft_id: String(draftId) };
-    const now = this.#nowIso();
-    row.disabled_at = now;
-    row.status = 'disabled';
-    row.updated_at = now;
-    return { ok: true, draft_id: row.draft_id };
-  }
-
-  // Users, roles, sessions -------------------------------------------------
-
-  async listRoles() {
-    return [...this.#roles.values()].map((role) => clone(role));
-  }
-
-  #userView(user) {
-    return {
-      ...clone(user),
-      roles: [...(this.#userRoles.get(user.user_id) || [])].sort(),
-    };
-  }
-
-  async createUser({ email, displayName = '', passwordHash, roles = ['editor'] } = {}) {
-    const normalizedEmail = textOrNull(email)?.toLowerCase();
-    if (!normalizedEmail) throw new Error('email is required');
-    if (!passwordHash) throw new Error('passwordHash is required');
-    if ([...this.#users.values()].some((user) => user.email === normalizedEmail)) {
-      const error = new Error('duplicate email');
-      error.code = '23505';
-      throw error;
-    }
-    const normalizedRoles = [...new Set((Array.isArray(roles) ? roles : []).map(String))];
-    for (const role of normalizedRoles) {
-      if (!this.#roles.has(role)) throw new Error(`unknown role: ${role}`);
-    }
-    const now = this.#nowIso();
-    const user = normalizeTimestamps({
-      user_id: randomUUID(),
-      email: normalizedEmail,
-      display_name: textOrNull(displayName) || normalizedEmail,
-      password_hash: String(passwordHash),
-      status: 'active',
-      last_login_at: null,
-      created_at: now,
-      updated_at: now,
-    });
-    this.#users.set(user.user_id, user);
-    this.#userRoles.set(user.user_id, normalizedRoles.length ? normalizedRoles : ['editor']);
-    return this.#userView(user);
-  }
-
-  async getUserById(userId) {
-    const user = this.#users.get(String(userId));
-    return user ? this.#userView(user) : null;
-  }
-
-  async getUserByEmail(email) {
-    const normalized = textOrNull(email)?.toLowerCase();
-    if (!normalized) return null;
-    const user = [...this.#users.values()].find((row) => row.email === normalized);
-    return user ? this.#userView(user) : null;
-  }
-
-  async listUsers() {
-    return [...this.#users.values()]
-      .sort((left, right) => left.email.localeCompare(right.email))
-      .map((user) => this.#userView(user));
-  }
-
-  async updateUser(userId, patch = {}) {
-    const user = this.#users.get(String(userId));
-    if (!user) return null;
-    if (patch.status != null) {
-      const status = String(patch.status);
-      if (!['active', 'disabled'].includes(status)) throw new Error('status must be active or disabled');
-      user.status = status;
-    }
-    if (patch.displayName != null) user.display_name = textOrNull(patch.displayName) || user.email;
-    if (patch.passwordHash != null) user.password_hash = String(patch.passwordHash);
-    if (patch.lastLoginAt != null) user.last_login_at = toIso(patch.lastLoginAt);
-    user.updated_at = this.#nowIso();
-    return this.#userView(user);
-  }
-
-  async setUserRoles(userId, roles = []) {
-    const user = this.#users.get(String(userId));
-    if (!user) return null;
-    const normalizedRoles = [...new Set((Array.isArray(roles) ? roles : []).map(String))];
-    if (!normalizedRoles.length) throw new Error('at least one role is required');
-    for (const role of normalizedRoles) {
-      if (!this.#roles.has(role)) throw new Error(`unknown role: ${role}`);
-    }
-    this.#userRoles.set(user.user_id, normalizedRoles);
-    user.updated_at = this.#nowIso();
-    return this.#userView(user);
-  }
-
-  async createSession({ userId, tokenHash, expiresAt, ipAddress = null, userAgent = null } = {}) {
-    if (!userId || !tokenHash || !expiresAt) throw new Error('userId, tokenHash and expiresAt are required');
-    const now = this.#nowIso();
-    const session = normalizeTimestamps({
-      session_id: randomUUID(),
-      user_id: String(userId),
-      token_hash: String(tokenHash),
-      expires_at: expiresAt,
-      created_at: now,
-      last_seen_at: now,
-      revoked_at: null,
-      ip_address: textOrNull(ipAddress),
-      user_agent: textOrNull(userAgent),
-    });
-    this.#sessions.set(session.session_id, session);
-    return clone(session);
-  }
-
-  async getSessionByTokenHash(tokenHash) {
-    const session = [...this.#sessions.values()].find((row) => row.token_hash === String(tokenHash));
-    if (!session || session.revoked_at) return null;
-    if (Date.parse(session.expires_at) <= Date.parse(this.#nowIso())) return null;
-    const user = this.#users.get(session.user_id);
-    if (!user || user.status !== 'active') return null;
-    return {
-      ...clone(session),
-      user: {
-        user_id: user.user_id,
-        email: user.email,
-        display_name: user.display_name,
-      },
-      roles: [...(this.#userRoles.get(user.user_id) || [])].sort(),
-    };
-  }
-
-  async touchSession(sessionId, { lastSeenAt = null } = {}) {
-    const session = this.#sessions.get(String(sessionId));
-    if (!session) return null;
-    session.last_seen_at = toIso(lastSeenAt) || this.#nowIso();
-    return clone(session);
-  }
-
-  async revokeSession(sessionId) {
-    const session = this.#sessions.get(String(sessionId));
-    if (!session) return false;
-    session.revoked_at = this.#nowIso();
-    return true;
-  }
-
-  async deleteExpiredSessions({ now = null } = {}) {
-    const cutoff = toIso(now) || this.#nowIso();
-    let deleted = 0;
-    for (const [id, session] of this.#sessions) {
-      if (session.revoked_at || Date.parse(session.expires_at) <= Date.parse(cutoff)) {
-        this.#sessions.delete(id);
-        deleted += 1;
-      }
-    }
-    return deleted;
-  }
 }
+
+Object.assign(InMemoryRepository.prototype, inMemoryUserMethods, inMemoryVideoProjectMethods);

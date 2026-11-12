@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $ServiceRoot = Split-Path -Parent $PSScriptRoot
 $EnvPath = Join-Path $ServiceRoot ".env"
 $ApiKey = $env:CHANNEL_MONITOR_API_KEY
-$BaseUrl = "http://127.0.0.1:8775"
+$BaseUrl = "http://127.0.0.1:8790"
 
 function Redact-SecretText {
     param([string] $Text)

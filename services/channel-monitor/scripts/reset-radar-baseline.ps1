@@ -1,7 +1,7 @@
 param(
   [ValidateSet('dry-run','apply')]
   [string]$Mode = 'dry-run',
-  [string]$BaseUrl = 'http://127.0.0.1:8775',
+  [string]$BaseUrl = 'http://127.0.0.1:8790',
   [string]$ApiKey = $env:CHANNEL_MONITOR_API_KEY,
   [string]$DbPath = $env:CHANNEL_MONITOR_DB_PATH,
   [string]$BackupPath,

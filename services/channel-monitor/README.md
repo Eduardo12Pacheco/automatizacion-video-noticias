@@ -20,7 +20,7 @@ No build step is required.
 
 ## Operations
 
-- `scripts\run-service.ps1` starts uvicorn on `127.0.0.1:8775` and loads `.env` into the process.
+- `scripts\run-service.ps1` starts uvicorn on `127.0.0.1:8790` and loads `.env` into the process.
 - `scripts\install-service.ps1` installs or updates the NSSM service `radar-channel-monitor`.
 - `scripts\check-service.ps1` calls public live and authenticated preflight without exposing secrets.
 

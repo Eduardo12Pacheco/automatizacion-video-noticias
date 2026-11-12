@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 param(
-    [string] $BaseUrl = "http://127.0.0.1:8775",
+    [string] $BaseUrl = "http://127.0.0.1:8790",
     [switch] $RunNoLocalProviderTests
 )
 

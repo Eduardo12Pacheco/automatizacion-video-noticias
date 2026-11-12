@@ -13,7 +13,7 @@ if (Test-Path -LiteralPath $EnvPath) {
 
 Push-Location -LiteralPath $ServiceRoot
 try {
-    python -m uvicorn app.main:app --host 127.0.0.1 --port 8775
+    python -m uvicorn app.main:app --host 127.0.0.1 --port 8790
 }
 finally {
     Pop-Location
