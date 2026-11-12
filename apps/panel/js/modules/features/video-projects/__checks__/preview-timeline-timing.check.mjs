@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { FINAL_OUTRO_GAP_SECONDS } from '../composition/composition-contract.js';
 import { buildPreviewTimelineViewModel } from '../render/editor-view-model.js';
 import { buildEditorShell } from '../render/editor-shell-view.js';
 import { resolvePreviewTimelineCurrentRow } from '../render/preview-lifecycle.js';
@@ -57,8 +58,9 @@ test('editor shell renders the transport from effective composition timing', () 
     _editorRows: editorRows,
     editor_state: {
       phase: 'preview_ready',
+      brandChannel: 'demo-secondary',
       approval_contract_snapshot: {
-        outro: { durationSeconds: 2 },
+        brandChannel: 'demo-secondary',
       },
     },
   };
@@ -70,8 +72,9 @@ test('editor shell renders the transport from effective composition timing', () 
     editorState: project.editor_state,
   });
 
-  assert.match(html, /data-duration="52\.26"/);
-  assert.match(html, /data-row-id="row-2"[^>]+style="--pos:23\.230/);
+  const expectedTotal = Number((50.26 + resolveBrandChannelAssets('demo-secondary').outro.durationSeconds).toFixed(6));
+  assert.match(html, new RegExp(`data-duration="${expectedTotal}"`));
+  assert.ok(html.includes(`--pos:${(12.14 / expectedTotal) * 100}%`), 'Expected marker position against the branded total');
   assert.match(html, /<span>Preview local<\/span>/);
 });
 
@@ -93,8 +96,11 @@ test('preview contract extends final visual row through official audio duration 
 
   const { compositionRows } = resolveVideoProjectCompositionContractForCheck({ project, rows });
 
+  // The preview reserves a short gap after the official narration duration;
+  // the branded outro is appended by the renderer, not part of the row times.
+  const expectedEnd = 9.5 + FINAL_OUTRO_GAP_SECONDS;
   assert.equal(compositionRows[0].endTime, 1.5);
-  assert.equal(compositionRows[1].endTime, 9.5);
+  assert.equal(compositionRows[1].endTime, expectedEnd);
 });
 
 test('preview active segment starts outro at official narration audio boundary', () => {

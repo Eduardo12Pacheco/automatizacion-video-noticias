@@ -121,7 +121,7 @@ function runManualMotionControlsCheck() {
   assert(markup.includes('data-keyframe-group="start"'), 'Expected manual image framing Start group to be targetable');
   assert(markup.includes('data-keyframe-group="end"'), 'Expected manual image framing End group to be targetable');
   assert(markup.includes('aria-pressed="false"'), 'Expected keyframe buttons to stay enabled and expose pressed state');
-  assert(!markup.includes('disabled'), 'Expected manual image keyframe buttons not to render disabled');
+  assert(!/\sdisabled(?:=|\s|>)/.test(markup), 'Expected manual image keyframe buttons not to render disabled');
   assert(markup.includes('data-action="update-row-motion-keyframe"'), 'Expected autosave keyframe inputs');
   assert(markup.includes('data-motion-field="toX"'), 'Expected end X keyframe input');
   assert(markup.includes('value="125"'), 'Expected scale percent values in controls');

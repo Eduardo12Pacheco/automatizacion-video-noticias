@@ -166,7 +166,7 @@ function replaySettingsScenario() {
 
   const loadedDefaults = loadSettingsFromStorage({ storage, storageKey, defaultsFactory: defaultSettingsFactory });
   if (loadedDefaults.baseUrl !== defaults.baseUrl) return { ok: false, reason: 'default settings load drift' };
-  if (loadedDefaults.approvalPipelineBaseUrl !== 'http://127.0.0.1:3042') return { ok: false, reason: 'default approval pipeline setting drift' };
+  if (loadedDefaults.approvalPipelineBaseUrl !== defaults.approvalPipelineBaseUrl) return { ok: false, reason: 'default approval pipeline setting drift' };
 
   const next = {
     ...defaults,
@@ -542,7 +542,7 @@ async function replayScriptsFacadeParityScenario() {
       '/webhook/mvp-script-publish/supabase/v2',
       '/webhook/mvp-script-publish-status/supabase/v1',
       '/webhook/mvp-script-download-doc/supabase/v1',
-      'SCRIPT_PUBLISH_POLL_INTERVAL_MS = 3000',
+      'SCRIPT_PUBLISH_POLL_INTERVAL_MS = 8000',
       'guion_editado',
       'dismiss_processed',
       'format: \'docx\'',
@@ -776,10 +776,18 @@ async function replayAudioControllerParityScenario() {
   }
   if (!intervalDelays.includes(4000)) return { ok: false, reason: 'audio polling timer drift' };
 
+  // Terminal jobs are not re-polled; an active queue job is.
   state.audioJobOrder = ['job-done'];
   state.dismissedAudioJobs.clear();
+  const syncCallsBefore = ttsGetPaths.length;
   await controller.syncAudioQueueStatuses();
-  if (!ttsGetPaths.includes('/api/tts/jobs/job-done')) {
+  if (ttsGetPaths.length !== syncCallsBefore) {
+    return { ok: false, reason: 'terminal audio job polled by queue sync' };
+  }
+  state.audioJobOrder = ['job-running'];
+  state.audioJobs['job-running'].status = 'processing';
+  await controller.syncAudioQueueStatuses();
+  if (!ttsGetPaths.includes('/api/tts/jobs/job-running')) {
     return { ok: false, reason: 'audio queue status sync drift' };
   }
 

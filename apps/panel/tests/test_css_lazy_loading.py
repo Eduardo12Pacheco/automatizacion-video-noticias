@@ -53,7 +53,9 @@ class TestFeatureCssFilesExist:
 
     def test_radar_css_contains_feature_selectors(self):
         source = (FEATURES_DIR / "radar.css").read_text(encoding="utf-8")
-        assert ".radar-screen__header" in source
+        # Feature overrides are scoped under the #viewRadar container; the
+        # shared radar layout lives in eager.css.
+        assert "#viewRadar" in source
         assert len(source) > 100
 
     def test_video_projects_css_facade_exists(self):

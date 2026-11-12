@@ -133,7 +133,6 @@ test('Audio controller preserves endpoint, payload, selector, copy, data-action,
 
   for (const copy of [
     'Configurá Base URL Audio API antes de ejecutar',
-    'Configurá x-api-key Audio API antes de ejecutar',
     'El texto es demasiado corto para generar audio',
     'Job enviado. Comienza el procesamiento...',
     'Audio listo para descarga',

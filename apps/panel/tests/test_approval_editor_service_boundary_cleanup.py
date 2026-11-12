@@ -165,19 +165,19 @@ const { createApprovalEditorService } = require('./services/approval-editor/serv
     const payload = await response.json();
     if (!response.ok) throw new Error(`expected create success, got ${response.status}: ${JSON.stringify(payload)}`);
     const snapshot = payload.data.snapshot;
-    if (snapshot.rows[0].transition !== 'transition-1') throw new Error(`expected first eligible boundary to default transition-1, got ${snapshot.rows[0].transition}`);
+    if (snapshot.rows[0].transition !== 'transition-3') throw new Error(`expected first eligible boundary to default transition-3, got ${snapshot.rows[0].transition}`);
     if (snapshot.rows[0].transitionSource !== 'auto') throw new Error(`expected first default provenance auto, got ${snapshot.rows[0].transitionSource}`);
-    if (snapshot.rows[0].transitionConfig?.assetId !== 'transition-1') throw new Error(`expected transition-1 config, got ${JSON.stringify(snapshot.rows[0].transitionConfig)}`);
-    if (snapshot.rows[1].transition !== 'transition-2') throw new Error(`expected second eligible boundary to default transition-2, got ${snapshot.rows[1].transition}`);
+    if (snapshot.rows[0].transitionConfig?.assetId !== 'transition-3') throw new Error(`expected transition-3 config, got ${JSON.stringify(snapshot.rows[0].transitionConfig)}`);
+    if (snapshot.rows[1].transition !== 'transition-3') throw new Error(`expected second eligible boundary to default transition-3, got ${snapshot.rows[1].transition}`);
     if (snapshot.rows[1].transitionSource !== 'auto') throw new Error(`expected second default provenance auto, got ${snapshot.rows[1].transitionSource}`);
-    if (snapshot.rows[1].transitionConfig?.assetId !== 'transition-2') throw new Error(`expected transition-2 config, got ${JSON.stringify(snapshot.rows[1].transitionConfig)}`);
+    if (snapshot.rows[1].transitionConfig?.assetId !== 'transition-3') throw new Error(`expected transition-3 config, got ${JSON.stringify(snapshot.rows[1].transitionConfig)}`);
     if (snapshot.rows[2].transition !== 'whip') throw new Error(`expected explicit whip preserved, got ${snapshot.rows[2].transition}`);
     if (snapshot.rows[3].transition !== 'transition-1') throw new Error(`expected explicit transition-1 preserved, got ${snapshot.rows[3].transition}`);
     if (snapshot.rows[3].transitionConfig?.assetId !== 'custom-transition-1') throw new Error(`expected explicit transitionConfig preserved, got ${JSON.stringify(snapshot.rows[3].transitionConfig)}`);
     if (snapshot.rows[4].transition !== 'none') throw new Error(`expected explicit manual none preserved, got ${snapshot.rows[4].transition}`);
     if (snapshot.rows[4].transitionSource !== 'manual') throw new Error(`expected manual none provenance preserved, got ${snapshot.rows[4].transitionSource}`);
     if (snapshot.rows[4].transitionConfig) throw new Error(`expected manual none to clear transitionConfig, got ${JSON.stringify(snapshot.rows[4].transitionConfig)}`);
-    if (!snapshot.assets?.['transition-1'] || !snapshot.assets?.['transition-2']) throw new Error(`expected canonical transition assets, got ${JSON.stringify(snapshot.assets)}`);
+    if (!snapshot.assets?.['transition-3']) throw new Error(`expected canonical transition-3 asset, got ${JSON.stringify(snapshot.assets)}`);
     if (payload.data.snapshotHash !== snapshot.snapshotHash) throw new Error('expected response snapshotHash to match canonical snapshot hash');
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -206,7 +206,7 @@ const scaffold = buildMinimalRenderScaffold({
   title: 'Render Boundary Project',
   snapshot: {
     rows: [
-      { id: 'row-1', phrase: 'Intro', paragraphBoundaryAfter: true, nextRowId: 'row-2', transition: 'transition-1', transitionSource: 'auto', transitionConfig: { type: 'overlay-video', assetId: 'transition-1', renderPath: 'overlays/TRANSITION 1 NUEVO.mp4' }, sfx: null },
+      { id: 'row-1', phrase: 'Intro', paragraphBoundaryAfter: true, nextRowId: 'row-2', transition: 'transition-1', transitionSource: 'manual', transitionConfig: { type: 'overlay-video', assetId: 'transition-1', renderPath: 'overlays/TRANSITION 1 NUEVO.mp4' }, sfx: null },
       { id: 'row-2', phrase: 'Close' },
     ],
   },
@@ -215,7 +215,7 @@ const scaffold = buildMinimalRenderScaffold({
 const row = scaffold.rows[0];
 if (row.paragraphBoundaryAfter !== true || row.nextRowId !== 'row-2') throw new Error(`expected boundary metadata preserved, got ${JSON.stringify(row)}`);
 if (row.transition !== 'transition-1') throw new Error(`expected transition preserved, got ${row.transition}`);
-if (row.transitionSource !== 'auto') throw new Error(`expected transition provenance preserved, got ${row.transitionSource}`);
+if (row.transitionSource !== 'manual') throw new Error(`expected transition provenance preserved, got ${row.transitionSource}`);
 if (row.transitionConfig?.assetId !== 'transition-1') throw new Error(`expected transitionConfig preserved, got ${JSON.stringify(row.transitionConfig)}`);
 """
     result = subprocess.run(

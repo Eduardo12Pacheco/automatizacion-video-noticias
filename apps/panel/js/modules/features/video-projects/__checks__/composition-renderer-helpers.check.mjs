@@ -127,7 +127,7 @@ test('renderer helper facade exposes newspaper image layout parity semantics', (
 
   const firstFrame = resolveNewspaperImageStyles({ viewportWidth: 1920, viewportHeight: 1080, imageWidth: 720, imageHeight: 1280, progress: 0 });
   const lastFrame = resolveNewspaperImageStyles({ viewportWidth: 1920, viewportHeight: 1080, imageWidth: 720, imageHeight: 1280, progress: 1 });
-  const explicitZoom150 = resolveNewspaperImageStyles({ viewportWidth: 1920, viewportHeight: 1080, imageWidth: 720, imageHeight: 1280, progress: 1, motion: { fromScale: 1, toScale: 1.5 } });
+  const explicitZoom150 = resolveNewspaperImageStyles({ viewportWidth: 1920, viewportHeight: 1080, imageWidth: 720, imageHeight: 1280, progress: 1, newspaper: { foregroundMotion: { fromScale: 1, toScale: 1.5 } } });
 
   assert.equal(firstFrame.background.objectFit, 'cover');
   assert.equal(firstFrame.background.objectPosition, 'center top');
@@ -135,9 +135,9 @@ test('renderer helper facade exposes newspaper image layout parity semantics', (
   assert.equal(firstFrame.foreground.objectFit, 'contain');
   assert.equal(firstFrame.foreground.objectPosition, 'center center', 'newspaper foreground remains vertically centered while the blurred background stays top anchored');
   assert.equal(firstFrame.foreground.height, '100%');
-  assert.equal(firstFrame.foreground.transform, 'scale(1)');
-  assert.equal(lastFrame.foreground.transform, 'scale(1.25)');
-  assert.equal(explicitZoom150.foreground.transform, 'scale(1.5)');
+  assert.equal(firstFrame.foreground.transform, 'translate3d(0px, 0px, 0) scale(1)');
+  assert.equal(lastFrame.foreground.transform, 'translate3d(0px, 0px, 0) scale(1.1)');
+  assert.equal(explicitZoom150.foreground.transform, 'translate3d(0px, 0px, 0) scale(1.5)');
   assert.equal(firstFrame.label.lines.join('\n'), 'RECREACIÓN\nARTÍSTICA');
   assert.equal(firstFrame.label.fontFamily, '"Demo Display", Inter, Arial, sans-serif');
   assert.equal(firstFrame.label.fontSize, '18px');

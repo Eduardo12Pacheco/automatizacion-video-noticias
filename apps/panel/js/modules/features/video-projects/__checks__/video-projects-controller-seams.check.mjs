@@ -32,6 +32,7 @@ const EXPECTED_FEATURE_API = [
   'exportFinal',
   'updateRow',
   'swapRowImages',
+  'applyDustToAllImageRows',
   'assignExistingImageToRow',
   'uploadAndAssignImage',
   'uploadVideoToLibrary',
@@ -39,6 +40,8 @@ const EXPECTED_FEATURE_API = [
   'updateGlobalAudio',
   'updateBrandChannel',
   'undoEditorChange',
+  'reportEditorPresence',
+  'getEditorPresenceWarning',
   'activate',
 ];
 

@@ -285,7 +285,7 @@ def test_subtitle2_remote_style_presets_match_backend_contracts():
     controller = _read_subtitle_controller_sources()
     presentation = SUBTITLE_RUNTIME_PRESENTATION_PATH.read_text(encoding="utf-8")
 
-    assert "Object.freeze(['90', '95', '100', '105', '110', '115', '120', '125', '130', '135', '140', '150', '160', '170', '180', '190', '200'])" in workflow
+    assert "Object.freeze(['10', '20', '30', '40', '50', '60', '70', '80', '90', '95', '100', '105', '110', '115', '120', '125', '130', '135', '140', '150', '160', '170', '180', '190', '200'])" in workflow
     assert "Object.freeze(['Khand', 'Anton', 'Impact', 'League Gothic', 'Oswald'])" in workflow
     assert "Object.freeze(['#FFFFFF', '#FFF000', '#00FF5A', '#0CC3F2'])" in workflow
     assert "Object.freeze(['Khand Bold'" not in workflow
@@ -295,7 +295,7 @@ def test_subtitle2_remote_style_presets_match_backend_contracts():
     assert "line_height: 1.02" in controller
     assert "padding_x_px: 22" in controller
     assert "padding_y_px: 14" in controller
-    assert "stripe_enabled: true" in controller
+    assert "stripe_enabled: row.showStripes !== false" in controller
     assert "stripe_thickness_px: 3" in controller
     assert "text_shadow: 'none'" in controller
     assert "style.fontWeight = presentation.fontWeight" in controller

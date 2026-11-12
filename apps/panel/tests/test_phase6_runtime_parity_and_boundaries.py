@@ -258,7 +258,8 @@ if (calls[3].options.headers['x-api-key'] !== 'shared-key') throw new Error('rad
 const videoApi = createVideoProjectsApiClient({ fetchImpl });
 await videoApi.createManualVideoProject({ settings, payload: { title: 'T' } });
 if (calls[4].url !== 'https://api.example.test/n8n/webhook/video-projects/manual-create/v1') throw new Error(`manual video project URL drift: ${calls[4].url}`);
-if (calls[4].options.headers['x-approval-secret'] !== 'approval-secret') throw new Error('manual video project secret drift');
+if ('x-approval-secret' in calls[4].options.headers) throw new Error('manual video project browser secret drift');
+if (calls[4].options.credentials !== 'include') throw new Error('manual video project credentials drift');
 """
     result = _run_node(script)
     assert result.returncode == 0, result.stderr

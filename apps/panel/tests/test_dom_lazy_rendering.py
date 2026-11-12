@@ -32,7 +32,9 @@ class TestScriptsViewTemplate:
     def test_scripts_template_preserves_view_container_id(self):
         tmpl = TEMPLATES_DIR / "scripts-view.js"
         source = tmpl.read_text(encoding="utf-8")
-        assert 'id="viewScripts"' in source, "Template must preserve #viewScripts container"
+        index_html = INDEX_HTML.read_text(encoding="utf-8")
+        assert 'id="viewScripts"' not in source, "Template is injected into #viewScripts; it must not duplicate the id"
+        assert 'id="viewScripts"' in index_html, "index.html must preserve the #viewScripts container"
 
     def test_scripts_template_preserves_key_selectors(self):
         tmpl = TEMPLATES_DIR / "scripts-view.js"
@@ -70,8 +72,8 @@ class TestAudioViewTemplate:
     def test_audio_template_preserves_key_selectors(self):
         tmpl = TEMPLATES_DIR / "audio-view.js"
         source = tmpl.read_text(encoding="utf-8")
+        assert 'id="viewAudio"' in INDEX_HTML.read_text(encoding="utf-8"), "index.html must preserve #viewAudio"
         key_selectors = [
-            'id="viewAudio"',
             'id="audioPresetSelect"',
             'id="audioTextArea"',
             'id="audioRunBtn"',
@@ -97,13 +99,14 @@ class TestRadarViewTemplate:
     def test_radar_template_preserves_key_selectors(self):
         tmpl = TEMPLATES_DIR / "radar-view.js"
         source = tmpl.read_text(encoding="utf-8")
+        assert 'id="viewRadar"' in INDEX_HTML.read_text(encoding="utf-8"), "index.html must preserve #viewRadar"
         key_selectors = [
-            'id="viewRadar"',
-            'id="radarNewJobBtn"',
+            'id="radarMonitorStatus"',
+            'id="radarMonitorRefreshBtn"',
+            'id="radarMonitorList"',
             'id="radarNewJobDialog"',
-            'id="radarQueueList"',
-            'id="radarHistoryList"',
             'id="radarUrlInput"',
+            'id="radarSubmitBtn"',
         ]
         for sel in key_selectors:
             assert sel in source, f"Radar template missing key selector: {sel}"
@@ -124,8 +127,8 @@ class TestSubtitlesViewTemplate:
     def test_subtitles_template_preserves_key_selectors(self):
         tmpl = TEMPLATES_DIR / "subtitles-view.js"
         source = tmpl.read_text(encoding="utf-8")
+        assert 'id="viewSubtitulos2"' in INDEX_HTML.read_text(encoding="utf-8"), "index.html must preserve #viewSubtitulos2"
         key_selectors = [
-            'id="viewSubtitulos2"',
             'id="subtitle2UploadInput"',
             'id="subtitle2RowsBody"',
             'id="subtitle2PreviewVideo"',

@@ -119,8 +119,8 @@ function runAssetsThumbnailStyleCheck() {
   assertCssDeclaration(mediaRule, 'place-items', 'center', 'Expected asset media wrapper to center thumbnails');
   assertCssDeclaration(imageRule, 'object-fit', 'contain', 'Expected asset thumbnails to preserve full image inside card');
   assertCssDeclaration(imageRule, 'object-position', 'center center', 'Expected asset thumbnails to be visually centered');
-  assertCssDeclaration(selectedRule, 'border-color', 'rgba(0, 232, 143, 0.9)', 'Expected selected asset card to use a clear green border');
-  assertCssDeclaration(selectedRule, 'box-shadow', '0 0 0 2px rgba(0, 232, 143, 0.28)', 'Expected selected asset card to use a clear green selected halo');
+  assertCssDeclaration(selectedRule, 'border-color', 'var(--c-rgb-0-232-143-0.9)', 'Expected selected asset card to use a clear green border');
+  assertCssDeclaration(selectedRule, 'box-shadow', '0 0 0 2px var(--c-rgb-0-232-143-0.28)', 'Expected selected asset card to use a clear green selected halo');
   assertCssDeclaration(detailCardRule, 'max-height', '142px', 'Expected detail rail image card to cap vertical thumbnails');
   assertCssDeclaration(detailCardRule, 'overflow', 'hidden', 'Expected detail rail image card to prevent tall assets pushing tabs down');
   assertCssDeclaration(detailThumbRule, 'object-fit', 'contain', 'Expected detail rail thumbnail to preserve vertical asset aspect ratio');
@@ -782,7 +782,7 @@ function runLayersTabLabelAndSeparationCheck() {
   assert(detailMarkup.includes('Aplica a todo el video.'), 'Expected project controls helper copy');
   assert(detailMarkup.includes('Aplica solo a esta fila.'), 'Expected row controls helper copy');
   assert(styles.includes('.video-editor-layer-panel + .video-editor-layer-panel'), 'Expected layer sections to have divider styling');
-  assert(styles.includes('border-top: 1px solid rgba(0, 232, 143, 0.45)'), 'Expected layer divider to use the green editorial line');
+  assert(styles.includes('border-top: 1px solid var(--c-rgb-0-232-143-0.45)'), 'Expected layer divider to use the green editorial line');
 }
 
 function createSwapThumb(rowId, assetId) {

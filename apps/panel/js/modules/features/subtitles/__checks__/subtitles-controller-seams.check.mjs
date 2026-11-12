@@ -118,8 +118,11 @@ test('subtitles public facades keep stable exports and controller API shape', ()
 });
 
 test('app-shell subtitles bindings only use returned controller methods', async () => {
-  const runtimeSource = await readModule('app-shell/runtime.js');
-  const boundMethods = [...runtimeSource.matchAll(/subtitlesController\.([A-Za-z0-9_]+)/g)].map((match) => match[1]);
+  const [runtimeSource, eventsSource] = await Promise.all([
+    readModule('app-shell/runtime.js'),
+    readModule('app-shell/events/subtitles.js'),
+  ]);
+  const boundMethods = [...(runtimeSource + eventsSource).matchAll(/subtitlesController\.([A-Za-z0-9_]+)/g)].map((match) => match[1]);
 
   assert.ok(boundMethods.length > 20, 'expected app-shell to bind subtitles controller methods');
   assert.deepEqual([...new Set(boundMethods)].sort(), [...new Set(boundMethods.filter((key) => EXPECTED_CONTROLLER_API.includes(key)))].sort());

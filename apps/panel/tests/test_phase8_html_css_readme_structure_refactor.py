@@ -328,7 +328,7 @@ if (result.providerMetadata?.health?.ok !== false) {
     assert result.returncode == 0, result.stderr
 
 
-def test_approval_pipeline_create_network_failure_falls_back_to_remotion():
+def test_approval_pipeline_create_network_failure_surfaces_in_flight_guidance():
     script = r"""
 import { prepareVideoCompositionContract } from './js/modules/features/video-projects/contract-pipeline-client.js';
 
@@ -364,26 +364,31 @@ const api = {
   },
 };
 
-const result = await prepareVideoCompositionContract({
-  project: {
-    draft_id: 'draft-1',
-    title: 'Proyecto de fallback',
-    guion_piped: 'una|dos',
-    selected_images: [],
-    voice_audio: { public_url: 'https://cdn.example.com/voice.mp3' },
-    background_audio: { public_url: 'https://cdn.example.com/music.mp3' },
-  },
-  settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
-  api,
-});
+let error = null;
+try {
+  await prepareVideoCompositionContract({
+    project: {
+      draft_id: 'draft-1',
+      title: 'Proyecto en curso',
+      guion_piped: 'una|dos',
+      selected_images: [],
+      voice_audio: { public_url: 'https://cdn.example.com/voice.mp3' },
+      background_audio: { public_url: 'https://cdn.example.com/music.mp3' },
+    },
+    settings: { remotionApiUrl: 'https://remotion.local', approvalPipelineBaseUrl: 'https://approval.local' },
+    api,
+  });
+} catch (caught) {
+  error = caught;
+}
 
-if (result.provider !== 'remotion') {
-  throw new Error(`expected remotion fallback, got ${result.provider}`);
+if (!error || error.code !== 'approval_prepare_maybe_in_flight') {
+  throw new Error(`expected in-flight guidance, got ${error?.code || error?.message || 'no error'}`);
 }
-if (result.providerMetadata?.fallbackFrom !== 'approval') {
-  throw new Error('expected fallback metadata to preserve approval origin');
+if (calls.includes('remotion-create') || calls.includes('remotion-status')) {
+  throw new Error('a possibly in-flight approval preparation must not be duplicated on Remotion');
 }
-for (const expected of ['approval-health', 'approval-create', 'remotion-create', 'remotion-status']) {
+for (const expected of ['approval-health', 'approval-create']) {
   if (!calls.includes(expected)) throw new Error(`missing call ${expected}`);
 }
 """

@@ -51,13 +51,14 @@ def test_composition_exports_visited_set():
 def test_composition_returns_visited_set():
     """_visited must be included in the return object of composition.js."""
     source = _read_file('js/modules/app-shell/composition.js')
-    # Find the MAIN return block (from createAppShellComposition, not nested factories)
-    # The main return is the last return statement in the file
-    returns = [m.start() for m in re.finditer(r'\breturn\s*\{', source)]
-    assert len(returns) >= 2, 'composition.js must have multiple return statements'
-    # The last return block is the main one from createAppShellComposition
-    main_return_start = returns[-1]
-    return_block = source[main_return_start:]
+    # Scope to createAppShellComposition: the file also contains small feature
+    # stubs after it, and their returns are not the composition contract.
+    main_start = source.index('export function createAppShellComposition')
+    stub_start = source.index('\nfunction createVideoProjectsStub')
+    scope = source[main_start:stub_start]
+    main_return_start = scope.rfind('return {')
+    assert main_return_start != -1, 'composition.js must return the composition object'
+    return_block = scope[main_return_start:]
     return_end = return_block.find('\n};')
     return_obj = return_block[:return_end + 2] if return_end != -1 else return_block
     assert '_visited' in return_obj, \
@@ -239,12 +240,13 @@ def test_subtitles_not_called_at_boot():
 # 3.1.9 — Boot contract: CSS = 1 file
 # ---------------------------------------------------------------------------
 
-def test_boot_html_links_single_css():
-    """index.html must link exactly 1 CSS file (eager.css)."""
+def test_boot_html_links_only_eager_css_and_approval_css():
+    """index.html links the eager bundle plus the one eagerly-rendered feature CSS."""
     source = _read_file('index.html')
     links = re.findall(r'<link[^>]*rel="stylesheet"[^>]*>', source)
-    assert len(links) == 1, \
-        f'Expected 1 CSS link in index.html, found {len(links)}: {links}'
+    hrefs = [re.search(r'href="([^"]+)"', link).group(1) for link in links]
+    assert hrefs == ['./styles/eager.css', './styles/features/approval.css'], \
+        f'Expected eager.css plus approval.css, found: {hrefs}'
 
 
 # ---------------------------------------------------------------------------

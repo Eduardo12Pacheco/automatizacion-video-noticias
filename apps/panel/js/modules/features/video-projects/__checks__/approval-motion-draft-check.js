@@ -996,6 +996,7 @@ function runManualMotionHandlerSourceCheck() {
   const renderSource = [
     '../render/index.js',
     '../render/editor-hydration.js',
+    '../render/editor-motion-hydration.js',
     '../render/motion-scrub.js',
   ].map((relativePath) => readFileSync(resolve(__dirname, relativePath), 'utf8')).join('\n');
   const handlerBlock = renderSource.match(/const updateManualMotionKeyframe = \(\) => \{[\s\S]*?hydrateMotionScrubberInput\(input\);/);

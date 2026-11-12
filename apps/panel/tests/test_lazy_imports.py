@@ -71,7 +71,10 @@ class TestLazyFactoryExistence:
     def test_factories_returned_in_composition(self):
         """The 6 _ensure* factories must appear in the composition return object."""
         source = _read_source(APP_SHELL_DIR / "composition.js")
-        return_section = source[source.rfind("return {"):]
+        # The file contains feature stubs after createAppShellComposition; scope
+        # the search to the composition factory so a stub return cannot shadow it.
+        scope = source[source.index("export function createAppShellComposition"):source.index("\nfunction createVideoProjectsStub")]
+        return_section = scope[scope.rfind("return {"):]
         for name in [
             "_ensureApprovalFeature",
             "_ensureScriptsFeature",
@@ -167,7 +170,8 @@ class TestCompositionTrackers:
 
     def test_trackers_in_return(self):
         source = _read_source(APP_SHELL_DIR / "composition.js")
-        return_section = source[source.rfind("return {"):]
+        scope = source[source.index("export function createAppShellComposition"):source.index("\nfunction createVideoProjectsStub")]
+        return_section = scope[scope.rfind("return {"):]
         assert "_cssLoaded" in return_section, \
             "_cssLoaded must be in composition return object"
         assert "_domInjected" in return_section, \
@@ -340,9 +344,12 @@ class TestTemplateIdParity:
             "audio-view.js must preserve audio-screen class"
 
     def test_scripts_view_template_has_scripts_view_id(self):
-        source = _read_source(APP_SHELL_DIR / "views" / "templates" / "scripts-view.js")
-        assert "viewScripts" in source, \
-            "scripts-view.js must preserve viewScripts ID"
+        template = _read_source(APP_SHELL_DIR / "views" / "templates" / "scripts-view.js")
+        index_html = (ROOT / "index.html").read_text(encoding="utf-8")
+        assert "viewScripts" not in template, (
+            "scripts-view.js is injected into #viewScripts; it must not duplicate the container id"
+        )
+        assert 'id="viewScripts"' in index_html, "index.html must preserve the #viewScripts container"
 
     def test_all_data_action_attrs_preserved(self):
         """All data-* attributes from the original index.html must be in templates.

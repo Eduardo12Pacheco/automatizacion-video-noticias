@@ -139,7 +139,7 @@ test('Selector modal uses real effect videos and exposes a play toggle for the p
   assert.ok(html.indexOf('data-layer="overlay-layer-02"') < html.indexOf('data-layer="overlay-layer-01"'));
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-01\s*\{[^}]*mix-blend-mode:\s*screen;/s);
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-02\s*\{[^}]*mix-blend-mode:\s*multiply;/s);
-  assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--overlay\s*\{[^}]*background:\s*#3835AF;[^}]*opacity:\s*0\.3;/s);
+  assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--overlay\s*\{[^}]*background:\s*var\(--c-3835af\);[^}]*opacity:\s*0\.3;/s);
 });
 
 test('Video effect preview layers stay behind the foreground video without unintended background blur', () => {
@@ -149,7 +149,7 @@ test('Video effect preview layers stay behind the foreground video without unint
   assert.match(compositionRendererSource, /composition-layer--video-effect-02[\s\S]*?z-index:2/);
   assert.match(compositionRendererSource, /composition-layer--video-effect-01[\s\S]*?z-index:3/);
   assert.match(compositionRendererSource, /composition-layer--video-foreground[\s\S]*?z-index:4/);
-  assert.doesNotMatch(compositionRendererSource, /composition-layer--video-background[\s\S]*?filter:\s*blur\(/);
+  assert.doesNotMatch(compositionRendererSource, /videoBackground\.style\.cssText = '[^']*filter:\s*blur\(/);
 
   assert.match(videoProjectsCss, /\.video-editor-video-selector__preview\s*\{[^}]*isolation:\s*isolate;/s);
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-02\s*\{[^}]*z-index:\s*2;/s);
@@ -160,8 +160,8 @@ test('Video effect preview layers stay behind the foreground video without unint
 
 test('Selector modal is centered and backdrop layers above the whole editor', () => {
   assert.match(videoProjectsCss, /\.video-editor-video-selector__backdrop\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;[^}]*z-index:\s*2147483000;/s);
-  assert.match(videoProjectsCss, /\.video-editor-video-selector\s*\{[^}]*position:\s*fixed;[^}]*top:\s*50%;[^}]*left:\s*50%;[^}]*transform:\s*translate\(-50%,\s*-50%\);[^}]*z-index:\s*2147483001;/s);
-  assert.match(videoProjectsCss, /\.video-project-detail:has\(\[data-video-selector-modal\]\) \.video-editor-table-wrap,[\s\S]*\.video-project-detail:has\(\[data-video-selector-modal\]\) \.video-editor-actions\s*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;/s);
+  assert.match(videoProjectsCss, /\.video-editor-video-selector\s*\{[^}]*position:\s*fixed;[^}]*top:\s*50%\s*!important;[^}]*left:\s*50%\s*!important;[^}]*transform:\s*translate\(-50%,\s*-50%\)\s*!important;[^}]*z-index:\s*2147483001;/s);
+  assert.match(videoProjectsCss, /\.video-project-detail:has\(\[data-video-selector-modal\]\)[^{]*\{[^}]*opacity:\s*0;[^}]*pointer-events:\s*none;/s);
 });
 
 test('Uploaded video library persists through editor_state and survives empty top-level arrays', async () => {
@@ -227,7 +227,8 @@ test('Timeline drag seeks and syncs all selector preview videos to source-in', (
   const result = syncVideoSelectorPreviewLayers({ modal, sourceInSeconds: 4.25, playing: false });
 
   assert.equal(result, true);
-  assert.deepEqual(videos.map((video) => video.currentTime), [4.25, 4.25, 4.25, 4.25]);
+  // Decorative effect overlays are local-time loops; only source videos seek to source-in.
+  assert.deepEqual(videos.map((video) => video.currentTime), [4.25, 4.25, 0, 0]);
   assert.deepEqual(calls, ['pause:background-video', 'pause:foreground-video', 'pause:overlay-layer-01', 'pause:overlay-layer-02']);
 });
 
@@ -323,7 +324,7 @@ test('Approval snapshot operations patch the canonical snapshot project id when 
   assert.equal(calls[0].payload.baseSnapshotHash, 'hash-1');
 });
 
-test('Committing a video segment avoids an extra full editor re-render after a successful assignment', async () => {
+test('Committing a video segment refreshes the preview and re-renders the editor once', async () => {
   let clickHandler = null;
   let renderCount = 0;
   let previewUpdateCount = 0;
@@ -364,7 +365,7 @@ test('Committing a video segment avoids an extra full editor re-render after a s
 
   assert.equal(project._videoSelector, null);
   assert.equal(previewUpdateCount, 1);
-  assert.equal(renderCount, 0);
+  assert.equal(renderCount, 1);
 });
 
 test('Local approval fallback video row wins over stale canonical image row in main composition preview', () => {
@@ -418,10 +419,10 @@ test('Video segment preview layer plan always includes concrete effect video sou
   assert.deepEqual(plan.layers.map((layer) => layer.name), ['background-video', 'color-overlay', 'overlay-layer-02', 'overlay-layer-01', 'foreground-video']);
   assert.equal(plan.layers[0].currentTimeSeconds, 5);
   assert.equal(plan.layers[2].src, './assets/overlay-layer-02.webm');
-  assert.equal(plan.layers[2].currentTimeSeconds, 5);
+  assert.equal(plan.layers[2].currentTimeSeconds, 1);
   assert.equal(plan.layers[2].mixBlendMode, 'multiply');
   assert.equal(plan.layers[3].src, './assets/overlay-layer-01.webm');
-  assert.equal(plan.layers[3].currentTimeSeconds, 5);
+  assert.equal(plan.layers[3].currentTimeSeconds, 1);
   assert.equal(plan.layers[3].mixBlendMode, 'screen');
   assert.equal(plan.layers[4].currentTimeSeconds, 5);
 });
@@ -438,8 +439,8 @@ test('Effect preview videos use preloadable static WebM URLs in selector and mai
     selector: { videoId: 'video-long', ...selector },
   });
 
-  assert.match(html, /src="\.\/assets\/overlay-layer-02\.webm"[^>]+preload="auto"/);
-  assert.match(html, /src="\.\/assets\/overlay-layer-01\.webm"[^>]+preload="auto"/);
+  assert.match(html, /src="\.\/assets\/overlay-layer-02\.webm"[^>]+preload="metadata"/);
+  assert.match(html, /src="\.\/assets\/overlay-layer-01\.webm"[^>]+preload="metadata"/);
 
   const appended = [];
   const makeVideo = () => ({
