@@ -26,9 +26,9 @@ pnpm exec playwright install chromium   # or set PLAYWRIGHT_CHROMIUM_EXECUTABLE
 pnpm exec playwright test
 ```
 
-Use `docker compose down -v` between runs: the seed is idempotent but does not
-reopen an already-approved topic, so a second E2E run needs a fresh demo
-database.
+The spec reseeds the demo story before it starts (`seed --reset`), so it passes
+twice in a row against the same stack. `docker compose down -v` is still the
+clean way to start from an empty database.
 
 All credentials in `e2e/.env.example` are fictional test values. Never reuse
 them in a real installation.
@@ -53,32 +53,40 @@ downloads the local models and renders real media on CPU:
 
 ```bash
 cp e2e/.env.example .env
-# set NEWSROOM_MODE=local, LLM=ollama, ARTICLE_EXTRACTOR=trafilatura,
-# TTS_WORKER_ENGINE=piper, COMPOSE_PROFILES=local and
-# NEWS_DISCOVERY_FEED_URL=http://panel/assets/demo/discovery.xml in .env
+# set NEWSROOM_MODE=local, LLM=ollama, ARTICLE_EXTRACTOR=trafilatura and
+# TTS_WORKER_ENGINE=piper in .env; the template already points
+# NEWS_DISCOVERY_FEED_URL at the offline e2e-fixtures service.
 docker compose --profile local run --rm model-init
 docker compose --profile local run --rm --no-deps --entrypoint /bin/ollama \
   ollama pull qwen2.5:3b-instruct
-docker compose --profile local up -d --build postgres searxng mailpit \
-  demo-worker approval-editor ollama asr-worker tts-worker subtitles \
-  renderer api panel
+docker compose --profile local --profile e2e up -d --build postgres searxng \
+  mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles \
+  renderer e2e-fixtures api panel
 docker compose run --rm seed
 NEWSROOM_E2E_LOCAL=1 pnpm exec playwright test e2e/local-mode.spec.js
 ```
 
-It runs the real discovery refresh against the local discovery fixture (one
-player and one RSS feed, no third-party news dependency), approves the
-clustered topic, and asserts the real pipeline with `ffprobe`: the synthesized WAV is at least
-3 s and above silence, faster-whisper produces at least three cues containing
-words from the script, the subtitles MP4 is H.264, and the final Remotion MP4
-is 1280x720 with audio and video streams and at least 5 s. The same spec runs
-nightly in `.github/workflows/local-mode.yml`.
+The spec is self-contained: it starts the `e2e` fixture service (three invented
+articles with no pubDate, so they are always recent) and recreates the API with
+`NEWS_DISCOVERY_FEED_URL=http://e2e-fixtures:8000/discovery.xml` and one
+invented player. It triggers a real discovery refresh, proves the new clusters
+come from the fixture titles, approves one of them and waits for the real Ollama
+draft. That draft text — fetched from the API, not hardcoded — is the input for
+Piper voice, faster-whisper subtitles and the Remotion render.
+
+Every media artifact is measured with `ffprobe`/`ffmpeg`: the WAV lasts at least
+3 s with mean volume above −35 dB, the cues (at least 3) cover at least 40 % of
+their distinct non-stopword words in the draft, the subtitles MP4 keeps the
+narration audio (mean volume above −35 dB), and the final Remotion MP4 lasts at
+least 5 s at 1280×720 with audio and video streams. The same spec runs nightly
+in `.github/workflows/local-mode.yml`.
 
 The renderer fetches the synthesized voice and the still image from a
 throwaway `python:3.12-slim` static server that the test starts on the Compose
 network, mounted on the test work directory. It needs Docker access on the
-machine running the spec; set `E2E_FIXTURE_NETWORK` if the Compose project is
-not named `newsroom`.
+machine running the spec. The media server network is derived from
+`COMPOSE_PROJECT_NAME` (default `newsroom`); set `E2E_FIXTURE_NETWORK` only to
+override it explicitly.
 
 ## Visual QA (T20)
 

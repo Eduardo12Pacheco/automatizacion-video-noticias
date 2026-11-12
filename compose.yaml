@@ -45,6 +45,8 @@ x-api-base: &api-base
     OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b-instruct}
     OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30s}
     NEWS_SOURCE: ${NEWS_SOURCE:-rss}
+    NEWS_DISCOVERY_FEED_URL: ${NEWS_DISCOVERY_FEED_URL:-}
+    NEWS_DISCOVERY_PLAYERS: ${NEWS_DISCOVERY_PLAYERS:-}
     ARTICLE_EXTRACTOR: ${ARTICLE_EXTRACTOR:-trafilatura}
     IMAGE_SEARCH: ${IMAGE_SEARCH:-searxng}
     SEARXNG_URL: http://searxng:8080
@@ -212,6 +214,24 @@ services:
 
   mailpit:
     image: axllent/mailpit:v1.30.2
+    restart: unless-stopped
+
+  # Offline RSS + article fixture for the local-mode end-to-end test. It is
+  # never started by the product profiles: the E2E runner enables `e2e` and
+  # points NEWS_DISCOVERY_FEED_URL at http://e2e-fixtures:8000/discovery.xml.
+  e2e-fixtures:
+    image: python:3.12-slim
+    profiles: ["e2e"]
+    command: ["python", "-m", "http.server", "8000", "--directory", "/srv"]
+    volumes:
+      - ./infra/e2e/fixtures:/srv:ro
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/discovery.xml', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
     restart: unless-stopped
 
   ollama:

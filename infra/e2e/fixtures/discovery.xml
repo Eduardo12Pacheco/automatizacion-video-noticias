@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Demo Sports News — local E2E wire</title>
+    <link>http://e2e-fixtures:8000/discovery.xml</link>
+    <description>Fictional football articles served by the offline E2E fixture service.</description>
+    <item>
+      <title>Aurenia ajusta su mediocampo para el próximo partido</title>
+      <link>http://e2e-fixtures:8000/aurenia-mediocampo.html</link>
+      <source>Demo Sports News</source>
+      <description>El cuerpo técnico de Aurenia probó una salida más rápida por las bandas y un mediocampista más adelantado.</description>
+    </item>
+    <item>
+      <title>Montelia confirma la vuelta de su capitán a los entrenamientos</title>
+      <link>http://e2e-fixtures:8000/montelia-capitan.html</link>
+      <source>Demo Wire</source>
+      <description>El capitán de Montelia completó la práctica con el grupo y quedó disponible para el amistoso.</description>
+    </item>
+    <item>
+      <title>Valdoria presenta una lista con tres debutantes para el amistoso</title>
+      <link>http://e2e-fixtures:8000/valdoria-lista.html</link>
+      <source>Demo Radio</source>
+      <description>La selección de Valdoria sumó tres jugadores jóvenes a la convocatoria del próximo encuentro.</description>
+    </item>
+  </channel>
+</rss>

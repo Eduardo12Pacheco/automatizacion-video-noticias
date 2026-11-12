@@ -53,6 +53,18 @@ class ComposeStackTests(unittest.TestCase):
         self.assertEqual(env["LLM"], "${LLM:-ollama}")
         self.assertIn("DATABASE_URL", env)
 
+    def test_e2e_fixture_service_is_opt_in_and_serves_three_articles(self) -> None:
+        fixtures = self.services["e2e-fixtures"]
+        self.assertEqual(fixtures.get("profiles"), ["e2e"])
+        self.assertNotIn("ports", fixtures)
+        feed = (ROOT / "infra" / "e2e" / "fixtures" / "discovery.xml").read_text(encoding="utf-8")
+        self.assertEqual(len(re.findall(r"<item>", feed)), 3)
+        for page in ("aurenia-mediocampo.html", "montelia-capitan.html", "valdoria-lista.html"):
+            self.assertTrue((ROOT / "infra" / "e2e" / "fixtures" / page).is_file(), page)
+        env = self.services["api"]["environment"]
+        self.assertEqual(env["NEWS_DISCOVERY_FEED_URL"], "${NEWS_DISCOVERY_FEED_URL:-}")
+        self.assertEqual(env["NEWS_DISCOVERY_PLAYERS"], "${NEWS_DISCOVERY_PLAYERS:-}")
+
     def test_seed_and_one_shot_services_are_bounded(self) -> None:
         self.assertEqual(self.services["seed"].get("restart"), "no")
         self.assertEqual(self.services["migrate"].get("restart"), "no")
@@ -120,6 +132,10 @@ class ComposeStackTests(unittest.TestCase):
         tts = self.services["tts-worker"]["environment"]
         self.assertNotIn("TTS_ORCH_FRONTEND_API_KEY", tts)
         self.assertIn("TTS_WORKER_INTERNAL_TOKEN", tts)
+        self.assertIn("TTS_WORKER_FRONTEND_API_KEY", tts)
+        self.assertIn("TTS_WORKER_BASIC_USER", tts)
+        self.assertIn("TTS_WORKER_BASIC_PASS", tts)
+        self.assertEqual(tts["TTS_WORKER_INTERNAL_URL"], "http://127.0.0.1:8767")
         renderer = self.services["renderer"]["environment"]
         self.assertEqual(renderer["RENDER_SERVER_PORT"], "3042")
         self.assertEqual(renderer["RENDERER_PROFILE"], "${RENDERER_PROFILE:-local}")

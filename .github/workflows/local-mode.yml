@@ -35,17 +35,15 @@ jobs:
             -e 's/^NEWSROOM_MODE=demo$/NEWSROOM_MODE=local/' \
             -e 's/^LLM=demo$/LLM=ollama/' \
             -e 's/^ARTICLE_EXTRACTOR=demo$/ARTICLE_EXTRACTOR=trafilatura/' \
-            -e 's#^NEWS_DISCOVERY_FEED_URL=$#NEWS_DISCOVERY_FEED_URL=http://panel/assets/demo/discovery.xml#' \
             .env
           printf '\nCOMPOSE_PROFILES=local\n' >> .env
-          printf 'NEWS_DISCOVERY_PLAYERS=[{"seleccion":"Aurenia","jugador":"Nicolás Arbelo"}]\n' >> .env
       - name: Download the local models
         run: |
           docker compose --profile local run --rm model-init
           docker compose --profile local run --rm --no-deps --entrypoint /bin/ollama ollama pull qwen2.5:3b-instruct
       - name: Start the local stack
         run: |
-          docker compose --profile local up -d --build postgres searxng mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles renderer api panel
+          docker compose --profile local --profile e2e up -d --build postgres searxng mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles renderer e2e-fixtures api panel
           docker compose run --rm seed
       - name: Wait for the API and panel
         run: |
