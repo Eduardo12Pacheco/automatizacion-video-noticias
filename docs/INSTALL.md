@@ -198,6 +198,13 @@ scripts:
 newsroom doctor || echo "fix the failed checks above"
 ```
 
+The disk threshold depends on the mode: demo needs 2 GB, local needs 10 GB.
+Ports already published by this stack are reported as owned rather than as a
+conflict. On filesystems where the free-space or listening-port probe is wrong,
+`NEWSROOM_DISK_MB_OVERRIDE` and `NEWSROOM_LISTENING_PORTS_OVERRIDE` (comma
+separated) let an operator supply the values; the installer tests use the same
+overrides so they never depend on the host.
+
 ## First administrator
 
 The first admin is created through the API container, so the password is hashed

@@ -131,7 +131,12 @@ try {
         Write-NrInfo 'dry-run: no files, containers, volumes or models will be changed'
     }
 
+    $modeExplicit = $PSBoundParameters.ContainsKey('Mode') -or [bool]$env:NEWSROOM_MODE
     if ($Check) {
+        if (-not $modeExplicit) {
+            $envMode = Get-NrEnvValue -Key 'NEWSROOM_MODE'
+            if ($envMode) { Set-NrOption -Name Mode -Value $envMode }
+        }
         if (Test-NrEnvironment) { exit 0 }
         exit 1
     }

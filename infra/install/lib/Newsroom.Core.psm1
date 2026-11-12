@@ -490,6 +490,13 @@ function Set-NrStateValue {
 # --- Hardware --------------------------------------------------------------
 
 function Get-NrFreeDiskMB {
+    if ($env:NEWSROOM_DISK_MB_OVERRIDE) {
+        $override = 0
+        if ([int]::TryParse($env:NEWSROOM_DISK_MB_OVERRIDE, [ref]$override) -and $override -ge 0) {
+            return $override
+        }
+        Write-NrWarn 'ignoring NEWSROOM_DISK_MB_OVERRIDE (expected a number of megabytes)'
+    }
     $path = $script:NrConfig.ProjectDir
     try {
         $full = [System.IO.Path]::GetFullPath($path)
@@ -599,12 +606,41 @@ function Resolve-NrMode {
 
 function Test-NrPortInUse {
     param([Parameter(Mandatory = $true)][int]$Port)
+    if ($env:NEWSROOM_LISTENING_PORTS_OVERRIDE) {
+        $ports = @($env:NEWSROOM_LISTENING_PORTS_OVERRIDE -split ',' | ForEach-Object { $_.Trim() })
+        return [bool]($ports -contains [string]$Port)
+    }
     try {
         $listeners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop
         return [bool]($listeners)
     } catch {
         return $false
     }
+}
+
+function Get-NrRunMode {
+    $mode = $script:NrConfig.Mode
+    if (-not $mode) { $mode = Get-NrEnvValue -Key 'NEWSROOM_MODE' }
+    if ($mode -ne 'local') { $mode = 'demo' }
+    return $mode
+}
+
+function Get-NrRequiredDiskMB {
+    if ((Get-NrRunMode) -eq 'local') { return 10240 }
+    return 2048
+}
+
+function Test-NrStackPublishesPort {
+    param([Parameter(Mandatory = $true)][int]$Port)
+    if (-not (Test-Path -LiteralPath $script:NrConfig.EnvFile -PathType Leaf)) { return $false }
+    if (-not (Test-NrDockerCli)) { return $false }
+    try {
+        $output = (& docker (Get-NrComposeArgs -Arguments @('ps', '--format', 'json')) 2>$null) -join "`n"
+    } catch {
+        return $false
+    }
+    if (-not $output) { return $false }
+    return [bool]([regex]::IsMatch($output, '"PublishedPort"\s*:\s*' + $Port + '([^0-9]|$)'))
 }
 
 # --- Checks ----------------------------------------------------------------
@@ -640,11 +676,13 @@ function Test-NrEnvironment {
         }
     }
 
+    $modeLabel = Get-NrRunMode
+    $requiredDisk = Get-NrRequiredDiskMB
     $disk = Get-NrFreeDiskMB
-    if ($disk -ge 10240) {
-        Write-NrOk "free disk: $disk MB"
+    if ($disk -ge $requiredDisk) {
+        Write-NrOk "free disk: $disk MB ($modeLabel mode needs $requiredDisk MB)"
     } else {
-        Write-NrCheckFail "only $disk MB free; at least 10240 MB is required"
+        Write-NrCheckFail "only $disk MB free; $modeLabel mode needs at least $requiredDisk MB for images and models"
     }
     $ram = Get-NrRamMB
     if ($ram -ge 8192) {
@@ -676,7 +714,11 @@ function Test-NrEnvironment {
         $port = 0
         if (-not [int]::TryParse($portValue, [ref]$port)) { $port = [int]$portDefaults[$i] }
         if (Test-NrPortInUse -Port $port) {
-            Write-NrWarn "port $port is already in use; change it in .env if the stack fails"
+            if (Test-NrStackPublishesPort -Port $port) {
+                Write-NrOk "port $port is published by this Compose stack"
+            } else {
+                Write-NrWarn "port $port is already in use; change it in .env if the stack fails"
+            }
         } else {
             Write-NrOk "port $port is free"
         }

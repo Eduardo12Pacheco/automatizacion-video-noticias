@@ -4,6 +4,7 @@
 It records every invocation so assertions can verify the plan without pulling
 images or starting containers. No secret value is ever written to the log.
 """
+import json
 import os
 import sys
 
@@ -84,7 +85,15 @@ elif command == "down":
 elif command == "build":
     logged("BUILD")
 elif command == "ps":
-    print("NAME STATUS")
+    if "--format" in rest and "json" in rest:
+        ports = [value for value in os.environ.get("FAKE_DOCKER_PORTS", "").split(",") if value.strip()]
+        services = [{
+            "Service": "panel",
+            "Publishers": [{"URL": "127.0.0.1", "TargetPort": int(port), "PublishedPort": int(port), "Protocol": "tcp"} for port in ports],
+        }]
+        print(json.dumps(services if ports else []))
+    else:
+        print("NAME STATUS")
 elif command == "logs":
     print("fake logs")
 elif command == "pull":

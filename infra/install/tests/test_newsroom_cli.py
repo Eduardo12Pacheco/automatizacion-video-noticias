@@ -93,6 +93,32 @@ class NewsroomCliTests(InstallerTestCase):
         self.assertIn("Models: not required (demo mode)", result.stdout)
         self.assertIn("Admin:  initialized", result.stdout)
 
+    def test_doctor_uses_the_installed_mode_disk_threshold(self):
+        self.installed()
+        self.set_env("NEWSROOM_MODE", "local")
+        result = self.run_cli(*self.project_args("doctor"), env_extra={"NEWSROOM_DISK_MB_OVERRIDE": "3000"})
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("local mode needs at least 10240 MB", result.stdout + result.stderr)
+
+    def test_doctor_does_not_flag_ports_published_by_its_own_stack(self):
+        self.installed()
+        result = self.run_cli(
+            *self.project_args("doctor"),
+            env_extra={"NEWSROOM_LISTENING_PORTS_OVERRIDE": "8080", "FAKE_DOCKER_PORTS": "8080"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("port 8080 is published by this Compose stack", result.stdout)
+        self.assertNotIn("port 8080 is already in use", result.stdout)
+
+    def test_doctor_warns_about_a_port_held_by_another_process(self):
+        self.installed()
+        result = self.run_cli(
+            *self.project_args("doctor"),
+            env_extra={"NEWSROOM_LISTENING_PORTS_OVERRIDE": "8080", "FAKE_DOCKER_PORTS": ""},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("port 8080 is already in use", result.stdout + result.stderr)
+
     def test_doctor_without_an_install_still_checks_the_host(self):
         result = self.run_cli(*self.project_args("doctor"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

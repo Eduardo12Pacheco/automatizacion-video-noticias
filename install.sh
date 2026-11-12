@@ -184,6 +184,11 @@ esac
 
 if [ "$ACTION" = "check" ]; then
   NR_COMPOSE_MISSING_WARN=1
+  if [ "$MODE_EXPLICIT" = "0" ] && [ -f "$NR_ENV_FILE" ]; then
+    env_mode="$(nr_env_get NEWSROOM_MODE)"
+    [ -n "$env_mode" ] && NR_RUN_MODE="$env_mode"
+    unset env_mode
+  fi
   if nr_check_environment; then
     exit 0
   fi

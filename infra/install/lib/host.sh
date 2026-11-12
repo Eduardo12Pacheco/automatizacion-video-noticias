@@ -4,8 +4,32 @@
 # --- Hardware and host checks ---------------------------------------------
 
 nr_free_disk_mb() {
+  # Explicit override for filesystems where df reports the wrong volume (and
+  # for hermetic installer tests). Documented in docs/INSTALL.md.
+  if [ -n "${NEWSROOM_DISK_MB_OVERRIDE:-}" ]; then
+    case "$NEWSROOM_DISK_MB_OVERRIDE" in
+      ''|*[!0-9]*) nr_warn "ignoring NEWSROOM_DISK_MB_OVERRIDE (expected a number of megabytes)" ;;
+      *) printf '%s' "$NEWSROOM_DISK_MB_OVERRIDE"; return 0 ;;
+    esac
+  fi
   local path="${1:-$NR_PROJECT_DIR}"
   df -Pm "$path" 2>/dev/null | awk 'NR==2 {print $4}'
+}
+
+nr_run_mode_value() {
+  local mode="${NR_RUN_MODE:-}"
+  if [ -z "$mode" ]; then
+    mode="$(nr_env_get NEWSROOM_MODE)"
+  fi
+  printf '%s' "${mode:-demo}"
+}
+
+nr_required_disk_mb() {
+  if [ "$(nr_run_mode_value)" = "local" ]; then
+    printf '10240'
+  else
+    printf '2048'
+  fi
 }
 
 nr_ram_mb() {
@@ -35,6 +59,12 @@ nr_gpu_container_ready() {
 
 nr_port_in_use() {
   local port="$1"
+  if [ -n "${NEWSROOM_LISTENING_PORTS_OVERRIDE:-}" ]; then
+    case ",${NEWSROOM_LISTENING_PORTS_OVERRIDE}," in
+      *",${port},"*) return 0 ;;
+      *) return 1 ;;
+    esac
+  fi
   if nr_command_exists ss; then
     ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE "[:.]${port}$"
   elif nr_command_exists lsof; then
@@ -42,6 +72,17 @@ nr_port_in_use() {
   else
     return 1
   fi
+}
+
+# True when the current project's Compose stack publishes this host port. The
+# doctor must not warn about the stack it is checking.
+nr_stack_publishes_port() {
+  local port="$1" published=""
+  [ -f "$NR_ENV_FILE" ] || return 1
+  nr_command_exists docker || return 1
+  published="$(nr_compose ps --format json 2>/dev/null || true)"
+  [ -n "$published" ] || return 1
+  printf '%s' "$published" | grep -qE "\"PublishedPort\"[[:space:]]*:[[:space:]]*${port}([^0-9]|$)"
 }
 
 nr_resolve_profile() {
@@ -132,11 +173,14 @@ nr_check_environment() {
     nr_check_fail "docker daemon is not reachable (start Docker Desktop or the docker service)"
   fi
 
+  local required_disk_mb mode_label
+  required_disk_mb="$(nr_required_disk_mb)"
+  mode_label="$(nr_run_mode_value)"
   disk_mb="$(nr_free_disk_mb)"
-  if [ -n "$disk_mb" ] && [ "$disk_mb" -ge 10240 ]; then
-    nr_ok "free disk: ${disk_mb} MB"
+  if [ -n "$disk_mb" ] && [ "$disk_mb" -ge "$required_disk_mb" ]; then
+    nr_ok "free disk: ${disk_mb} MB (${mode_label} mode needs ${required_disk_mb} MB)"
   elif [ -n "$disk_mb" ]; then
-    nr_check_fail "only ${disk_mb} MB free; at least 10240 MB is required for images and models"
+    nr_check_fail "only ${disk_mb} MB free; ${mode_label} mode needs at least ${required_disk_mb} MB for images and models"
   else
     nr_warn "could not determine free disk space"
   fi
@@ -171,7 +215,11 @@ nr_check_environment() {
   for index in 0 1 2 3; do
     port="${configured_ports[$index]:-${defaults[$index]}}"
     if nr_port_in_use "$port"; then
-      nr_warn "port ${port} is already in use; change it in .env if the stack fails to start"
+      if nr_stack_publishes_port "$port"; then
+        nr_ok "port ${port} is published by this Compose stack"
+      else
+        nr_warn "port ${port} is already in use; change it in .env if the stack fails to start"
+      fi
     else
       nr_ok "port ${port} is free"
     fi

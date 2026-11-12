@@ -224,7 +224,8 @@ function Start-NrStack {
 }
 
 function Open-NrPanel {
-    $port = Get-NrEnvValue -Key 'PANEL_PORT'
+    $port = $script:NrConfig.Port
+    if (-not $port) { $port = Get-NrEnvValue -Key 'PANEL_PORT' }
     if (-not $port) { $port = '8080' }
     if ($script:NrConfig.OpenPanel -and -not $script:NrConfig.DryRun) {
         try {

@@ -201,7 +201,7 @@ nr_start_stack() {
 
 nr_open_panel() {
   local port
-  port="$(nr_env_get PANEL_PORT)"
+  port="${NR_PORT_OVERRIDE:-$(nr_env_get PANEL_PORT)}"
   port="${port:-8080}"
   if [ "$NR_OPEN_PANEL" = "0" ] || [ "$NR_DRY_RUN" = "1" ]; then
     nr_info "open the panel at http://127.0.0.1:${port}"

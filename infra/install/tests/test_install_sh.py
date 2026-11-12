@@ -47,6 +47,7 @@ class InstallerTestCase(unittest.TestCase):
             "FAKE_DOCKER_LOG": str(self.log),
             "FAKE_GPU": "0",
             "NO_COLOR": "1",
+            "NEWSROOM_DISK_MB_OVERRIDE": "20480",
         }
         env.update({key: str(value) for key, value in extra.items()})
         return env
@@ -110,6 +111,21 @@ class HelpAndCheckTests(InstallerTestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("prerequisites OK", result.stdout)
         self.assertIn("compose file", result.stdout)
+
+    def test_check_uses_a_mode_aware_disk_threshold(self):
+        demo = self.run_installer(
+            "--check", "--project-dir", str(self.project), "--mode", "demo",
+            env_extra={"NEWSROOM_DISK_MB_OVERRIDE": "2500"},
+        )
+        self.assertEqual(demo.returncode, 0, demo.stdout + demo.stderr)
+        self.assertIn("demo mode needs 2048 MB", demo.stdout)
+
+        local = self.run_installer(
+            "--check", "--project-dir", str(self.project), "--mode", "local",
+            env_extra={"NEWSROOM_DISK_MB_OVERRIDE": "2500"},
+        )
+        self.assertNotEqual(local.returncode, 0)
+        self.assertIn("local mode needs at least 10240 MB", local.stdout + local.stderr)
 
     def test_check_fails_when_docker_is_missing(self):
         result = self.run_installer(
@@ -354,11 +370,13 @@ class InstallTests(InstallerTestCase):
     def test_dry_run_prints_the_plan_without_writing(self):
         result = self.run_installer(
             "--dry-run", "--yes", "--project-dir", str(self.project),
-            "--bin-dir", str(self.bin_dir), "--no-open", "--profile", "cpu",
+            "--bin-dir", str(self.bin_dir), "--no-open", "--profile", "cpu", "--port", "18080",
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("dry-run: no files", result.stdout)
         self.assertIn("docker compose", result.stdout)
+        self.assertIn("open the panel at http://127.0.0.1:18080", result.stdout)
+        self.assertIn("Panel:    http://127.0.0.1:18080", result.stdout)
         self.assertFalse((self.project / ".env").exists())
         self.assertFalse((self.bin_dir / "newsroom").exists())
         self.assertFalse((self.project / ".newsroom").exists())

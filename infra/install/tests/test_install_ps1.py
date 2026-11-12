@@ -200,13 +200,29 @@ class PowerShellInstallerTests(InstallerTestCase):
         state = (self.project / ".newsroom" / "state.env").read_text(encoding="utf-8")
         self.assertNotIn("MODELS_DOWNLOADED=1", state)
 
-    def test_dry_run_writes_nothing(self):
+    def test_check_uses_a_mode_aware_disk_threshold(self):
+        demo = self.run_ps(
+            "-Check", "-Mode", "demo", "-ProjectDir", str(self.project),
+            env_extra={"NEWSROOM_DISK_MB_OVERRIDE": "2500"},
+        )
+        self.assertEqual(demo.returncode, 0, demo.stdout + demo.stderr)
+        self.assertIn("demo mode needs 2048 MB", demo.stdout)
+
+        local = self.run_ps(
+            "-Check", "-Mode", "local", "-ProjectDir", str(self.project),
+            env_extra={"NEWSROOM_DISK_MB_OVERRIDE": "2500"},
+        )
+        self.assertNotEqual(local.returncode, 0)
+        self.assertIn("local mode needs at least 10240 MB", local.stdout + local.stderr)
+
+    def test_dry_run_writes_nothing_and_prints_the_port(self):
         result = self.run_ps(
-            "-DryRun", "-Yes", "-Profile", "cpu",
+            "-DryRun", "-Yes", "-Profile", "cpu", "-Port", "18081",
             "-ProjectDir", str(self.project), "-BinDir", str(self.bin_dir), "-NoOpen",
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("dry-run: no files", result.stdout)
+        self.assertIn("open the panel at http://127.0.0.1:18081", result.stdout)
         self.assertFalse((self.project / ".env").exists())
         self.assertFalse((self.bin_dir / "newsroom.ps1").exists())
         self.assertFalse((self.project / ".newsroom").exists())
@@ -254,6 +270,23 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertNotIn("VOLUMES_REMOVED", self.read_log())
         self.assertIn("-ForcePurge", result.stdout + result.stderr)
         self.assertTrue((self.project / ".env").exists())
+
+    def test_cli_doctor_uses_the_installed_mode_and_stack_ports(self):
+        self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
+        self.set_env("NEWSROOM_MODE", "local")
+        tight = self.run_cli(
+            "--project-dir", str(self.project), "doctor",
+            env_extra={"NEWSROOM_DISK_MB_OVERRIDE": "3000"},
+        )
+        self.assertNotEqual(tight.returncode, 0, tight.stdout + tight.stderr)
+        self.assertIn("local mode needs at least 10240 MB", tight.stdout + tight.stderr)
+
+        owned = self.run_cli(
+            "--project-dir", str(self.project), "doctor",
+            env_extra={"NEWSROOM_LISTENING_PORTS_OVERRIDE": "8080", "FAKE_DOCKER_PORTS": "8080"},
+        )
+        self.assertEqual(owned.returncode, 0, owned.stdout + owned.stderr)
+        self.assertIn("port 8080 is published by this Compose stack", owned.stdout)
 
     def test_cli_status_and_doctor(self):
         self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
