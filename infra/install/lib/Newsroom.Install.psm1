@@ -42,7 +42,7 @@ param([Parameter(ValueFromRemainingArguments=`$true)][string[]]`$Remaining)
 & "$repo/bin/newsroom.ps1" @Remaining
 exit `$LASTEXITCODE
 "@
-    Set-Content -LiteralPath $psLauncher -Value $psContent -Encoding UTF8
+    Write-NrLinesFile -Path $psLauncher -Lines @($psContent)
 
     $interpreter = 'powershell'
     if (Test-NrCommand 'pwsh') { $interpreter = 'pwsh' }
@@ -53,7 +53,7 @@ setlocal
 $interpreter -NoProfile -ExecutionPolicy Bypass -File "$psLauncher" %*
 exit /b %ERRORLEVEL%
 "@
-    Set-Content -LiteralPath $cmdLauncher -Value $cmdContent -Encoding ASCII
+    [System.IO.File]::WriteAllText($cmdLauncher, $cmdContent, [System.Text.Encoding]::ASCII)
     Write-NrOk "installed CLI: $cmdLauncher"
     $pathEntries = ($env:PATH -split ';')
     if (-not ($pathEntries | Where-Object { $_ -eq $BinDir })) {

@@ -126,6 +126,20 @@ function Test-NrCommand {
     return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+# --- File output -----------------------------------------------------------
+
+# Windows PowerShell 5.1's `Set-Content -Encoding UTF8` writes a BOM, which
+# breaks the first key of a .env file for Docker Compose and bash. Always write
+# UTF-8 without a BOM.
+function Write-NrLinesFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Lines
+    )
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllLines($Path, [string[]]@($Lines), $encoding)
+}
+
 # --- Secrets ---------------------------------------------------------------
 
 function New-NrSecret {
@@ -343,7 +357,7 @@ function Update-NrEnvFile {
     if ($parent -and -not (Test-Path -LiteralPath $parent)) {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
     }
-    Set-Content -LiteralPath $target -Value $output -Encoding UTF8
+    Write-NrLinesFile -Path $target -Lines $output
     # Restrict the generated secrets to the current user.
     if ($env:OS -eq 'Windows_NT') {
         try {
@@ -423,7 +437,7 @@ function Set-NrStateValue {
     foreach ($item in $values.Keys) {
         $lines += ($item + '=' + [string]$values[$item])
     }
-    Set-Content -LiteralPath $script:NrConfig.StateFile -Value $lines -Encoding UTF8
+    Write-NrLinesFile -Path $script:NrConfig.StateFile -Lines $lines
     if ($env:OS -ne 'Windows_NT') {
         try {
             $stateItem = [System.IO.FileInfo]::new($script:NrConfig.StateFile)

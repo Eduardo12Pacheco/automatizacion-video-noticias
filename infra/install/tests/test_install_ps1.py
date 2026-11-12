@@ -14,7 +14,7 @@ import subprocess
 import sys
 import unittest
 
-from test_install_sh import FAKE_BIN, REPO_ROOT, InstallerTestCase
+from test_install_sh import BROKEN_BIN, FAKE_BIN, REPO_ROOT, InstallerTestCase
 
 PWSH = os.environ.get("PWSH_BIN") or shutil.which("pwsh") or shutil.which("powershell")
 INSTALL_PS1 = REPO_ROOT / "install.ps1"
@@ -64,6 +64,16 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("prerequisites OK", result.stdout)
 
+    def test_check_allows_a_missing_docker_for_ci(self):
+        result = self.run_ps(
+            "-Check", "-AllowMissingDocker", "-Yes",
+            "-ProjectDir", str(self.project),
+            env_extra={"PATH": f"{BROKEN_BIN}:/usr/local/bin:/usr/bin:/bin"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("prerequisites OK", result.stdout)
+        self.assertIn("skipping the Docker-dependent checks", result.stdout + result.stderr)
+
     def test_full_install_generates_secrets_and_runs_every_step(self):
         result = self.run_ps(*self.ps_args())
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -74,6 +84,7 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertGreaterEqual(len(values["POSTGRES_PASSWORD"]), 32)
         self.assertIn(values["POSTGRES_PASSWORD"], values["DATABASE_URL"])
         self.assertEqual(stat.S_IMODE((self.project / ".env").stat().st_mode), 0o600)
+        self.assertFalse((self.project / ".env").read_bytes().startswith(b"\xef\xbb\xbf"))
 
         log = self.read_log()
         for expected in ("--profile cpu", "BUILD", "MODEL_INIT", "MIGRATE", "ADMIN_CREATED", "STACK_UP"):
