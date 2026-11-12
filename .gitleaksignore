@@ -1,0 +1,16 @@
+# Gitleaks fingerprints for verified false positives in reachable history.
+# Each entry is documented below; do not add a fingerprint without checking the
+# flagged blob first. New secrets must be removed from the history instead.
+#
+# 1. apps/api/src/composition.js reads the S3 secret from the environment with
+#    an empty default. The generic-api-key rule flags the property name, not a
+#    value. The current line carries an inline `gitleaks:allow`; this entry
+#    covers the historical revision that predates that annotation.
+e5379d338be8de6626ce0d16cdcc25f08bedfa78:apps/api/src/composition.js:generic-api-key:26
+#
+# 2. e2e/.env.example ships deterministic, non-production E2E fixture
+#    credentials (`e2e-minio`, `e2e-jobs-key`) for the disposable compose stack.
+#    They are not connected to any real service. The current lines carry an
+#    inline `gitleaks:allow`; this entry covers the historical revision that
+#    predates that annotation.
+6427c97c4a4ce92925742ee16c307f2c62f5c575:e2e/.env.example:generic-api-key:60
