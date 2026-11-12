@@ -1,0 +1,4 @@
+# Compatibility alias for tools that still look for docker-compose.yml.
+# The supported file and the installers both use compose.yaml.
+include:
+  - compose.yaml

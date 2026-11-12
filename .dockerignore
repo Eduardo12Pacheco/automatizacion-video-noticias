@@ -6,9 +6,9 @@
 **/node_modules
 **/__pycache__
 **/.pytest_cache
-**/runtime
-**/data
-**/projects
+/runtime
+/data
+/projects
 **/*.mp4
 **/*.webm
 **/*.wav
@@ -18,8 +18,7 @@
 !services/renderer/public/fonts/**
 !services/tts-worker/refs/*.wav
 !services/asr-worker/tests/**/*.json
-infra
+!examples/brand/final-demo.mp4
 docs
 odd
-examples
 tools
