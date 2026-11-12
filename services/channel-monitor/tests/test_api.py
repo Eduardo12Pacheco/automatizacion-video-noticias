@@ -169,7 +169,7 @@ def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_
     def forbidden_local_provider(*args, **kwargs):
         raise AssertionError("local YouTube provider constructed in protected mode")
 
-    monkeypatch.setattr(main_module, "YouTubeDataClient", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "RssChannelClient", forbidden_local_provider)
     monkeypatch.setattr(main_module, "WebSubClient", forbidden_local_provider)
     monkeypatch.setattr(main_module, "YouTubeTranscriptSubtitleProvider", forbidden_local_provider)
     monkeypatch.setattr(main_module, "YtDlpSubtitleProvider", forbidden_local_provider)
@@ -203,7 +203,7 @@ def test_protected_discovery_builder_fails_closed_when_boundary_config_missing_w
     def forbidden_local_provider(*args, **kwargs):
         raise AssertionError("local YouTube provider constructed when boundary config is missing")
 
-    monkeypatch.setattr(main_module, "YouTubeDataClient", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "RssChannelClient", forbidden_local_provider)
 
     try:
         main_module._build_discovery_worker(settings=settings, store=store)
@@ -227,7 +227,7 @@ def test_protected_catchup_builder_fails_closed_when_boundary_config_missing_wit
     def forbidden_local_provider(*args, **kwargs):
         raise AssertionError("local YouTube provider constructed when boundary config is missing")
 
-    monkeypatch.setattr(main_module, "YouTubeDataClient", forbidden_local_provider)
+    monkeypatch.setattr(main_module, "RssChannelClient", forbidden_local_provider)
 
     try:
         main_module._build_catchup_worker(settings=settings, store=store, discovery_worker=object())

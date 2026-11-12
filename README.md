@@ -5,7 +5,7 @@ This repository is the single source tree for the n8n workspace. Before provisio
 ## Quick Path
 
 1. Clone this repository, then use [the recovery inventory](docs/recovery/local-artifacts.md) to obtain every required external artifact from its approved owner.
-2. Copy the available sanitized environment templates before configuring a service: `apps/api/.env.example`, `infra/n8n/.env.example`, `services/asr-worker/.env.example`, `services/channel-monitor/.env.example`, `services/channel-boundary/.env.example`, `services/remote-fetcher/.env.example`, `services/renderer/.env.example`, `services/subtitles/.env.example`, and `services/tts-worker/.env.example`.
+2. Copy the available sanitized environment templates before configuring a service: `apps/api/.env.example`, `infra/n8n/.env.example`, `services/asr-worker/.env.example`, `services/channel-monitor/.env.example`, `services/renderer/.env.example`, `services/subtitles/.env.example`, and `services/tts-worker/.env.example`.
 3. Restore required state and binary assets using the inventory, then start services in the listed order.
 4. Verify each local health endpoint or service-specific check before exposing it through any external tunnel or gateway.
 
@@ -20,11 +20,9 @@ The inventory distinguishes repository-proven paths from `REQUIRES PRIVATE INVEN
 | `packages/contracts/` | Shared contract helpers | Source tree |
 | `services/tts-worker/` | Local GPU-backed TTS worker and orchestrator | `services/tts-worker/README.md` |
 | `services/subtitles/` | Remotion subtitles renderer | `services/subtitles/package.json` |
-| `services/asr-worker/` | Radar transcription backend | `services/asr-worker/README.md` |
+| `services/asr-worker/` | Radar transcription backend (local yt-dlp only) | `services/asr-worker/README.md` |
 | `apps/api/` | Authenticated local API gateway | `apps/api/src/` |
-| `services/channel-monitor/` | YouTube channel monitoring backend | `services/channel-monitor/README.md` |
-| `services/remote-fetcher/` | Remote fetch boundary service | `services/remote-fetcher/README.md` |
-| `services/channel-boundary/` | Channel network boundary service | `services/channel-boundary/README.md` |
+| `services/channel-monitor/` | YouTube channel monitoring backend (public RSS by default) | `services/channel-monitor/README.md` |
 | `infra/n8n/` | Local Dockerized n8n instance | `infra/n8n/README.md` |
 | `infra/windows/` | Windows service helpers | `infra/windows/README.md` |
 

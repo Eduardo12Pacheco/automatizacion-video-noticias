@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import ipaddress
-import json
 from pathlib import Path
 import socket
 import subprocess
 from typing import Protocol, Callable
-from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin, urlparse
-from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 
 from .worker import DependencyFailure
 
@@ -20,9 +17,6 @@ class CommandRunner(Protocol):
 
 AddressResolver = Callable[[str], list[str]]
 
-
-class RemoteOpener(Protocol):
-    def __call__(self, request: Request, **kwargs): ...
 
 ALLOWED_YOUTUBE_HOSTS = frozenset({"youtube.com", "www.youtube.com", "youtu.be"})
 
@@ -83,112 +77,6 @@ def validate_media_url(url: str, *, resolver: AddressResolver | None = None, res
 class DownloadResult:
     path: Path
     title: str | None = None
-
-
-def _safe_remote_message(message: str, token: str) -> str:
-    safe = str(message or "Remote fetcher failed")
-    return safe.replace(token, "[redacted]") if token else safe
-
-
-def _metadata_filename_extension(metadata: dict) -> str:
-    filename = str(metadata.get("audio_filename") or "").strip()
-    suffix = Path(filename).suffix.lower()
-    if suffix and suffix[1:].replace("-", "").replace("_", "").isalnum():
-        return suffix
-    return ".bin"
-
-
-class RemoteFetcherDownloader:
-    def __init__(
-        self,
-        *,
-        fetcher_url: str,
-        token: str,
-        opener: RemoteOpener | None = None,
-        timeout_seconds: int = 1800,
-        resolve_media_host: bool = True,
-        media_host_resolver: AddressResolver | None = None,
-    ):
-        self.fetcher_url = fetcher_url.rstrip("/")
-        self.token = token
-        self.opener = opener or urlopen
-        self.timeout_seconds = timeout_seconds
-        self.resolve_media_host = resolve_media_host
-        self.media_host_resolver = media_host_resolver
-
-    def _request(self, url: str) -> Request:
-        payload = json.dumps({"url": url}).encode("utf-8")
-        return Request(
-            urljoin(f"{self.fetcher_url}/", "fetch-audio"),
-            data=payload,
-            headers={
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json",
-                "Accept": "application/octet-stream, application/json",
-            },
-            method="POST",
-        )
-
-    def _failure_from_response(self, *, status: int, body: bytes, headers) -> DependencyFailure:
-        content_type = ""
-        try:
-            content_type = str(headers.get("Content-Type", ""))
-        except AttributeError:
-            content_type = ""
-        if "json" in content_type.casefold() or body.strip().startswith(b"{"):
-            try:
-                payload = json.loads(body.decode("utf-8"))
-                error = payload.get("error") if isinstance(payload, dict) else None
-                if isinstance(error, dict):
-                    code = str(error.get("code") or "remote_fetcher_error")
-                    if code == "unauthorized":
-                        code = "remote_fetcher_unauthorized"
-                    message = _safe_remote_message(str(error.get("message") or "Remote fetcher failed"), self.token)
-                    return DependencyFailure(code, message)
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                pass
-        if status == 401:
-            return DependencyFailure("remote_fetcher_unauthorized", "Remote fetcher rejected bearer authentication")
-        return DependencyFailure("remote_fetcher_http_error", f"Remote fetcher returned HTTP {status}")
-
-    def _read_response(self, request: Request):
-        try:
-            return self.opener(request, timeout=self.timeout_seconds)
-        except HTTPError as exc:
-            body = exc.read() if hasattr(exc, "read") else b""
-            raise self._failure_from_response(status=int(exc.code), body=body, headers=exc.headers) from exc
-        except TimeoutError as exc:
-            raise DependencyFailure("remote_fetcher_timeout", f"Remote fetcher timed out after {self.timeout_seconds} seconds") from exc
-        except URLError as exc:
-            message = _safe_remote_message(str(getattr(exc, "reason", exc)), self.token)
-            raise DependencyFailure("remote_fetcher_unavailable", f"Remote fetcher unavailable: {message}") from exc
-
-    def download(self, url: str, job_dir: Path) -> DownloadResult:
-        validate_media_url(url, resolver=self.media_host_resolver, resolve_host=self.resolve_media_host)
-        job_dir.mkdir(parents=True, exist_ok=True)
-        request = self._request(url)
-        response = self._read_response(request)
-        with response:
-            status = int(getattr(response, "status", getattr(response, "code", 200)) or 200)
-            body = response.read()
-            headers = getattr(response, "headers", {}) or {}
-        if status < 200 or status >= 300:
-            raise self._failure_from_response(status=status, body=body, headers=headers)
-        metadata: dict = {}
-        try:
-            raw_info = headers.get("X-Prensa-Audio-Info", "")
-        except AttributeError:
-            raw_info = ""
-        if raw_info:
-            try:
-                parsed = json.loads(raw_info)
-                metadata = parsed if isinstance(parsed, dict) else {}
-            except json.JSONDecodeError:
-                metadata = {}
-        output_path = job_dir / f"source{_metadata_filename_extension(metadata)}"
-        output_path.write_bytes(body)
-        title = str(metadata.get("title") or "").strip() or None
-        return DownloadResult(path=output_path, title=title)
 
 
 class YtDlpDownloader:

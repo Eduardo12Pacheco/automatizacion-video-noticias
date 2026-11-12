@@ -6,7 +6,7 @@ import subprocess
 import pytest
 
 from app.audio import FfmpegAudioExtractor
-from app.downloader import RemoteFetcherDownloader, YtDlpDownloader, validate_media_url
+from app.downloader import YtDlpDownloader, validate_media_url
 from app.main import create_downloader
 from app.models import TranscriptSegment
 from app.settings import DEFAULT_YT_DLP_COOKIES_PATH
@@ -379,148 +379,12 @@ def test_settings_loads_yt_dlp_cookies_and_js_runtime(monkeypatch, tmp_path):
     assert load_settings().yt_dlp_cookies_path is None
 
 
-def test_settings_loads_transcript_fetch_mode_and_remote_fetcher_config(monkeypatch):
-    monkeypatch.delenv("TRANSCRIPT_FETCH_MODE", raising=False)
-    monkeypatch.delenv("TRANSCRIPT_REMOTE_FETCHER_URL", raising=False)
-    monkeypatch.delenv("TRANSCRIPT_REMOTE_FETCHER_TOKEN", raising=False)
-
-    defaults = load_settings()
-    assert defaults.transcript_fetch_mode == "local"
-    assert defaults.transcript_remote_fetcher_url is None
-    assert defaults.transcript_remote_fetcher_token is None
-
-    monkeypatch.setenv("TRANSCRIPT_FETCH_MODE", " remote_only ")
-    monkeypatch.setenv("TRANSCRIPT_REMOTE_FETCHER_URL", " https://fetcher.example ")
-    monkeypatch.setenv("TRANSCRIPT_REMOTE_FETCHER_TOKEN", " secret-token ")
-
-    configured = load_settings()
-    assert configured.transcript_fetch_mode == "remote_only"
-    assert configured.transcript_remote_fetcher_url == "https://fetcher.example"
-    assert configured.transcript_remote_fetcher_token == "secret-token"
-
-
 def test_create_downloader_preserves_local_default_path():
-    settings = Settings(api_key="test-key", runtime_dir=Path("runtime"), transcript_fetch_mode="local")
+    settings = Settings(api_key="test-key", runtime_dir=Path("runtime"))
 
     downloader = create_downloader(settings)
 
     assert isinstance(downloader, YtDlpDownloader)
-
-
-def test_create_downloader_remote_only_requires_remote_url_and_token():
-    missing_url = Settings(api_key="test-key", runtime_dir=Path("runtime"), transcript_fetch_mode="remote_only", transcript_remote_fetcher_token="token")
-    with pytest.raises(DependencyFailure) as missing_url_failure:
-        create_downloader(missing_url)
-    assert missing_url_failure.value.code == "remote_fetcher_config_missing"
-    assert missing_url_failure.value.message == "TRANSCRIPT_REMOTE_FETCHER_URL is required when TRANSCRIPT_FETCH_MODE=remote_only"
-
-    missing_token = Settings(api_key="test-key", runtime_dir=Path("runtime"), transcript_fetch_mode="remote_only", transcript_remote_fetcher_url="https://fetcher.example")
-    with pytest.raises(DependencyFailure) as missing_token_failure:
-        create_downloader(missing_token)
-    assert missing_token_failure.value.code == "remote_fetcher_config_missing"
-    assert missing_token_failure.value.message == "TRANSCRIPT_REMOTE_FETCHER_TOKEN is required when TRANSCRIPT_FETCH_MODE=remote_only"
-
-
-class FakeRemoteResponse:
-    def __init__(self, *, status: int, body: bytes, headers: dict[str, str] | None = None):
-        self.status = status
-        self.body = body
-        self.headers = headers or {}
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, traceback):
-        return False
-
-    def read(self) -> bytes:
-        return self.body
-
-
-def test_remote_fetcher_downloader_sends_bearer_auth_writes_audio_and_parses_metadata(tmp_path):
-    requests = []
-
-    def opener(request, *, timeout: int):
-        requests.append((request, timeout))
-        return FakeRemoteResponse(
-            status=200,
-            body=b"audio-bytes",
-            headers={"Content-Type": "audio/webm", "X-Prensa-Audio-Info": '{"title":"Remote Title","audio_filename":"source.webm"}'},
-        )
-
-    result = RemoteFetcherDownloader(
-        fetcher_url="https://fetcher.example",
-        token="remote-token",
-        opener=opener,
-        resolve_media_host=False,
-        timeout_seconds=12,
-    ).download("https://www.youtube.com/watch?v=abc", tmp_path)
-
-    request, timeout = requests[0]
-    assert timeout == 12
-    assert request.full_url == "https://fetcher.example/fetch-audio"
-    assert request.get_header("Authorization") == "Bearer remote-token"
-    assert b'"url": "https://www.youtube.com/watch?v=abc"' in request.data
-    assert result.path == tmp_path / "source.webm"
-    assert result.path.read_bytes() == b"audio-bytes"
-    assert result.title == "Remote Title"
-
-
-def test_remote_fetcher_downloader_rejects_unsafe_url_before_remote_request(tmp_path):
-    calls = []
-
-    def opener(request, *, timeout: int):
-        calls.append(request)
-        return FakeRemoteResponse(status=200, body=b"audio")
-
-    with pytest.raises(DependencyFailure) as failure:
-        RemoteFetcherDownloader(fetcher_url="https://fetcher.example", token="remote-token", opener=opener).download("http://127.0.0.1/private", tmp_path)
-
-    assert failure.value.code == "invalid_url"
-    assert calls == []
-
-
-def test_remote_fetcher_downloader_maps_json_and_http_errors_without_token(tmp_path):
-    def json_error_opener(request, *, timeout: int):
-        return FakeRemoteResponse(status=502, body=b'{"ok":false,"error":{"code":"yt_dlp_bot_check","message":"Sign in to confirm"}}', headers={"Content-Type": "application/json"})
-
-    with pytest.raises(DependencyFailure) as json_failure:
-        RemoteFetcherDownloader(fetcher_url="https://fetcher.example", token="secret-token", opener=json_error_opener, resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
-
-    assert json_failure.value.code == "yt_dlp_bot_check"
-    assert json_failure.value.message == "Sign in to confirm"
-    assert "secret-token" not in json_failure.value.message
-
-    def http_error_opener(request, *, timeout: int):
-        return FakeRemoteResponse(status=500, body=b"upstream exploded", headers={"Content-Type": "text/plain"})
-
-    with pytest.raises(DependencyFailure) as http_failure:
-        RemoteFetcherDownloader(fetcher_url="https://fetcher.example", token="secret-token", opener=http_error_opener, resolve_media_host=False).download("https://youtu.be/abc", tmp_path)
-
-    assert http_failure.value.code == "remote_fetcher_http_error"
-    assert http_failure.value.message == "Remote fetcher returned HTTP 500"
-    assert "secret-token" not in http_failure.value.message
-
-
-def test_remote_only_downloader_does_not_invoke_local_yt_dlp_on_remote_failure(tmp_path, monkeypatch):
-    def fail_if_local_download_runs(self, url: str, job_dir: Path):
-        raise AssertionError("local yt-dlp must not run in remote_only mode")
-
-    monkeypatch.setattr(YtDlpDownloader, "download", fail_if_local_download_runs)
-
-    settings = Settings(
-        api_key="test-key",
-        runtime_dir=Path("runtime"),
-        transcript_fetch_mode="remote_only",
-        transcript_remote_fetcher_url="https://fetcher.example",
-        transcript_remote_fetcher_token="secret-token",
-    )
-    downloader = create_downloader(settings, remote_opener=lambda request, timeout: FakeRemoteResponse(status=503, body=b"down"))
-
-    with pytest.raises(DependencyFailure) as failure:
-        downloader.download("https://youtu.be/abc", tmp_path)
-
-    assert failure.value.code == "remote_fetcher_http_error"
 
 
 class _RecordingSlot:

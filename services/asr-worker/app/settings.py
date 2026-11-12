@@ -54,9 +54,6 @@ class Settings:
     yt_dlp_retries: int = 3
     yt_dlp_fragment_retries: int = 3
     media_url_dns_check: bool = True
-    transcript_fetch_mode: str = "local"
-    transcript_remote_fetcher_url: str | None = None
-    transcript_remote_fetcher_token: str | None = None
     subprocess_timeout_seconds: int = 1800
     cleanup_ttl_seconds: int = DEFAULT_CLEANUP_TTL_SECONDS
     cpu_fallback: bool = True
@@ -90,9 +87,6 @@ def load_settings() -> Settings:
         yt_dlp_retries=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_RETRIES", "3"), default=3),
         yt_dlp_fragment_retries=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_FRAGMENT_RETRIES", "3"), default=3),
         media_url_dns_check=os.environ.get("TRANSCRIPT_SERVICE_MEDIA_URL_DNS_CHECK", "1").strip().lower() not in {"0", "false", "no", "off"},
-        transcript_fetch_mode=os.environ.get("TRANSCRIPT_FETCH_MODE", "local").strip().casefold() or "local",
-        transcript_remote_fetcher_url=(os.environ.get("TRANSCRIPT_REMOTE_FETCHER_URL") or "").strip() or None,
-        transcript_remote_fetcher_token=(os.environ.get("TRANSCRIPT_REMOTE_FETCHER_TOKEN") or "").strip() or None,
         subprocess_timeout_seconds=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_SUBPROCESS_TIMEOUT_SECONDS", "1800"), default=1800),
         cleanup_ttl_seconds=_parse_int(
             os.environ.get("TRANSCRIPT_SERVICE_CLEANUP_TTL_SECONDS", str(DEFAULT_CLEANUP_TTL_SECONDS)),
