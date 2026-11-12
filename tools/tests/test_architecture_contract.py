@@ -97,6 +97,19 @@ class RuntimeServiceTest(unittest.TestCase):
         self.assertNotIn("approval-editor/server.js", renderer_dockerfile)
         self.assertIn("scripts/render/render-server.js", renderer_dockerfile)
 
+    def test_approval_editor_imports_only_its_http_renderer_boundary(self) -> None:
+        pattern = re.compile(
+            r"""(?:require\(|from\s+)["'][^"']*services/renderer/(?:scripts/lib|scripts/legacy-pipeline|scripts/(?:process-script|align-phrases|generate-timeline|setup-project|verify-sync|normalize-audio|transcribe-audio)\.(?:js|py))"""
+        )
+        violations = []
+        for path in (ROOT / "services/approval-editor").rglob("*.js"):
+            if "/test/" in path.as_posix() or "/__checks__/" in path.as_posix():
+                continue
+            source = path.read_text(encoding="utf-8")
+            if pattern.search(source):
+                violations.append(str(path.relative_to(ROOT)))
+        self.assertEqual(violations, [])
+
     def test_renderer_tests_do_not_read_panel_sources(self) -> None:
         for path in (ROOT / "services/renderer/tests").glob("*.test.js"):
             source = path.read_text(encoding="utf-8")

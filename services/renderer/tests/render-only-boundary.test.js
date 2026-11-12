@@ -4,10 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const videoEngineRoot = path.resolve(__dirname, "..");
-const workspaceRoot = path.resolve(videoEngineRoot, "..", "..");
 const packageJsonPath = path.join(videoEngineRoot, "package.json");
 const readmePath = path.join(videoEngineRoot, "README.md");
-const approvalEditorRoot = path.join(workspaceRoot, "services", "approval-editor");
 
 function readPackageScripts() {
   return JSON.parse(fs.readFileSync(packageJsonPath, "utf8")).scripts || {};
@@ -89,23 +87,6 @@ test("README leads with render-only happy path, deletion criteria, deferred path
   for (const snippet of expectedSnippets) {
     assert.equal(readme.includes(snippet), true, `README should document: ${snippet}`);
   }
-});
-
-test("Control Panel approval editor imports only approved Video Engine render boundary paths", () => {
-  const scripts = readPackageScripts();
-  assert.equal(scripts["check:render-boundary"], "node --test tests/render-only-boundary.test.js tests/video-engine-render-adapter.test.js");
-
-  const disallowedImportPattern = /(?:require\(|from\s+)["'][^"']*services\/renderer\/(?:scripts\/lib|scripts\/legacy-pipeline|scripts\/(?:process-script|align-phrases|generate-timeline|setup-project|verify-sync|normalize-audio|transcribe-audio)\.(?:js|py))/g;
-  const violations = [];
-  for (const filePath of walkJsFiles(approvalEditorRoot)) {
-    const source = fs.readFileSync(filePath, "utf8");
-    const matches = source.match(disallowedImportPattern) || [];
-    for (const match of matches) {
-      violations.push(`${path.relative(workspaceRoot, filePath)}: ${match}`);
-    }
-  }
-
-  assert.deepEqual(violations, []);
 });
 
 test("deleted high-confidence legacy pipeline paths stay absent while render assets and compatibility paths stay protected", () => {
