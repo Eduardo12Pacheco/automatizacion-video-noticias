@@ -234,6 +234,16 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertIn("VOLUMES_REMOVED", self.read_log())
         self.assertFalse((self.project / ".env").exists())
 
+    def test_uninstall_stops_the_local_profile_services_too(self):
+        self.assertEqual(self.run_ps(*self.ps_args("-Mode", "local")).returncode, 0)
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_ps(
+            "-Uninstall", "-Yes", "-ProjectDir", str(self.project), "-BinDir", str(self.bin_dir),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        stack_down = [line for line in self.read_log().splitlines() if " down " in line][-1]
+        self.assertIn("--profile local", stack_down)
+
     def test_purge_with_yes_without_force_purge_keeps_data(self):
         self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
         result = self.run_ps(

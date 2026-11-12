@@ -196,6 +196,8 @@ if [ "$ACTION" = "uninstall" ]; then
   if [ -f "$NR_ENV_FILE" ]; then
     NR_PROFILE="$(nr_env_get NEWSROOM_PROFILE)"
     NR_PROFILE="${NR_PROFILE:-auto}"
+    NR_RUN_MODE="$(nr_env_get NEWSROOM_MODE)"
+    NR_RUN_MODE="${NR_RUN_MODE:-demo}"
   fi
   nr_uninstall "$PURGE"
   exit 0

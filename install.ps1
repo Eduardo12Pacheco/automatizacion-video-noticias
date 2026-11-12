@@ -139,6 +139,8 @@ try {
     if ($Uninstall) {
         $envProfile = Get-NrEnvValue -Key 'NEWSROOM_PROFILE'
         if ($envProfile) { Set-NrOption -Name Profile -Value $envProfile }
+        $envMode = Get-NrEnvValue -Key 'NEWSROOM_MODE'
+        if ($envMode) { Set-NrOption -Name Mode -Value $envMode }
         Remove-NrStack -Purge:([bool]$Purge)
         exit 0
     }

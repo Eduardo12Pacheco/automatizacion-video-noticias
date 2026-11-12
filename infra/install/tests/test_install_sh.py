@@ -378,6 +378,20 @@ class UninstallTests(InstallerTestCase):
         self.assertTrue((self.project / ".env").exists())
         self.assertFalse((self.bin_dir / "newsroom").exists())
 
+    def test_uninstall_stops_the_local_profile_services_too(self):
+        self.assertEqual(
+            self.run_installer(*self.install_args("--mode", "local", "--profile", "cpu")).returncode,
+            0,
+        )
+        self.log.write_text("", encoding="utf-8")
+        result = self.run_installer(
+            "--uninstall", "--yes", "--project-dir", str(self.project),
+            "--bin-dir", str(self.bin_dir),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        stack_down = [line for line in self.read_log().splitlines() if " down " in line][-1]
+        self.assertIn("--profile local", stack_down)
+
     def test_purge_removes_volumes_state_and_env_with_force_purge(self):
         self.assertEqual(self.run_installer(*self.install_args("--profile", "cpu")).returncode, 0)
         result = self.run_installer(
