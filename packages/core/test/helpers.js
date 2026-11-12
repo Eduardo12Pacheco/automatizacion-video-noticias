@@ -3,16 +3,16 @@ import { InMemoryRepository } from '../../data/src/index.js';
 export const NEWS_FIXTURE = [
   {
     id_noticia: 'news-1',
-    seleccion: 'Ecuador',
-    jugador: 'Moisés Caicedo',
-    titular: 'Caicedo anotó en la victoria del Chelsea',
+    seleccion: 'Aurenia',
+    jugador: 'Nicolás Andrade',
+    titular: 'Andrade anotó en la victoria del Costa Azul FC',
     fuente: 'Example Sports',
     fecha_publicacion: '2026-11-10T10:00:00.000Z',
-    link: 'https://news.example.local/caicedo-1',
+    link: 'https://news.example.local/andrade-1',
     snippet: 'El mediocampista marcó el primer gol del partido.',
     fuente_origen: 'google_news_rss',
     estado_revision: 'pendiente',
-    tema_principal: 'Gol de Caicedo',
+    tema_principal: 'Gol de Andrade',
     google_position: 1,
     classification_source: 'heuristic',
     football_signals: 'gol || partido',
@@ -20,16 +20,16 @@ export const NEWS_FIXTURE = [
   },
   {
     id_noticia: 'news-2',
-    seleccion: 'Ecuador',
-    jugador: 'Moisés Caicedo',
-    titular: 'Caicedo, titular ante el Arsenal',
+    seleccion: 'Aurenia',
+    jugador: 'Nicolás Andrade',
+    titular: 'Andrade, titular ante el Bahía Norte FC',
     fuente: 'Example Football',
     fecha_publicacion: '2026-11-10T09:00:00.000Z',
-    link: 'https://news.example.local/caicedo-2',
+    link: 'https://news.example.local/andrade-2',
     snippet: 'El técnico confirmó la alineación.',
     fuente_origen: 'google_news_rss',
     estado_revision: 'pendiente',
-    tema_principal: 'Alineación de Caicedo',
+    tema_principal: 'Alineación de Andrade',
     google_position: 2,
     classification_source: 'ai',
     football_signals: 'partido || titular',
@@ -38,11 +38,11 @@ export const NEWS_FIXTURE = [
 ];
 
 export const CLUSTER_FIXTURE = {
-  cluster_id: 'cluster-caicedo-20261110',
-  seleccion: 'Ecuador',
-  jugador: 'Moisés Caicedo',
-  tema_principal: 'Regreso de Caicedo al Chelsea',
-  resumen_cluster: 'Caicedo entrenó y fue titular.',
+  cluster_id: 'cluster-andrade-20261110',
+  seleccion: 'Aurenia',
+  jugador: 'Nicolás Andrade',
+  tema_principal: 'Regreso de Andrade al Costa Azul FC',
+  resumen_cluster: 'Andrade entrenó y fue titular.',
   tag_editorial: 'club',
   fecha_creacion_cluster: '2026-11-10T11:00:00.000Z',
   avg_google_position: 1.5,
@@ -53,16 +53,16 @@ export const CLUSTER_FIXTURE = {
 };
 
 export const ARTICLE_FIXTURE = {
-  url: 'https://news.example.local/caicedo-1',
-  title: 'Caicedo anotó en la victoria del Chelsea',
+  url: 'https://news.example.local/andrade-1',
+  title: 'Andrade anotó en la victoria del Costa Azul FC',
   subtitle: 'El mediocampista fue clave',
   author: 'Demo Reporter',
   published_at: '2026-11-10T10:00:00.000Z',
   main_content: [
-    'Moisés Caicedo anotó el primer gol del Chelsea en la victoria del partido.',
-    'El mediocampista ecuatoriano jugó los noventa minutos y fue elegido figura.',
+    'Nicolás Andrade anotó el primer gol del Costa Azul FC en la victoria del partido.',
+    'El mediocampista aureniano jugó los noventa minutos y fue elegido figura.',
     'El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.',
-    'La selección de Ecuador también sigue de cerca su recuperación y su próximo partido de eliminatorias.',
+    'La selección de Aurenia también sigue de cerca su recuperación y su próximo partido de clasificatorias.',
   ].join(' '),
 };
 
@@ -108,7 +108,7 @@ export async function seedPublishableDraft(repo) {
     idNoticia: 'news-1',
     draftId: 'draft-news-1',
     guionDraft: 'Guion de prueba',
-    guionEditado: 'Moisés Caicedo anotó y fue figura del partido.',
+    guionEditado: 'Nicolás Andrade anotó y fue figura del partido.',
     wordCount: 9,
   });
 }

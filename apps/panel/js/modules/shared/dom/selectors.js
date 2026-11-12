@@ -122,7 +122,7 @@ export function getDomSelectors(doc = document) {
     radarUrlInput: doc.getElementById('radarUrlInput'),
     radarCountryColombia: doc.getElementById('radarCountryColombia'),
     radarCountryEcuador: doc.getElementById('radarCountryEcuador'),
-    radarCountryArgentina: doc.getElementById('radarCountryArgentina'),
+    radarCountryValdoria: doc.getElementById('radarCountryValdoria'),
     radarCountryParaguay: doc.getElementById('radarCountryParaguay'),
     radarCountryUruguay: doc.getElementById('radarCountryUruguay'),
     radarCountryMexico: doc.getElementById('radarCountryMexico'),

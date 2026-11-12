@@ -3,22 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-TARGET_COUNTRY_ORDER = ("ecuador", "colombia", "argentina", "uruguay", "paraguay", "mexico")
+TARGET_COUNTRY_ORDER = ('aurenia', 'montelia', 'valdoria', 'rivamar', 'bosquemar', 'terramar')
 SUPPORTED_LANGUAGES = ["es", "fr", "en", "it", "de", "pt", "nl"]
 COUNTRY_ALIASES = {
-    "ec": "ecuador",
-    "ecuador": "ecuador",
-    "co": "colombia",
-    "colombia": "colombia",
-    "ar": "argentina",
-    "argentina": "argentina",
-    "uy": "uruguay",
-    "uruguay": "uruguay",
-    "py": "paraguay",
-    "paraguay": "paraguay",
-    "mx": "mexico",
-    "mexico": "mexico",
-    "méxico": "mexico",
+    "aurenia": "aurenia",
+    "montelia": "montelia",
+    "valdoria": "valdoria",
+    "rivamar": "rivamar",
+    "bosquemar": "bosquemar",
+    "terramar": "terramar",
 }
 
 
@@ -30,154 +23,306 @@ class CatalogEntry:
 
 
 COUNTRY_CATALOG: dict[str, dict[str, object]] = {
-    "ecuador": {
-        "name": "Ecuador",
+    "aurenia": {
+        "name": "Aurenia",
         "entities": {
-            "Ecuador": {
-                "base": ["Ecuador"],
-                "es": ["La Tri", "selección ecuatoriana"],
-                "fr": ["Équateur", "Equateur"],
-                "en": ["Ecuador"],
-                "it": ["Ecuador"],
-                "de": ["Ecuador"],
-                "pt": ["Equador"],
-                "nl": ["Ecuador"],
+            "Aurenia": {
+                "base": ["Aurenia", "La Aurenia", "selección aureniana", "seleccion aureniana"],
+                "fr": ["Aurénie"],
+                "en": ["Aurenia"],
+                "it": ["Aurenia"],
+                "de": ["Aurenia"],
+                "pt": ["Aurenia"],
+                "nl": ["Aurenia"],
             },
-            "Willian Pacho": {
-                "base": ["Willian Pacho", "Pacho", "Pachio"],
+            "Nicolás Andrade": {
+                "base": ["Nicolás Andrade", "Nicolas Andrade", "Andrade"],
+            },
+            "Mateo Salvatierra": {
+                "base": ["Mateo Salvatierra", "Salvatierra"],
+            },
+            "Iván Cordero": {
+                "base": ["Iván Cordero", "Ivan Cordero", "Cordero"],
                 "fr": ["Pachio"],
             },
-            "Moisés Caicedo": {
-                "base": ["Moisés Caicedo", "Caicedo"],
-                "fr": ["Moise Caicedo"],
-                "it": ["Moises Caicedo"],
-                "es": ["Moisés"],
-                "en": ["Moises Caicedo"],
-                "pt": ["Moisés Caicedo"],
+            "Bruno Valdivia": {
+                "base": ["Bruno Valdivia", "Valdivia"],
+            },
+            "Diego Peralta": {
+                "base": ["Diego Peralta", "Peralta"],
+            },
+            "Ángel Mera": {
+                "base": ["Ángel Mera", "Angel Mera", "Mera"],
+            },
+            "Lucas Benítez": {
+                "base": ["Lucas Benítez", "Lucas Benitez", "Benítez", "Benitez"],
+            },
+            "Tomás Aguirre": {
+                "base": ["Tomás Aguirre", "Tomas Aguirre", "Aguirre"],
+            },
+            "Kevin Salas": {
+                "base": ["Kevin Salas", "Salas"],
+            },
+            "Andrés Cedeño": {
+                "base": ["Andrés Cedeño", "Andres Cedeno", "Cedeño", "Cedeno"],
+            },
+            "Jon Olmedo": {
+                "base": ["Jon Olmedo", "Olmedo"],
+            },
+            "Marco Villalba": {
+                "base": ["Marco Villalba", "Villalba"],
             },
         },
     },
-    "colombia": {
-        "name": "Colombia",
+    "montelia": {
+        "name": "Montelia",
         "entities": {
-            "Colombia": {
-                "base": ["Colombia"],
-                "fr": ["Colombie"],
-                "it": ["Colombia"],
-                "es": ["Selección Colombia", "cafeteros"],
-                "en": ["Colombia"],
-                "de": ["Kolumbien"],
-                "pt": ["Colômbia"],
-                "nl": ["Colombia"],
+            "Montelia": {
+                "base": ["Montelia", "Selección Montelia", "Seleccion Montelia", "montelios"],
+                "fr": ["Montélie"],
+                "en": ["Montelia"],
+                "it": ["Montelia"],
+                "de": ["Montelia"],
+                "pt": ["Montelia"],
+                "nl": ["Montelia"],
             },
-            "James Rodríguez": {
-                "base": ["James Rodríguez", "Rodríguez"],
-                "fr": ["James Rodrigue"],
-                "it": ["James Rodriguez"],
-                "es": ["James", "James Rodríguez"],
-                "en": ["James Rodriguez"],
-                "de": ["James Rodriguez"],
-                "pt": ["James Rodríguez"],
-                "nl": ["James Rodriguez"],
+            "Luis Cárdenas": {
+                "base": ["Luis Cárdenas", "Luis Cardenas", "Cárdenas", "Cardenas"],
             },
-            "Luis Díaz": {
-                "base": ["Luis Díaz", "Díaz"],
-                "fr": ["Luis Diaz"],
-                "it": ["Luis Diaz"],
-                "es": ["Lucho Díaz"],
-                "en": ["Luis Diaz"],
-                "pt": ["Luis Díaz"],
-                "nl": ["Luis Diaz"],
+            "Jaime Rueda": {
+                "base": ["Jaime Rueda", "Rueda"],
+                "fr": ["Jamie Rueda"],
+            },
+            "Daniel Cifuentes": {
+                "base": ["Daniel Cifuentes", "Cifuentes"],
+            },
+            "Damián Serrano": {
+                "base": ["Damián Serrano", "Damian Serrano", "Serrano"],
+            },
+            "Javier Lema": {
+                "base": ["Javier Lema", "Lema"],
+            },
+            "Ricardo Riofrío": {
+                "base": ["Ricardo Riofrío", "Ricardo Riofrio", "Riofrío", "Riofrio"],
+            },
+            "Juan Fernando Quiroga": {
+                "base": ["Juan Fernando Quiroga", "Quiroga"],
+            },
+            "Jonás Arriola": {
+                "base": ["Jonás Arriola", "Jonas arriola", "arriola"],
+            },
+            "Rafael Santos Borja": {
+                "base": ["Rafael Santos Borja", "Rafael Santos Borja", "Borja"],
+            },
+            "Jhon Duarte": {
+                "base": ["Jhon Duarte", "Duarte"],
+            },
+            "Yaser Arrieta": {
+                "base": ["Yaser Arrieta", "Arrieta"],
+            },
+            "Camilo Herrera": {
+                "base": ["Camilo Herrera", "Herrera"],
             },
         },
     },
-    "argentina": {
-        "name": "Argentina",
+    "valdoria": {
+        "name": "Valdoria",
         "entities": {
-            "Argentina": {
-                "base": ["Argentina"],
-                "fr": ["Argentine"],
-                "it": ["Argentina"],
-                "es": ["albiceleste", "selección argentina"],
-                "en": ["Argentina"],
-                "de": ["Argentinien"],
-                "pt": ["Argentina"],
-                "nl": ["Argentinië", "Argentinie"],
+            "Valdoria": {
+                "base": ["Valdoria", "selección valdoriana", "seleccion valdoriana"],
+                "fr": ["Valdorie"],
+                "en": ["Valdoria"],
+                "it": ["Valdoria"],
+                "de": ["Valdoria"],
+                "pt": ["Valdoria"],
+                "nl": ["Valdoria"],
             },
-            "Lionel Messi": {
-                "base": ["Lionel Messi", "Messi"],
-                "fr": ["Lionel Messie"],
-                "it": ["Lionel Messi"],
-                "es": ["Leo Messi"],
-                "en": ["Lionel Messi"],
-                "pt": ["Lionel Messi"],
-                "nl": ["Lionel Messi"],
+            "Leonel Márquez": {
+                "base": ["Leonel Márquez", "Leonel Marquez", "Márquez", "Marquez"],
+            },
+            "Julián Alvarado": {
+                "base": ["Julián Alvarado", "Julian Alvarado", "Alvarado"],
+            },
+            "Lautaro Molina": {
+                "base": ["Lautaro Molina", "Molina"],
+            },
+            "Emiliano Ferreyra": {
+                "base": ["Emiliano Ferreyra", "Ferreyra"],
+            },
+            "Enzo Ferrer": {
+                "base": ["Enzo Ferrer", "Ferrer"],
+            },
+            "Alexis Montiel": {
+                "base": ["Alexis Montiel", "Montiel"],
+            },
+            "Rodrigo Del Valle": {
+                "base": ["Rodrigo Del Valle", "Del Valle"],
+            },
+            "Cristian Rojas": {
+                "base": ["Cristian Rojas", "Rojas"],
+            },
+            "Nicolás Ocampo": {
+                "base": ["Nicolás Ocampo", "Nicolas Ocampo", "Ocampo"],
+            },
+            "Ángel Miranda": {
+                "base": ["Ángel Miranda", "Angel Miranda", "Miranda"],
+            },
+            "Alejandro Gándara": {
+                "base": ["Alejandro Gándara", "Alejandro Gandara", "Gándara", "Gandara"],
+            },
+            "Facundo Ibáñez": {
+                "base": ["Facundo Ibáñez", "Facundo Ibanez", "Ibáñez", "Ibanez"],
             },
         },
     },
-    "uruguay": {
-        "name": "Uruguay",
+    "rivamar": {
+        "name": "Rivamar",
         "entities": {
-            "Uruguay": {
-                "base": ["Uruguay", "uruguayo", "charrúa", "charrua", "celeste"],
-                "nl": ["Oeroegwaj"],
-                "de": ["Uruguay"],
-                "fr": ["Uruguay"],
-                "pt": ["Uruguai"],
-                "en": ["Uruguay"],
-                "it": ["Uruguay"],
+            "Rivamar": {
+                "base": ["Rivamar", "selección rivamarense", "seleccion rivamarense"],
+                "fr": ["Rivamar"],
+                "en": ["Rivamar"],
+                "it": ["Rivamar"],
+                "de": ["Rivamar"],
+                "pt": ["Rivamar"],
+                "nl": ["Rivamar"],
             },
-            "Federico Valverde": {
-                "base": ["Federico Valverde", "Fede Valverde", "Valverde"],
-                "en": ["Federico Valverde"],
-                "fr": ["Federico Valverde"],
-                "pt": ["Frederico Valverde"],
-                "it": ["Federico Valverde"],
+            "Federico Valdés": {
+                "base": ["Federico Valdés", "Federico Valdes", "Valdés", "Valdes"],
             },
-            "Darwin Núñez": {
-                "base": ["Darwin Núñez", "Darwin Nunez", "Núñez", "Nunez", "Darwin"],
-                "en": ["Darwin Nunez"],
-                "fr": ["Darwin Nunez"],
-                "pt": ["Darwin Nunez"],
-                "it": ["Darwin Nunez"],
+            "Darío Nieves": {
+                "base": ["Darío Nieves", "Dario Nieves", "Nieves", "Nieves"],
             },
-            "Manuel Ugarte": {"base": ["Manuel Ugarte", "Ugarte"]},
+            "Manuel Ugaz": {
+                "base": ["Manuel Ugaz", "Ugaz"],
+            },
+            "Rodrigo Beltrán": {
+                "base": ["Rodrigo Beltrán", "Rodrigo Beltran", "Beltrán", "Beltran"],
+            },
+            "Ronald Arce": {
+                "base": ["Ronald Arce", "Arce"],
+            },
+            "Giorgian De Luca": {
+                "base": ["Giorgian De Luca", "De Luca"],
+            },
+            "Facundo Peláez": {
+                "base": ["Facundo Peláez", "Facundo Pelaez", "Peláez", "Pelaez"],
+            },
+            "Sergio Roca": {
+                "base": ["Sergio Roca", "Roca"],
+            },
+            "Matías Vela": {
+                "base": ["Matías Vela", "Matias Vela", "Vela"],
+            },
+            "José María Giraldo": {
+                "base": ["José María Giraldo", "Jose Maria Giraldo", "Giraldo"],
+            },
+            "Nicolás De la Fuente": {
+                "base": ["Nicolás De la Fuente", "Nicolas De la Fuente", "De la Fuente"],
+            },
+            "Martín Olivera": {
+                "base": ["Martín Olivera", "Martin Olivera", "Olivera"],
+            },
         },
     },
-    "paraguay": {
-        "name": "Paraguay",
+    "bosquemar": {
+        "name": "Bosquemar",
         "entities": {
-            "Paraguay": {
-                "base": ["Paraguay", "paraguayo", "albirroja", "guaraní", "guarani"],
-                "en": ["Paraguay"],
-                "fr": ["Paraguay"],
-                "it": ["Paraguay"],
-                "de": ["Paraguay"],
-                "pt": ["Paraguai"],
-                "nl": ["Paraguay"],
+            "Bosquemar": {
+                "base": ["Bosquemar", "selección bosquemarense", "seleccion bosquemarense"],
+                "fr": ["Bosquemar"],
+                "en": ["Bosquemar"],
+                "it": ["Bosquemar"],
+                "de": ["Bosquemar"],
+                "pt": ["Bosquemar"],
+                "nl": ["Bosquemar"],
             },
-            "Miguel Almirón": {"base": ["Miguel Almirón", "Miguel Almiron", "Almirón", "Almiron"]},
-            "Julio Enciso": {"base": ["Julio Enciso", "Enciso"]},
-            "Antonio Sanabria": {"base": ["Antonio Sanabria", "Sanabria"]},
+            "Miguel Almada": {
+                "base": ["Miguel Almada", "Almada"],
+            },
+            "Julio Enríquez": {
+                "base": ["Julio Enríquez", "Julio Enriquez", "Enríquez", "Enriquez"],
+            },
+            "Antonio Sandoval": {
+                "base": ["Antonio Sandoval", "Sandoval"],
+            },
+            "Gustavo Gaitán": {
+                "base": ["Gustavo Gaitán", "Gustavo Gaitan", "Gaitán", "Gaitan"],
+            },
+            "Ramón Solano": {
+                "base": ["Ramón Solano", "Ramon Solano", "Solano"],
+            },
+            "Diego Garrido": {
+                "base": ["Diego Garrido", "Garrido"],
+            },
+            "Omar Alfaro": {
+                "base": ["Omar Alfaro", "Alfaro"],
+            },
+            "Damián Bustos": {
+                "base": ["Damián Bustos", "Damian Bustos", "Bustos"],
+            },
+            "Junior Alcántara": {
+                "base": ["Junior Alcántara", "Junior Alcantara", "Alcántara", "Alcantara"],
+            },
+            "Matías Rivarola": {
+                "base": ["Matías Rivarola", "Matias Rivarola", "Rivarola"],
+            },
+            "Osvaldo Cáceres": {
+                "base": ["Osvaldo Cáceres", "Osvaldo Caceres", "Cáceres", "Caceres"],
+            },
+            "Hernán Villagra": {
+                "base": ["Hernán Villagra", "Hernan Villagra", "Villagra"],
+            },
         },
     },
-    "mexico": {
-        "name": "México",
+    "terramar": {
+        "name": "Terramar",
         "entities": {
-            "México": {
-                "base": ["México", "Mexico", "mexicano", "Tri", "Tricolor", "Mejico"],
-                "fr": ["Mexique"],
-                "en": ["Mexico"],
-                "it": ["Messico"],
-                "de": ["Mexiko"],
-                "pt": ["México"],
-                "nl": ["Mexico", "Mejico"],
+            "Terramar": {
+                "base": ["Terramar", "selección terramarense", "seleccion terramarense"],
+                "fr": ["Terramar"],
+                "en": ["Terramar"],
+                "it": ["Terramar"],
+                "de": ["Terramar"],
+                "pt": ["Terramar"],
+                "nl": ["Terramar"],
             },
-            "Santiago Giménez": {
-                "base": ["Santiago Giménez", "Santiago Gimenez", "Santi Giménez", "Santi Gimenez", "Giménez", "Gimenez"],
+            "Santiago Gil": {
+                "base": ["Santiago Gil", "Santi Gil", "Gil"],
             },
-            "Guillermo Ochoa": {"base": ["Guillermo Ochoa", "Memo Ochoa", "Ochoa"]},
-            "Raúl Jiménez": {"base": ["Raúl Jiménez", "Raul Jimenez", "Jiménez", "Jimenez"]},
+            "Guillermo Olvera": {
+                "base": ["Guillermo Olvera", "Olvera"],
+            },
+            "Raúl Jaramillo": {
+                "base": ["Raúl Jaramillo", "Raul Jaramillo", "Jaramillo"],
+            },
+            "Edson Ávila": {
+                "base": ["Edson Ávila", "Edson Avila", "Ávila", "Avila"],
+            },
+            "Orbelín Palacios": {
+                "base": ["Orbelín Palacios", "Orbelin Palacios", "Palacios"],
+            },
+            "Luis Chacón": {
+                "base": ["Luis Chacón", "Luis Chacon", "Chacón", "Chacon"],
+            },
+            "César Montero": {
+                "base": ["César Montero", "Cesar Montero", "Montero"],
+            },
+            "Johan Varela": {
+                "base": ["Johan Varela", "Varela"],
+            },
+            "Julián Quintana": {
+                "base": ["Julián Quintana", "Julian Quintana", "Quintana"],
+            },
+            "Hirving Loza": {
+                "base": ["Hirving Loza", "Loza"],
+            },
+            "Henry Martos": {
+                "base": ["Henry Martos", "Martos"],
+            },
+            "Érick Palomares": {
+                "base": ["Érick Palomares", "Erick Palomares", "Palomares"],
+            },
         },
     },
 }

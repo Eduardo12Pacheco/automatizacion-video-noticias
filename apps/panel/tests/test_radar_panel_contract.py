@@ -45,7 +45,7 @@ def test_radar_static_shell_contract_adds_view_navigation_settings_and_selectors
         'id="radarNewJobDialog"',
         'id="radarCountryColombia"',
         'id="radarCountryEcuador"',
-        'id="radarCountryArgentina"',
+        'id="radarCountryValdoria"',
         'id="radarCountryParaguay"',
         'id="radarCountryUruguay"',
         'id="radarCountryMexico"',
@@ -190,7 +190,7 @@ def test_radar_monitor_card_layout_has_wide_cards_filters_and_mention_columns():
     template = RADAR_TEMPLATE_PATH.read_text(encoding="utf-8")
 
     previous = -1
-    for country in ["Ecuador", "Colombia", "Argentina", "Uruguay", "Paraguay", "M\\u00e9xico", "IMPORTANTES"]:
+    for country in ["Aurenia", "Montelia", "Valdoria", "Rivamar", "Bosquemar", "M\\u00e9xico", "IMPORTANTES"]:
         assert country in template
         current = template.index(country)
         assert current > previous

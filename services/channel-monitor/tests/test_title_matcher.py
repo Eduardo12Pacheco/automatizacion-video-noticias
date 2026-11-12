@@ -17,42 +17,42 @@ from app.title_matcher import (
 
 
 def test_normalize_title_strips_accents_case_and_punctuation():
-    assert normalize_title("Résumé: L'Équipe / FRANCE!!!") == "resume l equipe france"
+    assert normalize_title("Résumé: Demo Sports FR / AURENIA!!!") == "resume demo sports fr aurenia"
 
 
 def test_match_program_title_returns_auditable_metadata_for_contains_and_starts_with():
     contains = match_program_title(
-        "🔥 Fútbol Picante EN VIVO",
-        ProgramTitleRule(op="contains", value="FUTBOL PICANTE"),
+        "🔥 Fútbol Demo EN VIVO",
+        ProgramTitleRule(op="contains", value="FUTBOL DEMO"),
     )
     starts = match_program_title(
-        "La Pizarra de Quintana analiza la fecha",
-        ProgramTitleRule(op="starts_with", value="LA PIZARRA DE QUINTANA"),
+        "La Pizarra Demo analiza la fecha",
+        ProgramTitleRule(op="starts_with", value="LA PIZARRA DEMO"),
     )
 
     assert contains is not None
     assert contains.op == "contains"
-    assert contains.value == "FUTBOL PICANTE"
-    assert contains.normalized_value == "futbol picante"
+    assert contains.value == "FUTBOL DEMO"
+    assert contains.normalized_value == "futbol demo"
     assert starts is not None
     assert starts.op == "starts_with"
-    assert starts.normalized_value == "la pizarra de quintana"
+    assert starts.normalized_value == "la pizarra demo"
 
 
 def test_match_program_title_ignores_accents_symbols_emojis_and_repeated_whitespace():
     result = match_program_title(
-        "🔥   TODOS!!! Somos   Técnicos — capítulo especial",
-        ProgramTitleRule(op="contains", value="TODOS SOMOS TECNICOS"),
+        "🔥   TODOS!!! Somos   Demo — capítulo especial",
+        ProgramTitleRule(op="contains", value="TODOS SOMOS DEMO"),
     )
 
     assert result is not None
-    assert result.normalized_title == "todos somos tecnicos capitulo especial"
+    assert result.normalized_title == "todos somos demo capitulo especial"
 
 
 def test_match_program_title_starts_with_does_not_behave_like_contains():
     result = match_program_title(
-        "Debate tras LA PIZARRA DE QUINTANA",
-        ProgramTitleRule(op="starts_with", value="LA PIZARRA DE QUINTANA"),
+        "Debate tras LA PIZARRA DEMO",
+        ProgramTitleRule(op="starts_with", value="LA PIZARRA DEMO"),
     )
 
     assert result is None
@@ -61,20 +61,20 @@ def test_match_program_title_starts_with_does_not_behave_like_contains():
 @pytest.mark.parametrize(
     ("title", "rule"),
     [
-        ("LA PIZARRA DE QUINTANA: mercado europeo", ProgramTitleRule("starts_with", "LA PIZARRA DE QUINTANA")),
-        ("Debate táctico: LA PIZARRA DE QUINTANA", ProgramTitleRule("contains", "LA PIZARRA DE QUINTANA")),
-        ("EXITOSA DEPORTES en vivo", ProgramTitleRule("starts_with", "EXITOSA DEPORTES")),
-        ("MADRUGOL CON MR PEET - edición central", ProgramTitleRule("starts_with", "MADRUGOL CON MR PEET")),
-        ("Los Tenores comentan la fecha", ProgramTitleRule("contains", "TENORES")),
-        ("Todos somos técnicos analiza la roja", ProgramTitleRule("contains", "TODOS SOMOS TECNICOS")),
-        ("Círculo Central debate el torneo", ProgramTitleRule("contains", "CIRCULO CENTRAL")),
-        ("#CardinalDeportivo por ABC", ProgramTitleRule("starts_with", "#CARDINALDEPORTIVO")),
-        ("Última hora Cardinal Deportivo", ProgramTitleRule("contains", "CARDINAL DEPORTIVO")),
-        ("#LaGranJugada en vivo", ProgramTitleRule("starts_with", "#LAGRANJUGADA")),
-        ("La mesa protagonista del fútbol mexicano", ProgramTitleRule("contains", "LA MESA PROTAGONISTA")),
-        ("La Última Palabra debate la liguilla", ProgramTitleRule("contains", "LA ULTIMA PALABRA")),
-        ("Fútbol Picante EN VIVO", ProgramTitleRule("contains", "FUTBOL PICANTE")),
-        ("Julio Ríos analiza la fecha", ProgramTitleRule("contains", "JULIO RIOS")),
+        ("LA PIZARRA DEMO: mercado europeo", ProgramTitleRule("starts_with", "LA PIZARRA DEMO")),
+        ("Debate táctico: LA PIZARRA DEMO", ProgramTitleRule("contains", "LA PIZARRA DEMO")),
+        ("DEMO DEPORTES en vivo", ProgramTitleRule("starts_with", "DEMO DEPORTES")),
+        ("MADRUGOL CON MR DEMO - edición central", ProgramTitleRule("starts_with", "MADRUGOL CON MR DEMO")),
+        ("Demo Radio comenta la fecha", ProgramTitleRule("contains", "DEMO RADIO")),
+        ("Todos somos demo analiza la roja", ProgramTitleRule("contains", "TODOS SOMOS DEMO")),
+        ("Círculo Demo debate el torneo", ProgramTitleRule("contains", "CIRCULO DEMO")),
+        ("#DemoDeportivo por ABC", ProgramTitleRule("starts_with", "#DEMODEPORTIVO")),
+        ("Última hora Demo Deportivo", ProgramTitleRule("contains", "DEMO DEPORTIVO")),
+        ("#DemoJugada en vivo", ProgramTitleRule("starts_with", "#DEMOJUGADA")),
+        ("La mesa demo del fútbol terramarense", ProgramTitleRule("contains", "LA MESA DEMO")),
+        ("La Última Demo debate la liguilla", ProgramTitleRule("contains", "LA ULTIMA DEMO")),
+        ("Fútbol Demo EN VIVO", ProgramTitleRule("contains", "FUTBOL DEMO")),
+        ("Julio Demo analiza la fecha", ProgramTitleRule("contains", "JULIO DEMO")),
     ],
 )
 def test_match_program_title_covers_exact_important_program_rule_matrix(title, rule):
@@ -86,8 +86,8 @@ def test_match_program_title_covers_exact_important_program_rule_matrix(title, r
 
 
 def test_match_program_title_does_not_overmatch_non_program_titles():
-    assert match_program_title("Mr Peet comenta el mercado", ProgramTitleRule("starts_with", "MADRUGOL CON MR PEET")) is None
-    assert match_program_title("Análisis de la jornada", ProgramTitleRule("contains", "FUTBOL PICANTE")) is None
+    assert match_program_title("Mr Demo comenta el mercado", ProgramTitleRule("starts_with", "MADRUGOL CON MR DEMO")) is None
+    assert match_program_title("Análisis de la jornada", ProgramTitleRule("contains", "FUTBOL DEMO")) is None
 
 
 def test_title_matcher_reports_country_and_player_alias_reasons(tmp_path):
@@ -97,25 +97,25 @@ def test_title_matcher_reports_country_and_player_alias_reasons(tmp_path):
 countries:
   - code: ar
     terms:
-      - Argentina
+      - Valdoria
       - La Scaloneta
 players:
-  - name: Lionel Messi
+  - name: Leonel Márquez
     country: ar
     aliases:
-      - Leo Messi
-      - LM10
+      - Leonel Márquez
+      - l10
 """.strip(),
         encoding="utf-8",
     )
 
     matcher = TitleMatcher(load_title_catalog(catalog_path))
-    result = matcher.match("Post match: LM10 leads La Scaloneta again")
+    result = matcher.match("Post match: l10 leads La Scaloneta again")
 
     assert result.matched is True
     assert result.reasons == [
-        {"type": "country", "country": "argentina", "term": "la scaloneta"},
-        {"type": "player", "country": "argentina", "player": "Lionel Messi", "term": "lm10"},
+        {"type": "country", "country": "valdoria", "term": "la scaloneta"},
+        {"type": "player", "country": "valdoria", "player": "Leonel Márquez", "term": "l10"},
     ]
 
 
@@ -135,51 +135,51 @@ def test_title_matcher_normalizes_target_slugs_and_reports_fixed_target_order(tm
 countries:
   - code: mx
     terms:
-      - México
+      - Terramar
   - code: ec
     terms:
-      - Ecuador
-  - code: colombia
+      - Aurenia
+  - code: montelia
     terms:
-      - Colombia
+      - Montelia
 players:
-  - name: Willian Pacho
+  - name: Iván Cordero
     country: ec
     aliases:
-      - Pacho
+      - Cordero
 """.strip(),
         encoding="utf-8",
     )
 
     matcher = TitleMatcher(load_title_catalog(catalog_path))
-    result = matcher.match("Pacho entre Ecuador, Colombia y Mexico")
+    result = matcher.match("Cordero entre Aurenia, Montelia y Terramar")
 
-    assert TARGET_COUNTRY_ORDER == ("ecuador", "colombia", "argentina", "uruguay", "paraguay", "mexico")
-    assert [reason["country"] for reason in result.reasons] == ["ecuador", "ecuador", "colombia", "mexico"]
+    assert TARGET_COUNTRY_ORDER == ("aurenia", "montelia", "valdoria", "rivamar", "bosquemar", "terramar")
+    assert [reason["country"] for reason in result.reasons] == ["aurenia", "aurenia", "montelia", "terramar"]
 
 
 def test_title_matcher_lists_non_source_targets_once_in_priority_order():
     matcher = TitleMatcher(
         TitleCatalog(
-            countries={"colombia": ["colombia"], "ecuador": ["ecuador"], "mexico": ["mexico"]},
+            countries={"montelia": ["montelia"], "aurenia": ["aurenia"], "terramar": ["terramar"]},
             players=[],
         )
     )
 
-    result = matcher.match("Colombia analiza a Ecuador y México")
+    result = matcher.match("Montelia analiza a Aurenia y Terramar")
 
-    assert result.target_countries(source_country="colombia") == ["ecuador", "mexico"]
+    assert result.target_countries(source_country="montelia") == ["aurenia", "terramar"]
 
 
 def test_repository_catalog_loads_and_matches_country_and_player_excluding_source_country():
     catalog_path = Path(__file__).parents[1] / "config" / "catalog.yaml"
 
     matcher = TitleMatcher(load_title_catalog(catalog_path))
-    result = matcher.match("Pacho y Ecuador analizan a Luis Diaz con Colombia")
+    result = matcher.match("Cordero y Aurenia analizan a Luis Cárdenas con Montelia")
 
     assert result.matched is True
     assert {reason["type"] for reason in result.reasons} == {"country", "player"}
-    assert result.target_countries(source_country="ecuador") == ["colombia"]
+    assert result.target_countries(source_country="aurenia") == ["montelia"]
 
 
 def test_repository_catalog_has_extensive_player_coverage_by_country():
@@ -188,7 +188,7 @@ def test_repository_catalog_has_extensive_player_coverage_by_country():
     catalog = load_title_catalog(catalog_path)
     counts = Counter(player.country for player in catalog.players)
 
-    assert set(counts) == {"ecuador", "colombia", "argentina", "uruguay", "paraguay", "mexico"}
+    assert set(counts) == {"aurenia", "montelia", "valdoria", "rivamar", "bosquemar", "terramar"}
     assert all(count >= 12 for count in counts.values())
     assert sum(counts.values()) >= 72
 
@@ -196,50 +196,50 @@ def test_repository_catalog_has_extensive_player_coverage_by_country():
 @pytest.mark.parametrize(
     ("title", "expected_country", "expected_player"),
     [
-        ("Hincapie vuelve a ser clave en defensa", "ecuador", "Piero Hincapié"),
-        ("Pacho gana protagonismo en PSG", "ecuador", "Willian Pacho"),
-        ("Caicedo domina el medio ante Arsenal", "ecuador", "Moisés Caicedo"),
-        ("Enner Valencia sigue vigente en la Tri", "ecuador", "Enner Valencia"),
-        ("Kendry Paez vuelve a ser noticia en Chelsea", "ecuador", "Kendry Páez"),
-        ("Pervis Estupinan apunta a la Premier", "ecuador", "Pervis Estupiñán"),
-        ("Jeremy Sarmiento cambia el partido", "ecuador", "Jeremy Sarmiento"),
-        ("Kevin Rodriguez entra en la convocatoria", "ecuador", "Kevin Rodríguez"),
-        ("Luis Diaz marca doblete en Champions", "colombia", "Luis Díaz"),
-        ("James lidera la remontada", "colombia", "James Rodríguez"),
-        ("Jhon Duran interesa a media Europa", "colombia", "Jhon Durán"),
-        ("Yaser Asprilla acelera su crecimiento", "colombia", "Yaser Asprilla"),
-        ("Daniel Munoz suma otra asistencia", "colombia", "Daniel Muñoz"),
-        ("Richard Rios gana protagonismo", "colombia", "Richard Ríos"),
-        ("Borre vuelve al gol en Brasil", "colombia", "Rafael Santos Borré"),
-        ("Messi decide otro partido para Inter Miami", "argentina", "Lionel Messi"),
-        ("Julian Alvarez festeja en Champions", "argentina", "Julián Álvarez"),
-        ("Lautaro Martinez llega encendido", "argentina", "Lautaro Martínez"),
-        ("Di Maria anuncia una nueva función", "argentina", "Ángel Di María"),
-        ("Dibu Martinez vuelve a ser decisivo", "argentina", "Emiliano Martínez"),
-        ("Mac Allister ordena el mediocampo", "argentina", "Alexis Mac Allister"),
-        ("Garnacho suma minutos en Manchester", "argentina", "Alejandro Garnacho"),
-        ("Valverde anota para Real Madrid", "uruguay", "Federico Valverde"),
-        ("Darwin Nunez rescata a Uruguay", "uruguay", "Darwin Núñez"),
-        ("Ugarte firma una gran actuación", "uruguay", "Manuel Ugarte"),
-        ("Bentancur recupera ritmo competitivo", "uruguay", "Rodrigo Bentancur"),
-        ("Ronald Araujo se prepara para volver", "uruguay", "Ronald Araujo"),
-        ("De Arrascaeta lidera a Flamengo", "uruguay", "Giorgian De Arrascaeta"),
-        ("Pellistri busca continuidad", "uruguay", "Facundo Pellistri"),
-        ("Almiron vuelve al gol", "paraguay", "Miguel Almirón"),
-        ("Enciso brilla en Brighton", "paraguay", "Julio Enciso"),
-        ("Sanabria aparece en el área", "paraguay", "Antonio Sanabria"),
-        ("Gustavo Gomez comanda la defensa", "paraguay", "Gustavo Gómez"),
-        ("Ramon Sosa genera expectativa", "paraguay", "Ramón Sosa"),
-        ("Diego Gomez progresa en Inter Miami", "paraguay", "Diego Gómez"),
-        ("Matias Rojas vuelve a la selección", "paraguay", "Matías Rojas"),
-        ("Gimenez marca para Feyenoord", "mexico", "Santiago Giménez"),
-        ("Ochoa salva a México", "mexico", "Guillermo Ochoa"),
-        ("Jimenez convierte de penal", "mexico", "Raúl Jiménez"),
-        ("Edson Alvarez manda en el mediocampo", "mexico", "Edson Álvarez"),
-        ("Chucky Lozano define el clásico", "mexico", "Hirving Lozano"),
-        ("Orbelin Pineda vuelve a ser titular", "mexico", "Orbelín Pineda"),
-        ("Cesar Montes sostiene la zaga", "mexico", "César Montes"),
-        ("Henry Martin responde con goles", "mexico", "Henry Martín"),
+        ("Salvatierra vuelve a ser clave en defensa", "aurenia", "Mateo Salvatierra"),
+        ("Cordero gana protagonismo en Capital FC", "aurenia", "Iván Cordero"),
+        ("Andrade domina el medio ante Bahía Norte FC", "aurenia", "Nicolás Andrade"),
+        ("Bruno Valdivia sigue vigente en la Aurenia", "aurenia", "Bruno Valdivia"),
+        ("Ángel Mera vuelve a ser noticia en Costa Azul FC", "aurenia", "Ángel Mera"),
+        ("Lucas Benítez apunta a la Liga Demo", "aurenia", "Lucas Benítez"),
+        ("Marco Villalba cambia el partido", "aurenia", "Marco Villalba"),
+        ("Kevin Salas entra en la convocatoria", "aurenia", "Kevin Salas"),
+        ("Luis Cárdenas marca doblete en Copa Estelar", "montelia", "Luis Cárdenas"),
+        ("Jaime Rueda lidera la remontada", "montelia", "Jaime Rueda"),
+        ("Jhon Duarte interesa a media Europa", "montelia", "Jhon Duarte"),
+        ("Yaser Arrieta acelera su crecimiento", "montelia", "Yaser Arrieta"),
+        ("Daniel Cifuentes suma otra asistencia", "montelia", "Daniel Cifuentes"),
+        ("Ricardo Riofrío gana protagonismo", "montelia", "Ricardo Riofrío"),
+        ("Rafael Santos Borja vuelve al gol en la Liga Demo", "montelia", "Rafael Santos Borja"),
+        ("Márquez decide otro partido para Club Mar Abierto", "valdoria", "Leonel Márquez"),
+        ("Julián Alvarado festeja en Copa Estelar", "valdoria", "Julián Alvarado"),
+        ("Lautaro Molina llega encendido", "valdoria", "Lautaro Molina"),
+        ("Ángel Miranda anuncia una nueva función", "valdoria", "Ángel Miranda"),
+        ("Emi Ferreyra vuelve a ser decisivo", "valdoria", "Emiliano Ferreyra"),
+        ("Montiel ordena el mediocampo", "valdoria", "Alexis Montiel"),
+        ("Alejandro Gándara suma minutos en Club Bahía Norte", "valdoria", "Alejandro Gándara"),
+        ("Federico Valdés anota para Valle Norte FC", "rivamar", "Federico Valdés"),
+        ("Darío Nieves rescata a Rivamar", "rivamar", "Darío Nieves"),
+        ("Manuel Ugaz firma una gran actuación", "rivamar", "Manuel Ugaz"),
+        ("Rodrigo Beltrán recupera ritmo competitivo", "rivamar", "Rodrigo Beltrán"),
+        ("Ronald Arce se prepara para volver", "rivamar", "Ronald Arce"),
+        ("Giorgian De Luca lidera a Río Claro FC", "rivamar", "Giorgian De Luca"),
+        ("Facundo Peláez busca continuidad", "rivamar", "Facundo Peláez"),
+        ("Miguel Almada vuelve al gol", "bosquemar", "Miguel Almada"),
+        ("Julio Enríquez brilla en Mar Abierto FC", "bosquemar", "Julio Enríquez"),
+        ("Antonio Sandoval aparece en el área", "bosquemar", "Antonio Sandoval"),
+        ("Gustavo Gaitán comanda la defensa", "bosquemar", "Gustavo Gaitán"),
+        ("Ramón Solano genera expectativa", "bosquemar", "Ramón Solano"),
+        ("Diego Garrido progresa en Club Mar Abierto", "bosquemar", "Diego Garrido"),
+        ("Matías Rivarola vuelve a la selección", "bosquemar", "Matías Rivarola"),
+        ("Santiago Gil marca para Puerto Norte FC", "terramar", "Santiago Gil"),
+        ("Guillermo Olvera salva a Terramar", "terramar", "Guillermo Olvera"),
+        ("Raúl Jaramillo convierte de penal", "terramar", "Raúl Jaramillo"),
+        ("Edson Ávila manda en el mediocampo", "terramar", "Edson Ávila"),
+        ("Hirving Loza define el clásico", "terramar", "Hirving Loza"),
+        ("Orbelín Palacios vuelve a ser titular", "terramar", "Orbelín Palacios"),
+        ("César Montero sostiene la zaga", "terramar", "César Montero"),
+        ("Henry Martos responde con goles", "terramar", "Henry Martos"),
     ],
 )
 def test_repository_catalog_matches_representative_important_players(title, expected_country, expected_player):
@@ -261,9 +261,9 @@ def test_repository_catalog_excludes_source_country_even_with_multiple_source_pl
     catalog_path = Path(__file__).parents[1] / "config" / "catalog.yaml"
 
     matcher = TitleMatcher(load_title_catalog(catalog_path))
-    result = matcher.match("Hincapie y Pacho ante Colombia con Luis Diaz")
+    result = matcher.match("Salvatierra y Cordero ante Montelia con Luis Cárdenas")
 
-    assert result.target_countries(source_country="ecuador") == ["colombia"]
+    assert result.target_countries(source_country="aurenia") == ["montelia"]
 
 
 def test_repository_catalog_keeps_source_country_excluded_with_broad_catalog_hits():
@@ -271,7 +271,7 @@ def test_repository_catalog_keeps_source_country_excluded_with_broad_catalog_hit
 
     matcher = TitleMatcher(load_title_catalog(catalog_path))
     result = matcher.match(
-        "Messi, Lautaro y Dibu Martinez reaccionan a Valverde, Darwin Nunez y Uruguay"
+        "Márquez, Lautaro y Emi Ferreyra reaccionan a Federico Valdés, Darío Nieves y Rivamar"
     )
 
-    assert result.target_countries(source_country="argentina") == ["uruguay"]
+    assert result.target_countries(source_country="valdoria") == ["rivamar"]

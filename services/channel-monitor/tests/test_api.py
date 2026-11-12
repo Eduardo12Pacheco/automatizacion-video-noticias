@@ -28,23 +28,23 @@ def test_monitor_cards_exposes_safe_channel_priority_rank(tmp_path):
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="espana", label="Mundo Maldini", source_url=None, youtube_channel_id="UCMundo", algorithm_priority_rank=11)
+        ChannelRecord(country="espana", label="Mundo Demo", source_url=None, youtube_channel_id="UCMundo", algorithm_priority_rank=11)
     )
     store.upsert_video(
         VideoRecord(
             video_id="priority-video",
             channel_id=channel.id,
-            title="Ecuador analiza el partido",
+            title="Aurenia analiza el partido",
             url="https://youtu.be/priority-video",
             published_at="2026-05-22T12:00:00Z",
             lifecycle="transcrito",
             matched=True,
         )
     )
-    store.upsert_target_match(TargetMatchRecord(video_id="priority-video", target_country="ecuador", status="transcrito"))
+    store.upsert_target_match(TargetMatchRecord(video_id="priority-video", target_country="aurenia", status="transcrito"))
     client = TestClient(create_app(settings=settings, store=store, channel_resolver=StartupFakeChannelResolver()))
 
-    response = client.get("/api/monitor/cards?target_country=ecuador", headers={"x-api-key": "monitor-secret"})
+    response = client.get("/api/monitor/cards?target_country=aurenia", headers={"x-api-key": "monitor-secret"})
 
     assert response.status_code == 200
     assert response.json()["items"][0]["channel_priority_rank"] == 11
@@ -123,7 +123,7 @@ def test_lifespan_syncs_configured_channels_before_runtime_start_with_injected_r
         """
 countries:
   - code: ar
-    name: Argentina
+    name: Valdoria
     channels:
       - url: https://www.youtube.com/@club/videos
         label: Club
@@ -151,7 +151,7 @@ countries:
 
 def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_youtube_providers(tmp_path, monkeypatch):
     catalog_path = tmp_path / "catalog.yaml"
-    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    catalog_path.write_text("countries:\n  - code: aurenia\n    terms:\n      - Aurenia\nplayers: []\n", encoding="utf-8")
     settings = Settings(
         api_key="monitor-secret",
         db_path=tmp_path / "monitor.sqlite3",
@@ -188,7 +188,7 @@ def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_
 
 def test_protected_discovery_builder_fails_closed_when_boundary_config_missing_with_local_api_key(tmp_path, monkeypatch):
     catalog_path = tmp_path / "catalog.yaml"
-    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    catalog_path.write_text("countries:\n  - code: aurenia\n    terms:\n      - Aurenia\nplayers: []\n", encoding="utf-8")
     settings = Settings(
         db_path=tmp_path / "monitor.sqlite3",
         catalog_config_path=catalog_path,
@@ -240,7 +240,7 @@ def test_protected_catchup_builder_fails_closed_when_boundary_config_missing_wit
 
 def test_local_dev_builders_keep_explicit_local_provider_path(tmp_path):
     catalog_path = tmp_path / "catalog.yaml"
-    catalog_path.write_text("countries:\n  - code: ecuador\n    terms:\n      - Ecuador\nplayers: []\n", encoding="utf-8")
+    catalog_path.write_text("countries:\n  - code: aurenia\n    terms:\n      - Aurenia\nplayers: []\n", encoding="utf-8")
     settings = Settings(
         db_path=tmp_path / "monitor.sqlite3",
         catalog_config_path=catalog_path,
@@ -267,8 +267,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
 """.strip(),
         encoding="utf-8",
     )
@@ -305,9 +305,9 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
-      - url: https://www.youtube.com/@lequipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
+      - url: https://www.youtube.com/@demo-sports-fr
         label: Duplicate
 """.strip(),
         encoding="utf-8",
@@ -334,8 +334,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
 """.strip(),
         encoding="utf-8",
     )
@@ -363,8 +363,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
 """.strip(),
         encoding="utf-8",
     )
@@ -459,7 +459,7 @@ def test_preflight_reports_catchup_degraded_for_enabled_channel_missing_upload_p
     store = MonitorStore(settings.db_path)
     store.migrate()
     store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     client = TestClient(create_app(settings=settings, store=store))
 
@@ -479,8 +479,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
 """.strip(),
         encoding="utf-8",
     )
@@ -518,7 +518,7 @@ def test_cleanup_dry_run_endpoint_reports_expired_detected_videos_without_mutati
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
@@ -530,7 +530,7 @@ def test_cleanup_dry_run_endpoint_reports_expired_detected_videos_without_mutati
             detected_at="2026-05-21T09:00:00Z",
         )
     )
-    store.upsert_target_match(TargetMatchRecord(video_id="expired-api", target_country="ecuador", status="transcribiendo", radar_job_id="job-api"))
+    store.upsert_target_match(TargetMatchRecord(video_id="expired-api", target_country="aurenia", status="transcribiendo", radar_job_id="job-api"))
     client = TestClient(create_app(settings=settings, store=store))
 
     unauthorized = client.get("/api/monitor/cleanup/dry-run")
@@ -622,14 +622,14 @@ def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(t
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="ecuador", label="El Canal", source_url=None, youtube_channel_id="UCEcuador")
+        ChannelRecord(country="aurenia", label="El Canal", source_url=None, youtube_channel_id="UCEcuador")
     )
     store.upsert_video(
         VideoRecord(
-            video_id="ecuador-video",
+            video_id="aurenia-video",
             channel_id=channel.id,
-            title="Ecuador gana el partido",
-            url="https://youtu.be/ecuador-video",
+            title="Aurenia gana el partido",
+            url="https://youtu.be/aurenia-video",
             published_at="2026-05-21T15:30:00Z",
             lifecycle="enqueue_pending",
             matched=True,
@@ -637,19 +637,19 @@ def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(t
     )
     store.upsert_target_match(
         TargetMatchRecord(
-            video_id="ecuador-video",
-            target_country="ecuador",
+            video_id="aurenia-video",
+            target_country="aurenia",
             status="transcribiendo",
             radar_job_id="radar-job-ec",
         )
     )
-    store.record_enqueue_attempt(video_id="ecuador-video", status="submitted", radar_job_id="radar-job-ec")
+    store.record_enqueue_attempt(video_id="aurenia-video", status="submitted", radar_job_id="radar-job-ec")
     client = TestClient(create_app(settings=settings, store=store))
 
     unauthorized = client.get("/api/monitor/cards")
-    before_attempts = store.list_enqueue_attempts("ecuador-video")
+    before_attempts = store.list_enqueue_attempts("aurenia-video")
     authorized = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"})
-    after_attempts = store.list_enqueue_attempts("ecuador-video")
+    after_attempts = store.list_enqueue_attempts("aurenia-video")
 
     assert unauthorized.status_code == 401
     assert authorized.status_code == 200
@@ -658,14 +658,14 @@ def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(t
         "degraded": False,
         "items": [
             {
-                "id": "ecuador-video:ecuador",
-                "video_id": "ecuador-video",
-                "title": "Ecuador gana el partido",
-                "url": "https://youtu.be/ecuador-video",
-                "target_country": "ecuador",
-                "target_country_label": "Ecuador",
-                "source_country": "ecuador",
-                "source_country_label": "Ecuador",
+                "id": "aurenia-video:aurenia",
+                "video_id": "aurenia-video",
+                "title": "Aurenia gana el partido",
+                "url": "https://youtu.be/aurenia-video",
+                "target_country": "aurenia",
+                "target_country_label": "Aurenia",
+                "source_country": "aurenia",
+                "source_country_label": "Aurenia",
                 "channel_label": "El Canal",
                 "published_at": "2026-05-21T15:30:00Z",
                 "status": "transcribiendo",
@@ -708,7 +708,7 @@ def test_radar_baseline_reset_endpoint_requires_auth_confirmation_and_backup(tmp
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
     store = MonitorStore(settings.db_path)
     store.migrate()
-    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", uploads_playlist_id="UUCaracol"))
+    channel = store.upsert_channel(ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", uploads_playlist_id="UUCaracol"))
     store.upsert_video(VideoRecord(video_id="legacy", channel_id=channel.id, title="Legacy", lifecycle="ignored_seen"))
     client = TestClient(create_app(settings=settings, store=store))
 
@@ -729,7 +729,7 @@ def test_radar_baseline_reset_apply_clears_state_and_preserves_channels(tmp_path
     settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
     store = MonitorStore(settings.db_path)
     store.migrate()
-    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", uploads_playlist_id="UUCaracol"))
+    channel = store.upsert_channel(ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", uploads_playlist_id="UUCaracol"))
     store.upsert_video(VideoRecord(video_id="legacy", channel_id=channel.id, title="Legacy", lifecycle="ignored_seen"))
     client = TestClient(create_app(settings=settings, store=store))
 
@@ -746,21 +746,21 @@ def test_monitor_cards_endpoint_serializes_missing_radar_linkage_as_pending_ment
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="argentina", label="TyC", source_url=None, youtube_channel_id="UCTyC")
+        ChannelRecord(country="valdoria", label="Demo TV", source_url=None, youtube_channel_id="UCDemo TV")
     )
     store.upsert_video(
         VideoRecord(
-            video_id="argentina-unlinked",
+            video_id="valdoria-unlinked",
             channel_id=channel.id,
             title="Video pendiente de Radar",
-            url="https://youtu.be/argentina-unlinked",
+            url="https://youtu.be/valdoria-unlinked",
             published_at="2026-05-21T17:00:00Z",
             lifecycle="discovered",
             matched=True,
         )
     )
     store.upsert_target_match(
-        TargetMatchRecord(video_id="argentina-unlinked", target_country="argentina", status="aprobado")
+        TargetMatchRecord(video_id="valdoria-unlinked", target_country="valdoria", status="aprobado")
     )
     client = TestClient(create_app(settings=settings, store=store))
 
@@ -769,15 +769,15 @@ def test_monitor_cards_endpoint_serializes_missing_radar_linkage_as_pending_ment
     assert response.status_code == 200
     assert response.json()["items"] == [
         {
-            "id": "argentina-unlinked:argentina",
-            "video_id": "argentina-unlinked",
+            "id": "valdoria-unlinked:valdoria",
+            "video_id": "valdoria-unlinked",
             "title": "Video pendiente de Radar",
-            "url": "https://youtu.be/argentina-unlinked",
-            "target_country": "argentina",
-            "target_country_label": "Argentina",
-            "source_country": "argentina",
-            "source_country_label": "Argentina",
-            "channel_label": "TyC",
+            "url": "https://youtu.be/valdoria-unlinked",
+            "target_country": "valdoria",
+            "target_country_label": "Valdoria",
+            "source_country": "valdoria",
+            "source_country_label": "Valdoria",
+            "channel_label": "Demo TV",
             "published_at": "2026-05-21T17:00:00Z",
             "status": "aprobado",
             "approval_source": "title_classifier",
@@ -796,7 +796,7 @@ def test_monitor_cards_endpoint_displays_geo_blocked_target_status(tmp_path):
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
@@ -812,7 +812,7 @@ def test_monitor_cards_endpoint_displays_geo_blocked_target_status(tmp_path):
     store.upsert_target_match(
         TargetMatchRecord(
             video_id="blocked-video",
-            target_country="ecuador",
+            target_country="aurenia",
             status="geo_blocked",
             radar_job_id="radar-blocked",
             last_error="yt_dlp_geo_blocked",
@@ -834,16 +834,16 @@ def test_monitor_cards_endpoint_maps_known_failures_to_spanish_display_statuses(
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     cases = [
-        ("bot-video", "ecuador", "yt_dlp_bot_check", "BLOQUEO YOUTUBE"),
-        ("live-video", "mexico", "yt_dlp_live_pending", "LIVE PENDIENTE"),
-        ("copy-video", "argentina", "yt_dlp_copyright_blocked", "COPYRIGHT"),
-        ("timeout-video", "uruguay", "yt_dlp_timeout", "TIMEOUT"),
-        ("private-video", "paraguay", "yt_dlp_private_or_removed", "NO DISPONIBLE"),
-        ("technical-video", "colombia", "ffmpeg_failed", "FALLO TÉCNICO"),
-        ("unknown-video", "ecuador", "provider_new_failure", "ERROR"),
+        ("bot-video", "aurenia", "yt_dlp_bot_check", "BLOQUEO YOUTUBE"),
+        ("live-video", "terramar", "yt_dlp_live_pending", "LIVE PENDIENTE"),
+        ("copy-video", "valdoria", "yt_dlp_copyright_blocked", "COPYRIGHT"),
+        ("timeout-video", "rivamar", "yt_dlp_timeout", "TIMEOUT"),
+        ("private-video", "bosquemar", "yt_dlp_private_or_removed", "NO DISPONIBLE"),
+        ("technical-video", "montelia", "ffmpeg_failed", "FALLO TÉCNICO"),
+        ("unknown-video", "aurenia", "provider_new_failure", "ERROR"),
     ]
     for video_id, target_country, last_error, _label in cases:
         store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=video_id, lifecycle="enqueued", matched=True))
@@ -867,13 +867,13 @@ def test_monitor_cards_endpoint_filters_target_rows_and_exposes_canonical_counts
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
             video_id="multi",
             channel_id=channel.id,
-            title="Ecuador y México",
+            title="Aurenia y Terramar",
             url="https://youtu.be/multi",
             published_at="2026-05-21T18:00:00Z",
             lifecycle="enqueued",
@@ -883,35 +883,35 @@ def test_monitor_cards_endpoint_filters_target_rows_and_exposes_canonical_counts
     store.upsert_target_match(
         TargetMatchRecord(
             video_id="multi",
-            target_country="mexico",
+            target_country="terramar",
             status="transcrito",
             radar_job_id="radar-1",
-            mention_counts_json='[{"label":"México","count":2},{"label":"Cero","count":0}]',
+            mention_counts_json='[{"label":"Terramar","count":2},{"label":"Cero","count":0}]',
         )
     )
     store.upsert_target_match(
         TargetMatchRecord(
             video_id="multi",
-            target_country="ecuador",
+            target_country="aurenia",
             status="aprobado",
             radar_job_id="radar-1",
         )
     )
     client = TestClient(create_app(settings=settings, store=store))
 
-    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "mexico"})
+    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "terramar"})
 
     assert response.status_code == 200
     assert response.json()["items"] == [
         {
-            "id": "multi:mexico",
+            "id": "multi:terramar",
             "video_id": "multi",
-            "title": "Ecuador y México",
+            "title": "Aurenia y Terramar",
             "url": "https://youtu.be/multi",
-            "target_country": "mexico",
-            "target_country_label": "México",
-            "source_country": "colombia",
-            "source_country_label": "Colombia",
+            "target_country": "terramar",
+            "target_country_label": "Terramar",
+            "source_country": "montelia",
+            "source_country_label": "Montelia",
             "channel_label": "Caracol",
             "published_at": "2026-05-21T18:00:00Z",
             "status": "transcrito",
@@ -920,7 +920,7 @@ def test_monitor_cards_endpoint_filters_target_rows_and_exposes_canonical_counts
             "radar_job_id": "radar-1",
             "last_error": None,
             "mention_status": "ready",
-            "mention_counts": [{"label": "México", "count": 2}],
+            "mention_counts": [{"label": "Terramar", "count": 2}],
             "classification_version": "title-country-v1",
         }
     ]
@@ -931,13 +931,13 @@ def test_card_dismissal_endpoint_requires_auth_validates_payload_and_filters_car
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", important=True)
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol", important=True)
     )
     store.upsert_video(
         VideoRecord(
             video_id="multi-dismiss",
             channel_id=channel.id,
-            title="Ecuador y Colombia",
+            title="Aurenia y Montelia",
             url="https://youtu.be/multi-dismiss",
             published_at="2026-05-21T18:00:00Z",
             lifecycle="enqueued",
@@ -945,32 +945,32 @@ def test_card_dismissal_endpoint_requires_auth_validates_payload_and_filters_car
             classification_status="important_channel",
         )
     )
-    store.upsert_target_match(TargetMatchRecord(video_id="multi-dismiss", target_country="ecuador", status="aprobado"))
-    store.upsert_target_match(TargetMatchRecord(video_id="multi-dismiss", target_country="colombia", status="transcrito"))
+    store.upsert_target_match(TargetMatchRecord(video_id="multi-dismiss", target_country="aurenia", status="aprobado"))
+    store.upsert_target_match(TargetMatchRecord(video_id="multi-dismiss", target_country="montelia", status="transcrito"))
     client = TestClient(create_app(settings=settings, store=store))
 
     unauthorized = client.post(
         "/api/monitor/card-dismissals",
-        json={"surface": "monitor-card", "target_context": "ecuador", "video_id": "multi-dismiss"},
+        json={"surface": "monitor-card", "target_context": "aurenia", "video_id": "multi-dismiss"},
     )
     invalid = client.post(
         "/api/monitor/card-dismissals",
         headers={"x-api-key": "monitor-secret"},
-        json={"surface": "monitor-card", "target_context": "ecuador"},
+        json={"surface": "monitor-card", "target_context": "aurenia"},
     )
     dismissed = client.post(
         "/api/monitor/card-dismissals",
         headers={"x-api-key": "monitor-secret"},
         json={
             "surface": "monitor-card",
-            "target_context": "Ecuador",
+            "target_context": "Aurenia",
             "video_id": "multi-dismiss",
             "reason": "operator-dismissed",
             "dismissed_by": "control-panel",
         },
     )
-    ecuador = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "ecuador"})
-    colombia = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "colombia"})
+    aurenia = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "aurenia"})
+    montelia = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "montelia"})
     important = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "important"})
     summary = client.get("/api/monitor/summary", headers={"x-api-key": "monitor-secret"})
 
@@ -978,13 +978,13 @@ def test_card_dismissal_endpoint_requires_auth_validates_payload_and_filters_car
     assert invalid.status_code == 400
     assert invalid.json()["detail"]["code"] == "missing_dismissal_subject"
     assert dismissed.status_code == 200
-    assert dismissed.json() == {"status": "dismissed", "context_key": "monitor-card:ecuador:multi-dismiss"}
-    assert ecuador.json()["items"] == []
-    assert ecuador.json()["pagination"]["total"] == 0
-    assert [item["video_id"] for item in colombia.json()["items"]] == ["multi-dismiss"]
+    assert dismissed.json() == {"status": "dismissed", "context_key": "monitor-card:aurenia:multi-dismiss"}
+    assert aurenia.json()["items"] == []
+    assert aurenia.json()["pagination"]["total"] == 0
+    assert [item["video_id"] for item in montelia.json()["items"]] == ["multi-dismiss"]
     assert [item["video_id"] for item in important.json()["items"]] == ["multi-dismiss"]
-    ecuador_counts = next(item for item in summary.json()["targets"] if item["country"] == "ecuador")
-    colombia_counts = next(item for item in summary.json()["targets"] if item["country"] == "colombia")
+    ecuador_counts = next(item for item in summary.json()["targets"] if item["country"] == "aurenia")
+    colombia_counts = next(item for item in summary.json()["targets"] if item["country"] == "montelia")
     assert ecuador_counts["aprobado"] == 0
     assert colombia_counts["transcrito"] == 1
 
@@ -994,13 +994,13 @@ def test_monitor_cards_endpoint_marks_transcribed_zero_mentions_as_ready(tmp_pat
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
             video_id="zero-mentions",
             channel_id=channel.id,
-            title="México sin menciones finales",
+            title="Terramar sin menciones finales",
             url="https://youtu.be/zero-mentions",
             published_at="2026-05-21T19:00:00Z",
             lifecycle="enqueued",
@@ -1010,7 +1010,7 @@ def test_monitor_cards_endpoint_marks_transcribed_zero_mentions_as_ready(tmp_pat
     store.upsert_target_match(
         TargetMatchRecord(
             video_id="zero-mentions",
-            target_country="mexico",
+            target_country="terramar",
             status="transcrito",
             radar_job_id="radar-zero",
             mention_counts_json="[]",
@@ -1018,7 +1018,7 @@ def test_monitor_cards_endpoint_marks_transcribed_zero_mentions_as_ready(tmp_pat
     )
     client = TestClient(create_app(settings=settings, store=store))
 
-    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "mexico"})
+    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "terramar"})
 
     assert response.status_code == 200
     item = response.json()["items"][0]
@@ -1032,17 +1032,17 @@ def test_monitor_cards_endpoint_returns_empty_for_unmatched_target_country_witho
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
-        VideoRecord(video_id="ecuador-target", channel_id=channel.id, title="Ecuador candidato", lifecycle="enqueued")
+        VideoRecord(video_id="aurenia-target", channel_id=channel.id, title="Aurenia candidato", lifecycle="enqueued")
     )
-    store.upsert_target_match(TargetMatchRecord(video_id="ecuador-target", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(TargetMatchRecord(video_id="aurenia-target", target_country="aurenia", status="aprobado"))
     store.upsert_video(
         VideoRecord(
             video_id="legacy-only",
             channel_id=channel.id,
-            title="Legacy Colombia card",
+            title="Legacy Montelia card",
             lifecycle="enqueue_pending",
             matched=True,
         )
@@ -1050,7 +1050,7 @@ def test_monitor_cards_endpoint_returns_empty_for_unmatched_target_country_witho
     store.record_enqueue_attempt(video_id="legacy-only", status="submitted", radar_job_id="legacy-job")
     client = TestClient(create_app(settings=settings, store=store))
 
-    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "mexico"})
+    response = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "terramar"})
 
     assert response.status_code == 200
     assert response.json()["items"] == []
@@ -1062,8 +1062,8 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
     store.migrate()
     important_channel = store.upsert_channel(
         ChannelRecord(
-            country="argentina",
-            label="NSports",
+            country="valdoria",
+            label="Demo Sports",
             source_url=None,
             youtube_channel_id="UCImportant",
             important=True,
@@ -1071,7 +1071,7 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
         )
     )
     normal_channel = store.upsert_channel(
-        ChannelRecord(country="mexico", label="Normal", source_url=None, youtube_channel_id="UCNormal")
+        ChannelRecord(country="terramar", label="Normal", source_url=None, youtube_channel_id="UCNormal")
     )
     store.upsert_video(
         VideoRecord(
@@ -1089,11 +1089,11 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
     store.upsert_video(
         VideoRecord(video_id="normal-api", channel_id=normal_channel.id, title="Normal", lifecycle="enqueued", matched=True)
     )
-    store.upsert_target_match(TargetMatchRecord(video_id="normal-api", target_country="mexico", status="transcrito"))
+    store.upsert_target_match(TargetMatchRecord(video_id="normal-api", target_country="terramar", status="transcrito"))
     client = TestClient(create_app(settings=settings, store=store))
 
     important = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "important"})
-    mexico = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "mexico"})
+    terramar = client.get("/api/monitor/cards", headers={"x-api-key": "monitor-secret"}, params={"target_country": "terramar"})
 
     assert important.status_code == 200
     assert important.json()["items"] == [
@@ -1104,9 +1104,9 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
             "url": "https://youtu.be/important-zero-api",
             "target_country": "important",
             "target_country_label": "IMPORTANTES",
-            "source_country": "argentina",
-            "source_country_label": "Argentina",
-            "channel_label": "NSports",
+            "source_country": "valdoria",
+            "source_country_label": "Valdoria",
+            "channel_label": "Demo Sports",
             "published_at": "2026-05-27T12:00:00Z",
             "status": "transcrito",
             "approval_source": "important_channel",
@@ -1121,7 +1121,7 @@ def test_monitor_cards_endpoint_derives_important_view_from_channel_membership_w
             "important_rule": None,
         }
     ]
-    assert [item["video_id"] for item in mexico.json()["items"]] == ["normal-api"]
+    assert [item["video_id"] for item in terramar.json()["items"]] == ["normal-api"]
     assert store.list_target_matches(video_id="important-zero-api") == []
 
 
@@ -1131,10 +1131,10 @@ def test_monitor_cards_endpoint_adds_important_audit_fields_without_removing_leg
     store.migrate()
     channel = store.upsert_channel(
         ChannelRecord(
-            country="mexico",
-            label="ESPN MX",
+            country="terramar",
+            label="Deportes Terramar",
             source_url=None,
-            youtube_channel_id="UCESPNMX",
+            youtube_channel_id="UCDemo SportsMX",
             important_mode="program_rules",
         )
     )
@@ -1142,7 +1142,7 @@ def test_monitor_cards_endpoint_adds_important_audit_fields_without_removing_leg
         VideoRecord(
             video_id="important-program-api",
             channel_id=channel.id,
-            title="Fútbol Picante EN VIVO",
+            title="Fútbol Demo EN VIVO",
             url="https://youtu.be/important-program-api",
             published_at="2026-05-27T13:00:00Z",
             lifecycle="enqueued",
@@ -1151,7 +1151,7 @@ def test_monitor_cards_endpoint_adds_important_audit_fields_without_removing_leg
             classification_reason="important_program_match",
             classification_version="important-v2",
             important_mode="program_rules",
-            important_rule_json='{"op":"contains","value":"FUTBOL PICANTE","normalized_value":"FUTBOL PICANTE"}',
+            important_rule_json='{"op":"contains","value":"FUTBOL DEMO","normalized_value":"FUTBOL DEMO"}',
             queue_priority_tier="important",
             queue_priority_rank=0,
         )
@@ -1185,9 +1185,9 @@ def test_monitor_cards_endpoint_adds_important_audit_fields_without_removing_leg
     }.issubset(item)
     assert item["important"] is True
     assert item["important_reason"] == "important_program_match"
-    assert item["important_rule"] == {"op": "contains", "value": "FUTBOL PICANTE", "normalized_value": "FUTBOL PICANTE"}
-    assert item["source_country"] == "mexico"
-    assert item["source_country_label"] == "México"
+    assert item["important_rule"] == {"op": "contains", "value": "FUTBOL DEMO", "normalized_value": "FUTBOL DEMO"}
+    assert item["source_country"] == "terramar"
+    assert item["source_country_label"] == "Terramar"
     assert item["target_country"] == "important"
     assert item["target_country_label"] == "IMPORTANTES"
     assert item["status"] == "submitted"
@@ -1200,8 +1200,8 @@ def test_monitor_cards_endpoint_keeps_geo_blocked_important_visible_without_coun
     store.migrate()
     channel = store.upsert_channel(
         ChannelRecord(
-            country="uruguay",
-            label="Fútbol Libre",
+            country="rivamar",
+            label="Fútbol Demo",
             source_url=None,
             youtube_channel_id="UCFutbolLibre",
             important_mode="full_channel",
@@ -1220,7 +1220,7 @@ def test_monitor_cards_endpoint_keeps_geo_blocked_important_visible_without_coun
             classification_reason="important_full_channel",
             classification_version="important-v2",
             important_mode="full_channel",
-            important_rule_json='{"type":"important_full_channel","label":"Fútbol Libre"}',
+            important_rule_json='{"type":"important_full_channel","label":"Fútbol Demo"}',
             queue_priority_tier="important",
             queue_priority_rank=0,
         )
@@ -1240,7 +1240,7 @@ def test_monitor_cards_endpoint_keeps_geo_blocked_important_visible_without_coun
     assert response.json()["items"][0]["important"] is True
     assert response.json()["items"][0]["display_status"] == "GEO-BLOQUEADO"
     assert response.json()["items"][0]["important_reason"] == "important_full_channel"
-    assert response.json()["items"][0]["important_rule"] == {"type": "important_full_channel", "label": "Fútbol Libre"}
+    assert response.json()["items"][0]["important_rule"] == {"type": "important_full_channel", "label": "Fútbol Demo"}
     assert store.list_target_matches(video_id="geo-important-api") == []
 
 
@@ -1249,7 +1249,7 @@ def test_monitor_cards_endpoint_excludes_expired_important_videos_by_detected_at
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="argentina", label="NSports", source_url=None, youtube_channel_id="UCImportant", important=True)
+        ChannelRecord(country="valdoria", label="Demo Sports", source_url=None, youtube_channel_id="UCImportant", important=True)
     )
     store.upsert_video(
         VideoRecord(
@@ -1276,16 +1276,16 @@ def test_monitor_cards_endpoint_excludes_basura_only_rejected_videos(tmp_path):
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
-        VideoRecord(video_id="basura-only", channel_id=channel.id, title="Solo Colombia", lifecycle="ignored_seen")
+        VideoRecord(video_id="basura-only", channel_id=channel.id, title="Solo Montelia", lifecycle="ignored_seen")
     )
     store.upsert_rejected_video(
         video_id="basura-only",
-        source_country="colombia",
+        source_country="montelia",
         reason="no_valid_target_match",
-        match_reason_json='[{"country":"colombia"}]',
+        match_reason_json='[{"country":"montelia"}]',
     )
     client = TestClient(create_app(settings=settings, store=store))
 
@@ -1303,16 +1303,16 @@ def test_monitor_summary_and_basura_endpoints_are_authenticated_read_only(tmp_pa
     store = MonitorStore(settings.db_path)
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="approved", channel_id=channel.id, title="Ecuador", lifecycle="enqueue_pending"))
-    store.upsert_target_match(TargetMatchRecord(video_id="approved", target_country="ecuador", status="aprobado"))
-    store.upsert_video(VideoRecord(video_id="trash", channel_id=channel.id, title="Solo Colombia", lifecycle="ignored_seen"))
+    store.upsert_video(VideoRecord(video_id="approved", channel_id=channel.id, title="Aurenia", lifecycle="enqueue_pending"))
+    store.upsert_target_match(TargetMatchRecord(video_id="approved", target_country="aurenia", status="aprobado"))
+    store.upsert_video(VideoRecord(video_id="trash", channel_id=channel.id, title="Solo Montelia", lifecycle="ignored_seen"))
     store.upsert_rejected_video(
         video_id="trash",
-        source_country="colombia",
+        source_country="montelia",
         reason="no_valid_target_match",
-        match_reason_json='[{"country":"colombia"}]',
+        match_reason_json='[{"country":"montelia"}]',
     )
     client = TestClient(create_app(settings=settings, store=store))
 
@@ -1324,22 +1324,22 @@ def test_monitor_summary_and_basura_endpoints_are_authenticated_read_only(tmp_pa
     assert summary.status_code == 200
     assert summary.json()["basura_count"] == 1
     assert [(item["country"], item["aprobado"]) for item in summary.json()["targets"]][:2] == [
-        ("ecuador", 1),
-        ("colombia", 0),
+        ("aurenia", 1),
+        ("montelia", 0),
     ]
     assert basura.status_code == 200
     assert basura.json()["total"] == 1
     assert basura.json()["items"] == [
         {
             "video_id": "trash",
-            "title": "Solo Colombia",
+            "title": "Solo Montelia",
             "url": None,
-            "source_country": "colombia",
-            "source_country_label": "Colombia",
+            "source_country": "montelia",
+            "source_country_label": "Montelia",
             "channel_label": "Caracol",
             "published_at": None,
             "reason": "no_valid_target_match",
-            "match_reasons": [{"country": "colombia"}],
+            "match_reasons": [{"country": "montelia"}],
             "classification_version": "title-country-v1",
         }
     ]
@@ -1361,9 +1361,9 @@ class FakeChannelResolver:
     def resolve_channel(self, source: str) -> ChannelMetadata:
         self.calls.append(source)
         return ChannelMetadata(
-            channel_id="UClequipeStable",
-            title="L'Équipe",
-            uploads_playlist_id="UUlequipeStable",
+            channel_id="UCDemoFrStable",
+            title="Demo Sports FR",
+            uploads_playlist_id="UUDemoFrStable",
         )
 
 
@@ -1378,32 +1378,32 @@ def test_channel_management_contract_lists_adds_and_updates_channels_with_auth(t
     add_response = client.post(
         "/api/monitor/channels",
         headers={"x-api-key": "monitor-secret"},
-        json={"country": "fr", "label": "L'Équipe API", "url": "https://www.youtube.com/@lequipe"},
+        json={"country": "fr", "label": "Demo Sports FR API", "url": "https://www.youtube.com/@demo-sports-fr"},
     )
     list_response = client.get("/api/monitor/channels", headers={"x-api-key": "monitor-secret"})
     channel_id = add_response.json()["id"]
     update_response = client.patch(
         f"/api/monitor/channels/{channel_id}",
         headers={"x-api-key": "monitor-secret"},
-        json={"label": "L'Équipe disabled", "enabled": False},
+        json={"label": "Demo Sports FR disabled", "enabled": False},
     )
 
     assert unauthorized.status_code == 401
     assert add_response.status_code == 201
-    assert resolver.calls == ["https://www.youtube.com/@lequipe"]
+    assert resolver.calls == ["https://www.youtube.com/@demo-sports-fr"]
     assert add_response.json() == {
         "id": channel_id,
         "country": "fr",
-        "label": "L'Équipe API",
-        "source_url": "https://www.youtube.com/@lequipe",
-        "youtube_channel_id": "UClequipeStable",
-        "uploads_playlist_id": "UUlequipeStable",
+        "label": "Demo Sports FR API",
+        "source_url": "https://www.youtube.com/@demo-sports-fr",
+        "youtube_channel_id": "UCDemoFrStable",
+        "uploads_playlist_id": "UUDemoFrStable",
         "enabled": True,
     }
     assert list_response.status_code == 200
-    assert list_response.json()["channels"][0]["youtube_channel_id"] == "UClequipeStable"
+    assert list_response.json()["channels"][0]["youtube_channel_id"] == "UCDemoFrStable"
     assert update_response.status_code == 200
-    assert update_response.json()["label"] == "L'Équipe disabled"
+    assert update_response.json()["label"] == "Demo Sports FR disabled"
     assert update_response.json()["enabled"] is False
 
 
@@ -1443,7 +1443,7 @@ def test_post_channels_with_channel_id_derives_uploads_playlist_id(tmp_path):
     response = client.post(
         "/api/monitor/channels",
         headers={"x-api-key": "monitor-secret"},
-        json={"country": "us", "label": "Soccer on ESPN", "channel_id": "UC4Ck2X1L_hhoeK1tojW8PXA"},
+        json={"country": "us", "label": "Soccer on Demo TV", "channel_id": "UC4Ck2X1L_hhoeK1tojW8PXA"},
     )
 
     assert response.status_code == 201
@@ -1527,16 +1527,16 @@ def test_post_channels_with_url_still_calls_resolver(tmp_path):
     response = client.post(
         "/api/monitor/channels",
         headers={"x-api-key": "monitor-secret"},
-        json={"country": "fr", "label": "L'Équipe", "url": "https://www.youtube.com/@lequipe"},
+        json={"country": "fr", "label": "Demo Sports FR", "url": "https://www.youtube.com/@demo-sports-fr"},
     )
 
     assert response.status_code == 201
-    assert resolver.calls == ["https://www.youtube.com/@lequipe"]
+    assert resolver.calls == ["https://www.youtube.com/@demo-sports-fr"]
     # The resolver-derived playlist id (not the "UU" fallback) is used.
-    assert response.json()["uploads_playlist_id"] == "UUlequipeStable"
+    assert response.json()["uploads_playlist_id"] == "UUDemoFrStable"
     # The url path leaves baseline_started_at untouched (the sync path
     # handles baseline stamping for resolver-created channels).
-    stored = store.find_channel_by_youtube_id("UClequipeStable")
+    stored = store.find_channel_by_youtube_id("UCDemoFrStable")
     assert stored is not None
     assert stored.baseline_started_at is None
 
@@ -1609,8 +1609,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe configured
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR configured
 """.strip(),
         encoding="utf-8",
     )

@@ -79,14 +79,14 @@ test('createAdaptersFromEnv supports the deterministic demo adapters', async () 
   const extracted = await adapters.articleExtractor.extract({
     url: 'https://example.local/story',
     job: {
-      titular: 'Caicedo vuelve a entrenar con el grupo',
-      jugador: 'Moisés Caicedo',
-      seleccion: 'Ecuador',
-      tema_principal: 'Caicedo vuelve a entrenar con el grupo',
+      titular: 'Andrade vuelve a entrenar con el grupo',
+      jugador: 'Nicolás Andrade',
+      seleccion: 'Aurenia',
+      tema_principal: 'Andrade vuelve a entrenar con el grupo',
       link: 'https://example.local/story',
     },
   });
-  assert.match(extracted.article.main_content, /Caicedo/);
+  assert.match(extracted.article.main_content, /Andrade/);
   assert.ok(extracted.article.main_content.split(/\s+/).length > 30);
 
   const completion = await adapters.llm.complete({ prompt: 'genera un guion' });

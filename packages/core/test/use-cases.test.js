@@ -72,9 +72,9 @@ describe('DiscoverNews', () => {
     const ambiguous = {
       ...NEWS_FIXTURE[1],
       id_noticia: 'news-3',
-      titular: 'Caicedo visitó una escuela de su ciudad',
+      titular: 'Andrade visitó una escuela de su ciudad',
       snippet: 'Actividad social fuera del deporte',
-      link: 'https://news.example.local/caicedo-3',
+      link: 'https://news.example.local/andrade-3',
       fecha_publicacion: NOW.toISOString(),
       pass_direct: undefined,
       football_signals: undefined,
@@ -84,11 +84,11 @@ describe('DiscoverNews', () => {
       now: () => NOW,
       newsSource: {
         async fetchFeed(request) {
-          return request.jugador === 'Moisés Caicedo' ? [direct, ambiguous] : [];
+          return request.jugador === 'Nicolás Andrade' ? [direct, ambiguous] : [];
         },
       },
       llm: createMockLLM('{"results":[{"id_noticia":"news-3","es_futbol":true,"razon":"futbol"}]}'),
-      players: [{ seleccion: 'Ecuador', jugador: 'Moisés Caicedo' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
     });
 
     const result = await useCase.execute({ window: '24h' });
@@ -115,7 +115,7 @@ describe('DiscoverNews', () => {
         },
       },
       llm: createMockLLM('{"results":[]}'),
-      players: [{ seleccion: 'Ecuador', jugador: 'Moisés Caicedo' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
     });
 
     const result = await useCase.execute({ window: '1h', runId: run.run_id });
@@ -136,8 +136,8 @@ describe('ClusterTopics', () => {
       clusters: [
         {
           cluster_id: CLUSTER_FIXTURE.cluster_id,
-          seleccion: 'Ecuador',
-          jugador: 'Moisés Caicedo',
+          seleccion: 'Aurenia',
+          jugador: 'Nicolás Andrade',
           tema_principal: CLUSTER_FIXTURE.tema_principal,
           resumen_cluster: CLUSTER_FIXTURE.resumen_cluster,
           tag_editorial: 'club',
@@ -216,7 +216,7 @@ describe('DraftScript', () => {
 
   it('claims a job, extracts the source, generates a draft and completes the job', async () => {
     const { repository } = await setup();
-    const draft = Array.from({ length: 240 }, (_, index) => (index === 0 ? 'Caicedo' : 'palabra')).join(' ');
+    const draft = Array.from({ length: 240 }, (_, index) => (index === 0 ? 'Andrade' : 'palabra')).join(' ');
     const useCase = new DraftScript({
       repository,
       articleExtractor: articleExtractor(),
@@ -288,7 +288,7 @@ describe('PublishScript', () => {
     return new PublishScript({
       repository,
       createVideoProject: new CreateVideoProject({ repository, now: () => NOW }),
-      llm: createMockLLM('Móises Caicedo anotó y fue figura'),
+      llm: createMockLLM('Móises Andrade anotó y fue figura'),
       documentExport: documentExport(),
       imageSearch: imageSearch(),
       now: () => NOW,
@@ -359,11 +359,11 @@ describe('ManualCreateVideoProject', () => {
     });
 
     const started = await useCase.start({
-      titular: 'Manual: Caicedo en el Chelsea',
-      guion: 'Moisés Caicedo anotó y fue figura del partido.',
-      jugador: 'Moisés Caicedo',
-      seleccion: 'Ecuador',
-      tema_principal: 'Manual Caicedo',
+      titular: 'Manual: Andrade en el Costa Azul FC',
+      guion: 'Nicolás Andrade anotó y fue figura del partido.',
+      jugador: 'Nicolás Andrade',
+      seleccion: 'Aurenia',
+      tema_principal: 'Manual Andrade',
     });
     assert.equal(started.job_id, 'manual-job-1');
     assert.equal(started.status, 'queued');
@@ -390,15 +390,15 @@ describe('RefreshSearch', () => {
         },
       },
       llm: createMockLLM('{"results":[]}'),
-      players: [{ seleccion: 'Ecuador', jugador: 'Moisés Caicedo' }],
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
     });
     const cluster = new ClusterTopics({
       repository,
       llm: createMockLLM(JSON.stringify({
         clusters: [{
           cluster_id: CLUSTER_FIXTURE.cluster_id,
-          seleccion: 'Ecuador',
-          jugador: 'Moisés Caicedo',
+          seleccion: 'Aurenia',
+          jugador: 'Nicolás Andrade',
           tema_principal: CLUSTER_FIXTURE.tema_principal,
           source_ids: ['news-1'],
         }],

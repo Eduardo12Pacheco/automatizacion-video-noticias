@@ -8,12 +8,13 @@ from .models import MentionMatch, TargetProfile, TranscriptSegment
 
 
 TARGET_PROFILES: dict[str, TargetProfile] = {
-    "argentina": TargetProfile(type="country", name="Argentina", aliases=["albiceleste", "seleccion argentina"]),
-    "colombia": TargetProfile(type="country", name="Colombia", aliases=["seleccion colombia", "cafeteros"]),
-    "uruguay": TargetProfile(type="country", name="Uruguay", aliases=["celeste", "seleccion uruguaya"]),
-    "brasil": TargetProfile(type="country", name="Brasil", aliases=["brazil", "canarinha"]),
-    "lionel messi": TargetProfile(type="player", name="Lionel Messi", aliases=["messi", "leo messi"]),
-    "luis diaz": TargetProfile(type="player", name="Luis Díaz", aliases=["lucho diaz", "diaz"]),
+    "valdoria": TargetProfile(type="country", name="Valdoria", aliases=["valdoria", "seleccion valdoriana"]),
+    "montelia": TargetProfile(type="country", name="Montelia", aliases=["seleccion montelia", "montelios"]),
+    "rivamar": TargetProfile(type="country", name="Rivamar", aliases=["rivamarense", "seleccion rivamarense"]),
+    "bosquemar": TargetProfile(type="country", name="Bosquemar", aliases=["bosquemarense", "seleccion bosquemarense"]),
+    "terramar": TargetProfile(type="country", name="Terramar", aliases=["terramarense", "seleccion terramarense"]),
+    "leonel marquez": TargetProfile(type="player", name="Leonel Márquez", aliases=["marquez", "leo marquez"]),
+    "luis cardenas": TargetProfile(type="player", name="Luis Cárdenas", aliases=["lucho cardenas", "cardenas"]),
 }
 
 

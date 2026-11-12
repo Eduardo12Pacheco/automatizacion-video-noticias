@@ -69,7 +69,7 @@ The user's console diagnostic showed:
     "ok": true,
     "count": 1,
     "projectsLen": 1,
-    "firstTitle": "El mensaje del Bayern Munich para tranquilizar a Luis Díaz sobre el interés de Barcelona en Harry Kane"
+    "firstTitle": "El mensaje del Club Lago Sereno para tranquilizar a Luis Cárdenas sobre el interés de Sierra Alta FC en Hugo Kessler"
   }
 }
 ```

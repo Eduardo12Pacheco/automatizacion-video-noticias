@@ -28,18 +28,18 @@ class CompletingWorker:
         self.store.mark_running(job_id)
         self.store.save_transcript(
             job_id,
-            [TranscriptSegment(id="seg-1", start_ms=12000, end_ms=15300, text="Argentina pressed high.")],
+            [TranscriptSegment(id="seg-1", start_ms=12000, end_ms=15300, text="Valdoria pressed high.")],
         )
         self.store.save_mentions(
             job_id,
             [
                 MentionMatch(
-                    keyword="argentina",
-                    canonical="Argentina",
+                    keyword="valdoria",
+                    canonical="Valdoria",
                     segment_id="seg-1",
                     start_ms=12000,
                     end_ms=15300,
-                    text="Argentina pressed high.",
+                    text="Valdoria pressed high.",
                     context_before=None,
                     context_after=None,
                 )
@@ -80,7 +80,7 @@ class FakeAudioExtractor:
 
 class FakeTranscriber:
     def transcribe(self, audio_path: Path):
-        return [TranscriptSegment(id="seg-1", start_ms=12000, end_ms=15300, text="Argentina pressed high.")], "en"
+        return [TranscriptSegment(id="seg-1", start_ms=12000, end_ms=15300, text="Valdoria pressed high.")], "en"
 
 
 def _client(tmp_path):
@@ -98,7 +98,7 @@ def _headers() -> dict[str, str]:
 def _job_payload() -> dict:
     return {
         "url": "https://www.youtube.com/watch?v=abc123",
-        "countries": ["argentina"],
+        "countries": ["valdoria"],
         "extra_keywords": ["pressing"],
     }
 
@@ -171,7 +171,7 @@ def test_cors_preflight_for_authenticated_radar_jobs_is_allowed_without_api_key(
 
 def test_actual_radar_methods_remain_authenticated_after_preflight_is_allowed(tmp_path):
     client, store = _client(tmp_path)
-    queued = store.create_job(url="https://www.youtube.com/watch?v=protected", countries=["colombia"], extra_keywords=[])
+    queued = store.create_job(url="https://www.youtube.com/watch?v=protected", countries=["montelia"], extra_keywords=[])
 
     protected_responses = [
         client.get("/api/radar/jobs"),
@@ -231,7 +231,7 @@ def test_submit_job_exposes_status_history_transcript_and_mentions(tmp_path):
     assert detail.json()["status"] == JobStatus.SUCCEEDED
     assert detail.json()["stage"] == "succeeded"
     assert detail.json()["progress"] == 100
-    assert detail.json()["selected_countries"] == ["argentina"]
+    assert detail.json()["selected_countries"] == ["valdoria"]
     assert detail.json()["artifacts"]["transcript"] is True
     assert detail.json()["artifacts"]["mentions"] is True
 
@@ -242,11 +242,11 @@ def test_submit_job_exposes_status_history_transcript_and_mentions(tmp_path):
 
     transcript = client.get(f"/api/radar/jobs/{job_id}/transcript", headers=_headers())
     assert transcript.status_code == 200
-    assert transcript.json()["text"] == "(00:12) Argentina pressed high."
+    assert transcript.json()["text"] == "(00:12) Valdoria pressed high."
 
     mentions = client.get(f"/api/radar/jobs/{job_id}/mentions", headers=_headers())
     assert mentions.status_code == 200
-    assert mentions.json()["matches"][0]["canonical"] == "Argentina"
+    assert mentions.json()["matches"][0]["canonical"] == "Valdoria"
 
 
 def test_job_path_params_reject_traversal_with_typed_error(tmp_path):
@@ -264,7 +264,7 @@ def test_submit_job_rejects_unsafe_url_before_worker_enqueue(tmp_path):
     response = client.post(
         "/api/radar/jobs",
         headers=_headers(),
-        json={"url": "file:///C:/Windows/win.ini", "countries": ["argentina"], "extra_keywords": []},
+        json={"url": "file:///C:/Windows/win.ini", "countries": ["valdoria"], "extra_keywords": []},
     )
 
     assert response.status_code == 422
@@ -278,7 +278,7 @@ def test_submit_job_rejects_non_youtube_url_before_worker_enqueue(tmp_path):
     response = client.post(
         "/api/radar/jobs",
         headers=_headers(),
-        json={"url": "https://video.example/watch?v=abc123", "countries": ["argentina"], "extra_keywords": []},
+        json={"url": "https://video.example/watch?v=abc123", "countries": ["valdoria"], "extra_keywords": []},
     )
 
     assert response.status_code == 422
@@ -289,7 +289,7 @@ def test_submit_job_rejects_non_youtube_url_before_worker_enqueue(tmp_path):
 def test_startup_recovery_allows_job_creation_after_orphaned_running_job(tmp_path):
     settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], media_url_dns_check=False)
     store = JobStore(tmp_path)
-    orphaned = store.create_job(url="https://www.youtube.com/watch?v=orphaned", countries=["argentina"], extra_keywords=[])
+    orphaned = store.create_job(url="https://www.youtube.com/watch?v=orphaned", countries=["valdoria"], extra_keywords=[])
     store.mark_running(orphaned.job_id)
     app = create_app(
         settings=settings,
@@ -311,7 +311,7 @@ def test_startup_recovery_allows_job_creation_after_orphaned_running_job(tmp_pat
 def test_startup_cleanup_removes_expired_non_active_runtime_outputs_without_losing_history(tmp_path):
     settings = Settings(api_key="test-key", runtime_dir=tmp_path, cors_origins=["https://panel.example"], cleanup_ttl_seconds=3600, media_url_dns_check=False)
     store = JobStore(tmp_path)
-    expired = store.create_job(url="https://www.youtube.com/watch?v=expired", countries=["argentina"], extra_keywords=[])
+    expired = store.create_job(url="https://www.youtube.com/watch?v=expired", countries=["valdoria"], extra_keywords=[])
     store.save_export_text(expired.job_id, "old export")
     store.mark_succeeded(expired.job_id)
     expired_record = store.get_job(expired.job_id).model_dump(mode="json")
@@ -360,34 +360,34 @@ def test_catalog_summary_summary_export_cancel_and_delete_endpoints(tmp_path):
     catalog = client.get("/api/radar/catalog", headers=_headers())
     assert catalog.status_code == 200
     assert [country["code"] for country in catalog.json()["countries"]] == [
-        "ecuador",
-        "colombia",
-        "argentina",
-        "uruguay",
-        "paraguay",
-        "mexico",
+        "aurenia",
+        "montelia",
+        "valdoria",
+        "rivamar",
+        "bosquemar",
+        "terramar",
     ]
 
     created = client.post("/api/radar/jobs", headers=_headers(), json=_job_payload())
     job_id = created.json()["job_id"]
-    store.save_summary(job_id, {"items": [{"label": "Argentina", "count": 1, "timestamps": ["00:12"]}]})
-    store.save_export_text(job_id, "Instrucciones para GPT\n(00:12) Argentina pressed high.")
+    store.save_summary(job_id, {"items": [{"label": "Valdoria", "count": 1, "timestamps": ["00:12"]}]})
+    store.save_export_text(job_id, "Instrucciones para GPT\n(00:12) Valdoria pressed high.")
 
     summary = client.get(f"/api/radar/jobs/{job_id}/summary", headers=_headers())
     assert summary.status_code == 200
-    assert summary.json()["items"][0]["label"] == "Argentina"
+    assert summary.json()["items"][0]["label"] == "Valdoria"
 
     export = client.get(f"/api/radar/jobs/{job_id}/export.txt", headers=_headers())
     assert export.status_code == 200
     assert export.headers["content-type"].startswith("text/plain")
-    assert "(00:12) Argentina pressed high." in export.text
+    assert "(00:12) Valdoria pressed high." in export.text
 
     deleted = client.delete(f"/api/radar/jobs/{job_id}", headers=_headers())
     assert deleted.status_code == 200
     assert deleted.json() == {"job_id": job_id, "status": "deleted"}
     assert store.list_history() == []
 
-    queued = store.create_job(url="https://www.youtube.com/watch?v=queued", countries=["colombia"], extra_keywords=[])
+    queued = store.create_job(url="https://www.youtube.com/watch?v=queued", countries=["montelia"], extra_keywords=[])
     cancelled = client.post(f"/api/radar/jobs/{queued.job_id}/cancel", headers=_headers())
     assert cancelled.status_code == 200
     assert cancelled.json()["status"] == "cancelled"
@@ -397,7 +397,7 @@ def test_cleanup_linked_artifacts_endpoint_hard_deletes_terminal_jobs_without_ne
     client, store = _client(tmp_path)
     created = client.post("/api/radar/jobs", headers=_headers(), json=_job_payload())
     job_id = created.json()["job_id"]
-    store.save_summary(job_id, {"items": [{"label": "Argentina", "count": 1}]})
+    store.save_summary(job_id, {"items": [{"label": "Valdoria", "count": 1}]})
     store.save_export_text(job_id, "generated export")
 
     response = client.post(
@@ -420,7 +420,7 @@ def test_cleanup_linked_artifacts_endpoint_hard_deletes_terminal_jobs_without_ne
 
 def test_submit_rejects_concurrent_active_job_with_typed_busy_error(tmp_path):
     client, store = _client(tmp_path)
-    store.create_job(url="https://www.youtube.com/watch?v=active", target={"type": "player", "name": "Messi"}, extra_keywords=[])
+    store.create_job(url="https://www.youtube.com/watch?v=active", target={"type": "player", "name": "Márquez"}, extra_keywords=[])
 
     response = client.post("/api/radar/jobs", headers=_headers(), json=_job_payload())
 

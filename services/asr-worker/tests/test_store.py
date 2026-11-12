@@ -14,21 +14,21 @@ def test_store_creates_job_folder_artifacts_and_index_history(tmp_path):
 
     job = store.create_job(
         url="https://video.example/watch?v=abc123",
-        target={"type": "country", "name": "Argentina"},
-        extra_keywords=["scaloni"],
+        target={"type": "country", "name": "Valdoria"},
+        extra_keywords=["entrenador demo"],
     )
     store.mark_running(job.job_id)
-    store.save_transcript(job.job_id, [TranscriptSegment(id="s1", start_ms=62000, end_ms=65000, text="Gol de Argentina")])
+    store.save_transcript(job.job_id, [TranscriptSegment(id="s1", start_ms=62000, end_ms=65000, text="Gol de Valdoria")])
     store.save_mentions(
         job.job_id,
         [
             MentionMatch(
-                keyword="argentina",
-                canonical="Argentina",
+                keyword="valdoria",
+                canonical="Valdoria",
                 segment_id="s1",
                 start_ms=62000,
                 end_ms=65000,
-                text="Gol de Argentina",
+                text="Gol de Valdoria",
             )
         ],
     )
@@ -50,7 +50,7 @@ def test_store_reports_active_jobs_and_preserves_copyable_transcript_lines(tmp_p
     store = JobStore(tmp_path)
     job = store.create_job(
         url="https://video.example/watch?v=active",
-        target={"type": "player", "name": "Luis Díaz"},
+        target={"type": "player", "name": "Luis Cárdenas"},
         extra_keywords=[],
     )
 
@@ -60,18 +60,18 @@ def test_store_reports_active_jobs_and_preserves_copyable_transcript_lines(tmp_p
         job.job_id,
         [
             TranscriptSegment(id="s1", start_ms=1000, end_ms=2000, text="Arranca el partido"),
-            TranscriptSegment(id="s2", start_ms=61000, end_ms=64000, text="Luis Díaz ataca"),
+            TranscriptSegment(id="s2", start_ms=61000, end_ms=64000, text="Luis Cárdenas ataca"),
         ],
     )
     store.mark_succeeded(job.job_id)
 
     assert store.has_active_job() is False
-    assert store.get_transcript(job.job_id).text == "(00:01) Arranca el partido\n(01:01) Luis Díaz ataca"
+    assert store.get_transcript(job.job_id).text == "(00:01) Arranca el partido\n(01:01) Luis Cárdenas ataca"
 
 
 def test_store_marks_success_with_terminal_stage_and_complete_progress(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/success", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/success", countries=["valdoria"], extra_keywords=[])
     store.mark_running(job.job_id)
 
     succeeded = store.mark_succeeded(job.job_id)
@@ -84,8 +84,8 @@ def test_store_marks_success_with_terminal_stage_and_complete_progress(tmp_path)
 
 def test_store_marks_failure_with_terminal_stage_and_preserves_progress(tmp_path):
     store = JobStore(tmp_path)
-    queued = store.create_job(url="https://video.example/queued-fail", countries=["argentina"], extra_keywords=[])
-    running = store.create_job(url="https://video.example/running-fail", countries=["colombia"], extra_keywords=[])
+    queued = store.create_job(url="https://video.example/queued-fail", countries=["valdoria"], extra_keywords=[])
+    running = store.create_job(url="https://video.example/running-fail", countries=["montelia"], extra_keywords=[])
     store.mark_running(running.job_id)
 
     queued_failed = store.mark_failed(queued.job_id, code="queued_error", message="Queued failure")
@@ -103,22 +103,22 @@ def test_store_marks_failure_with_terminal_stage_and_preserves_progress(tmp_path
 def test_store_persists_country_job_metadata_summary_export_and_hard_delete(tmp_path):
     store = JobStore(tmp_path)
 
-    job = store.create_job(url="https://video.example/watch?v=abc123", countries=["colombia", "ecuador"], extra_keywords=["bloque alto"])
-    store.update_metadata(job.job_id, title="Rueda de prensa", detected_language="fr")
-    store.save_transcript(job.job_id, [TranscriptSegment(id="s1", start_ms=12000, end_ms=15000, text="James Rodrigue habla.")])
-    store.save_summary(job.job_id, {"items": [{"label": "James Rodríguez", "count": 1, "timestamps": ["00:12"]}]})
-    store.save_export_text(job.job_id, "PROMPT\n(00:12) James Rodrigue habla.")
+    job = store.create_job(url="https://video.example/watch?v=abc123", countries=["montelia", "aurenia"], extra_keywords=["bloque alto"])
+    store.update_metadata(job.job_id, title="Jaime Rueda de prensa", detected_language="fr")
+    store.save_transcript(job.job_id, [TranscriptSegment(id="s1", start_ms=12000, end_ms=15000, text="Jaime Rueda habla.")])
+    store.save_summary(job.job_id, {"items": [{"label": "Jaime Rueda", "count": 1, "timestamps": ["00:12"]}]})
+    store.save_export_text(job.job_id, "PROMPT\n(00:12) Jaime Rueda habla.")
     store.mark_succeeded(job.job_id)
 
     saved = store.get_job(job.job_id)
-    assert saved.selected_countries == ["colombia", "ecuador"]
-    assert saved.title == "Rueda de prensa"
+    assert saved.selected_countries == ["montelia", "aurenia"]
+    assert saved.title == "Jaime Rueda de prensa"
     assert saved.detected_language == "fr"
     assert saved.artifacts["summary"] is True
     assert saved.artifacts["export_txt"] is True
     assert store.get_summary(job.job_id)["items"][0]["timestamps"] == ["00:12"]
     assert store.get_export_text(job.job_id).startswith("PROMPT")
-    assert store.list_history()[0].title == "Rueda de prensa"
+    assert store.list_history()[0].title == "Jaime Rueda de prensa"
 
     store.delete_job(job.job_id)
 
@@ -128,14 +128,14 @@ def test_store_persists_country_job_metadata_summary_export_and_hard_delete(tmp_
 
 def test_store_cancel_and_delete_active_jobs_remove_artifacts_safely(tmp_path):
     store = JobStore(tmp_path)
-    queued = store.create_job(url="https://video.example/queued", countries=["argentina"], extra_keywords=[])
+    queued = store.create_job(url="https://video.example/queued", countries=["valdoria"], extra_keywords=[])
 
     cancelled = store.cancel_job(queued.job_id)
 
     assert cancelled.status == "cancelled"
     assert store.has_active_job() is False
 
-    running = store.create_job(url="https://video.example/running", countries=["argentina"], extra_keywords=[])
+    running = store.create_job(url="https://video.example/running", countries=["valdoria"], extra_keywords=[])
     store.mark_running(running.job_id)
     pending_delete = store.delete_job(running.job_id)
 
@@ -145,10 +145,10 @@ def test_store_cancel_and_delete_active_jobs_remove_artifacts_safely(tmp_path):
 
 def test_store_recovers_orphaned_active_jobs_after_restart(tmp_path):
     store = JobStore(tmp_path)
-    queued = store.create_job(url="https://video.example/queued", countries=["argentina"], extra_keywords=[])
-    running = store.create_job(url="https://video.example/running", countries=["colombia"], extra_keywords=[])
+    queued = store.create_job(url="https://video.example/queued", countries=["valdoria"], extra_keywords=[])
+    running = store.create_job(url="https://video.example/running", countries=["montelia"], extra_keywords=[])
     store.mark_running(running.job_id)
-    deleting = store.create_job(url="https://video.example/delete", countries=["ecuador"], extra_keywords=[])
+    deleting = store.create_job(url="https://video.example/delete", countries=["aurenia"], extra_keywords=[])
     store.delete_job(deleting.job_id)
 
     recovered = store.recover_orphaned_active_jobs()
@@ -179,7 +179,7 @@ def test_store_rejects_unsafe_job_ids_before_path_access(tmp_path):
 
 def test_store_atomic_artifact_write_failure_does_not_mark_partial_success(tmp_path, monkeypatch):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/atomic", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/atomic", countries=["valdoria"], extra_keywords=[])
     original_replace = __import__("os").replace
 
     def fail_replace(source, destination):
@@ -199,14 +199,14 @@ def test_store_atomic_artifact_write_failure_does_not_mark_partial_success(tmp_p
 
 def test_store_cleanup_removes_expired_generated_artifacts_but_preserves_history_metadata(tmp_path):
     store = JobStore(tmp_path)
-    old_job = store.create_job(url="https://video.example/old", countries=["argentina"], extra_keywords=[])
+    old_job = store.create_job(url="https://video.example/old", countries=["valdoria"], extra_keywords=[])
     store.save_transcript(old_job.job_id, [TranscriptSegment(id="s1", start_ms=1000, end_ms=2000, text="Old output")])
     store.save_mentions(
         old_job.job_id,
         [
             MentionMatch(
-                keyword="argentina",
-                canonical="Argentina",
+                keyword="valdoria",
+                canonical="Valdoria",
                 segment_id="s1",
                 start_ms=1000,
                 end_ms=2000,
@@ -214,7 +214,7 @@ def test_store_cleanup_removes_expired_generated_artifacts_but_preserves_history
             )
         ],
     )
-    store.save_summary(old_job.job_id, {"items": [{"label": "Argentina", "count": 1}]})
+    store.save_summary(old_job.job_id, {"items": [{"label": "Valdoria", "count": 1}]})
     store.save_export_text(old_job.job_id, "(00:01) Old output")
     (tmp_path / "jobs" / old_job.job_id / "source.mp4").write_text("downloaded media", encoding="utf-8")
     (tmp_path / "jobs" / old_job.job_id / "audio").mkdir()
@@ -239,14 +239,14 @@ def test_store_cleanup_removes_expired_generated_artifacts_but_preserves_history
 
 def test_store_cleanup_preserves_active_fresh_and_non_runtime_files(tmp_path):
     store = JobStore(tmp_path / "runtime")
-    old_active = store.create_job(url="https://video.example/active", countries=["argentina"], extra_keywords=[])
+    old_active = store.create_job(url="https://video.example/active", countries=["valdoria"], extra_keywords=[])
     store.mark_running(old_active.job_id)
     store.save_transcript(old_active.job_id, [TranscriptSegment(id="s1", start_ms=1000, end_ms=2000, text="Active output")])
     active_record = store.get_job(old_active.job_id).model_dump(mode="json")
     active_record["updated_at"] = (datetime.now(timezone.utc) - timedelta(days=9)).isoformat()
     (tmp_path / "runtime" / "jobs" / old_active.job_id / "job.json").write_text(json.dumps(active_record), encoding="utf-8")
 
-    fresh = store.create_job(url="https://video.example/fresh", countries=["colombia"], extra_keywords=[])
+    fresh = store.create_job(url="https://video.example/fresh", countries=["montelia"], extra_keywords=[])
     store.save_export_text(fresh.job_id, "fresh export")
     store.mark_succeeded(fresh.job_id)
     fixture = tmp_path / "tests" / "fixtures" / "transcript.json"
@@ -263,7 +263,7 @@ def test_store_cleanup_preserves_active_fresh_and_non_runtime_files(tmp_path):
 
 def test_store_cleanup_ttl_disabled_does_not_remove_runtime_artifacts(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/old", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/old", countries=["valdoria"], extra_keywords=[])
     store.save_export_text(job.job_id, "old export")
     store.mark_succeeded(job.job_id)
     old_record = store.get_job(job.job_id).model_dump(mode="json")
@@ -279,7 +279,7 @@ def test_store_cleanup_linked_artifacts_hard_deletes_by_job_url_and_video_id(tmp
     by_job = _completed_job_with_artifacts(store, url="https://video.example/watch?v=by-job")
     by_url = _completed_job_with_artifacts(store, url="https://www.youtube.com/watch?v=by-url")
     by_video_id = _completed_job_with_artifacts(store, url="https://youtu.be/by-video")
-    active = store.create_job(url="https://www.youtube.com/watch?v=active", countries=["argentina"], extra_keywords=[])
+    active = store.create_job(url="https://www.youtube.com/watch?v=active", countries=["valdoria"], extra_keywords=[])
     store.mark_running(active.job_id)
     store.save_export_text(active.job_id, "active export")
 
@@ -319,10 +319,10 @@ def test_store_cleanup_linked_artifacts_dry_run_plans_without_deleting(tmp_path)
 
 
 def _completed_job_with_artifacts(store: JobStore, *, url: str):
-    job = store.create_job(url=url, countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url=url, countries=["valdoria"], extra_keywords=[])
     store.save_transcript(job.job_id, [TranscriptSegment(id="s1", start_ms=1000, end_ms=2000, text="Artifact text")])
-    store.save_mentions(job.job_id, [MentionMatch(keyword="argentina", canonical="Argentina", segment_id="s1", start_ms=1000, end_ms=2000, text="Artifact text")])
-    store.save_summary(job.job_id, {"items": [{"label": "Argentina", "count": 1}]})
+    store.save_mentions(job.job_id, [MentionMatch(keyword="valdoria", canonical="Valdoria", segment_id="s1", start_ms=1000, end_ms=2000, text="Artifact text")])
+    store.save_summary(job.job_id, {"items": [{"label": "Valdoria", "count": 1}]})
     store.save_export_text(job.job_id, "export")
     (store.jobs_dir / job.job_id / "source.mp4").write_text("media", encoding="utf-8")
     store.mark_succeeded(job.job_id)

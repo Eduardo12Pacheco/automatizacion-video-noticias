@@ -219,8 +219,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
         enabled: true
 """.strip(),
         encoding="utf-8",
@@ -229,8 +229,8 @@ countries:
     config = load_channel_config(path)
 
     assert config.countries[0].code == "fr"
-    assert config.countries[0].channels[0].url == "https://www.youtube.com/@lequipe"
-    assert config.countries[0].channels[0].label == "L'Équipe"
+    assert config.countries[0].channels[0].url == "https://www.youtube.com/@demo-sports-fr"
+    assert config.countries[0].channels[0].label == "Demo Sports FR"
     assert config.countries[0].channels[0].enabled is True
 
 
@@ -240,10 +240,10 @@ def test_load_channel_config_parses_important_channel_metadata(tmp_path):
         """
 countries:
   - code: ar
-    name: Argentina
+    name: Valdoria
     channels:
-      - url: https://www.youtube.com/@NSportsGo
-        label: NSports
+      - url: https://www.youtube.com/@demosportsgo
+        label: Demo Sports
         enabled: true
         important: true
         important_mode: full_channel
@@ -278,15 +278,15 @@ countries:
     name: España
     channels:
       - url: https://www.youtube.com/@marca
-        label: MARCA
+        label: DEMO
         important_mode: program_rules
         important_rules:
           - content_types: [live, completed]
             op: starts_with
-            value: LA PIZARRA DE QUINTANA
+            value: LA PIZARRA DEMO
           - content_types: [completed]
             op: contains
-            value: QUINTANA
+            value: DEMO
 """.strip(),
         encoding="utf-8",
     )
@@ -297,8 +297,8 @@ countries:
     assert channel.important is False
     assert channel.important_mode == "program_rules"
     assert [(rule.content_types, rule.op, rule.value) for rule in channel.important_rules] == [
-        (["live", "completed"], "starts_with", "LA PIZARRA DE QUINTANA"),
-        (["completed"], "contains", "QUINTANA"),
+        (["live", "completed"], "starts_with", "LA PIZARRA DEMO"),
+        (["completed"], "contains", "DEMO"),
     ]
 
 
@@ -316,13 +316,9 @@ def test_default_channel_config_marks_full_channel_important_sources_without_pse
     assert "important" not in country_codes
     assert "importantes" not in country_codes
     assert important_labels == {
-        "NSports",
-        "Jorge Ramos y su Banda",
-        "Carlos Antonio Vélez",
-        "Samuel Vargas",
-        "LA HINCHADA GRITA",
-        "Fútbol Libre",
-        "Eddie Fleischman",
+        "Demo Sports Aurenia",
+        "Demo Sports Montelia",
+        "Demo Sports Terramar",
     }
 
 
@@ -336,10 +332,11 @@ def test_default_channel_config_keeps_algorithm_priority_separate_from_important
         if channel.algorithm_priority_rank is not None
     }
 
-    assert ranked_channels["NSports"].important is True
-    assert ranked_channels["Mundo Maldini"].important is False
-    assert ranked_channels["Mundo Maldini"].algorithm_priority_rank == 11
-    assert len(ranked_channels) == 35
+    assert ranked_channels["Demo Sports Aurenia"].important is True
+    assert ranked_channels["Demo Wire Montelia"].important is True
+    assert ranked_channels["Demo Sports Aurenia"].algorithm_priority_rank == 7
+    assert ranked_channels["Demo Wire Montelia"].algorithm_priority_rank == 15
+    assert len(ranked_channels) == 4
 
 
 def test_default_channel_config_contains_exact_program_rule_sources():
@@ -353,18 +350,9 @@ def test_default_channel_config_contains_exact_program_rule_sources():
     }
 
     assert rule_sources == {
-        "MARCA": [("starts_with", "LA PIZARRA DE QUINTANA"), ("contains", "LA PIZARRA DE QUINTANA")],
-        "Exitosa": [("starts_with", "EXITOSA DEPORTES")],
-        "Mr Peet": [("starts_with", "MADRUGOL CON MR PEET")],
-        "ADN Chile": [("contains", "TENORES")],
-        "TNT Sports Chile": [("contains", "TODOS SOMOS TECNICOS")],
-        "Círculo Central": [("contains", "CIRCULO CENTRAL")],
-        "ABC TV Paraguay": [("starts_with", "#CARDINALDEPORTIVO"), ("contains", "CARDINAL DEPORTIVO")],
-        "Rock & Pop Paraguay": [("starts_with", "#LAGRANJUGADA")],
-        "TV Azteca": [("contains", "LA MESA PROTAGONISTA")],
-        "FOX Sports MX": [("contains", "LA ULTIMA PALABRA")],
-        "ESPN MX": [("contains", "FUTBOL PICANTE")],
-        "LAS VOCES DEL FÚTBOL": [("contains", "JULIO RIOS")],
+        "Demo Wire Aurenia": [("starts_with", "DEMO SPORTS EN VIVO"), ("contains", "DEMO SPORTS")],
+        "Demo Wire Montelia": [("starts_with", "MONTELIA EN JUEGO")],
+        "Demo Wire Terramar": [("contains", "TERRAMAR AL DÍA")],
     }
 
 
@@ -387,7 +375,7 @@ countries:
         important_mode: program_rules
         important_rules:
           - op: regex
-            value: FUTBOL PICANTE
+            value: FUTBOL DEMO
       - url: https://www.youtube.com/@empty
         label: Empty value
         important_mode: program_rules
@@ -412,11 +400,11 @@ countries:
     }
 
 
-def test_default_editable_channel_config_contains_lequipe_seed():
+def test_default_editable_channel_config_contains_demo_seed():
     config = load_channel_config(SERVICE_ROOT / "config" / "channels.yaml")
 
-    assert config.countries[0].code == "fr"
-    assert config.countries[0].channels[0].url == "https://www.youtube.com/@lequipe"
+    assert config.countries[0].code == "aurenia"
+    assert config.countries[0].channels[0].url == "https://www.youtube.com/@demo-sports-aurenia"
 
 
 def test_validate_channel_config_reports_missing_source_and_duplicate_channels(tmp_path):
@@ -427,10 +415,10 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe FR
-      - url: https://www.youtube.com/@lequipe
-        label: Duplicate L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Duplicate Demo Sports FR
       - label: Missing source
 """.strip(),
         encoding="utf-8",
@@ -441,7 +429,7 @@ countries:
 
     assert report.status == "failed"
     assert {finding.code for finding in report.findings} == {"duplicate_channel_source", "missing_channel_source"}
-    assert any("https://www.youtube.com/@lequipe" in finding.message for finding in report.findings)
+    assert any("https://www.youtube.com/@demo-sports-fr" in finding.message for finding in report.findings)
     assert any("Missing source" in finding.message for finding in report.findings)
 
 
@@ -453,8 +441,8 @@ countries:
   - code: fr
     name: France
     channels:
-      - url: https://www.youtube.com/@lequipe
-        label: L'Équipe
+      - url: https://www.youtube.com/@demo-sports-fr
+        label: Demo Sports FR
       - channel_id: UCTestStableChannelId
         label: Stable channel
 """.strip(),
@@ -473,7 +461,7 @@ def test_validate_channel_config_rejects_priority_tier_without_important_flag(tm
         """
 countries:
   - code: ar
-    name: Argentina
+    name: Valdoria
     channels:
       - url: https://www.youtube.com/@normal
         label: Normal channel

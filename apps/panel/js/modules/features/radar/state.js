@@ -1,10 +1,10 @@
 export const RADAR_COUNTRIES = [
-  { value: 'ecuador', label: 'Ecuador', players: ['Caicedo', 'Pacho', 'Hincapié'] },
-  { value: 'colombia', label: 'Colombia', players: ['Luis Díaz', 'James', 'Quintero'] },
-  { value: 'argentina', label: 'Argentina', players: ['Messi', 'Álvarez', 'Di María'] },
-  { value: 'uruguay', label: 'Uruguay', players: ['Valverde', 'Darwin', 'Suárez'] },
-  { value: 'paraguay', label: 'Paraguay', players: ['Almirón', 'Enciso', 'Sanabria'] },
-  { value: 'mexico', label: 'México', players: ['Giménez', 'Ochoa', 'Edson Álvarez'] },
+  { value: 'aurenia', label: 'Aurenia', players: ['Andrade', 'Cordero', 'Salvatierra'] },
+  { value: 'montelia', label: 'Montelia', players: ['Luis Cárdenas', 'Jaime', 'Quiroga'] },
+  { value: 'valdoria', label: 'Valdoria', players: ['Márquez', 'Julián Alvarado', 'Ángel Miranda'] },
+  { value: 'rivamar', label: 'Rivamar', players: ['Federico Valdés', 'Darío Nieves', 'Sergio Roca'] },
+  { value: 'bosquemar', label: 'Bosquemar', players: ['Miguel Almada', 'Julio Enríquez', 'Antonio Sandoval'] },
+  { value: 'terramar', label: 'Terramar', players: ['Santiago Gil', 'Guillermo Olvera', 'Edson Ávila'] },
 ];
 
 const DEFAULT_MENTION_LABELS = ['Jugador clave', 'Referente', 'Selección', 'País'];

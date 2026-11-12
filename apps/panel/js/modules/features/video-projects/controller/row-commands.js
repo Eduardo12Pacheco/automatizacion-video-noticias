@@ -300,7 +300,7 @@ export function createRowCommands({
         scheduleApprovalMotionPersistence(project);
       }
       if (patch.logo !== undefined) {
-        const localLogoPatch = { logo: { enabled: patch.logo?.enabled !== false, source: patch.logo?.source || rows[index]?.logo?.source || 'logo-demo-alpha.webm', assetId: patch.logo?.assetId || rows[index]?.logo?.assetId || null } };
+        const localLogoPatch = { logo: { enabled: patch.logo?.enabled !== false, source: patch.logo?.source || rows[index]?.logo?.source || 'logo-primary.webm', assetId: patch.logo?.assetId || rows[index]?.logo?.assetId || null } };
         project._editorRows = project._editorRows.map((row) => mergeLocalEditorRowPatch(row, localLogoPatch));
         project.editor_state = normalizeEditorState({ ...project.editor_state, timed_rows: project._editorRows, dirty: true, phase: 'editing_dirty' });
         project._editorRows.forEach((row) => createMotionDraft(row.id, row.id === rowId ? { type: 'setLogo', enabled: localLogoPatch.logo.enabled, source: localLogoPatch.logo.source, assetId: localLogoPatch.logo.assetId } : null, localLogoPatch, `${rowId}:logo`));

@@ -24,9 +24,9 @@ describe('panel data router', () => {
     await repository.upsertVideoProject({
       draft_id: 'draft-1',
       id_noticia: 'news-1',
-      jugador: 'Moisés Caicedo',
-      seleccion: 'Ecuador',
-      tema_principal: 'Regreso de Caicedo',
+      jugador: 'Nicolás Andrade',
+      seleccion: 'Aurenia',
+      tema_principal: 'Regreso de Andrade',
       segments: [{ id: 'seg-001', order: 1, text: 'Guion' }],
       image_candidates: [],
       selected_images: [],

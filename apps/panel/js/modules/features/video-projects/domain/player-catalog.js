@@ -1,27 +1,27 @@
 export const VIDEO_PROJECT_PLAYERS_BY_COUNTRY = Object.freeze({
-  Ecuador: Object.freeze({
-    players: Object.freeze(['Moisés Caicedo', 'Piero Hincapié', 'Willian Pacho', 'Gonzalo Plata', 'Kendry Páez', 'Enner Valencia']),
-    nicknames: Object.freeze(['La Tri']),
+  Aurenia: Object.freeze({
+    players: Object.freeze(['Nicolás Andrade', 'Mateo Salvatierra', 'Iván Cordero', 'Diego Peralta', 'Ángel Mera', 'Bruno Valdivia']),
+    nicknames: Object.freeze(['La Aurenia']),
   }),
-  Colombia: Object.freeze({
-    players: Object.freeze(['James Rodríguez', 'Luis Díaz', 'Juan Fernando Quintero', 'Jhon Arias']),
-    nicknames: Object.freeze(['Los Cafeteros']),
+  Montelia: Object.freeze({
+    players: Object.freeze(['Jaime Rueda', 'Luis Cárdenas', 'Juan Fernando Quiroga', 'Jonás Arriola']),
+    nicknames: Object.freeze(['Los Montelios']),
   }),
-  Argentina: Object.freeze({
-    players: Object.freeze(['Lionel Messi', 'Julián Álvarez', 'Emiliano Martínez']),
-    nicknames: Object.freeze(['La Albiceleste']),
+  Valdoria: Object.freeze({
+    players: Object.freeze(['Leonel Márquez', 'Julián Alvarado', 'Emiliano Ferreyra']),
+    nicknames: Object.freeze(['La Valdoriana']),
   }),
-  Uruguay: Object.freeze({
-    players: Object.freeze(['Federico Valverde']),
-    nicknames: Object.freeze(['La Celeste']),
+  Rivamar: Object.freeze({
+    players: Object.freeze(['Federico Valdés']),
+    nicknames: Object.freeze(['La Rivamarense']),
   }),
-  Paraguay: Object.freeze({
-    players: Object.freeze(['Julio Enciso', 'Miguel Almirón']),
-    nicknames: Object.freeze(['La Albirroja']),
+  Bosquemar: Object.freeze({
+    players: Object.freeze(['Julio Enríquez', 'Miguel Almada']),
+    nicknames: Object.freeze(['La Bosquemarense']),
   }),
-  México: Object.freeze({
-    players: Object.freeze(['Santiago Giménez', 'Guillermo Ochoa', 'Edson Álvarez']),
-    nicknames: Object.freeze(['El Tri']),
+  Terramar: Object.freeze({
+    players: Object.freeze(['Santiago Gil', 'Guillermo Olvera', 'Edson Ávila']),
+    nicknames: Object.freeze(['El Terramar']),
   }),
 });
 

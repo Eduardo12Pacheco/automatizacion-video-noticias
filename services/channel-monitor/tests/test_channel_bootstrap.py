@@ -23,10 +23,10 @@ def test_sync_configured_channels_persists_important_metadata_without_duplicate_
         """
 countries:
   - code: ar
-    name: Argentina
+    name: Valdoria
     channels:
-      - url: https://www.youtube.com/@NSportsGo
-        label: NSports
+      - url: https://www.youtube.com/@demosportsgo
+        label: Demo Sports
         enabled: true
         important: true
         priority_tier: importantes
@@ -47,10 +47,10 @@ countries:
         store=store,
         resolver=FakeResolver(
             {
-                "https://www.youtube.com/@NSportsGo": ChannelMetadata(
-                    channel_id="UCNSportsStable",
-                    title="NSports",
-                    uploads_playlist_id="UUNSportsStable",
+                "https://www.youtube.com/@demosportsgo": ChannelMetadata(
+                    channel_id="UCDemoSportsStable",
+                    title="Demo Sports",
+                    uploads_playlist_id="UUDemoSportsStable",
                 )
             }
         ),
@@ -60,7 +60,7 @@ countries:
     assert report.status == "ready"
     assert report.synced_count == 1
     assert len(channels) == 1
-    assert channels[0].youtube_channel_id == "UCNSportsStable"
+    assert channels[0].youtube_channel_id == "UCDemoSportsStable"
     assert channels[0].important is True
     assert channels[0].important_mode == "program_rules"
     assert [(rule.op, rule.value, rule.content_types) for rule in channels[0].important_rules] == [("contains", "Madrugol", ["completed"])]
@@ -74,7 +74,7 @@ def test_sync_configured_channels_preserves_existing_channel_identity_while_upda
         """
 countries:
   - code: ar
-    name: Argentina
+    name: Valdoria
     channels:
       - channel_id: UCExisting
         label: Existing Label
@@ -200,7 +200,7 @@ def test_metadata_for_channel_delegates_to_resolver_when_only_url_is_provided():
     url = "https://www.youtube.com/@LEquipe"
     resolved = ChannelMetadata(
         channel_id="UCyIV8rkza5Uk_sJIhqilBvQ",
-        title="L'Équipe",
+        title="Demo Sports FR",
         uploads_playlist_id="UUyIV8rkza5Uk_sJIhqilBvQ",
     )
     store = _fake_store(existing=None)
@@ -243,7 +243,7 @@ countries:
     name: Estados Unidos
     channels:
       - channel_id: UC4Ck2X1L_hhoeK1tojW8PXA
-        label: Soccer on ESPN
+        label: Soccer on Demo TV
         enabled: true
 """.strip(),
         encoding="utf-8",
@@ -273,7 +273,7 @@ def test_sync_configured_channels_preserves_existing_baseline_for_existing_chann
         """
 countries:
   - code: ar
-    name: Argentina
+    name: Valdoria
     channels:
       - channel_id: UCExisting
         label: Existing Label

@@ -640,12 +640,12 @@ def _parse_json_object(value: str | None) -> dict[str, Any] | None:
 def _country_label(country: str | None) -> str | None:
     labels = {
         "important": "IMPORTANTES",
-        "ecuador": "Ecuador",
-        "colombia": "Colombia",
-        "argentina": "Argentina",
-        "uruguay": "Uruguay",
-        "paraguay": "Paraguay",
-        "mexico": "México",
+        "aurenia": "Aurenia",
+        "montelia": "Montelia",
+        "valdoria": "Valdoria",
+        "rivamar": "Rivamar",
+        "bosquemar": "Bosquemar",
+        "terramar": "Terramar",
     }
     if not country:
         return None

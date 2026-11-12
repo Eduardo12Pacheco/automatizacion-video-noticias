@@ -67,13 +67,13 @@ assets/overlays/
 ├─ particle-2.mp4
 ├─ overlay-layer-01.mp4
 ├─ overlay-layer-02.mp4
-├─ final-demo-co.mp4
-├─ final-demo-ec.mp4
-├─ logo-demo-alpha.webm
-├─ logo-demo-co.mp4
+├─ outro-secondary.mp4
+├─ outro-primary.mp4
+├─ logo-primary.webm
+├─ logo-secondary.mp4
 ├─ logo-green.mp4
-├─ logo-demo-co-alpha-frames/
-└─ logo-ecuador-alpha-frames/
+├─ logo-secondary-alpha-frames/
+└─ logo-primary-alpha-frames/
 ```
 
 No subas assets pesados nuevos a GitHub sin decisión explícita. El repo conserva `.gitkeep` para la carpeta, pero los archivos reales pueden vivir localmente.
@@ -137,10 +137,10 @@ node scripts/render-video.js --project-root="projects/<id>" --profile=final
 
 ## Estado actual probado
 
-Se validó el proyecto Luis Díaz con el flujo oficial:
+Se validó el proyecto Luis Cárdenas con el flujo oficial:
 
 ```txt
-node scripts/render-video.js --project-root="projects/draft-luis-diaz-..." --profile=final
+node scripts/render-video.js --project-root="projects/draft-luis-cardenas-..." --profile=final
 ```
 
 Resultado probado:
@@ -148,8 +148,8 @@ Resultado probado:
 - MP4 generado correctamente.
 - Duración: `80.490667s`.
 - `dust.src`: `overlays/particle-2.mp4`.
-- `logo.src`: `overlays/logo-demo-co-alpha-frames`.
-- `outro.src`: `overlays/final-demo-co.mp4`.
+- `logo.src`: `overlays/logo-secondary-alpha-frames`.
+- `outro.src`: `overlays/outro-secondary.mp4`.
 - Polvos visibles en el render final.
 
 ## Scripts útiles

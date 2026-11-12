@@ -33,11 +33,11 @@ describe('news domain', () => {
   });
 
   it('builds one Google News RSS feed request per player', () => {
-    const requests = buildFeedRequests([{ seleccion: 'Ecuador', jugador: 'Moisés Caicedo' }], '1h', {
+    const requests = buildFeedRequests([{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }], '1h', {
       runId: 'run-1',
     });
     assert.equal(requests.length, 1);
-    assert.equal(requests[0].jugador, 'Moisés Caicedo');
+    assert.equal(requests[0].jugador, 'Nicolás Andrade');
     assert.equal(requests[0].source_kind, 'google_news_rss');
     assert.equal(requests[0].run_id, 'run-1');
     assert.match(requests[0].feed_url, /news\.google\.com\/rss\/search/);
@@ -61,14 +61,14 @@ describe('news domain', () => {
   it('splits direct football news from rows that need model classification', () => {
     const split = splitFootballNews([
       {
-        jugador: 'Moisés Caicedo',
-        titular: 'Caicedo anotó un gol con el Chelsea',
+        jugador: 'Nicolás Andrade',
+        titular: 'Andrade anotó un gol con el Costa Azul FC',
         fuente: 'Example',
-        snippet: 'Victoria en la Premier League',
+        snippet: 'Victoria en la Liga Demo',
       },
       {
-        jugador: 'Moisés Caicedo',
-        titular: 'Caicedo visitó una escuela',
+        jugador: 'Nicolás Andrade',
+        titular: 'Andrade visitó una escuela',
         fuente: 'Example',
         snippet: 'Actividad social',
       },
@@ -95,25 +95,25 @@ describe('news domain', () => {
 describe('script domain', () => {
   it('validates article extraction with the n8n relevance rules', () => {
     const job = {
-      link: 'https://news.example.local/caicedo-1',
-      jugador: 'Moisés Caicedo',
-      seleccion: 'Ecuador',
-      tema_principal: 'Gol de Caicedo',
-      titular: 'Caicedo anotó en la victoria del Chelsea',
+      link: 'https://news.example.local/andrade-1',
+      jugador: 'Nicolás Andrade',
+      seleccion: 'Aurenia',
+      tema_principal: 'Gol de Andrade',
+      titular: 'Andrade anotó en la victoria del Costa Azul FC',
       snippet: 'El mediocampista marcó el primer gol del partido.',
     };
     const article = {
-      title: 'Caicedo anotó en la victoria del Chelsea',
+      title: 'Andrade anotó en la victoria del Costa Azul FC',
       main_content: [
-        'Moisés Caicedo anotó el primer gol del Chelsea en la victoria del partido.',
-        'El mediocampista ecuatoriano jugó los noventa minutos y fue elegido figura.',
+        'Nicolás Andrade anotó el primer gol del Costa Azul FC en la victoria del partido.',
+        'El mediocampista aureniano jugó los noventa minutos y fue elegido figura.',
         'El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.',
-        'La selección de Ecuador también sigue de cerca su recuperación y su próximo partido de eliminatorias.',
+        'La selección de Aurenia también sigue de cerca su recuperación y su próximo partido de clasificatorias.',
       ].join(' '),
     };
     const valid = validateSourceArticle(article, job);
     assert.equal(valid.ok, true);
-    assert.ok(valid.combined_context.includes('Moisés Caicedo'));
+    assert.ok(valid.combined_context.includes('Nicolás Andrade'));
     assert.equal(valid.validation.body_words > 30, true);
 
     const betting = validateSourceArticle({
@@ -132,7 +132,7 @@ describe('script domain', () => {
     const prompt = buildScriptPrompt({
       tema_principal: 'Tema',
       jugador: 'Jugador',
-      seleccion: 'Ecuador',
+      seleccion: 'Aurenia',
       tag_editorial: 'elogio_director_tecnico',
       combined_context: 'Fuente 1\nContenido: ejemplo',
     });
@@ -150,7 +150,7 @@ describe('script domain', () => {
 
   it('builds the piped script and video segments used by the renderer', () => {
     const piped = buildPipedScript(
-      'Caicedo anotó el primer gol del partido y fue elegido figura. El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.\n\nSegundo párrafo con otra idea para el cierre.',
+      'Andrade anotó el primer gol del partido y fue elegido figura. El técnico destacó su rendimiento después del entrenamiento y confirmó que seguirá como titular.\n\nSegundo párrafo con otra idea para el cierre.',
     );
     assert.ok(piped.includes(' | '));
     assert.ok(piped.includes(' |\n\n'));
@@ -162,7 +162,7 @@ describe('script domain', () => {
   });
 
   it('builds pronunciation prompts and normalizes image candidates', () => {
-    assert.match(buildPronunciationPrompt('Chelsea ganó'), /Chelsea/);
+    assert.match(buildPronunciationPrompt('Costa Azul FC ganó'), /Costa Azul FC/);
     const candidates = normalizeImageCandidates([
       { imageUrl: 'https://img.example.local/1.jpg', link: 'https://tiktok.com/x', title: 'blocked' },
       { imageUrl: 'https://img.example.local/2.jpg', thumbnailUrl: 'https://img.example.local/2-thumb.jpg', source: 'Demo' },

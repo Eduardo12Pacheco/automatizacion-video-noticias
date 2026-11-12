@@ -85,7 +85,7 @@ export function createSubtitleAutoSaveController(ctx, callbacks = {}) {
       void flush('interval');
     }, SUBTITLE_AUTOSAVE_INTERVAL_MS);
     const documentRef = browser?.document || globalThis.document;
-    documentRef?.addEventListener?.('visibilitychange', onVisibilityChange);
+    documentRef?.addEventListener?.('visibilidemo tvhange', onVisibilityChange);
     windowRef?.addEventListener?.('pagehide', onLifecycleSave);
     windowRef?.addEventListener?.('beforeunload', onLifecycleSave);
   }
@@ -97,7 +97,7 @@ export function createSubtitleAutoSaveController(ctx, callbacks = {}) {
     if (intervalTimer) timers.clearInterval(intervalTimer);
     intervalTimer = null;
     const documentRef = browser?.document || globalThis.document;
-    documentRef?.removeEventListener?.('visibilitychange', onVisibilityChange);
+    documentRef?.removeEventListener?.('visibilidemo tvhange', onVisibilityChange);
     windowRef?.removeEventListener?.('pagehide', onLifecycleSave);
     windowRef?.removeEventListener?.('beforeunload', onLifecycleSave);
   }

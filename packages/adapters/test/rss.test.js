@@ -6,7 +6,7 @@ import { RssChannelFeedAdapter, RssNewsSourceAdapter, parseChannelFeed, parseNew
 const NEWS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
   <item>
-    <title>Moisés Caicedo anota en Chelsea - Diario Deportivo</title>
+    <title>Nicolás Andrade anota en Costa Azul FC - Diario Deportivo</title>
     <link>https://news.example.local/nota/1</link>
     <guid>https://news.example.local/nota/1</guid>
     <pubDate>Wed, 12 Nov 2026 10:00:00 GMT</pubDate>
@@ -33,21 +33,21 @@ const CHANNEL_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
 test('parseNewsFeed maps Google News RSS fields to the n8n news shape', () => {
   const rows = parseNewsFeed(NEWS_XML, {
-    jugador: 'Moisés Caicedo',
-    seleccion: 'Ecuador',
+    jugador: 'Nicolás Andrade',
+    seleccion: 'Aurenia',
     source_kind: 'google_news_rss',
     source_name: 'Google News RSS',
   });
 
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].jugador, 'Moisés Caicedo');
-  assert.equal(rows[0].seleccion, 'Ecuador');
-  assert.equal(rows[0].titular, 'Moisés Caicedo anota en Chelsea');
+  assert.equal(rows[0].jugador, 'Nicolás Andrade');
+  assert.equal(rows[0].seleccion, 'Aurenia');
+  assert.equal(rows[0].titular, 'Nicolás Andrade anota en Costa Azul FC');
   assert.equal(rows[0].fuente, 'Diario Deportivo');
   assert.equal(rows[0].fuente_origen, 'google_news_rss');
   assert.equal(rows[0].estado_revision, 'pendiente');
   assert.equal(rows[0].snippet, 'El mediocampista marcó y fue figura.');
-  assert.match(rows[0].id_noticia, /^Moisés Caicedo-2026-11-12-/);
+  assert.match(rows[0].id_noticia, /^Nicolás Andrade-2026-11-12-/);
 });
 
 test('RssNewsSourceAdapter fetches the request feed_url and rejects HTTP failures', async () => {
@@ -59,9 +59,9 @@ test('RssNewsSourceAdapter fetches the request feed_url and rejects HTTP failure
     },
   });
 
-  const rows = await adapter.fetchFeed({ feed_url: 'https://news.example.local/rss', jugador: 'Piero Hincapié' });
+  const rows = await adapter.fetchFeed({ feed_url: 'https://news.example.local/rss', jugador: 'Mateo Salvatierra' });
   assert.equal(urls[0], 'https://news.example.local/rss');
-  assert.equal(rows[0].jugador, 'Piero Hincapié');
+  assert.equal(rows[0].jugador, 'Mateo Salvatierra');
 
   const failing = new RssNewsSourceAdapter({
     fetchImpl: async () => ({ ok: false, status: 502, async text() { return ''; } }),

@@ -261,19 +261,19 @@ def test_manual_video_project_form_uses_n8n_country_player_catalog_and_preserves
     assert 'id="manualVideoProjectScriptInput" class="script-area"' in html
     assert '<select id="manualVideoProjectCountryInput">' in html
     assert '<select id="manualVideoProjectPlayerInput" disabled>' in html
-    assert 'type="text" placeholder="Luis Díaz"' not in html
-    assert 'type="text" placeholder="Colombia"' not in html
+    assert 'type="text" placeholder="Luis Cárdenas"' not in html
+    assert 'type="text" placeholder="Montelia"' not in html
 
-    # New contract: the catalog is reshaped to { players, nicknames } and adds México.
+    # New contract: the catalog is reshaped to { players, nicknames } and adds Terramar.
     # Asserting the union of NEW entries (not an exact list) keeps the test stable when
     # future maintainers add more players or nicknames.
     required_entries = {
-        "Ecuador": ["La Tri"],
-        "Colombia": ["Los Cafeteros"],
-        "Argentina": ["La Albiceleste"],
-        "Uruguay": ["La Celeste"],
-        "Paraguay": ["La Albirroja"],
-        "México": ["Santiago Giménez", "Guillermo Ochoa", "Edson Álvarez", "El Tri"],
+        "Aurenia": ["La Aurenia"],
+        "Montelia": ["Los Montelios"],
+        "Valdoria": ["La Valdoriana"],
+        "Rivamar": ["La Rivamarense"],
+        "Bosquemar": ["La Bosquemarense"],
+        "Terramar": ["Santiago Gil", "Guillermo Olvera", "Edson Ávila", "El Terramar"],
     }
 
     # Catalog source must mention every required country and entry (cheap, no-JS sanity check).
@@ -299,12 +299,12 @@ def test_manual_video_project_form_uses_n8n_country_player_catalog_and_preserves
 import { listVideoProjectCountries, listVideoProjectPlayers } from './js/modules/features/video-projects/domain/player-catalog.js';
 
 const required = {
-  "Ecuador": ["La Tri"],
-  "Colombia": ["Los Cafeteros"],
-  "Argentina": ["La Albiceleste"],
-  "Uruguay": ["La Celeste"],
-  "Paraguay": ["La Albirroja"],
-  "México": ["Santiago Giménez", "Guillermo Ochoa", "Edson Álvarez", "El Tri"],
+  "Aurenia": ["La Aurenia"],
+  "Montelia": ["Los Montelios"],
+  "Valdoria": ["La Valdoriana"],
+  "Rivamar": ["La Rivamarense"],
+  "Bosquemar": ["La Bosquemarense"],
+  "Terramar": ["Santiago Gil", "Guillermo Olvera", "Edson Ávila", "El Terramar"],
 };
 
 const countries = listVideoProjectCountries();

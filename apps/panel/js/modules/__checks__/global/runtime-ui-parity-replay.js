@@ -225,11 +225,11 @@ function replayCompositionAssetsScenario() {
   const missingLogoUrl = resolveCompositionLogoUrl({
     editor_state: {
       approval_contract_snapshot: {
-        globalLayers: { logo: { enabled: true, source: 'logo-demo-alpha.webm' } },
+        globalLayers: { logo: { enabled: true, source: 'logo-primary.webm' } },
       },
     },
   });
-  if (missingLogoUrl !== './assets/logo-demo-alpha.webm') return { ok: false, reason: 'local logo fallback drift' };
+  if (missingLogoUrl !== './assets/logo-primary.webm') return { ok: false, reason: 'local logo fallback drift' };
 
   return { ok: true };
 }

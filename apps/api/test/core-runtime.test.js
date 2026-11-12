@@ -10,15 +10,15 @@ describe('core runtime adapter injection', () => {
       async extract() {
         return {
           article: {
-            title: 'Caicedo vuelve',
-            main_content: 'Caicedo vuelve a entrenar con Ecuador. '.repeat(20),
+            title: 'Andrade vuelve',
+            main_content: 'Andrade vuelve a entrenar con Aurenia. '.repeat(20),
           },
         };
       }
     }
     class Llm {
       async complete() {
-        return { text: 'Ecuador ajusta su mediocampo. '.repeat(50) };
+        return { text: 'Aurenia ajusta su mediocampo. '.repeat(50) };
       }
     }
 
@@ -30,12 +30,12 @@ describe('core runtime adapter injection', () => {
     });
     await repository.upsertNews([{
       id_noticia: 'news-1',
-      seleccion: 'Ecuador',
-      jugador: 'Moisés Caicedo',
-      titular: 'Caicedo vuelve',
+      seleccion: 'Aurenia',
+      jugador: 'Nicolás Andrade',
+      titular: 'Andrade vuelve',
       link: 'https://example.local/news-1',
       estado_revision: 'aprobado',
-      tema_principal: 'Caicedo vuelve',
+      tema_principal: 'Andrade vuelve',
     }]);
     await repository.applyApprovalDecision({ idNoticia: 'news-1', clusterId: null, action: 'approve' });
     const result = await runtime.useCases.draftScript.execute({ id_noticia: 'news-1' });

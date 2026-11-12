@@ -52,7 +52,7 @@ def test_boundary_request_dtos_match_expected_endpoint_payload_contracts():
         ChannelResolveRequest(source="https://youtube.com/@club"),
         VideoMetadataRequest(video_id="vid-1"),
         UploadsPlaylistRequest(uploads_playlist_id="UUStable", page_limit=2, item_limit=25),
-        SubtitleFetchRequest(video_id="vid-sub", source_language="argentina", default_language="en"),
+        SubtitleFetchRequest(video_id="vid-sub", source_language="valdoria", default_language="en"),
         WebSubRenewRequest(channel_id="UCStable", callback_url="https://boundary.example.test/callback", lease_seconds=3600),
     ]
 
@@ -62,7 +62,7 @@ def test_boundary_request_dtos_match_expected_endpoint_payload_contracts():
         ("/v1/playlists/uploads", {"uploads_playlist_id": "UUStable", "page_limit": 2, "item_limit": 25}),
         (
             "/v1/subtitles/fetch",
-            {"video_id": "vid-sub", "source_language": "argentina", "default_language": "en"},
+            {"video_id": "vid-sub", "source_language": "valdoria", "default_language": "en"},
         ),
         (
             "/v1/websub/renew",
@@ -97,7 +97,7 @@ def test_boundary_client_posts_authenticated_requests_and_maps_successful_result
     metadata = client.get_video_metadata("vid-1")
     upload_items = list(client.iter_upload_items("UUResolved", page_limit=2, item_limit=50))
     upload_ids = client.list_upload_video_ids("UUResolved", limit=5)
-    subtitles = client.fetch(video_id="vid-1", source_language="argentina", default_language="en")
+    subtitles = client.fetch(video_id="vid-1", source_language="valdoria", default_language="en")
     renewed = client.renew("UCResolved", lease_seconds=3600)
 
     assert (channel.channel_id, channel.title, channel.uploads_playlist_id) == ("UCResolved", "Club", "UUResolved")
@@ -149,7 +149,7 @@ def test_boundary_client_maps_subtitle_boundary_errors_to_retryable_subtitle_una
     )
 
     try:
-        client.fetch(video_id="vid-sub", source_language="argentina", default_language="en")
+        client.fetch(video_id="vid-sub", source_language="valdoria", default_language="en")
     except SubtitleUnavailable as exc:
         error = exc
     else:

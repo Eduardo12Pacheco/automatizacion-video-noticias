@@ -85,12 +85,12 @@ class CaptionLanguageResolution:
 
 
 COUNTRY_LANGUAGE_CODES = {
-    "argentina": "es",
-    "mexico": "es",
-    "colombia": "es",
-    "ecuador": "es",
-    "uruguay": "es",
-    "paraguay": "es",
+    "valdoria": "es",
+    "terramar": "es",
+    "montelia": "es",
+    "aurenia": "es",
+    "rivamar": "es",
+    "bosquemar": "es",
     "spain": "es",
     "espana": "es",
     "france": "fr",

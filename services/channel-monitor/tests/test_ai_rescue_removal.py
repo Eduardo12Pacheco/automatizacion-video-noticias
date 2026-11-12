@@ -65,7 +65,7 @@ def test_card_context_dismissals_accept_only_monitor_card_surface(tmp_path):
     store.migrate()
     store.upsert_card_context_dismissal(
         surface="monitor-card",
-        target_context="ecuador",
+        target_context="aurenia",
         video_id="monitor-video",
         dismissed_at="2026-06-05T12:00:00Z",
     )
@@ -73,7 +73,7 @@ def test_card_context_dismissals_accept_only_monitor_card_surface(tmp_path):
     with pytest.raises(ValueError, match="invalid_surface"):
         store.upsert_card_context_dismissal(
             surface="ai-rescue-candidate",
-            target_context="ecuador",
+            target_context="aurenia",
             video_id="legacy-ai-rescue-video",
             candidate_id=123,
             dismissed_at="2026-06-05T12:05:00Z",
@@ -82,7 +82,7 @@ def test_card_context_dismissals_accept_only_monitor_card_surface(tmp_path):
     with sqlite3.connect(db_path) as connection:
         rows = connection.execute("select surface, target_context, video_id, candidate_id from card_context_dismissals").fetchall()
 
-    assert rows == [("monitor-card", "ecuador", "monitor-video", None)]
+    assert rows == [("monitor-card", "aurenia", "monitor-video", None)]
 
 
 def test_main_runtime_source_has_no_legacy_ai_rescue_confirmation_helper():

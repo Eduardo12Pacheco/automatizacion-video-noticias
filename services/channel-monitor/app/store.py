@@ -809,12 +809,12 @@ class MonitorStore:
                         else 1
                     end,
                     case matches.target_country
-                        when 'ecuador' then 1
-                        when 'colombia' then 2
-                        when 'argentina' then 3
-                        when 'uruguay' then 4
-                        when 'paraguay' then 5
-                        when 'mexico' then 6
+                        when 'aurenia' then 1
+                        when 'montelia' then 2
+                        when 'valdoria' then 3
+                        when 'rivamar' then 4
+                        when 'bosquemar' then 5
+                        when 'terramar' then 6
                         else 99
                     end,
                     case when channels.algorithm_priority_rank is null then 1 else 0 end,
@@ -912,12 +912,12 @@ class MonitorStore:
                 {where}
                 order by
                     case target_country
-                        when 'ecuador' then 1
-                        when 'colombia' then 2
-                        when 'argentina' then 3
-                        when 'uruguay' then 4
-                        when 'paraguay' then 5
-                        when 'mexico' then 6
+                        when 'aurenia' then 1
+                        when 'montelia' then 2
+                        when 'valdoria' then 3
+                        when 'rivamar' then 4
+                        when 'bosquemar' then 5
+                        when 'terramar' then 6
                         else 99
                     end,
                     id
@@ -1025,12 +1025,12 @@ class MonitorStore:
                 where video_id = ?
                 order by
                     case target_country
-                        when 'ecuador' then 1
-                        when 'colombia' then 2
-                        when 'argentina' then 3
-                        when 'uruguay' then 4
-                        when 'paraguay' then 5
-                        when 'mexico' then 6
+                        when 'aurenia' then 1
+                        when 'montelia' then 2
+                        when 'valdoria' then 3
+                        when 'rivamar' then 4
+                        when 'bosquemar' then 5
+                        when 'terramar' then 6
                         else 99
                     end,
                     id
@@ -1444,12 +1444,12 @@ class MonitorStore:
                 {where}
                 order by
                     case matches.target_country
-                        when 'ecuador' then 1
-                        when 'colombia' then 2
-                        when 'argentina' then 3
-                        when 'uruguay' then 4
-                        when 'paraguay' then 5
-                        when 'mexico' then 6
+                        when 'aurenia' then 1
+                        when 'montelia' then 2
+                        when 'valdoria' then 3
+                        when 'rivamar' then 4
+                        when 'bosquemar' then 5
+                        when 'terramar' then 6
                         else 99
                     end,
                     case when channels.algorithm_priority_rank is null then 1 else 0 end,

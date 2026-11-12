@@ -1273,7 +1273,7 @@ test('subtitle auto-save debounces dirty valid sessions and skips overlapping sa
   assert.equal(autosaveStatus.textContent.startsWith('Guardado automáticamente'), true);
   assert.equal(intervals[0].ms, 15000);
   assert.ok(clearedIntervals.includes('interval-1'));
-  assert.equal(documentListeners.has('visibilitychange'), false);
+  assert.equal(documentListeners.has('visibilidemo tvhange'), false);
   assert.equal(windowListeners.has('pagehide'), false);
 });
 

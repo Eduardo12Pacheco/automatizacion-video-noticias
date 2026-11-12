@@ -29,7 +29,7 @@ test('image search combines SearXNG and Wikimedia results and dedupes URLs', asy
         query: {
           pages: {
             1: {
-              title: 'File:Moisés Caicedo 2022.jpg',
+              title: 'File:Nicolás Andrade 2022.jpg',
               imageinfo: [{
                 thumburl: 'https://upload.wikimedia.org/b.jpg',
                 url: 'https://upload.wikimedia.org/b-big.jpg',
@@ -46,7 +46,7 @@ test('image search combines SearXNG and Wikimedia results and dedupes URLs', asy
     },
   });
 
-  const result = await adapter.search({ query: 'Moisés Caicedo', limit: 10 });
+  const result = await adapter.search({ query: 'Nicolás Andrade', limit: 10 });
 
   assert.equal(result.images.length, 2);
   assert.equal(result.images[0].source, 'searxng');

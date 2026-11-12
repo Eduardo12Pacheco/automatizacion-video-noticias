@@ -1,8 +1,8 @@
 {
-  "name": "known positive Argentina target mention",
+  "name": "known positive Valdoria target mention",
   "target": {
     "type": "country",
-    "name": "Argentina",
+    "name": "Valdoria",
     "aliases": []
   },
   "extra_keywords": [],
@@ -11,7 +11,7 @@
       "id": "s1",
       "start_ms": 12000,
       "end_ms": 16000,
-      "text": "La albiceleste presiona alto y recupera el balón."
+      "text": "La Valdoria presiona alto y recupera el balón."
     },
     {
       "id": "s2",
@@ -22,12 +22,12 @@
   ],
   "expected_matches": [
     {
-      "keyword": "albiceleste",
-      "canonical": "Argentina",
+      "keyword": "valdoria",
+      "canonical": "Valdoria",
       "segment_id": "s1",
       "start_ms": 12000,
       "end_ms": 16000,
-      "text": "La albiceleste presiona alto y recupera el balón."
+      "text": "La Valdoria presiona alto y recupera el balón."
     }
   ]
 }

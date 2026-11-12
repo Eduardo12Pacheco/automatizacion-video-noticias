@@ -1,20 +1,20 @@
 export const DEFAULT_PLAYERS = Object.freeze([
-  { seleccion: 'Ecuador', jugador: 'Moisés Caicedo' },
-  { seleccion: 'Ecuador', jugador: 'Piero Hincapié' },
-  { seleccion: 'Ecuador', jugador: 'Willian Pacho' },
-  { seleccion: 'Ecuador', jugador: 'Gonzalo Plata' },
-  { seleccion: 'Ecuador', jugador: 'Kendry Páez' },
-  { seleccion: 'Ecuador', jugador: 'Enner Valencia' },
-  { seleccion: 'Colombia', jugador: 'James Rodríguez' },
-  { seleccion: 'Colombia', jugador: 'Luis Díaz' },
-  { seleccion: 'Colombia', jugador: 'Juan Fernando Quintero' },
-  { seleccion: 'Colombia', jugador: 'Jhon Arias' },
-  { seleccion: 'Argentina', jugador: 'Lionel Messi' },
-  { seleccion: 'Argentina', jugador: 'Julián Álvarez' },
-  { seleccion: 'Argentina', jugador: 'Emiliano Martínez' },
-  { seleccion: 'Uruguay', jugador: 'Federico Valverde' },
-  { seleccion: 'Paraguay', jugador: 'Julio Enciso' },
-  { seleccion: 'Paraguay', jugador: 'Miguel Almirón' },
+  { seleccion: 'Aurenia', jugador: 'Nicolás Andrade' },
+  { seleccion: 'Aurenia', jugador: 'Mateo Salvatierra' },
+  { seleccion: 'Aurenia', jugador: 'Iván Cordero' },
+  { seleccion: 'Aurenia', jugador: 'Diego Peralta' },
+  { seleccion: 'Aurenia', jugador: 'Ángel Mera' },
+  { seleccion: 'Aurenia', jugador: 'Bruno Valdivia' },
+  { seleccion: 'Montelia', jugador: 'Jaime Rueda' },
+  { seleccion: 'Montelia', jugador: 'Luis Cárdenas' },
+  { seleccion: 'Montelia', jugador: 'Juan Fernando Quiroga' },
+  { seleccion: 'Montelia', jugador: 'Jonás Arriola' },
+  { seleccion: 'Valdoria', jugador: 'Leonel Márquez' },
+  { seleccion: 'Valdoria', jugador: 'Julián Alvarado' },
+  { seleccion: 'Valdoria', jugador: 'Emiliano Ferreyra' },
+  { seleccion: 'Rivamar', jugador: 'Federico Valdés' },
+  { seleccion: 'Bosquemar', jugador: 'Julio Enríquez' },
+  { seleccion: 'Bosquemar', jugador: 'Miguel Almada' },
 ]);
 
 const FOOTBALL_KEYWORDS = Object.freeze([
@@ -23,9 +23,9 @@ const FOOTBALL_KEYWORDS = Object.freeze([
   'convocado', 'convocatoria', 'alineacion', 'alineación', 'titular', 'suplente', 'capitan', 'capitán',
   'vestuario', 'lesion', 'lesión', 'lesionado', 'recuperacion', 'recuperación', 'fichaje', 'transferencia',
   'mercado', 'renovacion', 'renovación', 'contrato', 'debut', 'victoria', 'derrota', 'empate', 'torneo',
-  'liga', 'copa', 'champions', 'libertadores', 'sudamericana', 'eliminatorias', 'mundial', 'chelsea',
-  'liverpool', 'leverkusen', 'psg', 'barcelona', 'real madrid', 'arsenal', 'brighton', 'premier league',
-  'bundesliga', 'ligue 1', 'serie a', 'la liga',
+  'liga', 'copa', 'copa estelar', 'copa continental', 'copa austral', 'clasificatorias', 'copa internacional', 'costa azul',
+  'ría dorada', 'lago sereno', 'capital', 'sierra alta', 'valle norte', 'bahía norte', 'mar abierto', 'liga demo',
+  'liga demo', 'liga demo', 'liga demo', 'liga demo',
 ]);
 
 export function normalizeWindow(value) {
@@ -48,7 +48,7 @@ export function buildFeedRequests(players = DEFAULT_PLAYERS, window = '24h', { r
       window_ms: normalized.window_ms,
       source_kind: 'google_news_rss',
       source_name: 'Google News RSS',
-      feed_url: `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=es-419&gl=EC&ceid=EC:es-419`,
+      feed_url: `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=es-419&gl=US&ceid=US:es-419`,
     };
   });
 }

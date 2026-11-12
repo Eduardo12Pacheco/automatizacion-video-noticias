@@ -9,21 +9,21 @@ from typing import Any
 import yaml
 
 
-TARGET_COUNTRY_ORDER = ("ecuador", "colombia", "argentina", "uruguay", "paraguay", "mexico")
+TARGET_COUNTRY_ORDER = ("aurenia", "montelia", "valdoria", "rivamar", "bosquemar", "terramar")
 COUNTRY_ALIASES = {
-    "ec": "ecuador",
-    "ecuador": "ecuador",
-    "co": "colombia",
-    "colombia": "colombia",
-    "ar": "argentina",
-    "argentina": "argentina",
-    "uy": "uruguay",
-    "uruguay": "uruguay",
-    "py": "paraguay",
-    "paraguay": "paraguay",
-    "mx": "mexico",
-    "mexico": "mexico",
-    "méxico": "mexico",
+    "ec": "aurenia",
+    "aurenia": "aurenia",
+    "co": "montelia",
+    "montelia": "montelia",
+    "ar": "valdoria",
+    "valdoria": "valdoria",
+    "uy": "rivamar",
+    "rivamar": "rivamar",
+    "py": "bosquemar",
+    "bosquemar": "bosquemar",
+    "mx": "terramar",
+    "terramar": "terramar",
+    "terramar": "terramar",
 }
 
 

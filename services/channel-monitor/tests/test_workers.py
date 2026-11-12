@@ -91,7 +91,7 @@ def make_store(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="fr", label="L'Équipe", source_url=None, youtube_channel_id="UCStable")
+        ChannelRecord(country="fr", label="Demo Sports FR", source_url=None, youtube_channel_id="UCStable")
     )
     return store, channel
 
@@ -168,13 +168,13 @@ def test_discovery_worker_evaluates_completed_foreign_vod_once_and_marks_matchin
                 "vod-1": VideoMetadata(
                     video_id="vod-1",
                     channel_id="UCStable",
-                    title="Ecuador postgame reaction",
+                    title="Aurenia postgame reaction",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 )
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
 
     first = worker.process_video_id("vod-1")
@@ -182,7 +182,7 @@ def test_discovery_worker_evaluates_completed_foreign_vod_once_and_marks_matchin
 
     assert first.lifecycle == "enqueue_pending"
     assert first.matched is True
-    assert "ecuador" in (first.match_reason or "")
+    assert "aurenia" in (first.match_reason or "")
     assert second.lifecycle == "enqueue_pending"
     assert worker.youtube.calls == ["vod-1"]
 
@@ -208,13 +208,13 @@ def test_catchup_worker_processes_unseen_uploads_and_skips_known_before_metadata
                 "new-1": VideoMetadata(
                     video_id="new-1",
                     channel_id="UCStable",
-                    title="Ecuador postgame",
+                    title="Aurenia postgame",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 )
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     catchup = CatchupWorker(
         store=store,
@@ -275,20 +275,20 @@ def test_pending_live_polling_records_dns_failure_and_continues_sibling_items(tm
                 "live-ok": VideoMetadata(
                     video_id="live-ok",
                     channel_id="UCStable",
-                    title="Ecuador postgame reaction",
+                    title="Aurenia postgame reaction",
                     published_at="2026-05-19T09:00:00Z",
                     live_status="completed",
                 ),
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
 
     results = worker.poll_pending_live()
 
     assert [(video.video_id, video.lifecycle, video.match_reason) for video in results] == [
         ("live-dns", "metadata_failed", "item_processing_failed:OSError"),
-        ("live-ok", "enqueue_pending", '[{"type": "country", "country": "ecuador", "term": "ecuador"}]'),
+        ("live-ok", "enqueue_pending", '[{"type": "country", "country": "aurenia", "term": "aurenia"}]'),
     ]
     assert worker.youtube.calls == ["live-dns", "live-ok"]
 
@@ -314,13 +314,13 @@ def test_catchup_worker_records_unexpected_item_failure_and_continues_sibling_it
                 "good-item": VideoMetadata(
                     video_id="good-item",
                     channel_id="UCStable",
-                    title="Ecuador postgame",
+                    title="Aurenia postgame",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 ),
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     catchup = CatchupWorker(
         store=store,
@@ -333,7 +333,7 @@ def test_catchup_worker_records_unexpected_item_failure_and_continues_sibling_it
 
     assert [(video.video_id, video.lifecycle, video.match_reason) for video in results] == [
         ("bad-item", "metadata_failed", "item_processing_failed:RuntimeError"),
-        ("good-item", "enqueue_pending", '[{"type": "country", "country": "ecuador", "term": "ecuador"}]'),
+        ("good-item", "enqueue_pending", '[{"type": "country", "country": "aurenia", "term": "aurenia"}]'),
     ]
     assert discovery.youtube.calls == ["bad-item", "good-item"]
     assert store.get_video("bad-item").matched is False
@@ -343,7 +343,7 @@ def test_catchup_worker_uses_baseline_to_skip_pre_baseline_history(tmp_path):
     store, channel = make_store(tmp_path)
     channel = store.upsert_channel(ChannelRecord(id=channel.id, country=channel.country, label=channel.label, source_url=channel.source_url, youtube_channel_id=channel.youtube_channel_id, uploads_playlist_id="UUStable", enabled=True))
     store.stamp_channel_baseline(channel.id, baseline_started_at="2026-05-28T20:00:00Z")
-    discovery = DiscoveryWorker(store=store, youtube=FakeYouTube({}), matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])))
+    discovery = DiscoveryWorker(store=store, youtube=FakeYouTube({}), matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])))
     catchup = CatchupWorker(store=store, youtube=FakeUploadPlaylistClient({"UUStable": [UploadItem(video_id="old", published_at="2026-05-28T19:59:59Z")]}), discovery=discovery, page_limit=2, item_limit=10)
 
     assert catchup.run_once() == []
@@ -358,9 +358,9 @@ def test_catchup_worker_resolves_missing_upload_timestamp_before_skipping_old_ba
     discovery = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube({
-            "tz8m8h19vGc": VideoMetadata(video_id="tz8m8h19vGc", channel_id="UCStable", title="Old L'Équipe upload", published_at="2026-04-15T16:01:39Z", live_status="completed"),
+            "tz8m8h19vGc": VideoMetadata(video_id="tz8m8h19vGc", channel_id="UCStable", title="Old Demo Sports FR upload", published_at="2026-04-15T16:01:39Z", live_status="completed"),
         }),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     catchup = CatchupWorker(store=store, youtube=FakeUploadPlaylistClient({"UUStable": [UploadItem(video_id="tz8m8h19vGc", published_at=None)]}), discovery=discovery, page_limit=2, item_limit=10)
 
@@ -381,9 +381,9 @@ def test_catchup_worker_processes_and_checkpoints_new_item_after_resolving_missi
     discovery = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube({
-            "new-missing-ts": VideoMetadata(video_id="new-missing-ts", channel_id="UCStable", title="Ecuador postgame", published_at="2026-05-29T01:46:00Z", live_status="completed"),
+            "new-missing-ts": VideoMetadata(video_id="new-missing-ts", channel_id="UCStable", title="Aurenia postgame", published_at="2026-05-29T01:46:00Z", live_status="completed"),
         }),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     catchup = CatchupWorker(
         store=store,
@@ -416,7 +416,7 @@ def test_catchup_worker_records_error_without_checkpoint_or_terminal_video_when_
     discovery = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube({"missing-meta": MetadataUnavailable("missing-meta")}),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     catchup = CatchupWorker(store=store, youtube=FakeUploadPlaylistClient({"UUStable": [UploadItem(video_id="missing-meta", published_at=None)]}), discovery=discovery, page_limit=2, item_limit=10)
 
@@ -438,10 +438,10 @@ def test_catchup_worker_paginates_known_ids_and_advances_checkpoint_after_safe_d
     discovery = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube({
-            "new-1": VideoMetadata(video_id="new-1", channel_id="UCStable", title="Ecuador", published_at="2026-05-28T20:02:00Z", live_status="completed"),
-            "new-2": VideoMetadata(video_id="new-2", channel_id="UCStable", title="Ecuador", published_at="2026-05-28T20:01:00Z", live_status="completed"),
+            "new-1": VideoMetadata(video_id="new-1", channel_id="UCStable", title="Aurenia", published_at="2026-05-28T20:02:00Z", live_status="completed"),
+            "new-2": VideoMetadata(video_id="new-2", channel_id="UCStable", title="Aurenia", published_at="2026-05-28T20:01:00Z", live_status="completed"),
         }),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     uploads = [
         UploadItem(video_id="known", published_at="2026-05-28T20:03:00Z"),
@@ -465,9 +465,9 @@ def test_catchup_worker_does_not_advance_checkpoint_when_scan_is_truncated_befor
     discovery = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube({
-            "new-1": VideoMetadata(video_id="new-1", channel_id="UCStable", title="Ecuador", published_at="2026-05-28T20:02:00Z", live_status="completed"),
+            "new-1": VideoMetadata(video_id="new-1", channel_id="UCStable", title="Aurenia", published_at="2026-05-28T20:02:00Z", live_status="completed"),
         }),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     uploads = [UploadItem(video_id="new-1", published_at="2026-05-28T20:02:00Z")]
     catchup = CatchupWorker(store=store, youtube=FakeUploadPlaylistClient({"UUStable": uploads}), discovery=discovery, page_limit=1, item_limit=1)
@@ -487,9 +487,9 @@ def test_catchup_worker_processes_unseen_video_with_same_timestamp_as_checkpoint
     discovery = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube({
-            "same-ts": VideoMetadata(video_id="same-ts", channel_id="UCStable", title="Ecuador", published_at="2026-05-28T20:00:00Z", live_status="completed"),
+            "same-ts": VideoMetadata(video_id="same-ts", channel_id="UCStable", title="Aurenia", published_at="2026-05-28T20:00:00Z", live_status="completed"),
         }),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     uploads = [
         UploadItem(video_id="same-ts", published_at="2026-05-28T20:00:00Z"),
@@ -512,9 +512,9 @@ def test_catchup_worker_records_failed_upload_but_advances_for_later_processed_u
         store=store,
         youtube=FakeYouTube({
             "bad": RuntimeError("boom"),
-            "good": VideoMetadata(video_id="good", channel_id="UCStable", title="Ecuador", published_at="2026-05-28T20:02:00Z", live_status="completed"),
+            "good": VideoMetadata(video_id="good", channel_id="UCStable", title="Aurenia", published_at="2026-05-28T20:02:00Z", live_status="completed"),
         }),
-        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"ec": ["aurenia"]}, players=[])),
     )
     uploads = [
         UploadItem(video_id="good", published_at="2026-05-28T20:02:00Z"),
@@ -543,14 +543,14 @@ def test_source_country_only_match_is_ignored_and_mixed_foreign_match_is_accepte
                 "domestic": VideoMetadata(
                     video_id="domestic",
                     channel_id="UCCaracol",
-                    title="Colombia: rueda de prensa de James Rodríguez",
+                    title="Montelia: rueda de prensa de Jaime Rueda",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 ),
                 "mixed": VideoMetadata(
                     video_id="mixed",
                     channel_id="UCCaracol",
-                    title="Ecuador - Colombia análisis post partido",
+                    title="Aurenia - Montelia análisis post partido",
                     published_at="2026-05-19T13:00:00Z",
                     live_status="completed",
                 ),
@@ -558,8 +558,8 @@ def test_source_country_only_match_is_ignored_and_mixed_foreign_match_is_accepte
         ),
         matcher=TitleMatcher(
             TitleCatalog(
-                countries={"co": ["colombia"], "ec": ["ecuador"]},
-                players=[PlayerTerms(name="James Rodríguez", country="co", aliases=["james rodriguez"])],
+                countries={"co": ["montelia"], "ec": ["aurenia"]},
+                players=[PlayerTerms(name="Jaime Rueda", country="co", aliases=["jaime rueda"])],
             )
         ),
     )
@@ -577,7 +577,7 @@ def test_source_country_only_match_is_ignored_and_mixed_foreign_match_is_accepte
 def test_discovery_worker_creates_target_rows_for_every_non_source_match_and_rejects_domestic_only(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
-    store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    store.upsert_channel(ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
     worker = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube(
@@ -585,21 +585,21 @@ def test_discovery_worker_creates_target_rows_for_every_non_source_match_and_rej
                 "domestic": VideoMetadata(
                     video_id="domestic",
                     channel_id="UCCaracol",
-                    title="James habla de Colombia",
+                    title="Jaime habla de Montelia",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 ),
                 "multi": VideoMetadata(
                     video_id="multi",
                     channel_id="UCCaracol",
-                    title="Ecuador y México miran a Colombia",
+                    title="Aurenia y Terramar miran a Montelia",
                     published_at="2026-05-19T13:00:00Z",
                     live_status="completed",
                 ),
             }
         ),
         matcher=TitleMatcher(
-            TitleCatalog(countries={"colombia": ["colombia"], "ecuador": ["ecuador"], "mexico": ["mexico"]}, players=[])
+            TitleCatalog(countries={"montelia": ["montelia"], "aurenia": ["aurenia"], "terramar": ["terramar"]}, players=[])
         ),
     )
 
@@ -610,8 +610,8 @@ def test_discovery_worker_creates_target_rows_for_every_non_source_match_and_rej
     assert store.list_rejected_videos(limit=10).items[0].video_id == "domestic"
     assert multi.lifecycle == "enqueue_pending"
     assert [(match.target_country, match.status) for match in store.list_target_matches(video_id="multi")] == [
-        ("ecuador", "aprobado"),
-        ("mexico", "aprobado"),
+        ("aurenia", "aprobado"),
+        ("terramar", "aprobado"),
     ]
 
 
@@ -621,8 +621,8 @@ def test_discovery_worker_marks_important_title_mismatch_enqueue_pending_without
     store.migrate()
     store.upsert_channel(
         ChannelRecord(
-            country="argentina",
-            label="NSports",
+            country="valdoria",
+            label="Demo Sports",
             source_url=None,
             youtube_channel_id="UCImportant",
             important=True,
@@ -642,7 +642,7 @@ def test_discovery_worker_marks_important_title_mismatch_enqueue_pending_without
                 )
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ecuador": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"aurenia": ["aurenia"]}, players=[])),
         now=lambda: "2026-05-22T11:00:00Z",
     )
 
@@ -661,8 +661,8 @@ def test_discovery_worker_marks_full_channel_mode_important_without_country_targ
     store.migrate()
     store.upsert_channel(
         ChannelRecord(
-            country="argentina",
-            label="NSports",
+            country="valdoria",
+            label="Demo Sports",
             source_url=None,
             youtube_channel_id="UCFullImportant",
             important_mode="full_channel",
@@ -681,7 +681,7 @@ def test_discovery_worker_marks_full_channel_mode_important_without_country_targ
                 )
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ecuador": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"aurenia": ["aurenia"]}, players=[])),
         now=lambda: "2026-05-22T11:00:00Z",
     )
 
@@ -692,7 +692,7 @@ def test_discovery_worker_marks_full_channel_mode_important_without_country_targ
     assert result.classification_status == "important"
     assert result.classification_reason == "important_full_channel"
     assert json.loads(result.match_reason or "[]") == [
-        {"type": "important_full_channel", "label": "NSports", "source_country": "argentina"}
+        {"type": "important_full_channel", "label": "Demo Sports", "source_country": "valdoria"}
     ]
     assert result.classification_version == "title-country-v1"
     assert result.classified_at == "2026-05-22T11:00:00Z"
@@ -706,11 +706,11 @@ def test_discovery_worker_marks_matching_program_rule_important_without_marking_
     store.upsert_channel(
         ChannelRecord(
             country="peru",
-            label="Mr Peet",
+            label="Mr Demo",
             source_url=None,
             youtube_channel_id="UCMrPeet",
             important_mode="program_rules",
-            important_rules=[ImportantRule(content_types=["live", "completed"], op="starts_with", value="MADRUGOL CON MR PEET")],
+            important_rules=[ImportantRule(content_types=["live", "completed"], op="starts_with", value="MADRUGOL CON MR DEMO")],
         )
     )
     worker = DiscoveryWorker(
@@ -720,7 +720,7 @@ def test_discovery_worker_marks_matching_program_rule_important_without_marking_
                 "program-important": VideoMetadata(
                     video_id="program-important",
                     channel_id="UCMrPeet",
-                    title="Madrugol con Mr Peet: previa internacional",
+                    title="Madrugol con Mr Demo: previa internacional",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 ),
@@ -747,12 +747,12 @@ def test_discovery_worker_marks_matching_program_rule_important_without_marking_
     assert json.loads(important.match_reason or "[]") == [
         {
             "type": "important_program_rule",
-            "label": "Mr Peet",
+            "label": "Mr Demo",
             "source_country": "peru",
             "op": "starts_with",
-            "value": "MADRUGOL CON MR PEET",
-            "normalized_value": "madrugol con mr peet",
-            "normalized_title": "madrugol con mr peet previa internacional",
+            "value": "MADRUGOL CON MR DEMO",
+            "normalized_value": "madrugol con mr demo",
+            "normalized_title": "madrugol con mr demo previa internacional",
         }
     ]
     assert store.list_target_matches(video_id="program-important") == []
@@ -767,12 +767,12 @@ def test_discovery_worker_continues_normal_country_path_for_mixed_channel_nonmat
     store.migrate()
     store.upsert_channel(
         ChannelRecord(
-            country="mexico",
-            label="MARCA",
+            country="terramar",
+            label="DEMO",
             source_url=None,
             youtube_channel_id="UCMarca",
             important_mode="program_rules",
-            important_rules=[ImportantRule(content_types=["completed"], op="starts_with", value="LA PIZARRA DE QUINTANA")],
+            important_rules=[ImportantRule(content_types=["completed"], op="starts_with", value="LA PIZARRA DEMO")],
         )
     )
     worker = DiscoveryWorker(
@@ -782,13 +782,13 @@ def test_discovery_worker_continues_normal_country_path_for_mixed_channel_nonmat
                 "mixed-country": VideoMetadata(
                     video_id="mixed-country",
                     channel_id="UCMarca",
-                    title="Ecuador analiza mercado de fichajes",
+                    title="Aurenia analiza mercado de fichajes",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="completed",
                 )
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ecuador": ["ecuador"], "mexico": ["mexico"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"aurenia": ["aurenia"], "terramar": ["terramar"]}, players=[])),
         now=lambda: "2026-05-22T11:00:00Z",
     )
 
@@ -799,7 +799,7 @@ def test_discovery_worker_continues_normal_country_path_for_mixed_channel_nonmat
     assert result.classification_status == "approved"
     assert result.classification_reason == "target_match"
     assert [(match.target_country, match.status) for match in store.list_target_matches(video_id="mixed-country")] == [
-        ("ecuador", "aprobado")
+        ("aurenia", "aprobado")
     ]
     assert store.list_rejected_videos(limit=10).items == []
 
@@ -810,11 +810,11 @@ def test_discovery_worker_keeps_important_live_pending_until_completed_then_eval
     store.upsert_channel(
         ChannelRecord(
             country="chile",
-            label="ADN Chile",
+            label="Demo Noticias",
             source_url=None,
             youtube_channel_id="UCAdnChile",
             important_mode="program_rules",
-            important_rules=[ImportantRule(content_types=["live", "completed"], op="contains", value="TENORES")],
+            important_rules=[ImportantRule(content_types=["live", "completed"], op="contains", value="DEMO RADIO")],
         )
     )
     worker = DiscoveryWorker(
@@ -824,14 +824,14 @@ def test_discovery_worker_keeps_important_live_pending_until_completed_then_eval
                 "pending-program": VideoMetadata(
                     video_id="pending-program",
                     channel_id="UCAdnChile",
-                    title="Los Tenores en vivo",
+                    title="Demo Radio en vivo",
                     published_at="2026-05-19T12:00:00Z",
                     live_status="live",
                 ),
                 "completed-program": VideoMetadata(
                     video_id="completed-program",
                     channel_id="UCAdnChile",
-                    title="Los Tenores resumen final",
+                    title="Demo Radio resumen final",
                     published_at="2026-05-19T13:00:00Z",
                     live_status="completed",
                 ),
@@ -861,8 +861,8 @@ def test_enqueue_worker_submits_important_channel_without_target_rows_to_all_rea
     store.migrate()
     channel = store.upsert_channel(
         ChannelRecord(
-            country="argentina",
-            label="NSports",
+            country="valdoria",
+            label="Demo Sports",
             source_url=None,
             youtube_channel_id="UCImportant",
             important=True,
@@ -877,7 +877,7 @@ def test_enqueue_worker_submits_important_channel_without_target_rows_to_all_rea
             url="https://youtu.be/important-ready",
             lifecycle="enqueue_pending",
             matched=True,
-            match_reason='[{"type":"important_channel","country":"ecuador"},{"type":"important_channel","country":"colombia"},{"type":"important_channel","country":"argentina"},{"type":"important_channel","country":"uruguay"},{"type":"important_channel","country":"paraguay"},{"type":"important_channel","country":"mexico"}]',
+            match_reason='[{"type":"important_channel","country":"aurenia"},{"type":"important_channel","country":"montelia"},{"type":"important_channel","country":"valdoria"},{"type":"important_channel","country":"rivamar"},{"type":"important_channel","country":"bosquemar"},{"type":"important_channel","country":"terramar"}]',
             classification_status="important_channel",
         )
     )
@@ -896,8 +896,8 @@ def test_enqueue_worker_submits_important_full_channel_to_all_target_countries(t
     store.migrate()
     channel = store.upsert_channel(
         ChannelRecord(
-            country="argentina",
-            label="NSports",
+            country="valdoria",
+            label="Demo Sports",
             source_url=None,
             youtube_channel_id="UCImportantFull",
             important=True,
@@ -913,7 +913,7 @@ def test_enqueue_worker_submits_important_full_channel_to_all_target_countries(t
             url="https://youtu.be/important-full-ready",
             lifecycle="enqueue_pending",
             matched=True,
-            match_reason='[{"type":"important_full_channel","label":"NSports","source_country":"argentina"}]',
+            match_reason='[{"type":"important_full_channel","label":"Demo Sports","source_country":"valdoria"}]',
             classification_status="important",
             important_mode="full_channel",
             queue_priority_tier="important",
@@ -935,22 +935,22 @@ def test_enqueue_worker_submits_important_program_rule_to_all_target_countries(t
     channel = store.upsert_channel(
         ChannelRecord(
             country="peru",
-            label="Mr Peet",
+            label="Mr Demo",
             source_url=None,
             youtube_channel_id="UCMrPeet",
             important_mode="program_rules",
-            important_rules=[ImportantRule(content_types=["completed"], op="starts_with", value="MADRUGOL CON MR PEET")],
+            important_rules=[ImportantRule(content_types=["completed"], op="starts_with", value="MADRUGOL CON MR DEMO")],
         )
     )
     store.upsert_video(
         VideoRecord(
             video_id="important-program-ready",
             channel_id=channel.id,
-            title="MADRUGOL CON MR PEET - previa internacional",
+            title="MADRUGOL CON MR DEMO - previa internacional",
             url="https://youtu.be/important-program-ready",
             lifecycle="enqueue_pending",
             matched=True,
-            match_reason='[{"type":"important_program_rule","label":"Mr Peet","source_country":"peru","op":"starts_with","value":"MADRUGOL CON MR PEET"}]',
+            match_reason='[{"type":"important_program_rule","label":"Mr Demo","source_country":"peru","op":"starts_with","value":"MADRUGOL CON MR DEMO"}]',
             classification_status="important",
             important_mode="program_rules",
             queue_priority_tier="important",
@@ -970,7 +970,7 @@ def test_enqueue_worker_submits_important_program_rule_to_all_target_countries(t
 def test_discovery_worker_keeps_non_important_title_mismatch_rejected(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
-    store.upsert_channel(ChannelRecord(country="argentina", label="Normal", source_url=None, youtube_channel_id="UCNormal"))
+    store.upsert_channel(ChannelRecord(country="valdoria", label="Normal", source_url=None, youtube_channel_id="UCNormal"))
     worker = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube(
@@ -984,7 +984,7 @@ def test_discovery_worker_keeps_non_important_title_mismatch_rejected(tmp_path):
                 )
             }
         ),
-        matcher=TitleMatcher(TitleCatalog(countries={"ecuador": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"aurenia": ["aurenia"]}, players=[])),
     )
 
     result = worker.process_video_id("normal-mismatch")
@@ -1002,17 +1002,17 @@ def test_classification_service_returns_foreign_targets_and_rejects_domestic_onl
     classifier = ClassificationService(
         matcher=TitleMatcher(
             TitleCatalog(
-                countries={"colombia": ["colombia"], "ecuador": ["ecuador"]},
-                players=[PlayerTerms(name="James Rodríguez", country="colombia", aliases=["james rodriguez"])],
+                countries={"montelia": ["montelia"], "aurenia": ["aurenia"]},
+                players=[PlayerTerms(name="Jaime Rueda", country="montelia", aliases=["jaime rueda"])],
             )
         ),
         classification_version="title-country-v1",
     )
 
-    foreign = classifier.classify(title="Ecuador y Colombia en análisis", source_country="colombia")
-    domestic = classifier.classify(title="James Rodríguez habla de Colombia", source_country="colombia")
+    foreign = classifier.classify(title="Aurenia y Montelia en análisis", source_country="montelia")
+    domestic = classifier.classify(title="Jaime Rueda habla de Montelia", source_country="montelia")
 
-    assert foreign.target_countries == ["ecuador"]
+    assert foreign.target_countries == ["aurenia"]
     assert foreign.status == "approved"
     assert foreign.reason == "target_match"
     assert foreign.classification_version == "title-country-v1"
@@ -1024,10 +1024,10 @@ def test_classification_service_returns_foreign_targets_and_rejects_domestic_onl
 def test_backfill_dry_run_reports_without_writes_and_apply_is_classification_only_idempotent(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
-    channel = store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
-    store.upsert_video(VideoRecord(video_id="stale", channel_id=channel.id, title="Ecuador mira a Colombia", lifecycle="ignored_seen"))
+    channel = store.upsert_channel(ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    store.upsert_video(VideoRecord(video_id="stale", channel_id=channel.id, title="Aurenia mira a Montelia", lifecycle="ignored_seen"))
     classifier = ClassificationService(
-        matcher=TitleMatcher(TitleCatalog(countries={"colombia": ["colombia"], "ecuador": ["ecuador"]}, players=[])),
+        matcher=TitleMatcher(TitleCatalog(countries={"montelia": ["montelia"], "aurenia": ["aurenia"]}, players=[])),
         classification_version="title-country-v1",
     )
     backfill = ClassificationBackfill(store=store, classifier=classifier, now=lambda: "2026-05-22T10:00:00Z")
@@ -1045,13 +1045,13 @@ def test_backfill_dry_run_reports_without_writes_and_apply_is_classification_onl
     assert apply_twice.candidate_count == 0
     assert store.get_video("stale").lifecycle == "ignored_seen"
     assert store.list_enqueue_attempts("stale") == []
-    assert [(match.target_country, match.status) for match in store.list_target_matches(video_id="stale")] == [("ecuador", "aprobado")]
+    assert [(match.target_country, match.status) for match in store.list_target_matches(video_id="stale")] == [("aurenia", "aprobado")]
 
 
 def test_duplicate_discovery_preserves_existing_target_and_rejected_state(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
-    store.upsert_channel(ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
+    store.upsert_channel(ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol"))
     worker = DiscoveryWorker(
         store=store,
         youtube=FakeYouTube(
@@ -1059,14 +1059,14 @@ def test_duplicate_discovery_preserves_existing_target_and_rejected_state(tmp_pa
                 "multi": VideoMetadata(
                     video_id="multi",
                     channel_id="UCCaracol",
-                    title="Ecuador y México miran a Colombia",
+                    title="Aurenia y Terramar miran a Montelia",
                     published_at="2026-05-19T13:00:00Z",
                     live_status="completed",
                 )
             }
         ),
         matcher=TitleMatcher(
-            TitleCatalog(countries={"colombia": ["colombia"], "ecuador": ["ecuador"], "mexico": ["mexico"]}, players=[])
+            TitleCatalog(countries={"montelia": ["montelia"], "aurenia": ["aurenia"], "terramar": ["terramar"]}, players=[])
         ),
     )
 
@@ -1077,8 +1077,8 @@ def test_duplicate_discovery_preserves_existing_target_and_rejected_state(tmp_pa
     assert first.video_id == second.video_id
     assert worker.youtube.calls == ["multi"]
     assert [(match.target_country, match.status) for match in store.list_target_matches(video_id="multi")] == [
-        ("ecuador", "transcribiendo"),
-        ("mexico", "aprobado"),
+        ("aurenia", "transcribiendo"),
+        ("terramar", "aprobado"),
     ]
 
 
@@ -1086,21 +1086,21 @@ def test_enqueue_worker_does_not_submit_normal_title_matches(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="basura", channel_id=channel.id, title="Solo Colombia", lifecycle="ignored_seen"))
-    store.upsert_rejected_video(video_id="basura", source_country="colombia", reason="no_valid_target_match")
+    store.upsert_video(VideoRecord(video_id="basura", channel_id=channel.id, title="Solo Montelia", lifecycle="ignored_seen"))
+    store.upsert_rejected_video(video_id="basura", source_country="montelia", reason="no_valid_target_match")
     store.upsert_video(
-        VideoRecord(video_id="mexico-video", channel_id=channel.id, title="México", url="https://youtu.be/mx", lifecycle="enqueue_pending", matched=True)
+        VideoRecord(video_id="terramar-video", channel_id=channel.id, title="Terramar", url="https://youtu.be/mx", lifecycle="enqueue_pending", matched=True)
     )
     store.upsert_target_match(
-        store.make_target_match(video_id="mexico-video", target_country="mexico", status="aprobado")
+        store.make_target_match(video_id="terramar-video", target_country="terramar", status="aprobado")
     )
     store.upsert_video(
-        VideoRecord(video_id="ecuador-video", channel_id=channel.id, title="Ecuador", url="https://youtu.be/ec", lifecycle="enqueue_pending", matched=True)
+        VideoRecord(video_id="aurenia-video", channel_id=channel.id, title="Aurenia", url="https://youtu.be/ec", lifecycle="enqueue_pending", matched=True)
     )
     store.upsert_target_match(
-        store.make_target_match(video_id="ecuador-video", target_country="ecuador", status="aprobado")
+        store.make_target_match(video_id="aurenia-video", target_country="aurenia", status="aprobado")
     )
     radar = FakeRadarSubmitter()
 
@@ -1108,29 +1108,29 @@ def test_enqueue_worker_does_not_submit_normal_title_matches(tmp_path):
 
     assert results == []
     assert radar.calls == []
-    assert store.list_target_matches(video_id="ecuador-video")[0].status == "aprobado"
-    assert store.list_target_matches(video_id="mexico-video")[0].status == "aprobado"
+    assert store.list_target_matches(video_id="aurenia-video")[0].status == "aprobado"
+    assert store.list_target_matches(video_id="terramar-video")[0].status == "aprobado"
 
 
 def test_enqueue_worker_does_not_submit_while_any_target_match_is_transcribing(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="running", channel_id=channel.id, title="Ecuador", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="running", target_country="ecuador", status="transcribiendo"))
+    store.upsert_video(VideoRecord(video_id="running", channel_id=channel.id, title="Aurenia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="running", target_country="aurenia", status="transcribiendo"))
     store.upsert_video(
         VideoRecord(
             video_id="ready-next",
             channel_id=channel.id,
-            title="México",
+            title="Terramar",
             url="https://youtu.be/ready-next",
             lifecycle="enqueue_pending",
             matched=True,
         )
     )
-    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="mexico", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="terramar", status="aprobado"))
     radar = FakeRadarSubmitter()
 
     results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
@@ -1144,10 +1144,10 @@ def test_enqueue_worker_does_not_submit_while_important_mode_job_is_active(tmp_p
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     important_channel = store.upsert_channel(
-        ChannelRecord(country="peru", label="Mr Peet", source_url=None, youtube_channel_id="UCImportant", important_mode="program_rules")
+        ChannelRecord(country="peru", label="Mr Demo", source_url=None, youtube_channel_id="UCImportant", important_mode="program_rules")
     )
     normal_channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
@@ -1166,13 +1166,13 @@ def test_enqueue_worker_does_not_submit_while_important_mode_job_is_active(tmp_p
         VideoRecord(
             video_id="ready-next",
             channel_id=normal_channel.id,
-            title="Ecuador",
+            title="Aurenia",
             url="https://youtu.be/ready-next",
             lifecycle="enqueue_pending",
             matched=True,
         )
     )
-    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="aurenia", status="aprobado"))
     radar = FakeRadarSubmitter()
 
     results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
@@ -1186,13 +1186,13 @@ def test_enqueue_worker_reuses_one_radar_job_for_all_targets_on_same_video(tmp_p
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
             video_id="multi-target",
             channel_id=channel.id,
-            title="Ecuador y México",
+            title="Aurenia y Terramar",
             url="https://youtu.be/multi-target",
             lifecycle="enqueue_pending",
             matched=True,
@@ -1202,17 +1202,17 @@ def test_enqueue_worker_reuses_one_radar_job_for_all_targets_on_same_video(tmp_p
             queue_priority_rank=0,
         )
     )
-    store.upsert_target_match(store.make_target_match(video_id="multi-target", target_country="mexico", status="aprobado"))
-    store.upsert_target_match(store.make_target_match(video_id="multi-target", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="multi-target", target_country="terramar", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="multi-target", target_country="aurenia", status="aprobado"))
     radar = FakeRadarSubmitter()
 
     results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
 
     assert [video.video_id for video in results] == ["multi-target"]
-    assert radar.calls == [("https://youtu.be/multi-target", ["ecuador", "mexico"])]
+    assert radar.calls == [("https://youtu.be/multi-target", ["aurenia", "terramar"])]
     assert [(match.target_country, match.status, match.radar_job_id) for match in store.list_target_matches(video_id="multi-target")] == [
-        ("ecuador", "transcribiendo", "job-1"),
-        ("mexico", "transcribiendo", "job-1"),
+        ("aurenia", "transcribiendo", "job-1"),
+        ("terramar", "transcribiendo", "job-1"),
     ]
 
 
@@ -1226,7 +1226,7 @@ def test_enqueue_worker_records_queue_priority_audit_on_country_job_attempt(tmp_
         VideoRecord(
             video_id="priority-country",
             channel_id=channel.id,
-            title="Ecuador",
+            title="Aurenia",
             url="https://youtu.be/priority-country",
             lifecycle="enqueue_pending",
             matched=True,
@@ -1234,16 +1234,16 @@ def test_enqueue_worker_records_queue_priority_audit_on_country_job_attempt(tmp_
             important_mode="program_rules",
         )
     )
-    store.upsert_target_match(store.make_target_match(video_id="priority-country", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="priority-country", target_country="aurenia", status="aprobado"))
     radar = FakeRadarSubmitter()
 
     EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
 
     match = store.list_target_matches(video_id="priority-country")[0]
     attempt = store.list_enqueue_attempts("priority-country")[0]
-    assert match.queue_priority_tier == "ecuador:algorithm_priority"
+    assert match.queue_priority_tier == "aurenia:algorithm_priority"
     assert match.queue_priority_rank == 1
-    assert attempt.queue_priority_tier == "ecuador:algorithm_priority"
+    assert attempt.queue_priority_tier == "aurenia:algorithm_priority"
     assert attempt.queue_priority_rank == 1
 
 
@@ -1251,13 +1251,13 @@ def test_enqueue_worker_keeps_approved_targets_retryable_when_radar_is_busy(tmp_
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
             video_id="retry-me",
             channel_id=channel.id,
-            title="Ecuador",
+            title="Aurenia",
             url="https://youtu.be/retry-me",
             lifecycle="enqueue_pending",
             matched=True,
@@ -1265,15 +1265,15 @@ def test_enqueue_worker_keeps_approved_targets_retryable_when_radar_is_busy(tmp_
             important_mode="program_rules",
         )
     )
-    store.upsert_target_match(store.make_target_match(video_id="retry-me", target_country="ecuador", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="retry-me", target_country="aurenia", status="aprobado"))
     radar = BusyRadarSubmitter()
 
     results = EnqueueWorker(store=store, radar=radar, now=lambda: "2026-05-20T10:00:00Z").enqueue_due()
 
     assert [video.video_id for video in results] == ["retry-me"]
-    assert radar.calls == [("https://youtu.be/retry-me", ["ecuador"])]
+    assert radar.calls == [("https://youtu.be/retry-me", ["aurenia"])]
     assert [(match.target_country, match.status, match.radar_job_id) for match in store.list_target_matches(video_id="retry-me")] == [
-        ("ecuador", "aprobado", None)
+        ("aurenia", "aprobado", None)
     ]
     assert store.list_enqueue_attempts("retry-me")[-1].next_attempt_at == "2026-05-20T10:05:00Z"
 
@@ -1282,19 +1282,19 @@ def test_transcript_sync_worker_scopes_completed_summary_to_each_existing_target
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="mexico", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
+        ChannelRecord(country="terramar", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
     )
-    store.upsert_video(VideoRecord(video_id="multi", channel_id=channel.id, title="Ecuador y Colombia", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="multi", target_country="ecuador", status="transcribiendo", radar_job_id="job-1"))
-    store.upsert_target_match(store.make_target_match(video_id="multi", target_country="colombia", status="transcribiendo", radar_job_id="job-1"))
+    store.upsert_video(VideoRecord(video_id="multi", channel_id=channel.id, title="Aurenia y Montelia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="multi", target_country="aurenia", status="transcribiendo", radar_job_id="job-1"))
+    store.upsert_target_match(store.make_target_match(video_id="multi", target_country="montelia", status="transcribiendo", radar_job_id="job-1"))
     radar = FakeRadarStatusClient(
         detail_by_job_id={"job-1": {"job_id": "job-1", "status": "succeeded"}},
         summary_by_job_id={
             "job-1": {
                 "items": [
-                    {"country": "colombia", "label": "Colombia", "count": 2},
-                    {"country": "colombia", "label": "James Rodríguez", "count": 1},
-                    {"country": "ecuador", "label": "Gonzalo Plata", "count": 0},
+                    {"country": "montelia", "label": "Montelia", "count": 2},
+                    {"country": "montelia", "label": "Jaime Rueda", "count": 1},
+                    {"country": "aurenia", "label": "Diego Peralta", "count": 0},
                 ]
             }
         },
@@ -1305,8 +1305,8 @@ def test_transcript_sync_worker_scopes_completed_summary_to_each_existing_target
     assert synced == ["multi"]
     assert radar.calls == [("detail", "job-1"), ("summary", "job-1")]
     assert [(match.target_country, match.status, match.mention_counts_json) for match in store.list_target_matches(video_id="multi")] == [
-        ("ecuador", "transcrito", "[]"),
-        ("colombia", "transcrito", '[{"label":"Colombia","count":2},{"label":"James Rodríguez","count":1}]'),
+        ("aurenia", "transcrito", "[]"),
+        ("montelia", "transcrito", '[{"label":"Montelia","count":2},{"label":"Jaime Rueda","count":1}]'),
     ]
 
 
@@ -1314,17 +1314,17 @@ def test_transcript_sync_worker_creates_transcript_discovered_country_without_ze
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="mexico", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
+        ChannelRecord(country="terramar", label="TUDN", source_url=None, youtube_channel_id="UCTudn")
     )
-    store.upsert_video(VideoRecord(video_id="discover", channel_id=channel.id, title="COPA PLATA", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="discover", target_country="ecuador", status="transcribiendo", radar_job_id="job-discover"))
+    store.upsert_video(VideoRecord(video_id="discover", channel_id=channel.id, title="COPA DEMO", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="discover", target_country="aurenia", status="transcribiendo", radar_job_id="job-discover"))
     radar = FakeRadarStatusClient(
         detail_by_job_id={"job-discover": {"job_id": "job-discover", "status": "succeeded"}},
         summary_by_job_id={
             "job-discover": {
                 "items": [
-                    {"country": "uruguay", "label": "Uruguay", "count": 3},
-                    {"country": "argentina", "label": "Argentina", "count": 0},
+                    {"country": "rivamar", "label": "Rivamar", "count": 3},
+                    {"country": "valdoria", "label": "Valdoria", "count": 0},
                 ]
             }
         },
@@ -1337,8 +1337,8 @@ def test_transcript_sync_worker_creates_transcript_discovered_country_without_ze
         (match.target_country, match.status, match.approval_source, match.mention_counts_json)
         for match in store.list_target_matches(video_id="discover")
     ] == [
-        ("ecuador", "transcrito", "title_classifier", "[]"),
-        ("uruguay", "transcrito", "transcript_summary", '[{"label":"Uruguay","count":3}]'),
+        ("aurenia", "transcrito", "title_classifier", "[]"),
+        ("rivamar", "transcrito", "transcript_summary", '[{"label":"Rivamar","count":3}]'),
     ]
 
 
@@ -1346,17 +1346,17 @@ def test_transcript_sync_worker_terminal_sync_does_not_enqueue_normal_due_match(
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="done", channel_id=channel.id, title="Ecuador", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="done", target_country="ecuador", status="transcribiendo", radar_job_id="job-done"))
+    store.upsert_video(VideoRecord(video_id="done", channel_id=channel.id, title="Aurenia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="done", target_country="aurenia", status="transcribiendo", radar_job_id="job-done"))
     store.upsert_video(
-        VideoRecord(video_id="ready-next", channel_id=channel.id, title="México", url="https://youtu.be/ready-next", lifecycle="enqueue_pending", matched=True)
+        VideoRecord(video_id="ready-next", channel_id=channel.id, title="Terramar", url="https://youtu.be/ready-next", lifecycle="enqueue_pending", matched=True)
     )
-    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="mexico", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="terramar", status="aprobado"))
     sync_radar = FakeRadarStatusClient(
         detail_by_job_id={"job-done": {"job_id": "job-done", "status": "succeeded"}},
-        summary_by_job_id={"job-done": {"items": [{"label": "Ecuador", "count": 1}]}},
+        summary_by_job_id={"job-done": {"items": [{"label": "Aurenia", "count": 1}]}},
     )
     enqueue_radar = FakeRadarSubmitter()
     enqueue_worker = EnqueueWorker(store=store, radar=enqueue_radar, now=lambda: "2026-05-20T10:00:00Z")
@@ -1372,39 +1372,39 @@ def test_transcript_sync_worker_marks_important_enqueue_attempt_terminal_with_ex
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     important_channel = store.upsert_channel(
-        ChannelRecord(country="argentina", label="NSports", source_url=None, youtube_channel_id="UCImportant", important=True)
+        ChannelRecord(country="valdoria", label="Demo Sports", source_url=None, youtube_channel_id="UCImportant", important=True)
     )
     normal_channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     store.upsert_video(
         VideoRecord(
             video_id="important-done",
             channel_id=important_channel.id,
-            title="Ecuador",
+            title="Aurenia",
             lifecycle="enqueued",
             matched=True,
             classification_status="important_channel",
         )
     )
     store.upsert_target_match(
-        store.make_target_match(video_id="important-done", target_country="ecuador", status="transcribiendo", radar_job_id="job-important")
+        store.make_target_match(video_id="important-done", target_country="aurenia", status="transcribiendo", radar_job_id="job-important")
     )
     store.record_enqueue_attempt(video_id="important-done", status="enqueued", radar_job_id="job-important")
     store.upsert_video(
         VideoRecord(
             video_id="ready-after-important",
             channel_id=normal_channel.id,
-            title="México",
+            title="Terramar",
             url="https://youtu.be/ready-after-important",
             lifecycle="enqueue_pending",
             matched=True,
         )
     )
-    store.upsert_target_match(store.make_target_match(video_id="ready-after-important", target_country="mexico", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="ready-after-important", target_country="terramar", status="aprobado"))
     sync_radar = FakeRadarStatusClient(
         detail_by_job_id={"job-important": {"job_id": "job-important", "status": "succeeded"}},
-        summary_by_job_id={"job-important": {"items": [{"country": "ecuador", "label": "Ecuador", "count": 1}]}},
+        summary_by_job_id={"job-important": {"items": [{"country": "aurenia", "label": "Aurenia", "count": 1}]}},
     )
     enqueue_radar = FakeRadarSubmitter()
     enqueue_worker = EnqueueWorker(store=store, radar=enqueue_radar, now=lambda: "2026-05-20T10:00:00Z")
@@ -1421,10 +1421,10 @@ def test_transcript_sync_worker_non_terminal_sync_does_not_trigger_immediate_enq
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="running", channel_id=channel.id, title="Ecuador", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="running", target_country="ecuador", status="transcribiendo", radar_job_id="job-running"))
+    store.upsert_video(VideoRecord(video_id="running", channel_id=channel.id, title="Aurenia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="running", target_country="aurenia", status="transcribiendo", radar_job_id="job-running"))
     radar = FakeRadarStatusClient(detail_by_job_id={"job-running": {"job_id": "job-running", "status": "running"}})
     enqueue_calls: list[str] = []
 
@@ -1438,16 +1438,16 @@ def test_transcript_sync_worker_immediate_enqueue_preserves_active_serial_guard(
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="failed", channel_id=channel.id, title="Ecuador", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="failed", target_country="ecuador", status="transcribiendo", radar_job_id="job-failed"))
-    store.upsert_video(VideoRecord(video_id="still-running", channel_id=channel.id, title="Uruguay", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="still-running", target_country="uruguay", status="transcribiendo", radar_job_id="job-running"))
+    store.upsert_video(VideoRecord(video_id="failed", channel_id=channel.id, title="Aurenia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="failed", target_country="aurenia", status="transcribiendo", radar_job_id="job-failed"))
+    store.upsert_video(VideoRecord(video_id="still-running", channel_id=channel.id, title="Rivamar", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="still-running", target_country="rivamar", status="transcribiendo", radar_job_id="job-running"))
     store.upsert_video(
-        VideoRecord(video_id="ready-next", channel_id=channel.id, title="México", url="https://youtu.be/ready-next", lifecycle="enqueue_pending", matched=True)
+        VideoRecord(video_id="ready-next", channel_id=channel.id, title="Terramar", url="https://youtu.be/ready-next", lifecycle="enqueue_pending", matched=True)
     )
-    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="mexico", status="aprobado"))
+    store.upsert_target_match(store.make_target_match(video_id="ready-next", target_country="terramar", status="aprobado"))
     sync_radar = FakeRadarStatusClient(
         detail_by_job_id={
             "job-failed": {"job_id": "job-failed", "status": "failed"},
@@ -1469,8 +1469,8 @@ def test_transcript_sync_worker_fans_out_important_summary_from_enqueue_attempt_
     store.migrate()
     channel = store.upsert_channel(
         ChannelRecord(
-            country="argentina",
-            label="NSports",
+            country="valdoria",
+            label="Demo Sports",
             source_url=None,
             youtube_channel_id="UCImportant",
             important=True,
@@ -1493,9 +1493,9 @@ def test_transcript_sync_worker_fans_out_important_summary_from_enqueue_attempt_
         summary_by_job_id={
             "job-important": {
                 "items": [
-                    {"country": "argentina", "label": "Argentina", "count": 2},
-                    {"country": "mexico", "label": "México", "count": 1},
-                    {"country": "uruguay", "label": "Uruguay", "count": 0},
+                    {"country": "valdoria", "label": "Valdoria", "count": 2},
+                    {"country": "terramar", "label": "Terramar", "count": 1},
+                    {"country": "rivamar", "label": "Rivamar", "count": 0},
                     {"country": "IMPORTANTES", "label": "Important", "count": 5},
                 ]
             }
@@ -1506,18 +1506,18 @@ def test_transcript_sync_worker_fans_out_important_summary_from_enqueue_attempt_
 
     assert synced == ["important-fanout"]
     assert radar.calls == [("detail", "job-important"), ("summary", "job-important")]
-    assert store.list_important_cards()[0]["mention_counts_json"] == '[{"label":"Argentina","count":2},{"label":"México","count":1}]'
+    assert store.list_important_cards()[0]["mention_counts_json"] == '[{"label":"Valdoria","count":2},{"label":"Terramar","count":1}]'
     assert [(match.target_country, match.status, match.approval_source) for match in store.list_target_matches(video_id="important-fanout")] == [
-        ("mexico", "transcrito", "transcript_summary"),
+        ("terramar", "transcrito", "transcript_summary"),
     ]
-    assert all(match.target_country not in {"argentina", "important", "importantes"} for match in store.list_target_matches(video_id="important-fanout"))
+    assert all(match.target_country not in {"valdoria", "important", "importantes"} for match in store.list_target_matches(video_id="important-fanout"))
 
 
 def test_transcript_sync_worker_fans_out_important_summary_to_multiple_non_source_countries_with_audit(tmp_path):
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="uruguay", label="Important UY", source_url=None, youtube_channel_id="UCUy", important_mode="full_channel")
+        ChannelRecord(country="rivamar", label="Important UY", source_url=None, youtube_channel_id="UCUy", important_mode="full_channel")
     )
     store.upsert_video(
         VideoRecord(
@@ -1539,9 +1539,9 @@ def test_transcript_sync_worker_fans_out_important_summary_to_multiple_non_sourc
         summary_by_job_id={
             "job-important-multi": {
                 "items": [
-                    {"country": "colombia", "label": "Colombia", "count": 3},
-                    {"country": "ecuador", "label": "Ecuador", "count": 2},
-                    {"country": "uruguay", "label": "Uruguay", "count": 5},
+                    {"country": "montelia", "label": "Montelia", "count": 3},
+                    {"country": "aurenia", "label": "Aurenia", "count": 2},
+                    {"country": "rivamar", "label": "Rivamar", "count": 5},
                     {"country": "important", "label": "Important", "count": 9},
                 ]
             }
@@ -1555,8 +1555,8 @@ def test_transcript_sync_worker_fans_out_important_summary_to_multiple_non_sourc
         (match.target_country, match.status, match.approval_source, match.classification_version, match.queue_priority_tier)
         for match in store.list_target_matches(video_id="important-multi-fanout")
     ] == [
-        ("ecuador", "transcrito", "transcript_summary", "title-country-v1", "ecuador:normal"),
-        ("colombia", "transcrito", "transcript_summary", "title-country-v1", "colombia:normal"),
+        ("aurenia", "transcrito", "transcript_summary", "title-country-v1", "aurenia:normal"),
+        ("montelia", "transcrito", "transcript_summary", "title-country-v1", "montelia:normal"),
     ]
 
 
@@ -1564,7 +1564,7 @@ def test_transcript_sync_worker_marks_zero_mention_important_job_complete_withou
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="argentina", label="NSports", source_url=None, youtube_channel_id="UCImportant", important=True)
+        ChannelRecord(country="valdoria", label="Demo Sports", source_url=None, youtube_channel_id="UCImportant", important=True)
     )
     store.upsert_video(
         VideoRecord(video_id="important-zero", channel_id=channel.id, lifecycle="enqueued", matched=True, classification_status="important_channel")
@@ -1572,7 +1572,7 @@ def test_transcript_sync_worker_marks_zero_mention_important_job_complete_withou
     store.record_enqueue_attempt(video_id="important-zero", status="enqueued", radar_job_id="job-zero")
     radar = FakeRadarStatusClient(
         detail_by_job_id={"job-zero": {"job_id": "job-zero", "status": "succeeded"}},
-        summary_by_job_id={"job-zero": {"items": [{"country": "uruguay", "label": "Uruguay", "count": 0}]}},
+        summary_by_job_id={"job-zero": {"items": [{"country": "rivamar", "label": "Rivamar", "count": 0}]}},
     )
 
     synced = TranscriptSyncWorker(store=store, radar=radar).sync_once()
@@ -1587,13 +1587,13 @@ def test_transcript_sync_worker_keeps_geo_blocked_important_visible_without_coun
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="peru", label="Mr Peet", source_url=None, youtube_channel_id="UCMrPeet", important_mode="program_rules")
+        ChannelRecord(country="peru", label="Mr Demo", source_url=None, youtube_channel_id="UCMrPeet", important_mode="program_rules")
     )
     store.upsert_video(
         VideoRecord(
             video_id="important-geo-blocked",
             channel_id=channel.id,
-            title="Madrugol con Mr Peet",
+            title="Madrugol con Mr Demo",
             lifecycle="enqueued",
             matched=True,
             classification_status="important",
@@ -1627,11 +1627,11 @@ def test_transcript_sync_worker_marks_all_target_matches_error_when_job_fails(tm
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="failed", channel_id=channel.id, title="Ecuador y México", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="failed", target_country="ecuador", status="transcribiendo", radar_job_id="job-failed"))
-    store.upsert_target_match(store.make_target_match(video_id="failed", target_country="mexico", status="transcribiendo", radar_job_id="job-failed"))
+    store.upsert_video(VideoRecord(video_id="failed", channel_id=channel.id, title="Aurenia y Terramar", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="failed", target_country="aurenia", status="transcribiendo", radar_job_id="job-failed"))
+    store.upsert_target_match(store.make_target_match(video_id="failed", target_country="terramar", status="transcribiendo", radar_job_id="job-failed"))
     radar = FakeRadarStatusClient(
         detail_by_job_id={"job-failed": {"job_id": "job-failed", "status": "failed", "error": {"code": "transcription_failed"}}}
     )
@@ -1641,8 +1641,8 @@ def test_transcript_sync_worker_marks_all_target_matches_error_when_job_fails(tm
     assert synced == ["failed"]
     assert radar.calls == [("detail", "job-failed")]
     assert [(match.target_country, match.status, match.last_error) for match in store.list_target_matches(video_id="failed")] == [
-        ("ecuador", "error", "transcription_failed"),
-        ("mexico", "error", "transcription_failed"),
+        ("aurenia", "error", "transcription_failed"),
+        ("terramar", "error", "transcription_failed"),
     ]
 
 
@@ -1650,12 +1650,12 @@ def test_transcript_sync_worker_preserves_typed_radar_failures_for_operator_labe
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
     cases = [
-        ("live-1", "ecuador", "job-live", "yt_dlp_live_pending"),
-        ("copy-1", "mexico", "job-copy", "yt_dlp_copyright_blocked"),
-        ("generic-1", "argentina", "job-generic", "unknown_provider_error"),
+        ("live-1", "aurenia", "job-live", "yt_dlp_live_pending"),
+        ("copy-1", "terramar", "job-copy", "yt_dlp_copyright_blocked"),
+        ("generic-1", "valdoria", "job-generic", "unknown_provider_error"),
     ]
     for video_id, country, job_id, _code in cases:
         store.upsert_video(VideoRecord(video_id=video_id, channel_id=channel.id, title=f"Failed {video_id}", lifecycle="enqueued", matched=True))
@@ -1682,10 +1682,10 @@ def test_transcript_sync_worker_marks_geo_blocked_jobs_terminal_without_retry(tm
     store = MonitorStore(tmp_path / "monitor.sqlite3")
     store.migrate()
     channel = store.upsert_channel(
-        ChannelRecord(country="colombia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
+        ChannelRecord(country="montelia", label="Caracol", source_url=None, youtube_channel_id="UCCaracol")
     )
-    store.upsert_video(VideoRecord(video_id="blocked", channel_id=channel.id, title="Ecuador", lifecycle="enqueued", matched=True))
-    store.upsert_target_match(store.make_target_match(video_id="blocked", target_country="ecuador", status="transcribiendo", radar_job_id="job-blocked"))
+    store.upsert_video(VideoRecord(video_id="blocked", channel_id=channel.id, title="Aurenia", lifecycle="enqueued", matched=True))
+    store.upsert_target_match(store.make_target_match(video_id="blocked", target_country="aurenia", status="transcribiendo", radar_job_id="job-blocked"))
     radar = FakeRadarStatusClient(
         detail_by_job_id={
             "job-blocked": {
@@ -1701,7 +1701,7 @@ def test_transcript_sync_worker_marks_geo_blocked_jobs_terminal_without_retry(tm
     assert synced == ["blocked"]
     matches = store.list_target_matches(video_id="blocked")
     assert [(match.target_country, match.status, match.last_error) for match in matches] == [
-        ("ecuador", "geo_blocked", "yt_dlp_geo_blocked")
+        ("aurenia", "geo_blocked", "yt_dlp_geo_blocked")
     ]
     assert store.list_transcribing_video_jobs() == []
 
@@ -1774,7 +1774,7 @@ def test_websub_renewal_worker_records_failed_subscription_without_callback_secr
             "code": "subscription_failed",
             "channel_id": channel.id,
             "youtube_channel_id": "UCStable",
-            "label": "L'Équipe",
+            "label": "Demo Sports FR",
             "last_error": "websub_renewal_rejected",
         }
     ]

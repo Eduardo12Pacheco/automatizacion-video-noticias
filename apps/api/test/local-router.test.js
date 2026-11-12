@@ -22,25 +22,25 @@ const NOW = new Date('2026-11-10T12:00:00.000Z');
 const NEWS = [
   {
     id_noticia: 'news-1',
-    seleccion: 'Ecuador',
-    jugador: 'Moisés Caicedo',
-    titular: 'Caicedo anotó en la victoria del Chelsea',
+    seleccion: 'Aurenia',
+    jugador: 'Nicolás Andrade',
+    titular: 'Andrade anotó en la victoria del Costa Azul FC',
     fuente: 'Example Sports',
     fecha_publicacion: '2026-11-10T10:00:00.000Z',
-    link: 'https://news.example.local/caicedo-1',
+    link: 'https://news.example.local/andrade-1',
     snippet: 'El mediocampista marcó el primer gol.',
     estado_revision: 'pendiente',
-    tema_principal: 'Gol de Caicedo',
+    tema_principal: 'Gol de Andrade',
     google_position: 1,
   },
   {
     id_noticia: 'news-2',
-    seleccion: 'Ecuador',
-    jugador: 'Moisés Caicedo',
-    titular: 'Caicedo, titular ante el Arsenal',
+    seleccion: 'Aurenia',
+    jugador: 'Nicolás Andrade',
+    titular: 'Andrade, titular ante el Bahía Norte FC',
     fuente: 'Example Football',
     fecha_publicacion: '2026-11-10T09:00:00.000Z',
-    link: 'https://news.example.local/caicedo-2',
+    link: 'https://news.example.local/andrade-2',
     snippet: 'El técnico confirmó la alineación.',
     estado_revision: 'pendiente',
     tema_principal: 'Alineación',
@@ -49,11 +49,11 @@ const NEWS = [
 ];
 
 const CLUSTER = {
-  cluster_id: 'cluster-caicedo',
-  seleccion: 'Ecuador',
-  jugador: 'Moisés Caicedo',
-  tema_principal: 'Regreso de Caicedo',
-  resumen_cluster: 'Caicedo entrenó y fue titular.',
+  cluster_id: 'cluster-andrade',
+  seleccion: 'Aurenia',
+  jugador: 'Nicolás Andrade',
+  tema_principal: 'Regreso de Andrade',
+  resumen_cluster: 'Andrade entrenó y fue titular.',
   tag_editorial: 'club',
   fecha_creacion_cluster: '2026-11-10T11:00:00.000Z',
   sources: [
@@ -89,8 +89,8 @@ async function seedDraft(repository) {
   await repository.completeScriptJob({
     idNoticia: 'news-1',
     draftId: 'draft-news-1',
-    guionDraft: 'Moisés Caicedo anotó y fue figura del partido.',
-    guionEditado: 'Moisés Caicedo anotó y fue figura del partido.',
+    guionDraft: 'Nicolás Andrade anotó y fue figura del partido.',
+    guionEditado: 'Nicolás Andrade anotó y fue figura del partido.',
     wordCount: 9,
   });
 }
@@ -119,7 +119,7 @@ async function createHarness() {
     now: () => NOW,
     newsSource: { async fetchFeed() { return [{ ...NEWS[0], fecha_publicacion: NOW.toISOString() }]; } },
     llm: mockLlm('{"results":[]}'),
-    players: [{ seleccion: 'Ecuador', jugador: 'Moisés Caicedo' }],
+    players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
   });
   const clusterTopics = new ClusterTopics({
     repository,
@@ -129,7 +129,7 @@ async function createHarness() {
   const publishScript = new PublishScript({
     repository,
     createVideoProject,
-    llm: mockLlm('Moisés Caicedo'),
+    llm: mockLlm('Nicolás Andrade'),
     documentExport: createDocumentAdapter(),
     imageSearch: {
       async search() {
@@ -202,9 +202,9 @@ describe('local API router', () => {
     const topic = await router.handle({
       method: 'GET',
       pathname: '/webhook/approval/topic/supabase/v2',
-      searchParams: new URLSearchParams('cluster_id=cluster-caicedo'),
+      searchParams: new URLSearchParams('cluster_id=cluster-andrade'),
     });
-    assert.equal(topic.body.item.cluster_id, 'cluster-caicedo');
+    assert.equal(topic.body.item.cluster_id, 'cluster-andrade');
 
     const missing = await router.handle({
       method: 'GET',
@@ -328,10 +328,10 @@ describe('local API router', () => {
       method: 'POST',
       pathname: '/webhook/video-projects/manual-create/v1',
       readBody: jsonBody({
-        titulo: 'Manual Caicedo',
-        jugador: 'Moisés Caicedo',
-        seleccion: 'Ecuador',
-        guion: 'Moisés Caicedo anotó y fue figura del partido.',
+        titulo: 'Manual Andrade',
+        jugador: 'Nicolás Andrade',
+        seleccion: 'Aurenia',
+        guion: 'Nicolás Andrade anotó y fue figura del partido.',
       }),
     });
     assert.equal(response.status, 202);

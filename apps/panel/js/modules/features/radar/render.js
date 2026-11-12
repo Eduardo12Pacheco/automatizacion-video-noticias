@@ -1,20 +1,20 @@
 import { RADAR_COUNTRIES, getVisibleMonitorCards, mapMonitorCard, normalizeMonitorCardStatus } from './state.js';
-import { formatEcuadorDateTimeWithZone } from '../../shared/time/ecuador-time.js';
+import { formatDemoDateTimeWithZone } from '../../shared/time/demo-time.js';
 
 const COUNTRY_LABELS = new Map([
   ...RADAR_COUNTRIES.map((country) => [country.value, country.label]),
-  ['ar', 'Argentina'],
-  ['arg', 'Argentina'],
-  ['co', 'Colombia'],
-  ['col', 'Colombia'],
-  ['ec', 'Ecuador'],
-  ['ecu', 'Ecuador'],
-  ['py', 'Paraguay'],
-  ['pry', 'Paraguay'],
-  ['uy', 'Uruguay'],
-  ['ury', 'Uruguay'],
-  ['mx', 'México'],
-  ['mex', 'México'],
+  ['ar', 'Valdoria'],
+  ['arg', 'Valdoria'],
+  ['co', 'Montelia'],
+  ['col', 'Montelia'],
+  ['ec', 'Aurenia'],
+  ['ecu', 'Aurenia'],
+  ['py', 'Bosquemar'],
+  ['pry', 'Bosquemar'],
+  ['uy', 'Rivamar'],
+  ['ury', 'Rivamar'],
+  ['mx', 'Terramar'],
+  ['mex', 'Terramar'],
   ['important', 'IMPORTANTES'],
 ]);
 
@@ -368,7 +368,7 @@ function isGeoBlockedStatus(value = '') {
 }
 
 function formatUploadedAt(value = '') {
-  const formatted = formatEcuadorDateTimeWithZone(value);
+  const formatted = formatDemoDateTimeWithZone(value);
   return formatted ? `Subido ${formatted}` : '';
 }
 

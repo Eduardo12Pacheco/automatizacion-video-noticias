@@ -179,7 +179,7 @@ def test_youtube_client_resolves_handle_and_video_metadata_with_injected_http():
                 "items": [
                     {
                         "id": "UCStable",
-                        "snippet": {"title": "L'Équipe"},
+                        "snippet": {"title": "Demo Sports FR"},
                         "contentDetails": {"relatedPlaylists": {"uploads": "UUStable"}},
                     }
                 ]
@@ -188,10 +188,10 @@ def test_youtube_client_resolves_handle_and_video_metadata_with_injected_http():
     )
     client = YouTubeDataClient(api_key="test-key", http=http)
 
-    channel = client.resolve_channel("https://www.youtube.com/@lequipe")
+    channel = client.resolve_channel("https://www.youtube.com/@demo-sports-fr")
 
-    assert channel == ChannelMetadata(channel_id="UCStable", title="L'Équipe", uploads_playlist_id="UUStable")
-    assert http.last_get[1]["forHandle"] == "lequipe"
+    assert channel == ChannelMetadata(channel_id="UCStable", title="Demo Sports FR", uploads_playlist_id="UUStable")
+    assert http.last_get[1]["forHandle"] == "demo-sports-fr"
 
     http.response = FakeResponse(
         {
@@ -343,7 +343,7 @@ def test_websub_helpers_validate_secret_signature_parse_ids_and_subscribe():
 
 def test_timed_text_subtitle_provider_uses_source_language_and_parses_segments():
     xml = """<?xml version="1.0" encoding="utf-8" ?><transcript>
-      <text start="1.5" dur="4.25">Ecuador &amp; Argentina played beautifully</text>
+      <text start="1.5" dur="4.25">Aurenia &amp; Valdoria played beautifully</text>
       <text start="6" dur="3">Great football tonight</text>
     </transcript>"""
     http = FakeTimedTextHttp(xml)
@@ -352,7 +352,7 @@ def test_timed_text_subtitle_provider_uses_source_language_and_parses_segments()
     segments = provider.fetch(video_id="vid-1", source_language="es", default_language="en")
 
     assert segments == [
-        SubtitleSegment(start_ms=1500, end_ms=5750, text="Ecuador & Argentina played beautifully", language="es"),
+        SubtitleSegment(start_ms=1500, end_ms=5750, text="Aurenia & Valdoria played beautifully", language="es"),
         SubtitleSegment(start_ms=6000, end_ms=9000, text="Great football tonight", language="es"),
     ]
     assert http.calls == [
@@ -365,9 +365,9 @@ def test_timed_text_subtitle_provider_uses_source_language_and_parses_segments()
 
 def test_caption_language_resolution_maps_source_countries_to_timed_text_codes():
     cases = {
-        "argentina": "es",
-        "méxico": "es",
-        "colombia": "es",
+        "valdoria": "es",
+        "terramar": "es",
+        "montelia": "es",
         "france": "fr",
         "fr": "fr",
         "england": "en",
@@ -426,18 +426,18 @@ def test_timed_text_subtitle_provider_uses_country_resolution_instead_of_country
 def test_youtube_transcript_provider_prefers_manual_source_language_and_marks_actual_language():
     transcript = FakeTranscript(
         language_code="es",
-        snippets=[{"start": 1.25, "duration": 2.5, "text": "Ecuador y Argentina jugaron hermoso fútbol"}],
+        snippets=[{"start": 1.25, "duration": 2.5, "text": "Aurenia y Valdoria jugaron hermoso fútbol"}],
     )
     transcript_list = FakeTranscriptList(manual=transcript)
     provider = YouTubeTranscriptSubtitleProvider(api=FakeTranscriptApi(transcript_list=transcript_list))
 
-    segments = provider.fetch(video_id="vid-1", source_language="argentina", default_language="en")
+    segments = provider.fetch(video_id="vid-1", source_language="valdoria", default_language="en")
 
     assert segments == [
         SubtitleSegment(
             start_ms=1250,
             end_ms=3750,
-            text="Ecuador y Argentina jugaron hermoso fútbol",
+            text="Aurenia y Valdoria jugaron hermoso fútbol",
             language="es",
         )
     ]
@@ -458,7 +458,7 @@ def test_youtube_transcript_provider_chooses_original_french_transcript_over_cou
     transcript_list = FakeTranscriptList(transcripts=[translated, original])
     provider = YouTubeTranscriptSubtitleProvider(api=FakeTranscriptApi(transcript_list=transcript_list))
 
-    segments = provider.fetch(video_id="vid-fr", source_language="colombia", default_language="en")
+    segments = provider.fetch(video_id="vid-fr", source_language="montelia", default_language="en")
 
     assert segments == [SubtitleSegment(start_ms=0, end_ms=3000, text="La France a bien joue", language="fr")]
     assert original.fetch_calls == 1
@@ -476,7 +476,7 @@ def test_youtube_transcript_provider_chooses_generated_original_when_no_manual_e
     transcript_list = FakeTranscriptList(transcripts=[generated])
     provider = YouTubeTranscriptSubtitleProvider(api=FakeTranscriptApi(transcript_list=transcript_list))
 
-    segments = provider.fetch(video_id="vid-generated-fr", source_language="argentina", default_language="en")
+    segments = provider.fetch(video_id="vid-generated-fr", source_language="valdoria", default_language="en")
 
     assert segments == [SubtitleSegment(start_ms=4000, end_ms=6000, text="Sous-titres generes", language="fr")]
     assert generated.fetch_calls == 1
@@ -487,7 +487,7 @@ def test_youtube_transcript_provider_chooses_generated_original_when_no_manual_e
 def test_youtube_transcript_provider_uses_generated_original_default_language_when_source_unavailable():
     transcript = FakeTranscript(
         language_code="en",
-        snippets=[{"start": 10, "duration": 3, "text": "Argentina played great football"}],
+        snippets=[{"start": 10, "duration": 3, "text": "Valdoria played great football"}],
         is_generated=True,
     )
     transcript_list = FakeTranscriptList(manual=None, generated=transcript)
@@ -495,7 +495,7 @@ def test_youtube_transcript_provider_uses_generated_original_default_language_wh
 
     segments = provider.fetch(video_id="vid-2", source_language="brazil", default_language="en")
 
-    assert segments == [SubtitleSegment(start_ms=10000, end_ms=13000, text="Argentina played great football", language="en")]
+    assert segments == [SubtitleSegment(start_ms=10000, end_ms=13000, text="Valdoria played great football", language="en")]
     assert transcript_list.manual_calls == []
     assert transcript_list.generated_calls == []
 
@@ -503,14 +503,14 @@ def test_youtube_transcript_provider_uses_generated_original_default_language_wh
 def test_youtube_transcript_provider_falls_back_to_language_finders_when_listing_transcripts_fails():
     transcript = FakeTranscript(
         language_code="es",
-        snippets=[{"start": 1, "duration": 2, "text": "Ecuador jugo bien"}],
+        snippets=[{"start": 1, "duration": 2, "text": "Aurenia jugo bien"}],
     )
     transcript_list = FakeTranscriptList(manual=transcript, list_error=TypeError("not iterable"))
     provider = YouTubeTranscriptSubtitleProvider(api=FakeTranscriptApi(transcript_list=transcript_list))
 
-    segments = provider.fetch(video_id="vid-list-fallback", source_language="argentina", default_language="en")
+    segments = provider.fetch(video_id="vid-list-fallback", source_language="valdoria", default_language="en")
 
-    assert segments == [SubtitleSegment(start_ms=1000, end_ms=3000, text="Ecuador jugo bien", language="es")]
+    assert segments == [SubtitleSegment(start_ms=1000, end_ms=3000, text="Aurenia jugo bien", language="es")]
     assert transcript_list.manual_calls == [["es", "en"]]
     assert transcript_list.generated_calls == []
 
@@ -590,10 +590,10 @@ def test_composite_subtitle_provider_primary_success_does_not_call_yt_dlp():
     fallback = FakePrimarySubtitleProvider([SubtitleSegment(0, 1000, "fallback", "es")])
     provider = CompositeSubtitleProvider(primary=primary, fallback=fallback)
 
-    segments = provider.fetch(video_id="vid-ok", source_language="argentina", default_language="en")
+    segments = provider.fetch(video_id="vid-ok", source_language="valdoria", default_language="en")
 
     assert segments == [SubtitleSegment(0, 1000, "primary", "es")]
-    assert primary.calls == [("vid-ok", "argentina", "en")]
+    assert primary.calls == [("vid-ok", "valdoria", "en")]
     assert fallback.calls == []
 
 
@@ -605,7 +605,7 @@ def test_composite_subtitle_provider_primary_failure_triggers_yt_dlp_with_cookie
         subtitle_text="""WEBVTT
 
 00:00:01.000 --> 00:00:03.500
-Ecuador jugo bien
+Aurenia jugo bien
 """,
     )
     provider = CompositeSubtitleProvider(
@@ -613,9 +613,9 @@ Ecuador jugo bien
         fallback=YtDlpSubtitleProvider(binary="yt-dlp-test", cookies_path=cookies, runner=runner),
     )
 
-    segments = provider.fetch(video_id="vid-yt", source_language="argentina", default_language="en")
+    segments = provider.fetch(video_id="vid-yt", source_language="valdoria", default_language="en")
 
-    assert segments == [SubtitleSegment(1000, 3500, "Ecuador jugo bien", "es")]
+    assert segments == [SubtitleSegment(1000, 3500, "Aurenia jugo bien", "es")]
     assert len(runner.calls) == 2
     for args, _cwd in runner.calls:
         assert args[0] == "yt-dlp-test"
@@ -634,7 +634,7 @@ def test_yt_dlp_subtitle_provider_parses_sample_vtt_into_segments():
 
 1
 00:00:01.250 --> 00:00:04.000 align:start position:0%
-<c>Argentina &amp; Ecuador</c>
+<c>Valdoria &amp; Aurenia</c>
 jugaron excelente futbol
 
 00:00:05.000 --> 00:00:06.000
@@ -646,7 +646,7 @@ Otro segmento
     segments = provider.fetch(video_id="vid-yt", source_language="es", default_language="en")
 
     assert segments == [
-        SubtitleSegment(1250, 4000, "Argentina & Ecuador jugaron excelente futbol", "es"),
+        SubtitleSegment(1250, 4000, "Valdoria & Aurenia jugaron excelente futbol", "es"),
         SubtitleSegment(5000, 6000, "Otro segmento", "es"),
     ]
 
@@ -681,7 +681,7 @@ La France a bien joue
 """,
     )
 
-    segments = YtDlpSubtitleProvider(runner=runner).fetch(video_id="vid-yt", source_language="argentina", default_language="en")
+    segments = YtDlpSubtitleProvider(runner=runner).fetch(video_id="vid-yt", source_language="valdoria", default_language="en")
 
     assert segments == [SubtitleSegment(0, 2000, "La France a bien joue", "fr")]
     download_args = runner.calls[1][0]

@@ -138,12 +138,12 @@ export function createRadarController({ state, el, api, ui = {}, browser = {} })
     return buildRadarJobPayload({
       url: el.radarUrlInput?.value,
       countries: [
-        el.radarCountryColombia?.checked ? 'colombia' : '',
-        el.radarCountryEcuador?.checked ? 'ecuador' : '',
-        el.radarCountryArgentina?.checked ? 'argentina' : '',
-        el.radarCountryParaguay?.checked ? 'paraguay' : '',
-        el.radarCountryUruguay?.checked ? 'uruguay' : '',
-        el.radarCountryMexico?.checked ? 'mexico' : '',
+        el.radarCountryColombia?.checked ? 'montelia' : '',
+        el.radarCountryEcuador?.checked ? 'aurenia' : '',
+        el.radarCountryValdoria?.checked ? 'valdoria' : '',
+        el.radarCountryParaguay?.checked ? 'bosquemar' : '',
+        el.radarCountryUruguay?.checked ? 'rivamar' : '',
+        el.radarCountryMexico?.checked ? 'terramar' : '',
       ],
       extraKeywords: el.radarExtraKeywordsInput?.value,
     });
@@ -423,12 +423,12 @@ function normalizeDismissContext(value = '') {
 function humanizeDismissContext(value = '') {
   const labels = {
     important: 'IMPORTANTES',
-    ecuador: 'Ecuador',
-    colombia: 'Colombia',
-    argentina: 'Argentina',
-    uruguay: 'Uruguay',
-    paraguay: 'Paraguay',
-    mexico: 'México',
+    aurenia: 'Aurenia',
+    montelia: 'Montelia',
+    valdoria: 'Valdoria',
+    rivamar: 'Rivamar',
+    bosquemar: 'Bosquemar',
+    terramar: 'Terramar',
   };
   return labels[normalizeDismissContext(value)] || 'este contexto';
 }

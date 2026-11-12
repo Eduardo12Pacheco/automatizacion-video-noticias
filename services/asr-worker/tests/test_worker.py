@@ -19,7 +19,7 @@ class FakeMetadataDownloader:
     def download(self, url: str, job_dir: Path):
         source = job_dir / "source.mp4"
         source.write_text(f"downloaded {url}", encoding="utf-8")
-        return {"path": source, "title": "Argentina vs Colombia Highlights"}
+        return {"path": source, "title": "Valdoria vs Montelia Highlights"}
 
 
 class FakeAudioExtractor:
@@ -36,12 +36,12 @@ class RecordingTranscriber:
 
     def transcribe(self, audio_path: Path):
         self.seen_audio_path = audio_path
-        return [TranscriptSegment(id="s1", start_ms=3000, end_ms=6000, text="Lionel Messie gana.")], "fr"
+        return [TranscriptSegment(id="s1", start_ms=3000, end_ms=6000, text="Leonel Márquez gana.")], "fr"
 
 
 def test_worker_transitions_job_and_uses_audio_16khz_wav_for_stt(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/one", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/one", countries=["valdoria"], extra_keywords=[])
     transcriber = RecordingTranscriber()
     worker = TranscriptWorker(
         settings=Settings(api_key="test-key", runtime_dir=tmp_path),
@@ -58,20 +58,20 @@ def test_worker_transitions_job_and_uses_audio_16khz_wav_for_stt(tmp_path):
     assert store.get_job(job.job_id).progress == 100
     assert store.get_job(job.job_id).detected_language == "fr"
     assert transcriber.seen_audio_path == tmp_path / "jobs" / job.job_id / "audio" / "audio-16khz.wav"
-    assert store.get_transcript(job.job_id).text == "(00:03) Lionel Messie gana."
-    assert store.get_mentions(job.job_id).matches[0].canonical == "Lionel Messi"
-    assert store.get_summary(job.job_id)["items"][0]["label"] == "Lionel Messi"
+    assert store.get_transcript(job.job_id).text == "(00:03) Leonel Márquez gana."
+    assert store.get_mentions(job.job_id).matches[0].canonical == "Leonel Márquez"
+    assert store.get_summary(job.job_id)["items"][0]["label"] == "Leonel Márquez"
     assert "Idioma detectado: fr" in store.get_export_text(job.job_id)
 
 
 class UppercaseLanguageTranscriber:
     def transcribe(self, audio_path: Path):
-        return [TranscriptSegment(id="s1", start_ms=0, end_ms=1000, text="Colombia presiona.")], "ES_mx"
+        return [TranscriptSegment(id="s1", start_ms=0, end_ms=1000, text="Montelia presiona.")], "ES_mx"
 
 
 def test_worker_normalizes_language_across_job_summary_transcript_and_export(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/language", countries=["colombia"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/language", countries=["montelia"], extra_keywords=[])
     worker = TranscriptWorker(
         settings=Settings(api_key="test-key", runtime_dir=tmp_path),
         store=store,
@@ -90,7 +90,7 @@ def test_worker_normalizes_language_across_job_summary_transcript_and_export(tmp
 
 def test_worker_persists_title_from_downloader_metadata_without_real_yt_dlp(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/titled", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/titled", countries=["valdoria"], extra_keywords=[])
     worker = TranscriptWorker(
         settings=Settings(api_key="test-key", runtime_dir=tmp_path),
         store=store,
@@ -101,9 +101,9 @@ def test_worker_persists_title_from_downloader_metadata_without_real_yt_dlp(tmp_
 
     worker.process(job.job_id)
 
-    assert store.get_job(job.job_id).title == "Argentina vs Colombia Highlights"
-    assert store.list_history()[0].title == "Argentina vs Colombia Highlights"
-    assert "Título: Argentina vs Colombia Highlights" in store.get_export_text(job.job_id)
+    assert store.get_job(job.job_id).title == "Valdoria vs Montelia Highlights"
+    assert store.list_history()[0].title == "Valdoria vs Montelia Highlights"
+    assert "Título: Valdoria vs Montelia Highlights" in store.get_export_text(job.job_id)
 
 
 class FailingDownloader:
@@ -113,7 +113,7 @@ class FailingDownloader:
 
 def test_worker_records_typed_dependency_failure_without_partial_success(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/fail", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/fail", countries=["valdoria"], extra_keywords=[])
     worker = TranscriptWorker(
         settings=Settings(api_key="test-key", runtime_dir=tmp_path),
         store=store,
@@ -134,7 +134,7 @@ def test_worker_records_typed_dependency_failure_without_partial_success(tmp_pat
 
 def test_worker_records_typed_store_failure_without_claiming_artifact_success(tmp_path, monkeypatch):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/store-fail", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/store-fail", countries=["valdoria"], extra_keywords=[])
     original_replace = __import__("os").replace
 
     def fail_replace(source, destination):
@@ -161,7 +161,7 @@ def test_worker_records_typed_store_failure_without_claiming_artifact_success(tm
 
 def test_worker_respects_cancel_checkpoint_before_artifact_writes(tmp_path):
     store = JobStore(tmp_path)
-    job = store.create_job(url="https://video.example/cancel", countries=["argentina"], extra_keywords=[])
+    job = store.create_job(url="https://video.example/cancel", countries=["valdoria"], extra_keywords=[])
     store.cancel_job(job.job_id)
     worker = TranscriptWorker(
         settings=Settings(api_key="test-key", runtime_dir=tmp_path),

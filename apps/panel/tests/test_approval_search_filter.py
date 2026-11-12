@@ -20,16 +20,16 @@ def test_approval_search_is_accent_insensitive_case_insensitive_and_multi_term()
 import { approvalItemMatchesSearch } from './js/modules/app-shell/search-filter.js';
 
 const item = {
-  seleccion: 'Colombia',
-  jugador: 'Luis Díaz',
-  tema_principal: 'Bayern Múnich conquista la Pokal con asistencia del colombiano',
+  seleccion: 'Montelia',
+  jugador: 'Luis Cárdenas',
+  tema_principal: 'Club Lago Sereno conquista la Copa Demo con asistencia del monteliano',
 };
 
 const matchingQueries = [
-  'luis diaz',
-  'LUIS DIAZ',
-  'munich diaz',
-  'colombia pokal',
+  'luis cardenas',
+  'LUIS CARDENAS',
+  'lago sereno cardenas',
+  'montelia copa demo',
 ];
 
 for (const query of matchingQueries) {
@@ -38,7 +38,7 @@ for (const query of matchingQueries) {
   }
 }
 
-if (approvalItemMatchesSearch(item, 'messi')) {
+if (approvalItemMatchesSearch(item, 'marquez')) {
   throw new Error('unexpected match for unrelated player');
 }
 """
@@ -61,22 +61,22 @@ def test_approval_search_matches_channel_and_source_fields():
 import { approvalItemMatchesSearch } from './js/modules/app-shell/search-filter.js';
 
 const item = {
-  seleccion: 'Ecuador',
-  jugador: 'Piero Hincapié',
+  seleccion: 'Aurenia',
+  jugador: 'Mateo Salvatierra',
   tema_principal: 'Defensa recibe elogios tras la fecha europea',
-  channel_label: 'Mundo Maldini',
-  source_name: 'Canal Plus Deportes',
+  channel_label: 'Mundo Demo',
+  source_name: 'Canal Demo Deportes',
 };
 
-if (!approvalItemMatchesSearch(item, 'mundo maldini')) {
+if (!approvalItemMatchesSearch(item, 'mundo demo')) {
   throw new Error('expected search to match channel label even when title does not include it');
 }
 
-if (!approvalItemMatchesSearch(item, 'canal plus')) {
+if (!approvalItemMatchesSearch(item, 'canal demo')) {
   throw new Error('expected search to match source name even when title does not include it');
 }
 
-if (approvalItemMatchesSearch(item, 'mundo argentina')) {
+if (approvalItemMatchesSearch(item, 'mundo valdoria')) {
   throw new Error('expected multi-term search to require all terms across searchable fields');
 }
 """
@@ -91,15 +91,15 @@ def test_approval_search_matches_nested_source_channel_fields():
 import { approvalItemMatchesSearch } from './js/modules/app-shell/search-filter.js';
 
 const item = {
-  seleccion: 'Uruguay',
-  jugador: 'Federico Valverde',
+  seleccion: 'Rivamar',
+  jugador: 'Federico Valdés',
   tema_principal: 'El volante mantiene su nivel en Europa',
   sources: [
-    { titular: 'Nota táctica', fuente_origen: 'Mundo Maldini', channel_name: 'La Pizarra TV' },
+    { titular: 'Nota táctica', fuente_origen: 'Mundo Demo', channel_name: 'La Pizarra TV' },
   ],
 };
 
-if (!approvalItemMatchesSearch(item, 'mundo maldini')) {
+if (!approvalItemMatchesSearch(item, 'mundo demo')) {
   throw new Error('expected search to match nested source origin');
 }
 
@@ -107,7 +107,7 @@ if (!approvalItemMatchesSearch(item, 'pizarra tv')) {
   throw new Error('expected search to match nested source channel name');
 }
 
-if (approvalItemMatchesSearch(item, 'maldini colombia')) {
+if (approvalItemMatchesSearch(item, 'mundo montelia')) {
   throw new Error('expected nested source search to still require all terms');
 }
 """

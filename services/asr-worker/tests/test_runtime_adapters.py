@@ -19,7 +19,7 @@ from app.worker import DependencyFailure
 class Completed:
     returncode = 0
     stderr = ""
-    stdout = "Argentina vs Colombia Highlights\n"
+    stdout = "Valdoria vs Montelia Highlights\n"
 
 
 def test_yt_dlp_downloader_invokes_injected_runner_and_returns_downloaded_file(tmp_path):
@@ -36,7 +36,7 @@ def test_yt_dlp_downloader_invokes_injected_runner_and_returns_downloaded_file(t
     result = YtDlpDownloader(binary="yt-dlp", runner=runner, resolve_media_host=False).download("https://www.youtube.com/watch?v=abc", tmp_path)
 
     assert result.path == tmp_path / "source.mp4"
-    assert result.title == "Argentina vs Colombia Highlights"
+    assert result.title == "Valdoria vs Montelia Highlights"
     assert calls == [
         ["yt-dlp", "--no-playlist", "--socket-timeout", "30", "--retries", "3", "--fragment-retries", "3", "--skip-download", "--print", "title", "https://www.youtube.com/watch?v=abc"],
         ["yt-dlp", "--no-playlist", "--socket-timeout", "30", "--retries", "3", "--fragment-retries", "3", "--max-filesize", "2G", "--match-filter", "duration <= 7200", "--format", "bestaudio/best", "--output", str(tmp_path / "source.%(ext)s"), "https://www.youtube.com/watch?v=abc"],
@@ -289,7 +289,7 @@ def test_faster_whisper_transcriber_uses_model_settings_and_maps_segments():
     class FakeModel:
         def transcribe(self, audio_path: str):
             assert audio_path == r"C:\jobs\audio\audio-16khz.wav"
-            return [FakeSegment(1.5, 3.0, " Argentina gana "), FakeSegment(65.2, 70.0, "Messi presses")], FakeInfo()
+            return [FakeSegment(1.5, 3.0, " Valdoria gana "), FakeSegment(65.2, 70.0, "Márquez presses")], FakeInfo()
 
     def model_factory(model: str, *, device: str, compute_type: str):
         created.update({"model": model, "device": device, "compute_type": compute_type})
@@ -301,8 +301,8 @@ def test_faster_whisper_transcriber_uses_model_settings_and_maps_segments():
 
     assert created == {"model": "large-v3", "device": "cuda", "compute_type": "float16"}
     assert segments == [
-        TranscriptSegment(id="seg-1", start_ms=1500, end_ms=3000, text="Argentina gana"),
-        TranscriptSegment(id="seg-2", start_ms=65200, end_ms=70000, text="Messi presses"),
+        TranscriptSegment(id="seg-1", start_ms=1500, end_ms=3000, text="Valdoria gana"),
+        TranscriptSegment(id="seg-2", start_ms=65200, end_ms=70000, text="Márquez presses"),
     ]
     assert language == "pt"
 

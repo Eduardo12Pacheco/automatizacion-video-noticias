@@ -68,7 +68,7 @@ def test_radar_client_fetches_authenticated_job_detail_and_summary_without_secre
     http = FakeHttpClient(
         [
             FakeHttpResponse(200, {"job_id": "job-1", "status": "succeeded"}),
-            FakeHttpResponse(200, {"items": [{"label": "Ecuador", "count": 2}, {"label": "Zero", "count": 0}]}),
+            FakeHttpResponse(200, {"items": [{"label": "Aurenia", "count": 2}, {"label": "Zero", "count": 0}]}),
         ]
     )
     client = RadarClient(base_url="http://radar.local/", api_key="radar-secret", http=http)
@@ -77,7 +77,7 @@ def test_radar_client_fetches_authenticated_job_detail_and_summary_without_secre
     summary = client.get_job_summary("job-1")
 
     assert detail == {"job_id": "job-1", "status": "succeeded"}
-    assert summary == {"items": [{"label": "Ecuador", "count": 2}, {"label": "Zero", "count": 0}]}
+    assert summary == {"items": [{"label": "Aurenia", "count": 2}, {"label": "Zero", "count": 0}]}
     assert http.calls == [
         {"method": "GET", "url": "http://radar.local/api/radar/jobs/job-1", "headers": {"x-api-key": "radar-secret"}},
         {

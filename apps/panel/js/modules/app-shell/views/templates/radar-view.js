@@ -17,12 +17,12 @@ export const radarViewHTML = `\
               </header>
               <nav id="radarCountryBar" class="radar-country-bar" aria-label="Pa\u00edses monitoreados">
                 <button class="radar-country-card" type="button" data-radar-country-option="" aria-pressed="true"><span>00 / Todos</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="ecuador" aria-pressed="false"><span>01 / Ecuador</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="colombia" aria-pressed="false"><span>02 / Colombia</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="argentina" aria-pressed="false"><span>03 / Argentina</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="uruguay" aria-pressed="false"><span>04 / Uruguay</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="paraguay" aria-pressed="false"><span>05 / Paraguay</span></button>
-                <button class="radar-country-card" type="button" data-radar-country-option="mexico" aria-pressed="false"><span>06 / M\u00e9xico</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="aurenia" aria-pressed="false"><span>01 / Aurenia</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="montelia" aria-pressed="false"><span>02 / Montelia</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="valdoria" aria-pressed="false"><span>03 / Valdoria</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="rivamar" aria-pressed="false"><span>04 / Rivamar</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="bosquemar" aria-pressed="false"><span>05 / Bosquemar</span></button>
+                <button class="radar-country-card" type="button" data-radar-country-option="terramar" aria-pressed="false"><span>06 / M\u00e9xico</span></button>
                 <button class="radar-country-card" type="button" data-radar-country-option="important" aria-pressed="false"><span>07 / IMPORTANTES</span></button>
               </nav>
               <div class="radar-monitor-controls" aria-label="Filtros del Buscador de Prensa">
@@ -64,16 +64,16 @@ export const radarViewHTML = `\
               </label>
               <fieldset class="settings-section">
                 <legend>Pa\u00edses</legend>
-                <label><input id="radarCountryColombia" type="checkbox" value="colombia" /> Colombia</label>
-                <label><input id="radarCountryEcuador" type="checkbox" value="ecuador" /> Ecuador</label>
-                <label><input id="radarCountryArgentina" type="checkbox" value="argentina" /> Argentina</label>
-                <label><input id="radarCountryParaguay" type="checkbox" value="paraguay" /> Paraguay</label>
-                <label><input id="radarCountryUruguay" type="checkbox" value="uruguay" /> Uruguay</label>
-                <label><input id="radarCountryMexico" type="checkbox" value="mexico" /> M\u00e9xico</label>
+                <label><input id="radarCountryColombia" type="checkbox" value="montelia" /> Montelia</label>
+                <label><input id="radarCountryEcuador" type="checkbox" value="aurenia" /> Aurenia</label>
+                <label><input id="radarCountryValdoria" type="checkbox" value="valdoria" /> Valdoria</label>
+                <label><input id="radarCountryParaguay" type="checkbox" value="bosquemar" /> Bosquemar</label>
+                <label><input id="radarCountryUruguay" type="checkbox" value="rivamar" /> Rivamar</label>
+                <label><input id="radarCountryMexico" type="checkbox" value="terramar" /> M\u00e9xico</label>
               </fieldset>
               <label class="editor-label audio-field">
                 <span data-i18n="radar.keywords">Keywords extra</span>
-                <textarea id="radarExtraKeywordsInput" class="script-area" placeholder="Messi, Di Mar\u00eda, Scaloni"></textarea>
+                <textarea id="radarExtraKeywordsInput" class="script-area" placeholder="Márquez, Miranda, Entrenador Demo"></textarea>
               </label>
               <p id="radarValidationMessage" class="meta" aria-live="polite"></p>
               <footer class="dialog-actions">
