@@ -1,4 +1,4 @@
-@media (max-width: 1160px) {
+@media (max-width: 1199px) {
   #viewSubtitulos2 .subtitle2-workspace {
     grid-template-columns: 1fr;
   }
@@ -9,7 +9,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 859px) {
   #viewSubtitulos2 .subtitle2-screen__header,
   #viewSubtitulos2 .subtitle2-phase-card,
   #viewSubtitulos2 .subtitle2-card-heading--inline {

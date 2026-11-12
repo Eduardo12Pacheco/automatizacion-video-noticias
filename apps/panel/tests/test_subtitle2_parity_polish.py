@@ -412,7 +412,7 @@ def test_subtitle2_visual_redesign_recomposes_upload_and_editing_slides_without_
         'display: flex;',
         'border-bottom: 1px solid var(--border);',
         '#viewSubtitulos2 .subtitle-render-card #subtitle2DoneMessage',
-        'font-size: 15px;',
+        'font-size: var(--fs-15);',
         'line-height: 1.55;',
         'justify-content: flex-end;',
         '#viewSubtitulos2 #subtitle2PhaseEdition .audio-actions',
@@ -471,13 +471,13 @@ def test_subtitle2_web_pen_fidelity_uses_literal_upload_and_editing_layout_token
         "padding: 28px;",
         "padding: 42px 28px;",
         "font-family: 'JetBrains Mono', monospace;",
-        "font-size: 10px;",
+        "font-size: var(--fs-10);",
         "letter-spacing: 1.2px;",
         "font-family: 'Inter', sans-serif;",
-        "font-size: 38px;",
-        "font-size: 24px;",
+        "font-size: var(--fs-38);",
+        "font-size: var(--fs-24);",
         "font-family: 'Inter', sans-serif;",
-        "font-size: 14px;",
+        "font-size: var(--fs-14);",
     ]:
         assert expected_rule in scoped_css
 

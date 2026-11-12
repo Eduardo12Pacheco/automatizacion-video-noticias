@@ -48,11 +48,11 @@
 .errors-audit-card__status,
 .errors-audit-chip {
   width: fit-content;
-  border: 1px solid var(--c-414141);
-  border-radius: 999px;
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-pill);
   padding: 3px 8px;
-  color: var(--c-b7f7cf);
-  font-size: 0.75rem;
+  color: var(--success-text);
+  font-size: var(--fs-12);
   text-transform: uppercase;
 }
 
@@ -62,7 +62,7 @@
   white-space: pre-wrap;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1199px) {
   .errors-audit-layout {
     grid-template-columns: 1fr;
   }

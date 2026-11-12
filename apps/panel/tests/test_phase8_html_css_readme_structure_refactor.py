@@ -96,14 +96,14 @@ def test_styles_entry_order_stays_locked_while_rules_move_to_layer_files():
 def test_css_redistribution_moves_guarded_selectors_out_of_base_css():
     base = _read(BASE_PATH)
     assert ".sidebar {" not in base
-    assert "@media (max-width: 860px)" not in base
+    assert "@media (max-width: 859px)" not in base
     assert ".card {" not in base
     assert ".audio-queue-card {" not in base
     assert ".subtitle-phase-bar {" not in base
     assert ".auth-gate {" not in base
 
     assert ".sidebar {" in _read(LAYOUT_PATH)
-    assert "@media (max-width: 860px)" in _read(RESPONSIVE_PATH)
+    assert "@media (max-width: 859px)" in _read(RESPONSIVE_PATH)
     assert ".card {" in _read(CARDS_PATH)
     assert ".audio-queue-card {" in _read(AUDIO_PATH)
     assert ".subtitle-phase-bar {" in _read(SUBTITLES_PATH)
@@ -229,7 +229,7 @@ def test_settings_presents_single_unified_config_and_hides_legacy_compatibility_
     assert "Modo avanzado" not in visible_settings
     assert "Futuro gateway" not in visible_settings
     assert '<section class="settings-section"' in visible_settings
-    assert visible_settings.count('<section class="settings-section"') == 3
+    assert visible_settings.count('<section class="settings-section"') == 4
     assert 'id="openConnectorsBtn"' in visible_settings
     assert 'id="languageSelect"' in visible_settings
     assert 'id="advancedSettingsSection"' in visible_settings

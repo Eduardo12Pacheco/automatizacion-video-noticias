@@ -20,11 +20,11 @@ const GUARDED_SELECTOR_BASELINE = {
   '.card': {
     display: 'flex',
     'min-height': '240px',
-    'border-radius': 'var(--radius-xl)',
+    'border-radius': 'var(--radius-lg)',
   },
   '.audio-queue-card': {
-    'border-radius': '0',
-    background: 'linear-gradient(180deg, var(--c-rgb-18-18-18-0.98), var(--c-rgb-10-10-10-0.96))',
+    'border-radius': 'var(--radius-sm)',
+    background: 'linear-gradient(180deg, var(--surface-1), var(--surface-0))',
   },
   '.subtitle-phase-bar': {
     display: 'grid',

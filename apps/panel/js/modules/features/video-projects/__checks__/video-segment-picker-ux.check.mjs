@@ -139,7 +139,7 @@ test('Selector modal uses real effect videos and exposes a play toggle for the p
   assert.ok(html.indexOf('data-layer="overlay-layer-02"') < html.indexOf('data-layer="overlay-layer-01"'));
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-01\s*\{[^}]*mix-blend-mode:\s*screen;/s);
   assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--effect-02\s*\{[^}]*mix-blend-mode:\s*multiply;/s);
-  assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--overlay\s*\{[^}]*background:\s*var\(--c-3835af\);[^}]*opacity:\s*0\.3;/s);
+  assert.match(videoProjectsCss, /\.video-editor-video-selector__layer--overlay\s*\{[^}]*background:\s*var\(--surface-3\);[^}]*opacity:\s*0\.3;/s);
 });
 
 test('Video effect preview layers stay behind the foreground video without unintended background blur', () => {

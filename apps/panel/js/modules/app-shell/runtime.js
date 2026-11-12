@@ -51,6 +51,7 @@ import { createApprovalSearchController } from './views/approval-search.js';
 import { createShellRenderers } from './views/renderers.js';
 import { createScriptToAudioVoiceController } from './voice/script-to-audio.js';
 import { createI18n, setSharedI18n } from '../core/i18n/index.js';
+import { createThemeController } from '../core/theme/index.js';
 import { createRuntimeRenderers } from './runtime-renderers.js';
 
 const storageKey = 'approval-panel-settings-v1';
@@ -58,6 +59,7 @@ const sessionKey = 'approval-panel-session-v1';
 const lastNewsSearchKey = 'approval-panel-last-news-search-at-v1';
 
 const i18n = setSharedI18n(createI18n());
+const theme = createThemeController();
 
 function waitForNextFrame() {
   return new Promise((resolve) => {
@@ -357,6 +359,13 @@ function bindLanguageEvents() {
     el.languageSelect.addEventListener('change', () => {
       i18n.setLanguage(el.languageSelect.value);
       syncAdminNavigation();
+      toast(i18n.t('settings.saved'));
+    });
+  }
+  if (el.themeSelect) {
+    el.themeSelect.value = theme.getTheme();
+    el.themeSelect.addEventListener('change', () => {
+      theme.setTheme(el.themeSelect.value);
       toast(i18n.t('settings.saved'));
     });
   }

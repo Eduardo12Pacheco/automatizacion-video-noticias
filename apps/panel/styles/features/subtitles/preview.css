@@ -7,7 +7,7 @@
 #viewSubtitulos2 .subtitle-preview-stage {
   min-height: 240px;
   border-color: var(--border-soft);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface-deep);
   box-shadow: none;
 }
@@ -24,15 +24,15 @@
 }
 
 #viewSubtitulos2 .subtitle-preview-play-btn {
-  border-color: var(--c-9db8ff55);
-  border-radius: 0;
+  border-color: var(--info-a32);
+  border-radius: var(--radius-sm);
   background: var(--surface-muted);
   color: var(--text-soft);
 }
 
 #viewSubtitulos2 .subtitle-preview-timeline-track {
   border-color: var(--border-soft);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface-muted);
 }
 
@@ -43,8 +43,8 @@
 #viewSubtitulos2 .subtitle-preview-playhead,
 #viewSubtitulos2 .subtitle-preview-playhead::after {
   background: var(--accent);
-  border-color: var(--c-00ffaa55);
-  border-radius: 0;
+  border-color: var(--accent-a32);
+  border-radius: var(--radius-sm);
 }
 
 #viewSubtitulos2 .subtitle-preview-timecode {

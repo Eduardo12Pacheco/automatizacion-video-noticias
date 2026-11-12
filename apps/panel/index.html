@@ -5,7 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Editorial system</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" />
+    <script>
+      // Apply the stored/system theme before CSS paints (S5/S10).
+      (function () {
+        try {
+          var key = 'newsroom-panel-theme-v1';
+          var stored = localStorage.getItem(key);
+          var theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="./styles/eager.css" />
     <link rel="stylesheet" href="./styles/features/approval.css" />
   </head>
@@ -48,6 +62,12 @@
               <strong>Editorial system</strong>
             </div>
           </div>
+
+          <button id="mobileNavToggle" class="ghost mobile-nav-toggle" type="button" aria-expanded="false" aria-controls="sidebarNav" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.openMenu">
+            <span class="mobile-nav-toggle__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+            </span>
+          </button>
 
           <nav class="sidebar-nav" id="sidebarNav">
             <button class="nav-item" data-view="radar" title="Prensa" aria-label="Prensa">
@@ -335,6 +355,17 @@
             </label>
           </section>
 
+          <section class="settings-section">
+            <h3 data-i18n="settings.theme">Tema</h3>
+            <p class="meta" data-i18n="settings.themeHelp">Elegí el aspecto del panel. La preferencia se guarda en este navegador.</p>
+            <label class="settings-field">
+              <span data-i18n="settings.themeLabel">Aspecto</span>
+              <select id="themeSelect">
+                <option value="dark" data-i18n="settings.themeDark">Oscuro</option>
+                <option value="light" data-i18n="settings.themeLight">Claro</option>
+              </select>
+            </label>
+          </section>
           <section class="settings-section">
             <h3 data-i18n="settings.connectors">Conectores</h3>
             <p class="meta" data-i18n="settings.connectorsHelp">Revisá el adaptador activo de cada puerto, su estado y probá la conexión sin salir del panel.</p>

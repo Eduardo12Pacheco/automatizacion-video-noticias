@@ -16,8 +16,7 @@
   transition: border-color 0.16s ease, background 0.16s ease;
 }
 
-.sidebar--rail:hover .nav-item,
-.sidebar--rail:focus-within .nav-item {
+.sidebar--rail:hover .nav-item {
   justify-content: flex-start;
   gap: 10px;
 }

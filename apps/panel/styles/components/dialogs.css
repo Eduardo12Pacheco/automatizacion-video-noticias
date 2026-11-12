@@ -45,7 +45,7 @@ dialog {
 }
 
 dialog::backdrop {
-  background: var(--c-rgb-5-5-5-0.78);
+  background: var(--backdrop-80);
   backdrop-filter: blur(4px);
 }
 
@@ -105,7 +105,7 @@ dialog article {
   overflow: auto;
   padding-right: 6px;
   scrollbar-width: thin;
-  scrollbar-color: var(--c-rgb-245-247-247-0.82) transparent;
+  scrollbar-color: var(--overlay-80) transparent;
 }
 
 .topic-dialog-body::-webkit-scrollbar {
@@ -123,8 +123,8 @@ dialog article {
 }
 
 .topic-dialog-body::-webkit-scrollbar-thumb {
-  background: var(--c-rgb-245-247-247-0.82);
-  border-radius: 999px;
+  background: var(--overlay-80);
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   background-clip: padding-box;
 }
@@ -146,7 +146,7 @@ dialog article {
 
 .settings-section h3 {
   margin-bottom: 6px;
-  font-size: 1rem;
+  font-size: var(--fs-16);
 }
 
 .settings-help {

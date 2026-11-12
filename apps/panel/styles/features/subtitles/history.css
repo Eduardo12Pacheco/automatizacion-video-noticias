@@ -7,14 +7,14 @@
   min-height: 118px;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--muted);
 }
 
 #viewSubtitulos2 .subtitle-history-list button {
   border: 0;
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface-raised);
   color: var(--text-soft);
 }
@@ -62,7 +62,7 @@
 #viewSubtitulos2 .subtitle-history-item__status {
   min-width: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.06em;
 }
 
@@ -71,7 +71,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 800;
   letter-spacing: 0.02em;
 }
@@ -96,16 +96,16 @@
   padding: 0;
   border: 0;
   background: transparent !important;
-  color: var(--c-ff5a66);
+  color: var(--danger);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 20px;
+  font-size: var(--fs-20);
   font-weight: 700;
   line-height: 1;
 }
 
 #viewSubtitulos2 .subtitle-history-item__rename {
   color: var(--info);
-  font-size: 18px;
+  font-size: var(--fs-18);
 }
 
 #viewSubtitulos2 .subtitle-history-item__rename:hover:not(:disabled),
@@ -115,12 +115,12 @@
 }
 
 #viewSubtitulos2 .subtitle-history-item--editing {
-  background: var(--c-111927);
-  color: var(--c-afc6ff);
+  background: var(--surface-0);
+  color: var(--info-text);
 }
 
 #viewSubtitulos2 .subtitle-history-item--done {
-  background: var(--c-071f16);
+  background: var(--accent-ink);
   color: var(--accent);
 }
 
@@ -129,7 +129,7 @@
 }
 
 #viewSubtitulos2 .subtitle-history-item--active {
-  background: var(--c-21180b);
+  background: var(--warning-surface);
   color: var(--warning);
 }
 

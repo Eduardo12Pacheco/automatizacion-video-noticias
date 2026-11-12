@@ -3,15 +3,14 @@
   right: 16px;
   bottom: 16px;
   max-width: min(420px, calc(100vw - 32px));
-  background:
-    linear-gradient(180deg, var(--c-rgb-18-18-18-0.98), var(--c-rgb-10-10-10-0.98));
+  background: linear-gradient(180deg, var(--surface-0), var(--surface-0));
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--accent);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.76rem;
+  font-size: var(--fs-12);
   letter-spacing: 0.04em;
   line-height: 1.5;
   text-transform: uppercase;

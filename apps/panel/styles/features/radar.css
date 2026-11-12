@@ -4,18 +4,18 @@
   background: var(--surface);
   color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  font-size: var(--fs-11);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 #viewRadar .subtitle2-health-chip.is-online {
-  border-color: var(--c-00e88f55);
+  border-color: var(--accent-a32);
   color: var(--accent);
 }
 
 #viewRadar .subtitle2-health-chip.is-offline {
-  border-color: var(--c-f7b95555);
+  border-color: var(--warning-a32);
   color: var(--warning);
 }
 
@@ -84,9 +84,9 @@
 }
 
 #viewRadar .radar-country-card span {
-  color: var(--c-ffffff);
+  color: var(--text-1);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -94,8 +94,8 @@
 
 #viewRadar .radar-country-card:hover,
 #viewRadar .radar-country-card.is-active {
-  border-color: var(--c-00e88f55);
-  background: var(--c-03140d);
+  border-color: var(--accent-a32);
+  background: var(--accent-ink);
 }
 
 #viewRadar .radar-country-card.is-active span {
@@ -128,22 +128,22 @@
   height: 28px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid var(--c-8f1d1d);
-  background: var(--c-180606);
-  color: var(--c-ff5c5c);
+  border: 1px solid var(--danger);
+  background: var(--danger-surface);
+  color: var(--danger);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 18px;
+  font-size: var(--fs-18);
   line-height: 1;
 }
 
 #viewRadar .radar-monitor-card__dismiss:hover {
-  border-color: var(--c-ff5c5c);
-  color: var(--c-ffffff);
-  background: var(--c-3a0b0b);
+  border-color: var(--danger);
+  color: var(--text-1);
+  background: var(--danger-surface);
 }
 
 #viewRadar .radar-monitor-card:hover {
-  border-color: var(--c-00e88f55);
+  border-color: var(--accent-a32);
   background: var(--surface-soft);
 }
 
@@ -156,16 +156,16 @@
 }
 
 #viewRadar .radar-monitor-card strong {
-  color: var(--c-ffffff);
+  color: var(--text-1);
   font-family: 'Inter', sans-serif;
-  font-size: 19px;
+  font-size: var(--fs-18);
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
 #viewRadar .radar-monitor-card__meta {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 #viewRadar .radar-monitor-card__mentions {
@@ -174,14 +174,14 @@
   gap: 10px;
   align-items: stretch;
   padding: 14px 16px;
-  border: 1px solid var(--c-232323);
+  border: 1px solid var(--border-1);
   background: var(--bg-elevated);
 }
 
 #viewRadar .radar-monitor-card__mentions-title {
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -200,20 +200,20 @@
   gap: 10px;
   min-height: 30px;
   padding: 7px 0;
-  border-bottom: 1px solid var(--c-1d1d1d);
+  border-bottom: 1px solid var(--border-1);
 }
 
 #viewRadar .radar-mention-row strong {
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   line-height: 1;
 }
 
 #viewRadar .radar-mention-row small {
   color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.04em;
 }
 
@@ -295,9 +295,9 @@
 
 #viewRadar .radar-job-card strong,
 #viewRadar .radar-transcript-card strong {
-  color: var(--c-ffffff);
+  color: var(--text-1);
   font-family: 'Inter', sans-serif;
-  font-size: 18px;
+  font-size: var(--fs-18);
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
@@ -305,7 +305,7 @@
 #viewRadar .radar-kicker {
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -314,7 +314,7 @@
 #viewRadar .radar-error-text {
   margin: 6px 0 0;
   color: var(--warning);
-  font-size: 12px;
+  font-size: var(--fs-12);
   line-height: 1.45;
 }
 
@@ -326,40 +326,40 @@
   border: 1px solid var(--border-soft);
   padding: 7px 9px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 #viewRadar .radar-status-chip.is-processing {
-  border-color: var(--c-9db8ff55);
+  border-color: var(--info-a32);
   color: var(--info);
-  background: var(--c-9db8ff12);
+  background: var(--info-a08);
 }
 
 #viewRadar .radar-status-chip.is-info {
-  border-color: var(--c-9db8ff55);
+  border-color: var(--info-a32);
   color: var(--info);
-  background: var(--c-9db8ff12);
+  background: var(--info-a08);
 }
 
 #viewRadar .radar-status-chip.is-warning {
-  border-color: var(--c-f7b95555);
+  border-color: var(--warning-a32);
   color: var(--warning);
-  background: var(--c-f7b95512);
+  background: var(--warning-a08);
 }
 
 #viewRadar .radar-status-chip.is-success {
-  border-color: var(--c-22c55e55);
-  color: var(--c-22c55e);
-  background: var(--c-22c55e12);
+  border-color: var(--success-a32);
+  color: var(--success);
+  background: var(--success-a08);
 }
 
 #viewRadar .radar-status-chip.is-failed {
-  border-color: var(--c-f7b95555);
+  border-color: var(--warning-a32);
   color: var(--warning);
-  background: var(--c-f7b95512);
+  background: var(--warning-a08);
 }
 
 #viewRadar .radar-card-actions {
@@ -386,7 +386,7 @@
   background: var(--surface);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -398,7 +398,7 @@
 #viewRadar .radar-card-actions button:hover,
 #viewRadar .radar-job-card button:hover,
 #viewRadar .radar-monitor-card__actions button:hover {
-  border-color: var(--c-00e88f55);
+  border-color: var(--accent-a32);
   color: var(--accent);
 }
 
@@ -407,8 +407,8 @@
 #viewRadar .radar-monitor-card__actions button:disabled {
   cursor: not-allowed;
   border-color: var(--border);
-  color: var(--c-555b60);
-  background: var(--c-080808);
+  color: var(--text-4);
+  background: var(--surface-0);
 }
 
 #viewRadar #radarNewJobDialog {
@@ -458,7 +458,7 @@
   padding: 0 8px;
   color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -479,15 +479,14 @@
   accent-color: var(--accent);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1199px) {
   #viewRadar .radar-layout,
   #viewRadar .radar-monitor-card {
     grid-template-columns: 1fr;
   }
 
   #viewRadar .radar-monitor-card {
-    grid-template-areas:
-      "main"
+    grid-template-areas: "main"
       "actions"
       "mentions";
   }
@@ -503,7 +502,7 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 859px) {
   #viewRadar .radar-monitor-card__actions {
     flex-direction: column;
   }

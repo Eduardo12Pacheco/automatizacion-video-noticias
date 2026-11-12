@@ -11,24 +11,24 @@
 .video-project-custom-images__separator {
   height: 1px;
   margin-bottom: 14px;
-  background: linear-gradient(90deg, var(--c-rgb-0-232-143-0.65), var(--c-rgb-0-232-143-0.12));
+  background: linear-gradient(90deg, var(--accent-a65), var(--accent-a12));
 }
 
 .video-project-custom-images__help {
   margin: 0;
   color: var(--muted);
-  font-size: 0.98rem;
+  font-size: var(--fs-16);
   line-height: 1.45;
 }
 
 .video-project-custom-images .video-project-section-heading h3 {
-  font-size: 1.35rem;
+  font-size: var(--fs-22);
 }
 
 .video-project-custom-images__count {
   margin: 0;
   color: var(--muted);
-  font-size: 1.08rem;
+  font-size: var(--fs-16);
   font-weight: 700;
 }
 
@@ -60,11 +60,11 @@
   align-items: center;
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid var(--c-rgb-0-232-143-0.45);
-  background: var(--c-rgb-0-232-143-0.12);
+  border: 1px solid var(--accent-a45);
+  background: var(--accent-a12);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -99,7 +99,7 @@
 
 .video-image-card--skeleton .video-image-card__media {
   min-height: 180px;
-  background: linear-gradient(110deg, var(--c-rgb-255-255-255-0.04) 8%, var(--c-rgb-255-255-255-0.11) 18%, var(--c-rgb-255-255-255-0.04) 33%);
+  background: linear-gradient(110deg, var(--overlay-04) 8%, var(--overlay-10) 18%, var(--overlay-04) 33%);
   background-size: 220% 100%;
   animation: videoImageSkeletonPulse 1.1s ease-in-out infinite;
 }
@@ -131,12 +131,12 @@
   aspect-ratio: 1 / 1;
   flex: 0 0 26px;
   padding: 0;
-  border: 2px solid var(--c-rgb-255-255-255-0.48);
-  border-radius: 0;
+  border: 2px solid var(--overlay-50);
+  border-radius: var(--radius-sm);
   background: transparent;
   color: transparent;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
+  font-size: var(--fs-13);
   font-weight: 800;
   line-height: 1;
   pointer-events: none;
@@ -151,24 +151,24 @@
   place-items: center;
   width: 100%;
   height: 100%;
-  font-size: 0.86rem;
+  font-size: var(--fs-14);
   line-height: 1;
 }
 
 .video-image-card:hover .video-image-card__checkbox {
-  border-color: var(--c-rgb-0-232-143-0.65);
-  background: var(--c-rgb-0-232-143-0.14);
+  border-color: var(--accent-a65);
+  background: var(--accent-a14);
 }
 
 .video-image-card[data-selected='true'] .video-image-card__checkbox {
   border-color: var(--accent, var(--accent));
   background: var(--accent, var(--accent));
-  color: var(--c-03130c);
+  color: var(--accent-contrast);
 }
 
 .video-image-card[data-selected='true'] {
-  border-color: var(--c-rgb-0-232-143-0.5);
-  box-shadow: inset 0 0 0 1px var(--c-rgb-0-232-143-0.18);
+  border-color: var(--accent-a50);
+  box-shadow: inset 0 0 0 1px var(--accent-a18);
 }
 
 .video-image-card[data-broken='true'] {
@@ -202,11 +202,11 @@
   position: absolute;
   inset: auto 8px 8px auto;
   padding: 5px 8px;
-  background: var(--c-rgb-0-0-0-0.68);
-  border: 1px solid var(--c-rgb-0-232-143-0.32);
+  background: var(--backdrop-70);
+  border: 1px solid var(--accent-a32);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.66rem;
+  font-size: var(--fs-11);
   letter-spacing: 0.06em;
   line-height: 1;
   opacity: 0;
@@ -242,12 +242,12 @@
 .video-segments-list span {
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-12);
 }
 
 .video-segments-list p {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-13);
   line-height: 1.35;
 }
 
@@ -266,30 +266,30 @@
   display: block;
   margin: 4px 0;
   font-family: 'Inter', sans-serif;
-  font-size: 1.12rem;
+  font-size: var(--fs-18);
 }
 
 .video-project-next-panel p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.96rem;
+  font-size: var(--fs-15);
   line-height: 1.45;
 }
 
 .video-project-next-panel .video-projects-eyebrow {
-  font-size: 0.8rem;
+  font-size: var(--fs-13);
 }
 
 .video-project-next-panel--image-selection .video-projects-eyebrow {
-  font-size: 0.8rem;
+  font-size: var(--fs-13);
 }
 
 .video-project-next-panel--image-selection strong {
-  font-size: 1.12rem;
+  font-size: var(--fs-18);
 }
 
 .video-project-next-panel--image-selection p {
-  font-size: 0.96rem;
+  font-size: var(--fs-15);
   line-height: 1.45;
 }
 
@@ -302,9 +302,9 @@
   padding: 0 14px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: var(--c-03130c);
+  color: var(--accent-contrast);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-12);
   font-weight: 800;
   letter-spacing: 0.04em;
   cursor: pointer;

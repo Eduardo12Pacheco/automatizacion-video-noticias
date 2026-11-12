@@ -3,7 +3,7 @@
   min-height: 290px;
   padding: 42px 28px;
   border: 1px solid var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
@@ -14,7 +14,7 @@
 #viewSubtitulos2 .subtitle-upload-cta-title {
   color: var(--text);
   font-family: 'Inter', sans-serif;
-  font-size: 24px;
+  font-size: var(--fs-24);
   font-weight: 700;
 }
 
@@ -26,14 +26,14 @@
 
 #viewSubtitulos2 .subtitle-source-language {
   border-color: var(--border-soft);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface-soft);
 }
 
 #viewSubtitulos2 .subtitle-source-language-title {
   color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 500;
   letter-spacing: 1.2px;
   text-transform: uppercase;

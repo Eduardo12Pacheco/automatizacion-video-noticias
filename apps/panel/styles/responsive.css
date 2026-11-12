@@ -1,4 +1,4 @@
-@media (max-width: 1180px) {
+@media (max-width: 1199px) {
   :root {
     --sidebar-collapsed: 76px;
     --sidebar-expanded: min(236px, calc(100vw - 32px));
@@ -11,8 +11,7 @@
   .approval-controls__actions {
     margin-left: 0;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "button"
+    grid-template-areas: "button"
       "window"
       "note"
       "status";
@@ -28,14 +27,13 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 859px) {
   .app-shell {
     display: block;
   }
 
   .sidebar--rail,
-  .sidebar--rail:hover,
-  .sidebar--rail:focus-within {
+  .sidebar--rail:hover {
     position: sticky;
     top: 0;
     width: auto;
@@ -47,10 +45,15 @@
 
   .sidebar-rail__inner {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    overflow-x: auto;
+  }
+
+  .mobile-nav-toggle {
+    display: inline-grid;
+    margin-left: auto;
   }
 
   .sidebar-brand {
@@ -58,11 +61,18 @@
   }
 
   .sidebar-nav {
-    display: flex;
+    display: none;
+    flex-direction: column;
+    width: 100%;
     gap: 6px;
     margin: 0;
     padding: 0;
     border-top: 0;
+    order: 10;
+  }
+
+  .sidebar--rail.is-nav-open .sidebar-nav {
+    display: flex;
   }
 
   .sidebar-nav .nav-item {
@@ -82,7 +92,7 @@
 
   .sidebar-foot {
     display: flex;
-    margin: 0 0 0 auto;
+    margin: 0 0 0 8px;
     gap: 6px;
   }
 
@@ -118,10 +128,6 @@
     margin-left: 0;
     width: 100%;
     padding: 18px;
-  }
-
-  .sidebar-nav {
-    grid-template-columns: 1fr 1fr;
   }
 
   .stats,
@@ -203,7 +209,7 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 859px) {
   .app-content {
     padding: 12px;
   }

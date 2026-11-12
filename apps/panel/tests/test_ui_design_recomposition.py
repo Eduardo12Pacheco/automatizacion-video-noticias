@@ -45,7 +45,10 @@ def test_two_family_typography_with_scale_tokens():
     assert "font-family: 'JetBrains Mono'" in fonts
     assert "Space Grotesk" not in fonts
     assert "font-display: optional" not in fonts
-    assert fonts.count("font-display: swap") >= 8
+    assert fonts.count("font-display: swap") >= 2
+    assert "fonts.gstatic.com" not in fonts
+    assert "assets/fonts/inter/" in fonts
+    assert "assets/fonts/jetbrains-mono/" in fonts
     assert "font-family: var(--font-ui);" in base
     for token in ["--fs-12", "--fs-14", "--fs-16", "--fs-20", "--fs-24", "--fs-32"]:
         assert f"{token}:" in tokens
@@ -177,14 +180,23 @@ def test_accessibility_and_three_breakpoints():
     assert "outline: 2px solid var(--accent);" in base
     assert "prefers-reduced-motion: reduce" in base
     assert "prefers-reduced-motion: no-preference" in base
-    assert "--muted-2: #9aa0a8;" in tokens
+    assert "--muted-2: var(--text-3);" in tokens
+    # Two media steps define the three layout ranges: >=1200, 860-1199 and <860.
+    widths = set(re.findall(r"@media \(max-width: (\d+)px\)", "\n".join(
+        path.read_text() for path in STYLES.rglob("*.css")
+    )))
+    assert widths == {"1199", "859"}, widths
     assert responsive.count("@media (max-width:") == 3
-    for width in ["1180px", "860px", "560px"]:
-        assert f"@media (max-width: {width})" in responsive
-    # The rail becomes a top bar below 860px.
-    narrow = responsive.split("@media (max-width: 860px)", 1)[1]
+    assert "@media (max-width: 1199px)" in responsive
+    assert "@media (max-width: 859px)" in responsive
+    # The rail becomes a top bar with a menu button below 860px.
+    narrow = responsive.split("@media (max-width: 859px)", 1)[1]
     assert "position: sticky;" in narrow
     assert "flex-direction: row;" in narrow
+    assert "mobile-nav-toggle" in narrow
+    assert "is-nav-open .sidebar-nav" in narrow
+    assert 'id="mobileNavToggle"' in _read(INDEX)
+    assert "aria-controls=\"sidebarNav\"" in _read(INDEX)
 
 
 def test_showcase_mode_is_wired_with_fictional_data():

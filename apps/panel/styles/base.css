@@ -106,7 +106,7 @@ a {
 .section-counter {
   color: var(--accent);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--fs-13);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -115,7 +115,7 @@ a {
 .section-counter--news {
   letter-spacing: 0.04em;
   text-transform: none;
-  font-size: 0.86rem;
+  font-size: var(--fs-14);
 }
 
 .section-heading {
@@ -133,11 +133,11 @@ a {
 }
 
 .section-heading h2 {
-  font-size: clamp(1.45rem, 1.15rem + 0.8vw, 1.9rem);
+  font-size: var(--fs-24);
 }
 
 .section-heading h3 {
-  font-size: 1.45rem;
+  font-size: var(--fs-22);
 }
 
 .section-heading--tight p,
@@ -151,7 +151,7 @@ a {
   margin-bottom: 8px;
   color: var(--muted-2);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--fs-11);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -172,7 +172,7 @@ a {
   z-index: 100;
   padding: 6px 12px;
   border: 1px solid var(--accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--success-text);
   font-family: var(--font-mono);

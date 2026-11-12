@@ -20,7 +20,7 @@
 .video-audio-card__copy strong {
   overflow: hidden;
   font-family: 'Inter', sans-serif;
-  font-size: 1.18rem;
+  font-size: var(--fs-18);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -30,37 +30,35 @@
 .video-audio-card__copy small {
   margin: 0;
   color: var(--muted);
-  font-size: 0.96rem;
+  font-size: var(--fs-15);
   line-height: 1.55;
 }
 
 .video-audio-card__copy small {
-  font-size: 0.9rem;
+  font-size: var(--fs-15);
 }
 
 .video-audio-card audio {
   width: 100%;
   height: 48px;
   padding: 4px;
-  border: 1px solid var(--c-rgb-0-232-143-0.32);
-  border-radius: 0;
-  background:
-    linear-gradient(135deg, var(--c-rgb-0-232-143-0.08), transparent 55%),
+  border: 1px solid var(--accent-a32);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent-a08), transparent 55%),
     var(--surface-deep);
-  box-shadow: inset 0 0 0 1px var(--c-rgb-255-255-255-0.025);
+  box-shadow: inset 0 0 0 1px var(--overlay-03);
   accent-color: var(--accent);
 }
 
 .video-audio-card audio::-webkit-media-controls-enclosure {
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
 }
 
 .video-audio-card audio::-webkit-media-controls-panel {
-  border-radius: 0;
-  background:
-    linear-gradient(90deg, var(--c-rgb-0-232-143-0.18), var(--c-rgb-10-10-10-0.92) 24%),
-    var(--c-080808);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--accent-a18), var(--backdrop-90) 24%),
+    var(--surface-0);
 }
 
 .video-audio-card audio::-webkit-media-controls-current-time-display,
@@ -83,7 +81,7 @@
 .video-audio-card__default-select span {
   color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
+  font-size: var(--fs-11);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -127,26 +125,26 @@
 
 .video-audio-card__upload:hover .video-audio-card__dropzone,
 .video-audio-card__upload:focus-within .video-audio-card__dropzone {
-  border-color: var(--c-rgb-0-232-143-0.5);
-  background: var(--c-rgb-0-232-143-0.035);
+  border-color: var(--accent-a50);
+  background: var(--accent-a04);
 }
 
 .video-audio-card__dropzone-plus {
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 3.2rem;
+  font-size: var(--fs-48);
   font-weight: 300;
   line-height: 0.8;
 }
 
 .video-audio-card__dropzone strong {
   font-family: 'Inter', sans-serif;
-  font-size: 1.35rem;
+  font-size: var(--fs-22);
   letter-spacing: -0.035em;
 }
 
 .video-audio-card__dropzone small {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-15);
   line-height: 1.4;
 }

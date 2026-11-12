@@ -1,4 +1,4 @@
-@media (max-width: 1180px) {
+@media (max-width: 1199px) {
   .video-projects-layout,
   .video-project-detail__workspace,
   .video-editor-shell__workspace {
@@ -28,7 +28,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 859px) {
   .video-projects-hero,
   .video-projects-list-panel__header,
   .video-project-detail__header {
@@ -68,7 +68,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 859px) {
   .video-projects-list {
     grid-template-columns: 1fr;
   }
@@ -83,7 +83,7 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 859px) {
   .video-image-grid {
     column-count: 1;
     column-width: auto;

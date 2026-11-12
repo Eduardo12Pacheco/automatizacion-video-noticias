@@ -46,10 +46,27 @@ export function bindCoreEvents({
     })();
   });
 
+  const mobileNavToggle = el.mobileNavToggle;
+  const mobileNav = el.sidebarNav.closest?.('.sidebar');
+  function closeMobileNav() {
+    if (!mobileNav?.classList?.contains('is-nav-open')) return;
+    mobileNav.classList.remove('is-nav-open');
+    mobileNavToggle?.setAttribute('aria-expanded', 'false');
+  }
+  mobileNavToggle?.addEventListener('click', () => {
+    const open = !mobileNav?.classList?.contains('is-nav-open');
+    mobileNav?.classList?.toggle('is-nav-open', open);
+    mobileNavToggle.setAttribute('aria-expanded', String(open));
+  });
+  globalThis.document?.addEventListener?.('keydown', (ev) => {
+    if (ev.key === 'Escape') closeMobileNav();
+  });
+
   el.sidebarNav.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.nav-item[data-view]');
     if (!btn) return;
     setView(btn.dataset.view);
+    closeMobileNav();
   });
 
   el.openQueueBtn?.addEventListener('click', () => {

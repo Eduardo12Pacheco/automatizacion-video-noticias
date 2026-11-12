@@ -1,6 +1,6 @@
 #viewSubtitulos2 .subtitle-table-scroll {
   border-color: var(--border);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--bg-deep);
   max-height: clamp(430px, 52vh, 540px);
   overflow: auto;
@@ -36,14 +36,14 @@
 
 #viewSubtitulos2 .subtitle-table--remote tr.subtitle-row--draft {
   cursor: grab;
-  background: var(--c-111111);
-  outline: 1px dashed var(--c-f7b95555);
+  background: var(--surface-0);
+  outline: 1px dashed var(--warning-a32);
   outline-offset: -6px;
 }
 
 #viewSubtitulos2 .subtitle-table--remote tr.subtitle-row--active:not(.subtitle-row--draft) {
-  background: var(--c-03140d);
-  box-shadow: inset 3px 0 0 var(--accent), inset 0 1px 0 var(--c-00e88f22), inset 0 -1px 0 var(--c-00e88f22);
+  background: var(--accent-ink);
+  box-shadow: inset 3px 0 0 var(--accent), inset 0 1px 0 var(--accent-a14), inset 0 -1px 0 var(--accent-a14);
 }
 
 #viewSubtitulos2 .subtitle-table--remote tr.subtitle-row--active:not(.subtitle-row--draft) td {
@@ -57,7 +57,7 @@
 #viewSubtitulos2 .subtitle-table__title {
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 700;
   letter-spacing: 1.35px;
 }
@@ -77,18 +77,18 @@
   border-color: var(--border-soft);
   background: var(--surface-soft);
   color: var(--text);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
 }
 
 #viewSubtitulos2 .subtitle-table .subtitle-size-select + .ui-dropdown .ui-dropdown__trigger {
   min-height: 34px;
   padding: 8px 10px;
   border-color: var(--border-soft);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface-soft);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 #viewSubtitulos2 .subtitle-table .subtitle-size-select + .ui-dropdown .ui-dropdown__menu {
@@ -100,9 +100,9 @@
 #viewSubtitulos2 .subtitle-table .subtitle-size-select + .ui-dropdown .ui-dropdown__option {
   min-height: 30px;
   padding: 7px 10px;
-  border-bottom-color: var(--c-242424);
+  border-bottom-color: var(--border-1);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 #viewSubtitulos2 .subtitle-number-stepper {
@@ -136,18 +136,18 @@
   min-height: 0;
   padding: 0;
   border: 1px solid var(--border-soft);
-  border-radius: 0;
-  background: var(--c-101010);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
   color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 800;
   line-height: 1;
 }
 
 #viewSubtitulos2 .subtitle-number-stepper__buttons button:hover:not(:disabled),
 #viewSubtitulos2 .subtitle-number-stepper__buttons button.is-holding {
-  border-color: var(--c-00e88f66);
+  border-color: var(--accent-a40);
   color: var(--accent);
 }
 
@@ -184,7 +184,7 @@
   background: transparent;
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
+  font-size: var(--fs-16);
   font-weight: 500;
   text-align: center;
 }
@@ -195,22 +195,22 @@
   min-height: 20px;
   padding: 0;
   border: 1px solid var(--border-soft);
-  background: var(--c-101010);
+  background: var(--surface-0);
   color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: var(--fs-13);
   font-weight: 800;
   line-height: 1;
 }
 
 #viewSubtitulos2 .subtitle-time-nudge button:hover:not(:disabled),
 #viewSubtitulos2 .subtitle-time-nudge button.is-holding {
-  border-color: var(--c-00e88f66);
+  border-color: var(--accent-a40);
   color: var(--accent);
 }
 
 #viewSubtitulos2 .subtitle-time-nudge button:disabled {
-  color: var(--c-4b4f55);
+  color: var(--text-4);
   opacity: 0.45;
 }
 
@@ -230,14 +230,14 @@
 
 #viewSubtitulos2 .subtitle-align-group--compact button {
   border-color: var(--border-soft);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   background: var(--surface-muted);
   color: var(--text-soft);
 }
 
 #viewSubtitulos2 .subtitle-align-group--compact button.selected-green {
-  border-color: var(--c-00e88f55);
-  background: var(--c-03140d);
+  border-color: var(--accent-a32);
+  background: var(--accent-ink);
   color: var(--accent);
 }
 
@@ -248,7 +248,7 @@
   min-height: 30px;
   padding: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 18px;
+  font-size: var(--fs-18);
   font-weight: 700;
   line-height: 1;
 }
@@ -260,14 +260,14 @@
 }
 
 #viewSubtitulos2 .subtitle-row-delete {
-  border: 1px solid var(--c-rgb-255-88-102-0.36);
-  background: var(--c-rgb-255-88-102-0.06);
-  color: var(--c-ff5a66);
+  border: 1px solid var(--danger-a36);
+  background: var(--danger-a06);
+  color: var(--danger);
 }
 
 #viewSubtitulos2 .subtitle-row-insert {
-  border: 1px solid var(--c-rgb-0-232-143-0.36);
-  background: var(--c-rgb-0-232-143-0.06);
+  border: 1px solid var(--accent-a36);
+  background: var(--accent-a06);
   color: var(--accent);
 }
 
@@ -275,14 +275,14 @@
 #viewSubtitulos2 .subtitle-row-insert:disabled {
   border-color: var(--border-soft);
   background: transparent;
-  color: var(--c-4b4f55);
+  color: var(--text-4);
   opacity: 0.55;
 }
 
 /* Global row styles */
 #viewSubtitulos2 tr.subtitle-row--global {
   background: var(--surface);
-  border-bottom: 2px solid var(--c-1a1a1a);
+  border-bottom: 2px solid var(--border-1);
 }
 
 #viewSubtitulos2 tr.subtitle-row--global td {
@@ -298,13 +298,13 @@
 }
 
 #viewSubtitulos2 .subtitle-global-label__icon {
-  font-size: 14px;
+  font-size: var(--fs-14);
   opacity: 0.7;
 }
 
 #viewSubtitulos2 .subtitle-global-label__text {
   color: var(--warning);
-  font-size: 10px;
+  font-size: var(--fs-10);
   font-weight: 700;
   letter-spacing: 1.5px;
 }
@@ -321,7 +321,7 @@
 }
 
 #viewSubtitulos2 .subtitle-stripes-toggle:hover {
-  background: var(--c-rgb-255-255-255-0.05);
+  background: var(--overlay-06);
 }
 
 #viewSubtitulos2 .subtitle-stripes-toggle input[type="checkbox"] {
@@ -350,14 +350,14 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--c-4b4f55);
+  background: var(--surface-3);
   left: 1px;
   top: 1px;
   transition: all 0.2s ease;
 }
 
 #viewSubtitulos2 .subtitle-stripes-toggle input[type="checkbox"]:checked + .subtitle-stripes-toggle__icon {
-  background: var(--c-rgb-0-232-143-0.2);
+  background: var(--accent-a20);
   border-color: var(--accent);
 }
 
