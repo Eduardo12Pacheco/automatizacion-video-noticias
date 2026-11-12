@@ -102,6 +102,23 @@ jobs:
       - name: Installer/CLI behaviour under the fake docker stand-in
         run: bash infra/install/tests/run.sh
 
+  visual-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Visual QA + axe-core on the showcase
+        run: node tools/run-visual-qa.mjs
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30

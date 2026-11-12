@@ -16,7 +16,8 @@
     "test:worker-ports": "node --test packages/adapters/test/worker-ports.test.js",
     "test:all": "node tools/run-all-tests.mjs",
     "test:checks": "node tools/run-panel-checks.mjs",
-    "test:panel": "uv run --with pytest pytest apps/panel/tests -q"
+    "test:panel": "uv run --with pytest pytest apps/panel/tests -q",
+    "test:visual": "node tools/run-visual-qa.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0"

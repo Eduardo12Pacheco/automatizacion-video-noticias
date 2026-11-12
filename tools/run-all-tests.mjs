@@ -80,6 +80,12 @@ const steps = [
     skip: !hasCommand('docker') ? 'docker is not available on this host' : null,
   },
   {
+    name: 'visual-qa',
+    command: 'node',
+    args: ['tools/run-visual-qa.mjs'],
+    skip: !existsSync('node_modules/.bin/playwright') ? 'Playwright is not installed (run pnpm install + playwright install chromium)' : null,
+  },
+  {
     name: 'e2e-demo',
     command: 'pnpm',
     args: ['exec', 'playwright', 'test'],

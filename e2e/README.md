@@ -66,3 +66,21 @@ throwaway `python:3.12-slim` static server that the test starts on the Compose
 network, mounted on the test work directory. It needs Docker access on the
 machine running the spec; set `E2E_FIXTURE_NETWORK` if the Compose project is
 not named `newsroom`.
+
+## Visual QA (T20)
+
+`e2e/visual-qa.spec.js` implements the S10 acceptance in showcase mode: every
+view × {es,en} × {1440×900, 390×844}, with zero console errors, zero failed
+requests, no layout overflow, no debug/fallback copy, no foreign-language
+catalog strings and no serious/critical axe-core violations. It also covers the
+login screen, the designed empty/error states and the loading skeletons, and
+writes the README screenshots to `docs/images/screens/`.
+
+It needs no Docker stack:
+
+```bash
+node tools/run-visual-qa.mjs
+```
+
+The runner starts the static panel server, runs Playwright and stops the
+server. CI runs the same command in the `visual-qa` job.
