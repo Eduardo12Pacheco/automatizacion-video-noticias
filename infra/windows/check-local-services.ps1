@@ -80,7 +80,8 @@ foreach ($check in $checks) {
 }
 
 Write-Host "`n=== Health autenticado: subtítulos ==="
-$subtitlesEnvPath = '<WORKSPACE>\Desktop\n8n\services/subtitles\.env.local'
+$workspaceRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$subtitlesEnvPath = Join-Path $workspaceRoot 'services/subtitles/.env.local'
 $subtitlesEnv = Read-DotEnvFile -Path $subtitlesEnvPath
 $subtitlesPort = if ($subtitlesEnv['SUBTITLES_REMOTE_PORT']) { $subtitlesEnv['SUBTITLES_REMOTE_PORT'] } else { '8092' }
 $subtitlesUser = $subtitlesEnv['SUBTITLES_REMOTE_BASIC_USER']
@@ -108,7 +109,7 @@ else {
 }
 
 Write-Host "`n=== Dependencias locales críticas ==="
-$approvalEditorPython = '<WORKSPACE>\AppData\Local\Programs\Python\Python311\python.exe'
+$approvalEditorPython = '$env:LOCALAPPDATA\Programs\Python\Python311\python.exe'
 if (-not (Test-Path -LiteralPath $approvalEditorPython)) {
   Write-Host "approval-editor-python: FAIL -> no existe $approvalEditorPython" -ForegroundColor Red
   $allOk = $false
@@ -130,7 +131,7 @@ else {
   }
 }
 
-$videoEngineNodeModules = '<WORKSPACE>\Desktop\n8n\services/renderer\node_modules'
+$videoEngineNodeModules = Join-Path $workspaceRoot 'services/renderer/node_modules'
 if (Test-Path -LiteralPath $videoEngineNodeModules) {
   Write-Host "video-engine-node-modules: OK -> $videoEngineNodeModules" -ForegroundColor Green
 }

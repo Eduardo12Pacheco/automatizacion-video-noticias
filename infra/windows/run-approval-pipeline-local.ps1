@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$root = '<WORKSPACE>\Desktop\n8n\services/renderer'
+$root = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'services/renderer'
 $node = 'C:\Program Files\nodejs\node.exe'
 
 if (-not (Test-Path -LiteralPath $node)) {

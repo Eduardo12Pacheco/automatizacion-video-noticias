@@ -6,7 +6,7 @@ $configFile = if ($env:TTS_TUNNEL_CONFIG_FILE) {
   $env:TTS_TUNNEL_CONFIG_FILE
 }
 else {
-  '<WORKSPACE>/.cloudflared/config.yml'
+  Join-Path $env:USERPROFILE '.cloudflared/config.yml'
 }
 
 $originCert = if ($env:TTS_TUNNEL_ORIGIN_CERT) {
@@ -35,7 +35,7 @@ if ($cloudflaredCmd) {
   exit 0
 }
 
-$fallback = "<WORKSPACE>/AppData/Local/Microsoft/WinGet/Packages/Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe/cloudflared.exe"
+$fallback = Join-Path $env:LOCALAPPDATA "Microsoft/WinGet/Packages/Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe/cloudflared.exe"
 if (Test-Path $fallback) {
   & $fallback @args
   exit 0

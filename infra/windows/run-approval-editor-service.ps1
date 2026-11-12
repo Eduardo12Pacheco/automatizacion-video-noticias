@@ -1,10 +1,10 @@
 $ErrorActionPreference = 'Stop'
 
-$workspaceRoot = '<WORKSPACE>\Desktop\n8n'
+$workspaceRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $root = Join-Path $workspaceRoot 'apps/panel\services\approval-editor'
 $videoEngineRoot = Join-Path $workspaceRoot 'services/renderer'
 $node = 'C:\Program Files\nodejs\node.exe'
-$python = '<WORKSPACE>\AppData\Local\Programs\Python\Python311\python.exe'
+$python = '$env:LOCALAPPDATA\Programs\Python\Python311\python.exe'
 
 if (-not (Test-Path -LiteralPath $node)) {
   $cmd = Get-Command node.exe -ErrorAction SilentlyContinue

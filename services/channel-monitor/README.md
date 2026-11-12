@@ -54,10 +54,10 @@ Use the explicit reset flow only while workers are stopped or disabled. It prese
 
 ```powershell
 Stop-Service radar-channel-monitor
-& "<WORKSPACE>\Desktop\n8n\services/channel-monitor\scripts\reset-radar-baseline.ps1" -Mode dry-run
-& "<WORKSPACE>\Desktop\n8n\services/channel-monitor\scripts\reset-radar-baseline.ps1" -Mode apply
+& "$env:NEWSROOM_ROOT\services\channel-monitor\scripts\reset-radar-baseline.ps1" -Mode dry-run
+& "$env:NEWSROOM_ROOT\services\channel-monitor\scripts\reset-radar-baseline.ps1" -Mode apply
 Start-Service radar-channel-monitor
-& "<WORKSPACE>\Desktop\n8n\services/channel-monitor\scripts\check-service.ps1"
+& "$env:NEWSROOM_ROOT\services\channel-monitor\scripts\check-service.ps1"
 ```
 
 Rollback: stop the service, restore the generated `.bak` over `runtime\monitor.sqlite3`, revert code/config, restart, then verify `/api/monitor/preflight`, `/api/monitor/cards`, and `/api/monitor/basura`.
@@ -68,8 +68,8 @@ Schema migrations are additive and startup must preserve existing runtime data. 
 
 ```powershell
 Stop-Service radar-channel-monitor
-Copy-Item "<WORKSPACE>\Desktop\n8n\services/channel-monitor\runtime\monitor.sqlite3" "<WORKSPACE>\Desktop\n8n\services/channel-monitor\runtime\monitor.sqlite3.bak"
-Remove-Item "<WORKSPACE>\Desktop\n8n\services/channel-monitor\runtime\monitor.sqlite3"
+Copy-Item "$env:NEWSROOM_ROOT\services/channel-monitor\runtime\monitor.sqlite3" "$env:NEWSROOM_ROOT\services/channel-monitor\runtime\monitor.sqlite3.bak"
+Remove-Item "$env:NEWSROOM_ROOT\services/channel-monitor\runtime\monitor.sqlite3"
 Start-Service radar-channel-monitor
 ```
 

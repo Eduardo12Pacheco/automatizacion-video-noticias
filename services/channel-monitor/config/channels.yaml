@@ -360,8 +360,8 @@ countries:
       - url: https://www.youtube.com/@prensafutbol_
         label: PrensaFútbol
         enabled: true
-      - url: https://www.youtube.com/@balong
-        label: Balong – MDTPnet
+      - url: https://www.youtube.com/@demo-sports-news
+        label: Demo Sports News
         enabled: true
         algorithm_priority_rank: 33
       - url: https://www.youtube.com/@RadioPortalesStgo

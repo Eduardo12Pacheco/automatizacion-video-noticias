@@ -1,6 +1,6 @@
 param(
-  [string]$Source = "<WORKSPACE>\Downloads\www.youtube.com_cookies.txt",
-  [string]$Destination = "<WORKSPACE>\Desktop\n8n\services/asr-worker\secrets\youtube-cookies.txt",
+  [string]$Source = (Join-Path $env:USERPROFILE "Downloads\www.youtube.com_cookies.txt"),
+  [string]$Destination = "$env:NEWSROOM_ROOT\services/asr-worker\secrets\youtube-cookies.txt",
   [switch]$RestartService,
   [string]$ServiceName = "transcript-service-radar"
 )

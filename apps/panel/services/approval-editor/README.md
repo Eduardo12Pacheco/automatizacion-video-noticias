@@ -10,10 +10,10 @@ It requires real Whisper alignment by default; estimated timings only run when `
 
 ```powershell
 $env:APPROVAL_EDITOR_SERVICE_PORT = "3042"
-$env:STT_WHISPER_MODEL = "<WORKSPACE>\Desktop\n8n\local\models\faster-whisper-large-v3"
+$env:STT_WHISPER_MODEL = "<MODEL_PATH>"
 $env:STT_WHISPER_DEVICE = "cuda"
 $env:STT_WHISPER_COMPUTE_TYPE = "float16"
-$env:REMOTION_EDITOR_PYTHON_BIN = "<WORKSPACE>\AppData\Local\Programs\Python\Python311\python.exe"
+$env:REMOTION_EDITOR_PYTHON_BIN = "<PYTHON_EXE>"
 # Optional only if ffmpeg-static is not available from services/renderer/node_modules:
 # $env:FFMPEG_PATH = "C:\path\to\ffmpeg.exe"
 node .\services\approval-editor\server.js

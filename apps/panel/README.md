@@ -66,7 +66,7 @@ apps/panel/services/approval-editor/
 Se levanta con:
 
 ```powershell
-cd <WORKSPACE>\Desktop\n8n\apps/panel
+cd $env:NEWSROOM_ROOT\apps\panel
 node .\services\approval-editor\server.js
 ```
 
@@ -74,8 +74,8 @@ Para dejarlo como servicio permanente de Windows con NSSM:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass -Force
-& "<WORKSPACE>\Desktop\n8n\apps/panel\scripts\install-approval-editor-service.ps1"
-& "<WORKSPACE>\Desktop\n8n\apps/panel\scripts\check-approval-editor-service.ps1" -IncludeGateway
+& "$env:NEWSROOM_ROOT\apps\panel\scripts\install-approval-editor-service.ps1"
+& "$env:NEWSROOM_ROOT\apps\panel\scripts\check-approval-editor-service.ps1" -IncludeGateway
 ```
 
 Servicio esperado: `approval-editor-service`, inicio `Automatic`, puerto `3042`. Los logs se escriben en `apps/panel/runtime-logs/`.
@@ -261,7 +261,7 @@ node js/modules/__checks__/approval-editor-service-timings.check.cjs
 Contrato cruzado con Video Engine:
 
 ```powershell
-cd <WORKSPACE>\Desktop\n8n\services/renderer
+cd $env:NEWSROOM_ROOT\services\renderer
 node --test tests/approval-editor-service-v1.test.js
 ```
 

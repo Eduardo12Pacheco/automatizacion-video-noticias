@@ -66,7 +66,7 @@ def test_approval_editor_docs_require_explicit_python_bin_for_services():
     service_readme = read("apps/panel/services/approval-editor/README.md")
 
     assert '$env:REMOTION_EDITOR_PYTHON_BIN = "py"' not in service_readme
-    assert '$env:REMOTION_EDITOR_PYTHON_BIN = "<WORKSPACE>\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"' in service_readme
+    assert '$env:REMOTION_EDITOR_PYTHON_BIN = "<PYTHON_EXE>"' in service_readme
     assert "NSSM" in service_readme
     assert "LocalSystem" in service_readme
 

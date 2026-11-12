@@ -88,7 +88,7 @@ Abrí PowerShell como **Administrador**:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass -Force
-& "<WORKSPACE>\Desktop\n8n\services/tts-worker\scripts\install-services.ps1"
+& "$env:NEWSROOM_ROOT\services\tts-worker\scripts\install-services.ps1"
 ```
 
 Esto actualiza/instala y arranca:
@@ -100,7 +100,7 @@ Esto actualiza/instala y arranca:
 ## Verificar servicios
 
 ```powershell
-& "<WORKSPACE>\Desktop\n8n\services/tts-worker\scripts\check-services.ps1"
+& "$env:NEWSROOM_ROOT\services\tts-worker\scripts\check-services.ps1"
 ```
 
 Resultado esperado:

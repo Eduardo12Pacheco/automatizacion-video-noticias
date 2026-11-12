@@ -11,7 +11,7 @@
       "id": "s1",
       "start_ms": 12000,
       "end_ms": 16000,
-      "text": "La albiceleste presiona alto y recupera la balon."
+      "text": "La albiceleste presiona alto y recupera el balón."
     },
     {
       "id": "s2",
@@ -27,7 +27,7 @@
       "segment_id": "s1",
       "start_ms": 12000,
       "end_ms": 16000,
-      "text": "La albiceleste presiona alto y recupera la balon."
+      "text": "La albiceleste presiona alto y recupera el balón."
     }
   ]
 }

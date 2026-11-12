@@ -70,9 +70,9 @@ winget install --id ChrisBagwell.SoX -e
 4. Cloudflared instalado y túnel creado.
 5. Archivos existentes:
 
-- `<WORKSPACE>/.cloudflared/cert.pem`
-- `<WORKSPACE>/.cloudflared/1bf44f10-4a6a-4039-a63c-14c8e92b2638.json`
-- `<WORKSPACE>/.cloudflared/config.yml`
+- `<USERPROFILE>/.cloudflared/cert.pem`
+- `<USERPROFILE>/.cloudflared/<tunnel-id>.json`
+- `<USERPROFILE>/.cloudflared/config.yml`
 
 6. Variables locales en `.env.local` (token interno, api key, basic auth, python del venv CUDA, etc.).
 
@@ -103,7 +103,7 @@ En PowerShell Admin:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass -Force
-& "<WORKSPACE>\Desktop\n8n\services/tts-worker\scripts\install-services.ps1"
+& "$env:NEWSROOM_ROOT\services\tts-worker\scripts\install-services.ps1"
 ```
 
 Servicios creados:
@@ -153,7 +153,7 @@ Invoke-WebRequest "https://tts-api.example.local/healthz" -UseBasicParsing
 ### Check rápido (script nuevo)
 
 ```powershell
-& "<WORKSPACE>\Desktop\n8n\services/tts-worker\scripts\check-services.ps1"
+& "$env:NEWSROOM_ROOT\services\tts-worker\scripts\check-services.ps1"
 ```
 
 ---
@@ -204,9 +204,9 @@ Invoke-WebRequest "https://tts-api.example.local/healthz" -UseBasicParsing
 
 **Fix:** en `run-tunnel.ps1` pasar explícitamente:
 
-- `--config <WORKSPACE>/.cloudflared/config.yml`
-- `--origincert <WORKSPACE>/.cloudflared/cert.pem`
-- `--credentials-file <WORKSPACE>/.cloudflared/<tunnel-id>.json`
+- `--config <USERPROFILE>/.cloudflared/config.yml`
+- `--origincert <USERPROFILE>/.cloudflared/cert.pem`
+- `--credentials-file <USERPROFILE>/.cloudflared/<tunnel-id>.json`
 
 ---
 
