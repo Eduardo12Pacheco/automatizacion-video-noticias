@@ -33,6 +33,19 @@ database.
 All credentials in `e2e/.env.example` are fictional test values. Never reuse
 them in a real installation.
 
+## Re-record the README demo
+
+`tools/record-demo.mjs` records the same demo stack from the app viewport (no
+desktop or terminal) and writes `docs/images/demo.mp4` plus the under-1-MB GIF:
+
+```bash
+NEWSROOM_DEMO_PASSWORD=e2e-demo-password node tools/record-demo.mjs
+```
+
+Use a fresh stack (`docker compose down -v` before `up`) so the seeded story is
+clean. The recorder fails instead of shipping a recording with a console error
+or a page exception.
+
 ## Local-mode happy path (real media)
 
 `e2e/local-mode.spec.js` is the D10 acceptance run. It is opt-in because it
