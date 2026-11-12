@@ -111,6 +111,7 @@ services are optional and off by default.
 | Media download | **yt-dlp** on the host/container | — |
 | Notifications | Console adapter | **Mailpit** for local mail; SMTP for a real inbox |
 | Orchestration | In-process job queue + scheduler | Optional **n8n** profile with slim workflows |
+| Connectors | Local adapters, no keys | SMTP/Gmail, OpenAI-compatible LLM, S3/MinIO, n8n — see [`docs/CONNECTORS.md`](docs/CONNECTORS.md) |
 | Export | python-docx `.docx` + Markdown | — |
 
 The GPU workers share a cross-process slot so an 8 GB card never loads the LLM,
@@ -228,7 +229,7 @@ Every suite is blocking in CI; there are no `continue-on-error` baselines.
   to be installed and run locally, and nothing is deployed to the internet.
 - The original private deployment depended on n8n, Supabase and several API
   keys. Those paths are now local adapters; the historical n8n export is kept
-  only as a reference fixture under `examples/n8n/`.
+  only as a reference fixture under `examples/legacy-n8n/`.
 - The default CPU demo uses deterministic adapters for the worker-facing steps
   so a visitor can click through the whole flow without a GPU or a model pull.
   The real local Ollama / Whisper / Qwen / Piper paths are available behind the

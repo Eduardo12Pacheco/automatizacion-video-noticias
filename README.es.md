@@ -83,6 +83,7 @@ los servicios externos son opcionales y están apagados por defecto.
 | Descarga de medios | **yt-dlp** local | — |
 | Notificaciones | Consola | **Mailpit** local / SMTP real |
 | Orquestación | Cola y scheduler en proceso | Perfil **n8n** opcional |
+| Conectores | Adaptadores locales, sin claves | SMTP/Gmail, LLM compatible con OpenAI, S3/MinIO, n8n — ver [`docs/CONNECTORS.md`](docs/CONNECTORS.md) |
 | Exportación | python-docx `.docx` + Markdown | — |
 
 Los workers de GPU comparten un slot entre procesos para que una tarjeta de
@@ -172,7 +173,7 @@ bloqueantes en CI; no hay baselines con `continue-on-error`.
   despliega a internet.
 - El despliegue privado original dependía de n8n, Supabase y varias claves de
   API. Esos caminos ahora son adaptadores locales; el export histórico de n8n
-  queda solo como referencia en `examples/n8n/`.
+  queda solo como referencia en `examples/legacy-n8n/`.
 - La demo CPU por defecto usa adaptadores deterministas para los pasos de
   workers, así un visitante recorre el flujo completo sin GPU ni descarga de
   modelos. Los caminos reales de Ollama / Whisper / Qwen / Piper están

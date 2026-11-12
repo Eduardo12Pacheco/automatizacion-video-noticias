@@ -36,7 +36,8 @@ installers also pass `--env-file .env`).
 | `model-init` | one-shot (`tools`) | Downloads the Piper voice `${PIPER_MODEL}` and the faster-whisper model `${WHISPER_MODEL}`. Idempotent and GPU-free; Ollama pulls its own model on first start. |
 | `tts-worker` | `gpu` profile (Piper CPU fallback) | `TTS_WORKER_ENGINE=auto`; uses the shared GPU lock volume/path. |
 | `asr-worker` | `gpu` profile (CPU fallback) | faster-whisper; uses `WHISPER_DEVICE` and the shared GPU lock. |
-| `n8n` | `n8n` profile, optional | Must stay off by default (`WORKFLOW=disabled`). Never required by the installer. |
+| `n8n` | `n8n` profile, optional | Must stay off by default (`WORKFLOW=disabled`). Mounts `infra/n8n/workflows/` read-only at `/workflows`, never the legacy export. Never required by the installer. |
+| `minio` | `s3` profile, optional | S3-compatible blob storage for `STORAGE=s3`; internal only, credentials from `.env`, bucket created by the `minio-init` one-shot. |
 
 The default profile (no `--profile` beyond `cpu`) starts **api + panel +
 demo-worker + approval-editor + seed + Postgres + SearXNG + Mailpit + Ollama** with seed data and
@@ -88,8 +89,8 @@ Defaults come from `.env.example`; every port must be overridable through `.env`
 `OLLAMA_PORT=11434`, `N8N_PORT=5678`. Only the panel and API publish ports, and
 they bind to `${NEWSROOM_BIND:-127.0.0.1}`. Internal services stay on the
 Compose network; `infra/compose/compose.debug.yaml` adds their ports for
-debugging. `POSTGRES_PASSWORD`, `SEARXNG_SECRET` and `N8N_ENCRYPTION_KEY` use
-`${VAR:?run ./install.sh first}` and have no weak fallback.
+debugging. `POSTGRES_PASSWORD`, `SEARXNG_SECRET`, `N8N_ENCRYPTION_KEY`, `JOBS_API_KEY`
+and the MinIO credentials use `${VAR:?...}` and have no weak fallback.
 
 Persistent data lives in named volumes: Postgres, blobs/documents, models
 (Ollama, Whisper, Piper), n8n (optional). `newsroom down` keeps them;
