@@ -4,10 +4,10 @@ const fs = require("fs");
 const {
   buildApprovalContractPipeline,
   ALIGNMENT_FALLBACK_WARNING,
-} = require("../../../../packages/contracts/approval-contract-pipeline");
+} = require("@newsroom/contracts/approval-contract-pipeline");
 const { createApprovalProjectStore } = require("../lib/projects/approval-project-store");
 const { toApprovalCreateResponse, toApprovalStatusResponse } = require("../lib/contracts/approval-response-adapter");
-const { applyContractOperations } = require("../../../../apps/panel/services/approval-editor/lib/contract-updates");
+const { applyContractOperations } = require("@newsroom/contracts/editor/contract-updates");
 
 function stableId(value) {
   return String(value || "")

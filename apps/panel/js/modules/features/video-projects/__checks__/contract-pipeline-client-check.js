@@ -8,8 +8,8 @@ import { createVideoProjectsApiClient } from '../api.js';
 import { createVideoProjectsFeature } from '../index.js';
 import { renderSelectedVideoProjectView } from '../render.js';
 const cjsRequire = createRequire(import.meta.url);
-const approvalService = cjsRequire('../../../../../../../services/renderer/scripts/approval-pipeline-local-service.js');
-const { applyContractOperations } = cjsRequire('../../../../../services/approval-editor/lib/contract-updates.js');
+const approvalService = cjsRequire('@newsroom/renderer/approval-pipeline-local-service');
+const { applyContractOperations } = cjsRequire('@newsroom/contracts/editor/contract-updates');
 
 const { createApprovalPipelineLocalService } = approvalService;
 

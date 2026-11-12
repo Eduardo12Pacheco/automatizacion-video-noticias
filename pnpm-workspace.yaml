@@ -1,5 +1,6 @@
 packages:
   - "apps/api"
+  - "apps/panel"
   - "packages/contracts"
   - "packages/core"
   - "packages/adapters"

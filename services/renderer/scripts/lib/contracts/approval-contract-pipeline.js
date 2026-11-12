@@ -1,1 +1,1 @@
-module.exports = require("../../../../../packages/contracts/approval-contract-pipeline/approval-contract-pipeline");
+module.exports = require("@newsroom/contracts/approval-contract-pipeline/approval-contract-pipeline");

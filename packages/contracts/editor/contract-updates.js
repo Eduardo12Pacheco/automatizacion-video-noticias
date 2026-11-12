@@ -1,7 +1,7 @@
-const { computeApprovalSnapshotHash } = require("./hash");
+const { computeApprovalSnapshotHash } = require("../approval-contract-pipeline/hash");
 const { normalizeAsset } = require("./asset-resolver");
 const { findMotionPreset } = require("./motion-presets");
-const { normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("../../../../../packages/contracts/approval-contract-pipeline");
+const { normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("../approval-contract-pipeline");
 const { BOUNDARY_TRANSITION_CONFIGS, WHIP_TRANSITION_CONFIG, WHIP_SFX, buildBoundaryTransitionAssetRecord } = require("./boundary-transitions");
 
 function defaultZoom150Motion() {

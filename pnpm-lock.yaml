@@ -12,6 +12,15 @@ importers:
         specifier: 1.65.0
         version: 1.65.0
 
+  apps/panel:
+    dependencies:
+      '@newsroom/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@newsroom/renderer':
+        specifier: workspace:*
+        version: link:../../services/renderer
+
   apps/api:
     dependencies:
       '@newsroom/adapters':
@@ -43,6 +52,9 @@ importers:
 
   services/renderer:
     dependencies:
+      '@newsroom/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@remotion/cli':
         specifier: 4.0.441
         version: 4.0.441(react-dom@19.2.3(react@19.2.3))(react@19.2.3)

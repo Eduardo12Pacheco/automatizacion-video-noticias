@@ -8,7 +8,7 @@ import { syncVideoSelectorPreviewLayers } from '../render/preview-lifecycle.js';
 import { hydrateVideoSelectorControls } from '../render/video-selector-hydration.js';
 
 const require = createRequire(import.meta.url);
-const { applyContractOperations } = require('../../../../../services/approval-editor/lib/contract-updates.js');
+const { applyContractOperations } = require('@newsroom/contracts/editor/contract-updates');
 
 function assertEqual(actual, expected, message) {
   if (actual !== expected) {

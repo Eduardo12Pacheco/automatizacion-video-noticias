@@ -35,7 +35,7 @@ const compositionRendererSource = [
   readFileSync(resolve(__dirname, '../composition/composition-renderer.js'), 'utf8'),
   readFileSync(resolve(__dirname, '../composition/renderer/dom.js'), 'utf8'),
 ].join('\n');
-const { applyContractOperations } = require('../../../../../services/approval-editor/lib/contract-updates.js');
+const { applyContractOperations } = require('@newsroom/contracts/editor/contract-updates');
 
 function readCssWithImports(filePath, seen = new Set()) {
   if (seen.has(filePath)) return '';

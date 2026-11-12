@@ -1,0 +1,10 @@
+{
+  "name": "@newsroom/panel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vanilla ES-module panel for the local newsroom API.",
+  "dependencies": {
+    "@newsroom/contracts": "workspace:*",
+    "@newsroom/renderer": "workspace:*"
+  }
+}

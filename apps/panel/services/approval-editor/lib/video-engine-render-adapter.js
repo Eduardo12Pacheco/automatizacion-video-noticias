@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
-const { stableId, normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("../../../../../packages/contracts/approval-contract-pipeline");
+const { stableId, normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("@newsroom/contracts/approval-contract-pipeline");
 const { addBoundaryTransitionAssets, normalizeBoundaryTransitionRows } = require("./boundary-transitions");
 
 const AUTHORITATIVE_DUST_ASSETS = {

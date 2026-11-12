@@ -1,5 +1,5 @@
 const { renderPropsV2Schema } = require("./schemas");
-const { validateApprovalTimeline } = require("../../../../../packages/contracts/approval-contract-pipeline");
+const { validateApprovalTimeline } = require("@newsroom/contracts/approval-contract-pipeline");
 
 const FINAL_OUTRO_GAP_SECONDS = 2;
 const WHIP_TRANSITION_DURATION_SECONDS = 0.43;

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { alignPhrasesToTranscript } = require('../../../../../packages/contracts/approval-contract-pipeline');
+const { alignPhrasesToTranscript } = require("@newsroom/contracts/approval-contract-pipeline");
 
 const WHISPER_DERIVATIVE_FILE = 'voice-whisper-16khz-mono.wav';
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 30000;

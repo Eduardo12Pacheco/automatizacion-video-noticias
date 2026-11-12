@@ -27,13 +27,13 @@ def test_active_import_consumers_resolve_approval_editor_from_new_boundary():
             "../../../services/approval-editor/lib/real-alignment.js",
         ],
         "apps/panel/js/modules/features/video-projects/__checks__/video-segment-picker-ux.check.mjs": [
-            "../../../../../services/approval-editor/lib/contract-updates.js",
+            "@newsroom/contracts/editor/contract-updates",
         ],
         "services/renderer/tests/approval-editor-service-v1.test.js": [
             "../../../apps/panel/services/approval-editor/server",
         ],
         "services/renderer/scripts/services/approval-pipeline-local-service.js": [
-            "../../../../apps/panel/services/approval-editor/lib/contract-updates",
+            "@newsroom/contracts/editor/contract-updates",
         ],
     }
 
