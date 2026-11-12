@@ -1,0 +1,323 @@
+# Content policy deny-list (T13, S7).
+# One case-insensitive, word-boundary term per line. The scanner in
+# tools/tests/test_content_policy.py fails when any tracked text file outside
+# odd/ contains one of these terms. Generic competition words ("liga", "copa")
+# are intentionally absent because the fictional brand uses "Liga Demo" and
+# "Copa Demo"; the entries below name real competitions, clubs, people and
+# broadcasters instead.
+
+# Real players, coaches and presenters
+Caicedo
+Moisés Caicedo
+Moises Caicedo
+Piero Hincapié
+Piero Hincapie
+Hincapié
+Hincapie
+Willian Pacho
+William Pacho
+Pacho
+Enner Valencia
+Enner
+Gonzalo Plata
+Plata
+Kendry Páez
+Kendry Paez
+Páez
+Paez
+Pervis Estupiñán
+Pervis Estupinan
+Estupiñán
+Estupinan
+Alan Franco
+Franco
+Kevin Rodríguez
+Kevin Rodriguez
+Angelo Preciado
+Ángelo Preciado
+Preciado
+John Yeboah
+Yeboah
+Luis Díaz
+Luis Diaz
+Lucho Díaz
+Lucho Diaz
+Díaz
+Diaz
+James Rodríguez
+James Rodriguez
+James Rodrigue
+James
+Daniel Muñoz
+Daniel Munoz
+Muñoz
+Munoz
+Davinson Sánchez
+Davinson Sanchez
+Sánchez
+Sanchez
+Jefferson Lerma
+Lerma
+Richard Ríos
+Richard Rios
+Ríos
+Rios
+Juan Fernando Quintero
+Quintero
+Jhon Arias
+Arias
+Lionel Messi
+Leo Messi
+Messi
+Julián Álvarez
+Julian Alvarez
+Álvarez
+Alvarez
+La Araña
+La Arana
+Lautaro Martínez
+Lautaro Martinez
+Toro Martínez
+Toro Martinez
+Martínez
+Martinez
+Emiliano Martínez
+Emiliano Martinez
+Dibu Martínez
+Dibu Martinez
+Dibu
+Enzo Fernández
+Enzo Fernandez
+Fernández
+Fernandez
+Alexis Mac Allister
+Mac Allister
+MacAllister
+Rodrigo De Paul
+Rodrigo de Paul
+De Paul
+Cristian Romero
+Cuti Romero
+Romero
+Nicolás Otamendi
+Nicolas Otamendi
+Otamendi
+Ángel Di María
+Angel Di Maria
+Di María
+Di Maria
+Alejandro Garnacho
+Garnacho
+Federico Valverde
+Fede Valverde
+Frederico Valverde
+Valverde
+Darwin Núñez
+Darwin Nunez
+Núñez
+Nunez
+Manuel Ugarte
+Ugarte
+Rodrigo Bentancur
+Bentancur
+Ronald Araujo
+Ronald Araújo
+Araujo
+Araújo
+Giorgian De Arrascaeta
+Giorgian de Arrascaeta
+De Arrascaeta
+Arrascaeta
+Facundo Pellistri
+Pellistri
+Sergio Rochet
+Rochet
+Matías Viña
+Matias Vina
+Viña
+Vina
+José María Giménez
+Jose Maria Gimenez
+Josema Giménez
+Josema Gimenez
+Giménez
+Gimenez
+Nicolás De La Cruz
+Nicolas De La Cruz
+De La Cruz
+De la Cruz
+Miguel Almirón
+Miguel Almiron
+Almirón
+Almiron
+Julio Enciso
+Enciso
+Antonio Sanabria
+Tony Sanabria
+Sanabria
+Gustavo Gómez
+Gustavo Gomez
+Gómez
+Gomez
+Ramón Sosa
+Ramon Sosa
+Ramoncito Sosa
+Sosa
+Diego Gómez
+Diego Gomez
+Omar Alderete
+Alderete
+Damián Bobadilla
+Damian Bobadilla
+Bobadilla
+Junior Alonso
+Alonso
+Santiago Giménez
+Santiago Gimenez
+Santi Giménez
+Santi Gimenez
+Guillermo Ochoa
+Memo Ochoa
+Ochoa
+Raúl Jiménez
+Raul Jimenez
+Jiménez
+Jimenez
+Edson Álvarez
+Edson Alvarez
+Orbelín Pineda
+Orbelin Pineda
+Pineda
+Luis Chávez
+Luis Chavez
+Chávez
+Chavez
+César Montes
+Cesar Montes
+Cachorro Montes
+Montes
+Johan Vásquez
+Johan Vasquez
+Vásquez
+Vasquez
+Julián Quiñones
+Julian Quinones
+Quiñones
+Quinones
+Jeremy Sarmiento
+Sarmiento
+Rafael Santos Borré
+Rafael Santos Borre
+Borré
+Borre
+Yaser Asprilla
+Asprilla
+Matías Rojas
+Matias Rojas
+Hirving Lozano
+Chucky Lozano
+Lozano
+Henry Martín
+Henry Martin
+Lionel Scaloni
+Scaloni
+Harry Kane
+Jorge Ramos
+Carlos Antonio Vélez
+Samuel Vargas
+Eddie Fleischman
+Julio Ríos
+Julio Rios
+Mundo Maldini
+Maldini
+
+# Real clubs, national teams and tournaments
+Chelsea
+Barcelona
+Barcelona SC
+Real Madrid
+LDU
+Emelec
+Independiente
+Inter Miami
+Bayern Munich
+Bayern Múnich
+Bayern
+Manchester City
+Liverpool
+Leverkusen
+PSG
+Arsenal
+Brighton
+Flamengo
+Feyenoord
+Sevilla
+Juventus
+Tottenham
+Nottingham Forest
+Champions
+Champions League
+Premier League
+Bundesliga
+Ligue 1
+Serie A
+Libertadores
+Sudamericana
+Mundial
+Copa Mundial
+Copa América
+World Cup
+Golazo
+LigaPro
+Ecuador
+Colombia
+Argentina
+Uruguay
+Paraguay
+México
+Mexico
+
+# Real broadcasters and programs
+TyC
+Canal Plus
+ESPN
+Fox Sports
+TV Azteca
+ADN Chile
+TNT Sports
+ABC TV Paraguay
+Rock & Pop
+LAS VOCES DEL FÚTBOL
+Sky Sports
+Fútbol Picante
+Futbol Picante
+La Pizarra de Quintana
+Madrugol con Mr Peet
+Mr Peet
+Exitosa Deportes
+Todos Somos Técnicos
+Todos Somos Tecnicos
+Círculo Central
+Cardinal Deportivo
+La Gran Jugada
+La Mesa Protagonista
+La Última Palabra
+La Ultima Palabra
+Los Tenores
+NSports
+
+# Retired brand, font and asset names
+Versa Versa
+Versa
+CCO
+MUNDIAL
+isMundialLogoSource
+brand-outro-mundial
+logo-demo-cup
+final-demo-cup
+final-demo-co
+final-demo-ec
+logo-demo-co
+logo-demo-alpha
+logo-colombia
+logo-ecuador
