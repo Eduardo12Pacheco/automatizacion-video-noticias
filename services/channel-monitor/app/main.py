@@ -6,8 +6,8 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any, Callable
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from .boundary_client import BoundaryRequestError, ChannelNetworkBoundaryClient
 from .channel_bootstrap import ChannelResolver, channel_sync_report_to_dict, sync_configured_channels
@@ -18,8 +18,8 @@ from .settings import NETWORK_MODE_PROTECTED, Settings, load_and_validate_channe
 from .store import ChannelRecord, MonitorCardRecord, MonitorStore
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, load_title_catalog, normalize_country
 from .transcript_service_client import TranscriptServiceSubtitleProvider
-from .workers import ClassificationService, CatchupWorker, CleanupWorker, DiscoveryWorker, EnqueueWorker, TranscriptSyncWorker, WebSubRenewalWorker
-from .youtube_client import CallbackValidationError, CompositeSubtitleProvider, WebSubClient, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider, parse_websub_video_ids, validate_websub_callback
+from .workers import ClassificationService, CatchupWorker, CleanupWorker, DiscoveryWorker, EnqueueWorker, TranscriptSyncWorker
+from .youtube_client import CompositeSubtitleProvider, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider
 
 
 def _error(code: str, message: str, status_code: int) -> HTTPException:
@@ -31,18 +31,6 @@ def _authorize(settings: Settings, api_key: str | None) -> None:
         raise _error("missing_api_key_config", "Channel monitor API key is not configured", 500)
     if not api_key or not secrets.compare_digest(api_key, settings.api_key):
         raise _error("unauthorized", "Invalid or missing API key", 401)
-
-
-def _authorize_boundary_event(settings: Settings, api_key: str | None) -> None:
-    if not settings.boundary_event_api_key:
-        raise _error("missing_boundary_event_api_key_config", "Boundary event API key is not configured", 500)
-    if not api_key or not secrets.compare_digest(api_key, settings.boundary_event_api_key):
-        raise _error("unauthorized", "Invalid or missing boundary event API key", 401)
-
-
-def _process_boundary_video_ids(discovery_worker: DiscoveryWorker, video_ids: list[str]) -> None:
-    for video_id in video_ids:
-        discovery_worker.process_video_id(video_id)
 
 
 def create_app(
@@ -82,7 +70,7 @@ def create_app(
 
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
-        public_paths = {"/api/monitor/live", "/api/monitor/websub", "/api/monitor/boundary/websub-events"}
+        public_paths = {"/api/monitor/live"}
         if request.url.path.startswith("/api/monitor/") and request.url.path not in public_paths:
             try:
                 _authorize(settings, request.headers.get("x-api-key"))
@@ -294,66 +282,6 @@ def create_app(
             raise _error("channel_not_found", f"Channel {channel_id} was not found", 404)
         return _channel_to_dict(record)
 
-    @app.get("/api/monitor/websub")
-    async def websub_challenge(request: Request) -> PlainTextResponse:
-        if not settings.callback_secret:
-            raise _error("websub_not_configured", "WebSub secret is not configured", 503)
-        if request.query_params.get("hub.verify_token") != settings.callback_secret:
-            raise _error("invalid_verify_token", "Invalid WebSub verify token", 403)
-        challenge = request.query_params.get("hub.challenge")
-        if not challenge:
-            raise _error("missing_challenge", "Missing WebSub challenge", 400)
-        return PlainTextResponse(challenge)
-
-    @app.post("/api/monitor/websub", status_code=202)
-    async def websub_callback(request: Request) -> dict[str, Any]:
-        body = await request.body()
-        if settings.callback_secret and request.query_params.get("secret") == settings.callback_secret:
-            pass
-        else:
-            try:
-                validate_websub_callback(body, dict(request.headers), settings.callback_secret)
-            except CallbackValidationError as exc:
-                raise _error("invalid_callback", str(exc), 403) from exc
-        video_ids = parse_websub_video_ids(body)
-        if discovery_worker is None:
-            raise _error("discovery_worker_unavailable", "Discovery worker is not configured", 503)
-        for video_id in video_ids:
-            discovery_worker.process_video_id(video_id)
-        return {"status": "accepted", "video_ids": video_ids}
-
-    @app.post("/api/monitor/boundary/websub-events", status_code=202)
-    async def boundary_websub_events(request: Request, background_tasks: BackgroundTasks, payload: dict[str, Any]) -> dict[str, Any]:
-        _authorize_boundary_event(settings, request.headers.get("x-boundary-event-api-key"))
-        event_id = _optional_text(payload.get("event_id"))
-        channel_id = _optional_text(payload.get("channel_id"))
-        received_at = _optional_text(payload.get("received_at"))
-        video_ids = _normalize_video_ids(payload.get("video_ids"))
-        if not event_id:
-            raise _error("missing_event_id", "Boundary WebSub event_id is required", 400)
-        if not received_at:
-            raise _error("missing_received_at", "Boundary WebSub received_at is required", 400)
-        if not video_ids:
-            raise _error("missing_video_ids", "Boundary WebSub event requires at least one video id", 400)
-        if discovery_worker is None:
-            raise _error("discovery_worker_unavailable", "Discovery worker is not configured", 503)
-        inserted = store.record_boundary_websub_event(
-            event_id=event_id,
-            channel_id=channel_id,
-            video_ids=video_ids,
-            received_at=received_at,
-        )
-        if inserted:
-            background_tasks.add_task(_process_boundary_video_ids, discovery_worker, video_ids)
-        return {
-            "status": "accepted",
-            "event_id": event_id,
-            "channel_id": channel_id,
-            "video_ids": video_ids,
-            "received_at": received_at,
-            "duplicate": not inserted,
-        }
-
     return app
 
 
@@ -371,8 +299,6 @@ def _preflight_response(
         "channels": channel_report,
         "radar": radar_client.preflight() if radar_client else _dependency_status(False, "radar_client_configured"),
         "channel_feed": _dependency_status(True, "youtube_rss_no_api_key"),
-        "websub_callback": _dependency_status(bool(settings.callback_url), "callback_url_configured"),
-        "websub_subscriptions": store.subscription_preflight(),
         "catchup": store.catchup_preflight(),
         "cleanup": store.cleanup_preflight(),
         "classification": _classification_preflight(settings=settings, store=store),
@@ -675,19 +601,6 @@ def _optional_text(value: Any) -> str | None:
     return text or None
 
 
-def _normalize_video_ids(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    normalized: list[str] = []
-    seen: set[str] = set()
-    for item in value:
-        video_id = _optional_text(item)
-        if video_id and video_id not in seen:
-            seen.add(video_id)
-            normalized.append(video_id)
-    return normalized
-
-
 def _optional_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
@@ -735,7 +648,6 @@ def _build_runtime_coordinator(
         enqueue_due=enqueue_worker.enqueue_due if enqueue_worker else None,
     )
     cleanup_worker = CleanupWorker(store=store, retention_hours=settings.cleanup_retention_hours, mode=settings.cleanup_mode)
-    websub_worker = _build_websub_worker(settings=settings, store=store)
     catchup_worker = _build_catchup_worker(settings=settings, store=store, discovery_worker=discovery_worker)
     pending_live_duty = getattr(discovery_worker, "poll_pending_live", None)
     loops = [
@@ -764,12 +676,6 @@ def _build_runtime_coordinator(
             duty=cleanup_worker.cleanup_old_rows,
         ),
         RuntimeLoop(
-            name="websub",
-            interval_seconds=settings.worker_websub_interval_seconds,
-            enabled=settings.worker_websub_enabled and websub_worker is not None,
-            duty=websub_worker.renew_all if websub_worker else _noop,
-        ),
-        RuntimeLoop(
             name="catchup",
             interval_seconds=settings.worker_catchup_interval_seconds,
             initial_delay_seconds=settings.worker_catchup_initial_delay_seconds,
@@ -792,28 +698,6 @@ def _build_transcript_sync_worker(
     if not settings.radar_url or not settings.radar_api_key:
         return None
     return TranscriptSyncWorker(store=store, radar=radar_client, enqueue_due=enqueue_due)
-
-
-def _build_websub_worker(*, settings: Settings, store: MonitorStore) -> WebSubRenewalWorker | None:
-    if _protected_network_mode(settings):
-        boundary = _build_boundary_client(settings=settings)
-        if boundary is None:
-            return None
-        callback_url = f"{settings.network_boundary_url.rstrip('/')}/v1/websub/callback"
-        return WebSubRenewalWorker(
-            store=store,
-            websub=boundary,
-            callback_url=callback_url,
-            lease_seconds=settings.websub_lease_seconds,
-        )
-    if not settings.callback_url:
-        return None
-    return WebSubRenewalWorker(
-        store=store,
-        websub=WebSubClient(callback_url=settings.callback_url, network_mode=settings.network_mode),
-        callback_url=settings.callback_url,
-        lease_seconds=settings.websub_lease_seconds,
-    )
 
 
 def _build_catchup_worker(

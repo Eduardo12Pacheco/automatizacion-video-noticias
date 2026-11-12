@@ -180,7 +180,7 @@ def test_runtime_logs_exceptions_and_retries_after_interval(caplog):
 
         duty = FakeDuty(fail_once=True)
         coordinator = RuntimeCoordinator(
-            loops=[RuntimeLoop(name="websub", interval_seconds=11, enabled=True, duty=duty)],
+            loops=[RuntimeLoop(name="cleanup", interval_seconds=11, enabled=True, duty=duty)],
             sleep=sleep,
             logger=logging.getLogger("test-runtime"),
         )
@@ -190,7 +190,7 @@ def test_runtime_logs_exceptions_and_retries_after_interval(caplog):
             await asyncio.sleep(0)
 
         assert sleeps == [11]
-        assert "Runtime duty failed: websub" in caplog.text
+        assert "Runtime duty failed: cleanup" in caplog.text
         assert coordinator.status()["running"] == []
 
     asyncio.run(scenario())

@@ -13,7 +13,6 @@ from app.workers import (
     EnqueueWorker,
     ClassificationBackfill,
     TranscriptSyncWorker,
-    WebSubRenewalWorker,
     accepts_foreign_press_match,
 )
 from app.youtube_client import MetadataUnavailable, SubtitleSegment, SubtitleUnavailable, UploadItem, VideoMetadata
@@ -1741,67 +1740,6 @@ def test_discovery_worker_records_boundary_metadata_failure_reason_without_local
     assert result.lifecycle == "metadata_failed"
     assert result.match_reason == "boundary_unreachable"
     assert result.matched is False
-
-
-class FakeWebSub:
-    def __init__(self, accepted_by_channel: dict[str, bool]):
-        self.accepted_by_channel = accepted_by_channel
-        self.calls: list[str] = []
-
-    def renew(self, channel_id: str, *, lease_seconds: int = 864000) -> bool:
-        self.calls.append(channel_id)
-        return self.accepted_by_channel[channel_id]
-
-
-def test_websub_renewal_worker_records_failed_subscription_without_callback_secret(tmp_path):
-    store, channel = make_store(tmp_path)
-    websub = FakeWebSub({"UCStable": False})
-    worker = WebSubRenewalWorker(
-        store=store,
-        websub=websub,
-        callback_url="https://callback.example/api/monitor/websub?secret=callback-secret",
-        now=lambda: "2026-05-20T10:00:00Z",
-    )
-
-    results = worker.renew_all()
-
-    assert websub.calls == ["UCStable"]
-    assert results[0].status == "failed"
-    assert results[0].last_error == "websub_renewal_rejected"
-    preflight = store.subscription_preflight(now="2026-05-20T10:00:00Z")
-    assert preflight["findings"] == [
-        {
-            "code": "subscription_failed",
-            "channel_id": channel.id,
-            "youtube_channel_id": "UCStable",
-            "label": "Demo Sports FR",
-            "last_error": "websub_renewal_rejected",
-        }
-    ]
-
-
-def test_websub_renewal_worker_records_boundary_retryable_reason_without_local_fallback(tmp_path):
-    class BoundaryFailingWebSub:
-        def __init__(self):
-            self.calls: list[str] = []
-
-        def renew(self, channel_id: str, *, lease_seconds: int = 864000) -> bool:
-            self.calls.append(channel_id)
-            raise BoundaryRequestError(code="boundary_unreachable", message="Boundary unavailable", retryable=True)
-
-    store, _channel = make_store(tmp_path)
-    websub = BoundaryFailingWebSub()
-    worker = WebSubRenewalWorker(
-        store=store,
-        websub=websub,
-        callback_url="https://boundary.example.test/v1/websub/callback",
-        now=lambda: "2026-05-20T10:00:00Z",
-    )
-
-    results = worker.renew_all()
-
-    assert websub.calls == ["UCStable"]
-    assert [(subscription.status, subscription.last_error) for subscription in results] == [("failed", "boundary_unreachable")]
 
 
 class FakeSubtitleProvider:

@@ -109,20 +109,6 @@ class SubtitleFetchRequest:
         return payload
 
 
-@dataclass(frozen=True)
-class WebSubRenewRequest:
-    channel_id: str
-    callback_url: str | None
-    lease_seconds: int
-    endpoint: str = "/v1/websub/renew"
-
-    def payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {"channel_id": self.channel_id, "lease_seconds": max(1, int(self.lease_seconds))}
-        if self.callback_url and self.callback_url.strip():
-            payload["callback_url"] = self.callback_url.strip()
-        return payload
-
-
 class ChannelNetworkBoundaryClient:
     provider_name = "channel-network-boundary"
 
@@ -209,16 +195,6 @@ class ChannelNetworkBoundaryClient:
             for segment in raw_segments or []
             if isinstance(segment, dict) and str(segment.get("text") or "").strip()
         ]
-
-    def renew(self, channel_id: str, *, lease_seconds: int = 864000) -> bool:
-        data = self._request(
-            WebSubRenewRequest(
-                channel_id=channel_id,
-                callback_url=None,
-                lease_seconds=lease_seconds,
-            )
-        )
-        return bool(data.get("accepted")) if isinstance(data, dict) else False
 
     def _request(self, request: BoundaryRequest) -> dict[str, Any] | list[Any]:
         if not self.base_url or not self.token:

@@ -13,43 +13,6 @@ from .store_row_mappers import *
 from .title_matcher import TARGET_COUNTRY_ORDER, match_program_title, normalize_country
 
 class DismissalStoreMixin(SchemaStoreMixin):
-    def record_boundary_websub_event(
-        self,
-        *,
-        event_id: str,
-        channel_id: str | None,
-        video_ids: list[str],
-        received_at: str,
-    ) -> bool:
-        """Persist a normalized boundary WebSub event.
-
-        Returns True for a new event and False when the event_id was already
-        recorded, allowing replay-safe callback forwarding.
-        """
-        with self._connect() as connection:
-            cursor = connection.execute(
-                """
-                insert or ignore into boundary_websub_events(event_id, channel_id, video_ids_json, received_at)
-                values (?, ?, ?, ?)
-                """,
-                (event_id, channel_id, json.dumps(video_ids), received_at),
-            )
-            return cursor.rowcount == 1
-
-
-    def get_boundary_websub_event(self, event_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
-            row = connection.execute("select * from boundary_websub_events where event_id = ?", (event_id,)).fetchone()
-        if row is None:
-            return None
-        return {
-            "event_id": row["event_id"],
-            "channel_id": row["channel_id"],
-            "video_ids": json.loads(row["video_ids_json"]),
-            "received_at": row["received_at"],
-        }
-
-
     def upsert_card_context_dismissal(
         self,
         *,

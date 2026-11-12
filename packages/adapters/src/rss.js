@@ -150,7 +150,7 @@ export class RssNewsSourceAdapter {
 
 /**
  * ChannelFeedPort: YouTube's public channel RSS feed (`feeds/videos.xml`).
- * Replaces the YouTube Data API + WebSub path.
+ * Replaces the YouTube Data API polling path.
  */
 export class RssChannelFeedAdapter {
   constructor({ fetchImpl = globalThis.fetch, timeoutMs = 30_000, feedUrl = 'https://www.youtube.com/feeds/videos.xml' } = {}) {

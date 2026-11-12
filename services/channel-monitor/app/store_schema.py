@@ -135,24 +135,6 @@ class SchemaStoreMixin(MonitorStoreBase):
                     parameters_json text
                 );
 
-                create table if not exists subscriptions (
-                    channel_id integer primary key references channels(id),
-                    callback_url text not null,
-                    lease_seconds integer,
-                    expires_at text,
-                    last_renewed_at text,
-                    status text not null default 'ready',
-                    last_error text
-                );
-
-                create table if not exists boundary_websub_events (
-                    event_id text primary key,
-                    channel_id text,
-                    video_ids_json text not null,
-                    received_at text not null,
-                    created_at text not null default current_timestamp
-                );
-
                 create table if not exists cleanup_runs (
                     id integer primary key autoincrement,
                     started_at text not null,
@@ -184,20 +166,11 @@ class SchemaStoreMixin(MonitorStoreBase):
                 where candidate_id is not null;
                 """
             )
-            self._ensure_subscription_columns(connection)
             self._ensure_channel_importance_columns(connection)
             self._ensure_classification_columns(connection)
             self._ensure_important_audit_columns(connection)
             self._ensure_retention_columns(connection)
             self._ensure_channel_checkpoint_columns(connection)
-
-
-    def _ensure_subscription_columns(self, connection: sqlite3.Connection) -> None:
-        existing = {row["name"] for row in connection.execute("pragma table_info(subscriptions)").fetchall()}
-        if "status" not in existing:
-            connection.execute("alter table subscriptions add column status text not null default 'ready'")
-        if "last_error" not in existing:
-            connection.execute("alter table subscriptions add column last_error text")
 
 
     def _ensure_channel_importance_columns(self, connection: sqlite3.Connection) -> None:

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import hmac
 import json
 
 from app.youtube_client import (
-    CallbackValidationError,
     ChannelMetadata,
     CompositeSubtitleProvider,
     MetadataUnavailable,
@@ -13,14 +11,11 @@ from app.youtube_client import (
     TimedTextSubtitleProvider,
     SubtitleSegment,
     VideoMetadata,
-    WebSubClient,
     YouTubeTranscriptSubtitleProvider,
     YtDlpSubtitleProvider,
     UploadItem,
     _extract_handle,
-    parse_websub_video_ids,
     resolve_caption_language,
-    validate_websub_callback,
 )
 
 
@@ -176,7 +171,6 @@ def test_local_youtube_provider_construction_is_forbidden_in_protected_mode():
     constructors = [
         lambda: YouTubeTranscriptSubtitleProvider(network_mode="protected"),
         lambda: YtDlpSubtitleProvider(network_mode="protected"),
-        lambda: WebSubClient(callback_url="https://monitor.test/api/monitor/websub", network_mode="protected"),
     ]
 
     errors = []
@@ -189,7 +183,6 @@ def test_local_youtube_provider_construction_is_forbidden_in_protected_mode():
             raise AssertionError("protected mode must forbid local YouTube provider construction")
 
     assert errors == [
-        "policy_forbidden_local_youtube",
         "policy_forbidden_local_youtube",
         "policy_forbidden_local_youtube",
     ]
@@ -211,28 +204,6 @@ def test_extract_handle_does_not_invent_handle_for_channel_or_watch_urls():
 
 
 
-
-
-def test_websub_helpers_validate_secret_signature_parse_ids_and_subscribe():
-    body = b"""<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><entry><yt:videoId>abc123</yt:videoId></entry></feed>"""
-    signature = "sha256=" + hmac.new(b"callback-secret", body, "sha256").hexdigest()
-
-    validate_websub_callback(body, {"x-hub-signature-256": signature}, "callback-secret")
-    assert parse_websub_video_ids(body) == ["abc123"]
-
-    http = FakeHttp(FakeResponse({}, status_code=202))
-    client = WebSubClient(callback_url="https://monitor.test/api/monitor/websub", http=http)
-    accepted = client.subscribe("UCStable", mode="subscribe", lease_seconds=3600)
-
-    assert accepted is True
-    assert http.posts[0][1]["hub.topic"] == "https://www.youtube.com/xml/feeds/videos.xml?channel_id=UCStable"
-
-    try:
-        validate_websub_callback(body, {"x-hub-signature-256": "sha256=bad"}, "callback-secret")
-    except CallbackValidationError as exc:
-        assert "signature" in str(exc)
-    else:
-        raise AssertionError("expected CallbackValidationError")
 
 
 def test_timed_text_subtitle_provider_uses_source_language_and_parses_segments():
@@ -583,11 +554,3 @@ La France a bien joue
     assert "--write-subs" in download_args
 
 
-def test_websub_callback_validation_fails_closed_without_a_secret():
-    body = b"<feed></feed>"
-    try:
-        validate_websub_callback(body, {"x-hub-signature-256": "sha256=anything"}, "")
-    except CallbackValidationError as exc:
-        assert "not configured" in str(exc).lower()
-    else:
-        raise AssertionError("expected CallbackValidationError when the WebSub secret is empty")

@@ -42,7 +42,7 @@ Expected fail-closed reasons during migration include `boundary_misconfigured` f
 
 ### Runtime worker loops
 
-FastAPI startup owns one cancellable runtime loop per enabled duty: Radar enqueue retry, transcript summary sync, pending-live polling, SQLite cleanup, RSS channel catch-up, and optional WebSub renewal. Configure them with `CHANNEL_MONITOR_WORKER_*_ENABLED` and `CHANNEL_MONITOR_WORKER_*_INTERVAL_SECONDS` in `.env`.
+FastAPI startup owns one cancellable runtime loop per enabled duty: Radar enqueue retry, transcript summary sync, pending-live polling, SQLite cleanup, RSS channel catch-up. Configure them with `CHANNEL_MONITOR_WORKER_*_ENABLED` and `CHANNEL_MONITOR_WORKER_*_INTERVAL_SECONDS` in `.env`.
 
 ## Local-first channel feed
 
@@ -93,7 +93,6 @@ Automated verification stays local with pytest and fakes. Only after explicit op
 | `GET /api/monitor/live` | No | Minimal liveness response. |
 | `GET /api/monitor/health` | `x-api-key` | Redacted preflight. |
 | `GET /api/monitor/preflight` | `x-api-key` | Alias for redacted preflight checks. |
-| `POST /api/monitor/boundary/websub-events` | `x-boundary-event-api-key` | Boundary-only normalized WebSub event intake; idempotent by `event_id` and dispatches video IDs to local discovery coordination. |
 | `POST /api/monitor/radar-baseline-reset` | `x-api-key` | Dry-run/apply clean baseline reset with backup and confirmation. |
 | `GET /api/monitor/basura` | `x-api-key` | Paged rejected/non-matching videos preserved for review. |
 | `GET /api/monitor/summary` | `x-api-key` | Fixed target-country counters plus `basura_count`. |

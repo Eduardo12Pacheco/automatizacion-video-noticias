@@ -68,7 +68,7 @@ class FakeRuntimeCoordinator:
         self.stops += 1
 
     def status(self):
-        return {"status": "ready", "enabled": ["enqueue"], "running": ["enqueue"], "disabled": ["websub", "catchup"]}
+        return {"status": "ready", "enabled": ["enqueue"], "running": ["enqueue"], "disabled": ["catchup"]}
 
 
 class InspectingRuntimeCoordinator(FakeRuntimeCoordinator):
@@ -161,7 +161,6 @@ def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_
         network_boundary_token="boundary-token",
         radar_url="http://transcript-service.test",
         radar_api_key="transcript-service-key",
-        worker_websub_enabled=True,
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
@@ -170,20 +169,16 @@ def test_protected_mode_builders_use_boundary_clients_and_never_construct_local_
         raise AssertionError("local YouTube provider constructed in protected mode")
 
     monkeypatch.setattr(main_module, "RssChannelClient", forbidden_local_provider)
-    monkeypatch.setattr(main_module, "WebSubClient", forbidden_local_provider)
     monkeypatch.setattr(main_module, "YouTubeTranscriptSubtitleProvider", forbidden_local_provider)
     monkeypatch.setattr(main_module, "YtDlpSubtitleProvider", forbidden_local_provider)
 
     resolver = main_module._build_channel_resolver(settings=settings)
     discovery = main_module._build_discovery_worker(settings=settings, store=store)
     catchup = main_module._build_catchup_worker(settings=settings, store=store, discovery_worker=discovery)
-    websub = main_module._build_websub_worker(settings=settings, store=store)
 
     assert isinstance(resolver, ChannelNetworkBoundaryClient)
     assert isinstance(discovery.youtube, ChannelNetworkBoundaryClient)
     assert isinstance(catchup.youtube, ChannelNetworkBoundaryClient)
-    assert isinstance(websub.websub, ChannelNetworkBoundaryClient)
-    assert websub.callback_url == "https://boundary.example.test/v1/websub/callback"
 
 
 def test_protected_discovery_builder_fails_closed_when_boundary_config_missing_with_local_api_key(tmp_path, monkeypatch):
@@ -243,18 +238,15 @@ def test_local_dev_builders_keep_explicit_local_provider_path(tmp_path):
         db_path=tmp_path / "monitor.sqlite3",
         catalog_config_path=catalog_path,
         network_mode="local_dev",
-        callback_url="https://monitor.example.test/api/monitor/websub",
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
 
     resolver = main_module._build_channel_resolver(settings=settings)
     discovery = main_module._build_discovery_worker(settings=settings, store=store)
-    websub = main_module._build_websub_worker(settings=settings, store=store)
 
     assert resolver.__class__.__name__ == "RssChannelClient"
     assert discovery.youtube.__class__.__name__ == "RssChannelClient"
-    assert websub.websub.__class__.__name__ == "WebSubClient"
 
 
 def test_health_requires_api_key_and_redacts_secrets(tmp_path):
@@ -275,7 +267,6 @@ countries:
         db_path=tmp_path / "monitor.sqlite3",
         channels_config_path=channels_path,
         radar_api_key="radar-secret",
-        callback_secret="callback-secret",
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
@@ -291,7 +282,6 @@ countries:
     assert body["checks"]["channels"]["status"] == "ready"
     assert "radar-secret" not in str(body)
     assert "youtube-secret" not in str(body)
-    assert "callback-secret" not in str(body)
 
 
 def test_health_reports_duplicate_channel_preflight_failure(tmp_path):
@@ -380,8 +370,6 @@ countries:
         "channels",
         "radar",
         "channel_feed",
-        "websub_callback",
-        "websub_subscriptions",
         "catchup",
         "cleanup",
         "runtime",
@@ -487,8 +475,6 @@ countries:
         channels_config_path=channels_path,
         radar_url="http://127.0.0.1:8765",
         radar_api_key="radar-secret",
-        callback_url="https://callback.example/api/monitor/websub",
-        callback_secret="callback-secret",
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
@@ -506,7 +492,6 @@ countries:
     assert body["checks"]["cleanup"]["status"] == "ready"
     assert "radar-secret" not in response.text
     assert "youtube-secret" not in response.text
-    assert "callback-secret" not in response.text
 
 
 def test_cleanup_dry_run_endpoint_reports_expired_detected_videos_without_mutation(tmp_path):
@@ -546,67 +531,6 @@ def test_cleanup_dry_run_endpoint_reports_expired_detected_videos_without_mutati
     assert before_matches == after_matches
 
 
-def test_preflight_reports_websub_subscription_findings_per_channel_without_secrets(tmp_path):
-    settings = Settings(
-        api_key="monitor-secret",
-        db_path=tmp_path / "monitor.sqlite3",
-        callback_url="https://callback.example/api/monitor/websub?secret=callback-secret",
-        callback_secret="callback-secret",
-    )
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    healthy = store.upsert_channel(
-        ChannelRecord(country="fr", label="Healthy", source_url=None, youtube_channel_id="UCHealthy")
-    )
-    expiring = store.upsert_channel(
-        ChannelRecord(country="fr", label="Expiring", source_url=None, youtube_channel_id="UCExpiring")
-    )
-    failed = store.upsert_channel(
-        ChannelRecord(country="fr", label="Failed", source_url=None, youtube_channel_id="UCFailed")
-    )
-    store.upsert_channel(ChannelRecord(country="fr", label="Missing", source_url=None, youtube_channel_id="UCMissing"))
-    store.record_subscription(
-        channel_id=healthy.id,
-        callback_url=settings.callback_url,
-        lease_seconds=864000,
-        expires_at="2099-05-30T10:00:00Z",
-        last_renewed_at="2026-05-20T10:00:00Z",
-        status="ready",
-    )
-    store.record_subscription(
-        channel_id=expiring.id,
-        callback_url=settings.callback_url,
-        lease_seconds=864000,
-        expires_at="2026-05-20T12:00:00Z",
-        last_renewed_at="2026-05-10T12:00:00Z",
-        status="ready",
-    )
-    store.record_subscription(
-        channel_id=failed.id,
-        callback_url=settings.callback_url,
-        lease_seconds=864000,
-        expires_at="2099-05-30T10:00:00Z",
-        last_renewed_at="2026-05-20T10:00:00Z",
-        status="failed",
-        last_error="hub_503",
-    )
-    client = TestClient(create_app(settings=settings, store=store))
-
-    response = client.get("/api/monitor/preflight", headers={"x-api-key": "monitor-secret"})
-
-    findings = response.json()["checks"]["websub_subscriptions"]["findings"]
-    assert response.status_code == 200
-    assert response.json()["checks"]["websub_subscriptions"]["status"] == "failed"
-    assert [finding["code"] for finding in findings] == [
-        "subscription_expiring",
-        "subscription_failed",
-        "subscription_missing",
-    ]
-    assert [finding["youtube_channel_id"] for finding in findings] == ["UCExpiring", "UCFailed", "UCMissing"]
-    assert "callback-secret" not in response.text
-    assert settings.callback_url not in response.text
-
-
 def _strip_volatile_card_fields(payload):
     """Drop timestamp/rank fields the card shape exposes but a fixture cannot pin."""
     for item in payload.get("items", []):
@@ -621,7 +545,6 @@ def test_monitor_cards_endpoint_is_authenticated_read_only_and_redacts_secrets(t
         api_key="monitor-secret",
         db_path=tmp_path / "monitor.sqlite3",
         radar_api_key="radar-secret",
-        callback_secret="callback-secret",
     )
     store = MonitorStore(settings.db_path)
     store.migrate()
@@ -1353,15 +1276,6 @@ def test_monitor_summary_and_basura_endpoints_are_authenticated_read_only(tmp_pa
     ]
 
 
-class FakeDiscoveryWorker:
-    def __init__(self):
-        self.video_ids: list[str] = []
-
-    def process_video_id(self, video_id: str):
-        self.video_ids.append(video_id)
-        return None
-
-
 class FakeChannelResolver:
     def __init__(self):
         self.calls: list[str] = []
@@ -1644,131 +1558,3 @@ countries:
     assert store.list_channels() == []
 
 
-def test_websub_get_challenge_is_public_and_requires_verify_token(tmp_path):
-    settings = Settings(
-        api_key="monitor-secret",
-        db_path=tmp_path / "monitor.sqlite3",
-        callback_secret="callback-secret",
-    )
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    client = TestClient(create_app(settings=settings, store=store))
-
-    accepted = client.get(
-        "/api/monitor/websub",
-        params={"hub.mode": "subscribe", "hub.challenge": "challenge-value", "hub.verify_token": "callback-secret"},
-    )
-    rejected = client.get(
-        "/api/monitor/websub",
-        params={"hub.mode": "subscribe", "hub.challenge": "challenge-value", "hub.verify_token": "wrong"},
-    )
-
-    assert accepted.status_code == 200
-    assert accepted.text == "challenge-value"
-    assert rejected.status_code == 403
-
-
-def test_websub_post_validates_callback_and_processes_video_ids(tmp_path):
-    settings = Settings(
-        api_key="monitor-secret",
-        db_path=tmp_path / "monitor.sqlite3",
-        callback_secret="callback-secret",
-    )
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    worker = FakeDiscoveryWorker()
-    client = TestClient(create_app(settings=settings, store=store, discovery_worker=worker))
-    body = b"""<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><entry><yt:videoId>abc123</yt:videoId></entry></feed>"""
-
-    response = client.post("/api/monitor/websub?secret=callback-secret", content=body)
-
-    assert response.status_code == 202
-    assert response.json() == {"status": "accepted", "video_ids": ["abc123"]}
-    assert worker.video_ids == ["abc123"]
-
-
-def test_boundary_websub_events_route_rejects_missing_or_wrong_event_api_key(tmp_path):
-    settings = Settings(
-        api_key="monitor-secret",
-        db_path=tmp_path / "monitor.sqlite3",
-        boundary_event_api_key="boundary-event-secret",
-    )
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    client = TestClient(create_app(settings=settings, store=store, discovery_worker=FakeDiscoveryWorker()))
-    payload = {
-        "event_id": "websub:UCBoundary:vid-1",
-        "channel_id": "UCBoundary",
-        "video_ids": ["vid-1"],
-        "received_at": "2026-06-05T12:00:00Z",
-    }
-
-    missing = client.post("/api/monitor/boundary/websub-events", json=payload)
-    wrong = client.post("/api/monitor/boundary/websub-events", headers={"x-boundary-event-api-key": "wrong"}, json=payload)
-
-    assert missing.status_code == 401
-    assert missing.json()["detail"]["code"] == "unauthorized"
-    assert wrong.status_code == 401
-    assert wrong.json()["detail"]["code"] == "unauthorized"
-
-
-def test_boundary_websub_events_route_accepts_normalized_event_and_is_idempotent(tmp_path):
-    settings = Settings(
-        api_key="monitor-secret",
-        db_path=tmp_path / "monitor.sqlite3",
-        boundary_event_api_key="boundary-event-secret",
-    )
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    worker = FakeDiscoveryWorker()
-    client = TestClient(create_app(settings=settings, store=store, discovery_worker=worker))
-    payload = {
-        "event_id": "websub:UCBoundary:vid-1,vid-2",
-        "channel_id": "UCBoundary",
-        "video_ids": ["vid-1", "vid-2", "vid-1"],
-        "received_at": "2026-06-05T12:00:00Z",
-    }
-    headers = {"x-boundary-event-api-key": "boundary-event-secret"}
-
-    first = client.post("/api/monitor/boundary/websub-events", headers=headers, json=payload)
-    second = client.post("/api/monitor/boundary/websub-events", headers=headers, json=payload)
-
-    assert first.status_code == 202
-    assert first.json() == {
-        "status": "accepted",
-        "event_id": "websub:UCBoundary:vid-1,vid-2",
-        "channel_id": "UCBoundary",
-        "video_ids": ["vid-1", "vid-2"],
-        "received_at": "2026-06-05T12:00:00Z",
-        "duplicate": False,
-    }
-    assert second.status_code == 202
-    assert second.json()["duplicate"] is True
-    assert worker.video_ids == ["vid-1", "vid-2"]
-    stored = store.get_boundary_websub_event("websub:UCBoundary:vid-1,vid-2")
-    assert stored == {
-        "event_id": "websub:UCBoundary:vid-1,vid-2",
-        "channel_id": "UCBoundary",
-        "video_ids": ["vid-1", "vid-2"],
-        "received_at": "2026-06-05T12:00:00Z",
-    }
-
-
-
-def test_websub_challenge_and_callback_fail_closed_without_a_callback_secret(tmp_path):
-    settings = Settings(api_key="monitor-secret", db_path=tmp_path / "monitor.sqlite3")
-    store = MonitorStore(settings.db_path)
-    store.migrate()
-    worker = FakeDiscoveryWorker()
-    client = TestClient(create_app(settings=settings, store=store, discovery_worker=worker))
-    body = b"""<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"><entry><yt:videoId>abc123</yt:videoId></entry></feed>"""
-
-    challenge = client.get(
-        "/api/monitor/websub",
-        params={"hub.mode": "subscribe", "hub.challenge": "challenge-value", "hub.verify_token": ""},
-    )
-    callback = client.post("/api/monitor/websub", content=body)
-
-    assert challenge.status_code == 503
-    assert callback.status_code == 403
-    assert worker.video_ids == []

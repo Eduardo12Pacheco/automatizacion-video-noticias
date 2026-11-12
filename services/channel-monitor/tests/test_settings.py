@@ -18,12 +18,9 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_CATALOG_CONFIG", str(catalog_path))
     monkeypatch.setenv("CHANNEL_MONITOR_RADAR_URL", "http://127.0.0.1:8765")
     monkeypatch.setenv("CHANNEL_MONITOR_RADAR_API_KEY", "radar-secret")
-    monkeypatch.setenv("CHANNEL_MONITOR_CALLBACK_URL", "https://example.test/websub")
-    monkeypatch.setenv("CHANNEL_MONITOR_CALLBACK_SECRET", "callback-secret")
     monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_MODE", "protected")
     monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "https://boundary.example.test")
     monkeypatch.setenv("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", "boundary-secret")
-    monkeypatch.setenv("CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY", "event-secret")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_ENQUEUE_ENABLED", "false")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_ENQUEUE_INTERVAL_SECONDS", "7")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_PENDING_LIVE_ENABLED", "true")
@@ -32,8 +29,6 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CLEANUP_INTERVAL_SECONDS", "23")
     monkeypatch.setenv("CHANNEL_MONITOR_CLEANUP_RETENTION_HOURS", "120")
     monkeypatch.setenv("CHANNEL_MONITOR_CLEANUP_MODE", "dry-run")
-    monkeypatch.setenv("CHANNEL_MONITOR_WORKER_WEBSUB_ENABLED", "true")
-    monkeypatch.setenv("CHANNEL_MONITOR_WORKER_WEBSUB_INTERVAL_SECONDS", "31")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_ENABLED", "false")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_INTERVAL_SECONDS", "37")
     monkeypatch.setenv("CHANNEL_MONITOR_WORKER_CATCHUP_INITIAL_DELAY_SECONDS", "41")
@@ -50,12 +45,9 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.catalog_config_path == catalog_path
     assert settings.radar_url == "http://127.0.0.1:8765"
     assert settings.radar_api_key == "radar-secret"
-    assert settings.callback_url == "https://example.test/websub"
-    assert settings.callback_secret == "callback-secret"
     assert settings.network_mode == "protected"
     assert settings.network_boundary_url == "https://boundary.example.test"
     assert settings.network_boundary_token == "boundary-secret"
-    assert settings.boundary_event_api_key == "event-secret"
     assert settings.worker_enqueue_enabled is False
     assert settings.worker_enqueue_interval_seconds == 7
     assert settings.worker_pending_live_enabled is True
@@ -64,8 +56,6 @@ def test_load_settings_reads_monitor_environment(monkeypatch, tmp_path):
     assert settings.worker_cleanup_interval_seconds == 23
     assert settings.cleanup_retention_hours == 120
     assert settings.cleanup_mode == "dry-run"
-    assert settings.worker_websub_enabled is True
-    assert settings.worker_websub_interval_seconds == 31
     assert settings.worker_catchup_enabled is False
     assert settings.worker_catchup_interval_seconds == 37
     assert settings.worker_catchup_initial_delay_seconds == 41
@@ -86,8 +76,6 @@ def test_worker_runtime_settings_have_safe_defaults():
     assert settings.worker_cleanup_interval_seconds == 3600
     assert settings.cleanup_retention_hours == 120
     assert settings.cleanup_mode == "dry-run"
-    assert settings.worker_websub_enabled is False
-    assert settings.worker_websub_interval_seconds == 86400
     assert settings.worker_catchup_enabled is True
     assert settings.worker_catchup_interval_seconds == 3600
     assert settings.worker_catchup_initial_delay_seconds == 300
@@ -96,7 +84,6 @@ def test_worker_runtime_settings_have_safe_defaults():
     assert settings.network_mode == "local_dev"
     assert settings.network_boundary_url == ""
     assert settings.network_boundary_token == ""
-    assert settings.boundary_event_api_key == ""
     assert settings.catchup_page_limit == 20
     assert settings.catchup_item_limit == 1000
 
@@ -196,7 +183,6 @@ def test_env_example_documents_protected_boundary_without_cookie_examples():
     assert "CHANNEL_MONITOR_NETWORK_MODE=local_dev" in env_example
     assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_URL=" in env_example
     assert "CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN=" in env_example
-    assert "CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY=" in env_example
     assert "TRANSCRIPT_SERVICE_YT_DLP_COOKIES_PATH" not in env_example
 
 

@@ -36,12 +36,9 @@ class Settings:
     catalog_config_path: Path = DEFAULT_CATALOG_CONFIG
     radar_url: str = "http://127.0.0.1:8765"
     radar_api_key: str = ""
-    callback_url: str = ""
-    callback_secret: str = ""
     network_mode: str = NETWORK_MODE_LOCAL_DEV
     network_boundary_url: str = ""
     network_boundary_token: str = ""
-    boundary_event_api_key: str = ""
     forbidden_cookie_or_bypass_envs: list[str] = field(default_factory=list)
     worker_enqueue_enabled: bool = True
     worker_enqueue_interval_seconds: int = 60
@@ -49,8 +46,6 @@ class Settings:
     worker_pending_live_interval_seconds: int = 300
     worker_cleanup_enabled: bool = True
     worker_cleanup_interval_seconds: int = 3600
-    worker_websub_enabled: bool = False
-    worker_websub_interval_seconds: int = 86400
     worker_catchup_enabled: bool = True
     worker_catchup_interval_seconds: int = 3600
     worker_catchup_initial_delay_seconds: int = 300
@@ -62,7 +57,6 @@ class Settings:
     backend_card_max_limit: int = 1000
     cleanup_retention_hours: int = 120
     cleanup_mode: str = "dry-run"
-    websub_lease_seconds: int = 864000
     classification_version: str = "title-country-v1"
 
 
@@ -131,12 +125,9 @@ def load_settings() -> Settings:
         catalog_config_path=Path(os.environ.get("CHANNEL_MONITOR_CATALOG_CONFIG", DEFAULT_CATALOG_CONFIG)),
         radar_url=os.environ.get("CHANNEL_MONITOR_RADAR_URL", "http://127.0.0.1:8765"),
         radar_api_key=os.environ.get("CHANNEL_MONITOR_RADAR_API_KEY", ""),
-        callback_url=os.environ.get("CHANNEL_MONITOR_CALLBACK_URL", ""),
-        callback_secret=os.environ.get("CHANNEL_MONITOR_CALLBACK_SECRET", ""),
         network_mode=_network_mode(os.environ.get("CHANNEL_MONITOR_NETWORK_MODE", NETWORK_MODE_LOCAL_DEV)),
         network_boundary_url=os.environ.get("CHANNEL_MONITOR_NETWORK_BOUNDARY_URL", "").strip().rstrip("/"),
         network_boundary_token=os.environ.get("CHANNEL_MONITOR_NETWORK_BOUNDARY_TOKEN", ""),
-        boundary_event_api_key=os.environ.get("CHANNEL_MONITOR_BOUNDARY_EVENT_API_KEY", ""),
         forbidden_cookie_or_bypass_envs=_present_forbidden_cookie_or_bypass_envs(),
         worker_enqueue_enabled=_env_bool("CHANNEL_MONITOR_WORKER_ENQUEUE_ENABLED", True),
         worker_enqueue_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_ENQUEUE_INTERVAL_SECONDS", 60),
@@ -144,8 +135,6 @@ def load_settings() -> Settings:
         worker_pending_live_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_PENDING_LIVE_INTERVAL_SECONDS", 300),
         worker_cleanup_enabled=_env_bool("CHANNEL_MONITOR_WORKER_CLEANUP_ENABLED", True),
         worker_cleanup_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_CLEANUP_INTERVAL_SECONDS", 3600),
-        worker_websub_enabled=_env_bool("CHANNEL_MONITOR_WORKER_WEBSUB_ENABLED", False),
-        worker_websub_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_WEBSUB_INTERVAL_SECONDS", 86400),
         worker_catchup_enabled=_env_bool("CHANNEL_MONITOR_WORKER_CATCHUP_ENABLED", True),
         worker_catchup_interval_seconds=_env_int("CHANNEL_MONITOR_WORKER_CATCHUP_INTERVAL_SECONDS", 3600),
         worker_catchup_initial_delay_seconds=_env_int("CHANNEL_MONITOR_WORKER_CATCHUP_INITIAL_DELAY_SECONDS", 300),
@@ -157,7 +146,6 @@ def load_settings() -> Settings:
         backend_card_max_limit=_env_int("CHANNEL_MONITOR_BACKEND_CARD_MAX_LIMIT", 1000),
         cleanup_retention_hours=_env_int("CHANNEL_MONITOR_CLEANUP_RETENTION_HOURS", 120),
         cleanup_mode=os.environ.get("CHANNEL_MONITOR_CLEANUP_MODE", "dry-run"),
-        websub_lease_seconds=_env_int("CHANNEL_MONITOR_WEBSUB_LEASE_SECONDS", 864000),
         classification_version=os.environ.get("CHANNEL_MONITOR_CLASSIFICATION_VERSION", "title-country-v1"),
     )
 

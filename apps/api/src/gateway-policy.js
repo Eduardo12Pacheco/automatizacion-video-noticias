@@ -78,14 +78,8 @@ export function isPublicLocalLivenessRoute(route) {
   return pathname === '/health' || pathname === '/healthz' || pathname === '/api/monitor/live' || pathname === '/api/radar/live';
 }
 
-export function isPublicLocalMachineRoute(route) {
-  if (!route || !LOCAL_SERVICE_NAMES.has(route.service)) return false;
-  const pathname = new URL(route.upstreamPath, 'http://gateway.local').pathname;
-  return route.service === 'monitor' && pathname === '/api/monitor/boundary/websub-events';
-}
-
 export function isPublicLocalUnauthenticatedRoute(route) {
-  return isPublicLocalLivenessRoute(route) || isPublicLocalMachineRoute(route);
+  return isPublicLocalLivenessRoute(route);
 }
 
 export function resolvePanelReadModelRoute(rawUrl, routes = DEFAULT_ROUTES) {

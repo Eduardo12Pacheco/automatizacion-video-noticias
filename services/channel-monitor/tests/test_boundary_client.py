@@ -11,7 +11,6 @@ from app.boundary_client import (
     SubtitleFetchRequest,
     UploadsPlaylistRequest,
     VideoMetadataRequest,
-    WebSubRenewRequest,
 )
 from app.youtube_client import SubtitleUnavailable
 
@@ -53,7 +52,6 @@ def test_boundary_request_dtos_match_expected_endpoint_payload_contracts():
         VideoMetadataRequest(video_id="vid-1"),
         UploadsPlaylistRequest(uploads_playlist_id="UUStable", page_limit=2, item_limit=25),
         SubtitleFetchRequest(video_id="vid-sub", source_language="valdoria", default_language="en"),
-        WebSubRenewRequest(channel_id="UCStable", callback_url="https://boundary.example.test/callback", lease_seconds=3600),
     ]
 
     assert [(request.endpoint, request.payload()) for request in requests] == [
@@ -64,21 +62,15 @@ def test_boundary_request_dtos_match_expected_endpoint_payload_contracts():
             "/v1/subtitles/fetch",
             {"video_id": "vid-sub", "source_language": "valdoria", "default_language": "en"},
         ),
-        (
-            "/v1/websub/renew",
-            {"channel_id": "UCStable", "callback_url": "https://boundary.example.test/callback", "lease_seconds": 3600},
-        ),
     ]
 
 
 def test_boundary_request_dtos_omit_optional_null_values_and_normalize_limits():
     uploads = UploadsPlaylistRequest(uploads_playlist_id="UUStable", page_limit=0, item_limit=-5)
     subtitles = SubtitleFetchRequest(video_id="vid-sub", source_language=None, default_language="")
-    websub = WebSubRenewRequest(channel_id="UCStable", callback_url=None, lease_seconds=0)
 
     assert uploads.payload() == {"uploads_playlist_id": "UUStable", "page_limit": 1, "item_limit": 1}
     assert subtitles.payload() == {"video_id": "vid-sub", "default_language": "en"}
-    assert websub.payload() == {"channel_id": "UCStable", "lease_seconds": 1}
 
 
 def test_boundary_client_posts_authenticated_requests_and_maps_successful_results():
@@ -88,7 +80,6 @@ def test_boundary_client_posts_authenticated_requests_and_maps_successful_result
             "/videos/metadata": {"ok": True, "data": {"video_id": "vid-1", "channel_id": "UCResolved", "title": "Match", "published_at": "2026-06-01T00:00:00Z", "live_status": "none"}},
             "/playlists/uploads": {"ok": True, "data": {"items": [{"video_id": "vid-1", "published_at": "2026-06-01T00:00:00Z", "page_token": "p1"}, {"video_id": "vid-2", "published_at": None}]}},
             "/subtitles/fetch": {"ok": True, "data": {"segments": [{"start_ms": 0, "end_ms": 1250, "text": "gol", "language": "es"}]}},
-            "/websub/renew": {"ok": True, "data": {"accepted": True, "expires_at": "2026-06-11T00:00:00Z"}},
         }
     )
     client = ChannelNetworkBoundaryClient(base_url="https://boundary.example.test/", token="secret-token", http=http)
@@ -98,14 +89,12 @@ def test_boundary_client_posts_authenticated_requests_and_maps_successful_result
     upload_items = list(client.iter_upload_items("UUResolved", page_limit=2, item_limit=50))
     upload_ids = client.list_upload_video_ids("UUResolved", limit=5)
     subtitles = client.fetch(video_id="vid-1", source_language="valdoria", default_language="en")
-    renewed = client.renew("UCResolved", lease_seconds=3600)
 
     assert (channel.channel_id, channel.title, channel.uploads_playlist_id) == ("UCResolved", "Club", "UUResolved")
     assert (metadata.video_id, metadata.channel_id, metadata.title, metadata.live_status) == ("vid-1", "UCResolved", "Match", "none")
     assert [(item.video_id, item.published_at, item.page_token) for item in upload_items] == [("vid-1", "2026-06-01T00:00:00Z", "p1"), ("vid-2", None, None)]
     assert upload_ids == ["vid-1", "vid-2"]
     assert [(segment.start_ms, segment.end_ms, segment.text, segment.language) for segment in subtitles] == [(0, 1250, "gol", "es")]
-    assert renewed is True
     assert http.calls[0]["headers"] == {"Authorization": "Bearer secret-token", "Content-Type": "application/json"}
     assert http.calls[0]["url"] == "https://boundary.example.test/v1/channels/resolve"
 
@@ -129,7 +118,7 @@ def test_boundary_client_fails_closed_for_unauthorized_and_outage_without_local_
     else:
         raise AssertionError("expected boundary metadata failure")
     try:
-        outage.renew("UCResolved")
+        outage.resolve_channel("https://youtube.com/@club")
     except BoundaryRequestError as exc:
         outage_error = exc
     else:

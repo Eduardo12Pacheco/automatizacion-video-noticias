@@ -17,7 +17,7 @@ This checklist verifies the Control Panel authenticated gateway boundary. Rule: 
 - Unauthenticated direct local service calls are denied for protected reads and mutations.
 - Denial and upstream error bodies contain only stable error codes such as `unauthenticated`, `forbidden`, or `upstream_unavailable`.
 - Denial and upstream error bodies do not expose secrets, stack traces, or filesystem paths.
-- Public liveness endpoints remain limited to health/safe-live checks and must not start generation, rendering, transcription, Radar, YouTube, WebSub, Whisper, Transcript, Monitor jobs, or Voice TTS model work.
+- Public liveness endpoints remain limited to health/safe-live checks and must not start generation, rendering, transcription, Radar, YouTube, Whisper, Transcript, Monitor jobs, or Voice TTS model work.
 - Do not change Voice TTS behavior, presets, refs, segmentation, sample rate, artifacts, runtime paths, or model generation while verifying this boundary.
 
 ## Two-browser smoke

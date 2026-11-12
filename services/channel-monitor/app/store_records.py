@@ -18,8 +18,6 @@ REQUIRED_TABLES = [
     "enqueue_attempts",
     "video_target_matches",
     "rejected_videos",
-    "subscriptions",
-    "boundary_websub_events",
     "cleanup_runs",
     "classification_runs",
     "important_summary_mentions",
@@ -208,19 +206,6 @@ class RetentionDryRunReport:
             for key, value in item.planned_deletions.items():
                 totals[key] = totals.get(key, 0) + int(value)
         return {"mode": self.mode, "cutoff": self.cutoff, "video_count": len(self.items), "planned_deletions": totals}
-
-
-@dataclass(frozen=True)
-class SubscriptionRecord:
-    channel_id: int
-    callback_url: str
-    lease_seconds: int | None = None
-    expires_at: str | None = None
-    last_renewed_at: str | None = None
-    status: str = "ready"
-    last_error: str | None = None
-
-
 
 
 def _empty_retention_deletion_counts() -> dict[str, int]:

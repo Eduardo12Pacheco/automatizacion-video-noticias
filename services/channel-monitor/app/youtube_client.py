@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import hashlib
 import html
-import hmac
 import json
 import re
 
@@ -24,8 +22,6 @@ from typing import Any, Callable, Protocol
 from .title_matcher import normalize_country, normalize_title
 
 
-WEBSUB_HUB_URL = "https://pubsubhubbub.appspot.com/subscribe"
-YOUTUBE_FEED_URL = "https://www.youtube.com/xml/feeds/videos.xml"
 NETWORK_MODE_PROTECTED = "protected"
 
 
@@ -135,9 +131,6 @@ class SubtitleUnavailable(RuntimeError):
         self.details = details or {}
         super().__init__(message or f"Subtitles unavailable for video {video_id} in {language}: {reason}")
 
-
-class CallbackValidationError(RuntimeError):
-    pass
 
 
 class SubtitleProvider(Protocol):
@@ -651,51 +644,6 @@ def _snippet_value(snippet: Any, key: str, default: Any) -> Any:
     if isinstance(snippet, dict):
         return snippet.get(key, default)
     return getattr(snippet, key, default)
-
-
-class WebSubClient:
-    def __init__(self, *, callback_url: str, http: HttpClient | None = None, hub_url: str = WEBSUB_HUB_URL, network_mode: str | None = None):
-        _guard_local_youtube_policy(network_mode)
-        self.callback_url = callback_url
-        self.http = http or _UrllibHttpClient()
-        self.hub_url = hub_url
-
-    def subscribe(self, channel_id: str, *, mode: str = "subscribe", lease_seconds: int = 864000) -> bool:
-        response = self.http.post(
-            self.hub_url,
-            data={
-                "hub.mode": mode,
-                "hub.topic": f"{YOUTUBE_FEED_URL}?channel_id={channel_id}",
-                "hub.callback": self.callback_url,
-                "hub.verify": "async",
-                "hub.lease_seconds": str(lease_seconds),
-            },
-            timeout=15,
-        )
-        return 200 <= int(response.status_code) < 300
-
-    def renew(self, channel_id: str, *, lease_seconds: int = 864000) -> bool:
-        return self.subscribe(channel_id, mode="subscribe", lease_seconds=lease_seconds)
-
-
-def validate_websub_callback(body: bytes, headers: dict[str, str], secret: str) -> None:
-    if not secret:
-        raise CallbackValidationError("WebSub secret is not configured")
-    signature = _header(headers, "x-hub-signature-256")
-    if not signature:
-        raise CallbackValidationError("Missing WebSub signature")
-    expected = "sha256=" + hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(signature, expected):
-        raise CallbackValidationError("Invalid WebSub signature")
-
-
-def parse_websub_video_ids(body: bytes) -> list[str]:
-    root = ET.fromstring(body)
-    namespace = {"yt": "http://www.youtube.com/xml/schemas/2015", "atom": "http://www.w3.org/2005/Atom"}
-    ids = [node.text.strip() for node in root.findall(".//yt:videoId", namespace) if node.text and node.text.strip()]
-    if ids:
-        return ids
-    return [node.text.strip() for node in root.findall(".//videoId") if node.text and node.text.strip()]
 
 
 def _parse_timed_text(text: str, *, language: str) -> list[SubtitleSegment]:

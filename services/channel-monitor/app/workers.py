@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, Callable, Protocol
 
-from .boundary_client import BoundaryRequestError
 from .radar_client import RadarBusy, RadarJobResult, RadarServerError
-from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport, SubscriptionRecord, VideoRecord
+from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport, VideoRecord
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, match_program_title, normalize_country
 from .youtube_client import MetadataUnavailable, SubtitleProvider, SubtitleUnavailable, UploadItem, VideoMetadata
 
@@ -165,10 +164,6 @@ class RadarStatusReader(Protocol):
     def get_job_detail(self, job_id: str) -> dict: ...
 
     def get_job_summary(self, job_id: str) -> dict: ...
-
-
-class WebSubRenewer(Protocol):
-    def renew(self, channel_id: str, *, lease_seconds: int = 864000) -> bool: ...
 
 
 class TranscriptRetentionPlanner(Protocol):
@@ -645,49 +640,6 @@ class CleanupWorker:
             planned_deletions=counts,
             transcript_artifacts=artifacts,
         )
-
-
-class WebSubRenewalWorker:
-    def __init__(
-        self,
-        *,
-        store: MonitorStore,
-        websub: WebSubRenewer,
-        callback_url: str,
-        now: Callable[[], str] | None = None,
-        lease_seconds: int = 864000,
-    ):
-        self.store = store
-        self.websub = websub
-        self.callback_url = callback_url
-        self.now = now or _now_iso
-        self.lease_seconds = lease_seconds
-
-    def renew_all(self) -> list[SubscriptionRecord]:
-        renewed_at = self.now()
-        expires_at = _add_minutes(renewed_at, self.lease_seconds // 60)
-        results: list[SubscriptionRecord] = []
-        for channel in self.store.list_channels():
-            if not channel.enabled:
-                continue
-            last_error = None
-            try:
-                accepted = self.websub.renew(channel.youtube_channel_id, lease_seconds=self.lease_seconds)
-            except BoundaryRequestError as exc:
-                accepted = False
-                last_error = exc.code
-            results.append(
-                self.store.record_subscription(
-                    channel_id=channel.id,
-                    callback_url=self.callback_url,
-                    lease_seconds=self.lease_seconds,
-                    expires_at=expires_at if accepted else None,
-                    last_renewed_at=renewed_at,
-                    status="ready" if accepted else "failed",
-                    last_error=None if accepted else (last_error or "websub_renewal_rejected"),
-                )
-            )
-        return results
 
 
 def _video_url(video_id: str) -> str:

@@ -353,18 +353,6 @@ def _cleanup_run_from_row(row: sqlite3.Row) -> CleanupRunRecord:
     )
 
 
-def _subscription_from_row(row: sqlite3.Row) -> SubscriptionRecord:
-    return SubscriptionRecord(
-        channel_id=int(row["channel_id"]),
-        callback_url=str(row["callback_url"]),
-        lease_seconds=row["lease_seconds"],
-        expires_at=row["expires_at"],
-        last_renewed_at=row["last_renewed_at"],
-        status=str(row["status"]),
-        last_error=row["last_error"],
-    )
-
-
 def _parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
