@@ -83,10 +83,15 @@ class ComposeStackTests(unittest.TestCase):
         debug_path = ROOT / "infra" / "compose" / "compose.debug.yaml"
         self.assertTrue(debug_path.is_file(), str(debug_path))
         debug = yaml.safe_load(debug_path.read_text(encoding="utf-8"))["services"]
-        for name in ("postgres", "searxng", "mailpit", "ollama", "n8n"):
+        for name in ("postgres", "searxng", "mailpit", "ollama"):
+            self.assertIn("debug", debug[name].get("profiles", []), name)
             self.assertIn("ports", debug[name], name)
             for entry in debug[name]["ports"]:
                 self.assertTrue(entry.startswith("${NEWSROOM_BIND:-127.0.0.1}:"), entry)
+        self.assertIn("debug", debug["n8n"].get("profiles", []))
+        self.assertIn("n8n", debug["n8n"].get("profiles", []))
+        for entry in debug["n8n"]["ports"]:
+            self.assertTrue(entry.startswith("${NEWSROOM_BIND:-127.0.0.1}:"), entry)
 
     def test_internal_secrets_have_no_weak_defaults(self) -> None:
         text = COMPOSE.read_text(encoding="utf-8")
