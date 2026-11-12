@@ -27,6 +27,7 @@ installers also pass `--env-file .env`).
 | `panel` | long-running | Serves `apps/panel` on `${PANEL_PORT}` (8080) and reverse-proxies `/panel`, `/webhook`, `/tts`, `/subtitles`, `/remotion`, `/radar`, `/monitor` and `/approval` to `api:8099`. |
 | `seed` | one-shot, default | Applies the migrations and seeds the fictional users, one pending topic and one complete story. Idempotent. |
 | `demo-worker` | long-running | Deterministic TTS/subtitles/render contracts for the keyless default profile; serves a WAV and the demo MP4. |
+| `approval-editor` | long-running | Approval editor HTTP service on port 3042; stores project snapshots in the `newsroom_approval` volume and is reached through the API at `/approval`. |
 | `ollama` | default (CPU) / `gpu` | Local LLM server. Its entrypoint pulls `${OLLAMA_MODEL}` into the model volume on first start. |
 | `postgres` | long-running | `postgres:16`, database `${POSTGRES_DB}`, user `${POSTGRES_USER}`, password `${POSTGRES_PASSWORD}`, volume `postgres_data`, healthcheck. |
 | `searxng` | long-running | JSON API enabled on `${SEARXNG_PORT}` (8888) for `ImageSearchPort`. |
@@ -38,7 +39,7 @@ installers also pass `--env-file .env`).
 | `n8n` | `n8n` profile, optional | Must stay off by default (`WORKFLOW=disabled`). Never required by the installer. |
 
 The default profile (no `--profile` beyond `cpu`) starts **api + panel +
-demo-worker + seed + Postgres + SearXNG + Mailpit + Ollama** with seed data and
+demo-worker + approval-editor + seed + Postgres + SearXNG + Mailpit + Ollama** with seed data and
 no API keys. `seed` is idempotent and exits; `migrate` and `model-init` are in
 the `tools` profile and are invoked explicitly with `run --rm`.
 

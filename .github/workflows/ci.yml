@@ -48,6 +48,8 @@ jobs:
         run: node --test packages/core/test/*.test.js
       - name: Data (in-memory contract; Postgres opt-in is separate)
         run: node --test packages/data/test/*.test.js
+      - name: Contracts
+        run: node --test packages/contracts/test/*.test.js
       - name: Adapters
         run: node --test packages/adapters/test/*.test.js
       - name: API

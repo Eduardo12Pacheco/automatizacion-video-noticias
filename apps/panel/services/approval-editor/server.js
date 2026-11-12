@@ -2,7 +2,7 @@ const http = require("http");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
-const { buildApprovalContractPipeline, computeApprovalSnapshotHash, parseGuionSegments, validateApprovalTimeline } = require("../../../../packages/contracts/approval-contract-pipeline");
+const { buildApprovalContractPipeline, computeApprovalSnapshotHash, parseGuionSegments, validateApprovalTimeline } = require("@newsroom/contracts/approval-contract-pipeline");
 const { createContractStore, safeProjectId } = require("./lib/contract-store");
 const { applyContractOperations } = require("./lib/contract-updates");
 const { findMotionPreset } = require("./lib/motion-presets");
@@ -745,8 +745,9 @@ function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "p
 
 if (require.main === module) {
   const port = Number(process.env.APPROVAL_EDITOR_SERVICE_PORT || 3042);
-  createApprovalEditorService().listen(port, "127.0.0.1", () => {
-    console.log(`approval-editor-service listening on http://127.0.0.1:${port}`);
+  const host = String(process.env.APPROVAL_EDITOR_SERVICE_HOST || "127.0.0.1");
+  createApprovalEditorService().listen(port, host, () => {
+    console.log(`approval-editor-service listening on http://${host}:${port}`);
   });
 }
 

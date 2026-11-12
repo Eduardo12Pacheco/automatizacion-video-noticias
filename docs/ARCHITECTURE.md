@@ -92,6 +92,7 @@ for sessions and CSRF checks.
 | `services/subtitles` | Caption alignment and burn-in renderer | ASR worker via HTTP |
 | `services/channel-monitor` | Public RSS channel polling and catch-up | Postgres/SQLite runtime state |
 | `services/demo-worker` | Deterministic keyless worker for the demo profile | None external |
+| `apps/panel/services/approval-editor` | Approval editor HTTP service started by Compose on port 3042 | `packages/contracts` |
 
 Dependencies point inward: `apps/api` depends on `packages/core`; the core never
 imports an adapter, a database client or a browser module.
@@ -148,11 +149,17 @@ flowchart LR
 | `DocumentExportPort` | `packages/core` | python-docx `.docx` + Markdown |
 | `NotificationPort` | `packages/core` | Console, or SMTP/Mailpit |
 | `WorkflowTriggerPort` | `packages/core` | Disabled; optional n8n webhook |
+| `TTSPort` | `packages/core` | TTS worker HTTP (`TTS=worker`) or demo |
+| `ASRPort` | `packages/core` | ASR worker HTTP (`ASR=worker`) or demo |
+| `TranslationPort` | `packages/core` | Subtitles `/api/subtitles/translate` or demo |
+| `VideoRendererPort` | `packages/core` | Renderer project HTTP (`RENDERER=worker`) or demo |
+| `AuthPort` | `packages/core` | Repository auth (`AUTH=local`), HTTP split deployment or demo |
 
-ASR, TTS, subtitles and the renderer are **service boundaries** exposed through
-the API proxy and worker HTTP clients rather than core ports. This keeps the
-domain free of video/audio process management while the composition root still
-picks their targets from environment variables.
+The worker ports are HTTP clients for `services/tts-worker`,
+`services/asr-worker`, `services/subtitles` and `services/renderer`. The demo
+adapters implement the same contract so the keyless showcase path never opens a
+socket. Every worker adapter is selectable with `TTS`, `ASR`, `TRANSLATION`,
+`RENDERER` and `AUTH` (`worker`/`local`, `demo`, `none`).
 
 Every port has an explicit disabled state (`LLM=none`, `IMAGE_SEARCH=none`,
 `NOTIFY=none`, `WORKFLOW=disabled`, `*_ADAPTER=none`). A missing adapter returns
