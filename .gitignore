@@ -32,6 +32,7 @@ infra/n8n/files/credentials-clean.json
 infra/n8n/import/credentials.json
 
 # Local service state, databases, generated media, and model downloads
+/data/
 local/backups/
 local/models/
 local/default-music/

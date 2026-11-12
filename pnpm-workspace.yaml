@@ -3,3 +3,4 @@ packages:
   - "packages/contracts"
   - "services/renderer"
   - "services/subtitles"
+  - "packages/data"
