@@ -29,6 +29,10 @@ export function bindSubtitlesEvents({ state, el, subtitlesController, renderSubt
   el.subtitle2PreviewTimeline?.addEventListener('click', subtitlesController.onPreviewTimelineClick);
   el.subtitle2PreviewTimelineTrack?.addEventListener('mousedown', subtitlesController.onPreviewTimelineDragStart);
   el.subtitle2SessionHistory?.addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-action="refresh-subtitle-history"]')) {
+      void subtitlesController.refreshRemoteStatus();
+      return;
+    }
     const renameButton = ev.target.closest('[data-action="rename-subtitle-session"]');
     if (renameButton) {
       const sessionId = (renameButton.dataset.sessionId || '').trim();

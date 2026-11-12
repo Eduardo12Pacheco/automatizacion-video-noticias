@@ -3,6 +3,7 @@ export function createActiveUsersState() {
     status: 'idle',
     snapshot: emptyPresenceSnapshot(),
     error: '',
+    cause: null,
     refreshInFlight: false,
   };
 }

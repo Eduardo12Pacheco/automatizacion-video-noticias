@@ -22,7 +22,8 @@ export function createAdminUsersController({ state = createAdminUsersState(), el
       state.status = 'ready';
     } catch (error) {
       state.status = 'error';
-      state.error = error?.status === 403 ? t('users.forbidden') : (error?.message || t('users.forbidden'));
+      state.cause = error;
+      state.error = error?.status === 403 ? t('users.forbidden') : t('users.forbidden');
       if (!silent) notify(state.error);
     } finally {
       state.refreshInFlight = false;
@@ -48,7 +49,8 @@ export function createAdminUsersController({ state = createAdminUsersState(), el
       notify(t('users.created'));
       await refresh({ silent: true });
     } catch (error) {
-      state.error = error?.message || t('users.forbidden');
+      state.cause = error;
+      state.error = t('users.forbidden');
       render();
       notify(state.error);
     }
@@ -62,7 +64,8 @@ export function createAdminUsersController({ state = createAdminUsersState(), el
       notify(t('users.updated'));
       await refresh({ silent: true });
     } catch (error) {
-      state.error = error?.message || t('users.forbidden');
+      state.cause = error;
+      state.error = t('users.forbidden');
       render();
       notify(state.error);
     } finally {
@@ -84,7 +87,8 @@ export function createAdminUsersController({ state = createAdminUsersState(), el
       await api.updateUser(userId, { password });
       notify(t('users.passwordChanged'));
     } catch (error) {
-      state.error = error?.message || t('users.forbidden');
+      state.cause = error;
+      state.error = t('users.forbidden');
       render();
       notify(state.error);
     } finally {
@@ -97,6 +101,10 @@ export function createAdminUsersController({ state = createAdminUsersState(), el
     el.adminUsersRefreshBtn?.addEventListener?.('click', () => { void refresh(); });
     el.adminUsersForm?.addEventListener?.('submit', createUserFromForm);
     el.adminUsersList?.addEventListener?.('click', (event) => {
+      if (event.target?.closest?.('[data-admin-users-action="refresh"]')) {
+        void refresh();
+        return;
+      }
       const button = event.target?.closest?.('[data-admin-user-action]');
       if (!button) return;
       const userId = button.dataset.userId || '';

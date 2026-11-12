@@ -16,6 +16,7 @@ export function createProjectLoadingCommands({
     const state = store.getState();
     try {
       state.videoProjectsLoading = true;
+      state.videoProjectsError = null;
       renderVideoProjects();
       const data = await api.listVideoProjects({ limit: 50 });
       state.videoProjects = normalizeRows(data);
@@ -38,6 +39,7 @@ export function createProjectLoadingCommands({
       renderSelectedVideoProject();
     } catch (err) {
       console.error(err);
+      state.videoProjectsError = err;
       if (!silent) ui.toast('Error cargando proyectos de edición');
     } finally {
       state.videoProjectsLoading = false;

@@ -541,7 +541,9 @@ function runStateAndRenderCheck() {
   if (!monitorEl.innerHTML.includes('Andrade:') || !monitorEl.innerHTML.includes('Aurenia:') || !monitorEl.innerHTML.includes('—')) throw new Error(`missing-linkage card should render concrete pending mention rows: ${monitorEl.innerHTML}`);
 
   renderRadarMonitor({ el: { radarMonitorList: monitorEl, radarMonitorStatus: monitorStatusEl }, state: { monitorStatus: 'error', monitorError: 'Monitor caído', monitorCards: [] } });
-  if (!monitorEl.innerHTML.includes('Monitor caído')) throw new Error(`monitor error drift: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('screen-state--error')) throw new Error(`monitor error drift: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('No pudimos cargar los videos monitoreados.')) throw new Error(`monitor error copy drift: ${monitorEl.innerHTML}`);
+  if (monitorEl.innerHTML.includes('Monitor caído')) throw new Error(`monitor error leaked the raw service message: ${monitorEl.innerHTML}`);
 }
 
 async function runControllerCheck() {

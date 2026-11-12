@@ -8,6 +8,7 @@ export function createErrorsAuditState() {
     selectedEventId: '',
     retention: null,
     error: '',
+    cause: null,
     refreshInFlight: false,
   };
 }

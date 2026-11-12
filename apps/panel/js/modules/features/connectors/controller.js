@@ -20,7 +20,8 @@ export function createConnectorsController({ state = createConnectorsState(), el
       state.status = 'ready';
     } catch (error) {
       state.status = 'error';
-      state.error = error?.status === 403 ? t('connectors.forbidden') : (error?.message || t('connectors.error'));
+      state.cause = error;
+      state.error = error?.status === 403 ? t('connectors.forbidden') : t('connectors.error');
       if (!silent) notify(state.error);
     } finally {
       state.refreshInFlight = false;
@@ -39,7 +40,8 @@ export function createConnectorsController({ state = createConnectorsState(), el
       else notify(t('connectors.testFailed'));
       await refresh({ silent: true });
     } catch (error) {
-      state.error = error?.status === 403 ? t('connectors.forbidden') : (error?.message || t('connectors.testFailed'));
+      state.cause = error;
+      state.error = error?.status === 403 ? t('connectors.forbidden') : t('connectors.testFailed');
       notify(state.error);
     } finally {
       state.busyId = '';
@@ -50,6 +52,10 @@ export function createConnectorsController({ state = createConnectorsState(), el
   function bindEvents() {
     el.connectorsRefreshBtn?.addEventListener?.('click', () => { void refresh(); });
     el.connectorsList?.addEventListener?.('click', (event) => {
+      if (event.target?.closest?.('[data-connectors-action="refresh"]')) {
+        void refresh();
+        return;
+      }
       const button = event.target?.closest?.('[data-connector-test]');
       if (!button) return;
       void testConnector(button.dataset.connectorTest || '');

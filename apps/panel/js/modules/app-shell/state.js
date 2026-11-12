@@ -2,6 +2,8 @@ export function createShellState({ settings, lastNewsSearchAt = null, subtitles2
   return {
     settings,
     items: [],
+    approvalLoading: false,
+    approvalError: null,
     queue: [],
     dismissedQueueJobs: new Set(),
     searchRefreshRunning: false,

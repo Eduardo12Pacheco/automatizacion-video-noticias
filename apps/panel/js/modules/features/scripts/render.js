@@ -11,6 +11,7 @@ import {
   resolveScriptPublishCardState,
 } from './publish-status.js';
 import { escapeHtmlCore } from '../../core/ui/escape-html.js';
+import { renderEmptyState } from '../../core/ui/screen-state.js';
 
 function setProcessButtonStyle(button, { processed = false } = {}) {
   button?.classList?.toggle('approve', !processed);
@@ -39,7 +40,11 @@ export function renderScriptCardsView({ state, el, openScriptEditor, dismissProc
   });
 
   if (!visibleScripts.length) {
-    el.scriptCards.innerHTML = '<p class="meta">No hay guiones para editar o descargar.</p>';
+    el.scriptCards.innerHTML = renderEmptyState({
+      icon: 'script',
+      titleKey: 'approval.noScriptsTitle',
+      messageKey: 'approval.noScriptsMessage',
+    });
     return;
   }
 

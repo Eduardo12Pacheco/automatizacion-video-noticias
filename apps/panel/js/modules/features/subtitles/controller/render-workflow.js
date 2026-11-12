@@ -61,6 +61,16 @@ export function createSubtitleWorkflowRenderer(ctx, collaborators = {}) {
 
   function renderSessionHistory() {
     if (!el.subtitle2SessionHistory) return;
+    const historyError = state.subtitles2.sessionHistoryError;
+    const items = state.subtitles2.sessionHistory;
+    if (historyError && !(Array.isArray(items) && items.length)) {
+      el.subtitle2SessionHistory.innerHTML = renderErrorState({
+        error: historyError,
+        fallbackKey: 'subtitles.historyError',
+        retryAttribute: 'data-action="refresh-subtitle-history"',
+      });
+      return;
+    }
     el.subtitle2SessionHistory.innerHTML = buildSubtitleSessionHistoryMarkupRuntime({
       items: state.subtitles2.sessionHistory,
       activeSessionId: state.subtitles2.sessionId,

@@ -1,4 +1,5 @@
 import { normalizeGatewayEvent } from './state.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
 function escapeHtml(value) {
   return (value ?? '').toString()
@@ -26,17 +27,25 @@ export function renderErrorsAuditEvents({ el, state }) {
   }
   if (!el.errorsAuditList) return;
   if (state.status === 'loading') {
-    el.errorsAuditList.innerHTML = '<article class="errors-audit-empty">Cargando eventos.</article>';
+    el.errorsAuditList.innerHTML = renderLoadingState({ rows: 4, variant: 'rows' });
     return;
   }
   if (state.status === 'error') {
-    el.errorsAuditList.innerHTML = `<article class="errors-audit-error" role="alert"><strong>Eventos Gateway no disponibles.</strong><p>${escapeHtml(safeErrorMessage(state.error))}</p><button type="button" data-errors-audit-action="refresh">Reintentar</button></article>`;
+    el.errorsAuditList.innerHTML = renderErrorState({
+      error: state.cause,
+      fallbackKey: 'errors.unavailable',
+      retryAttribute: 'data-errors-audit-action="refresh"',
+    });
     return;
   }
   const events = Array.isArray(state.events) ? state.events.map(normalizeGatewayEvent) : [];
   el.errorsAuditList.innerHTML = events.length
     ? events.map(renderEventCard).join('')
-    : '<article class="errors-audit-empty">Sin eventos para estos filtros.</article>';
+    : renderEmptyState({
+        icon: 'alert',
+        titleKey: 'errors.emptyTitle',
+        messageKey: 'errors.emptyMessage',
+      });
 }
 
 export function renderErrorsAuditDetail({ el, event }) {

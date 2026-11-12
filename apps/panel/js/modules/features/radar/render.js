@@ -1,5 +1,6 @@
 import { RADAR_COUNTRIES, getVisibleMonitorCards, mapMonitorCard, normalizeMonitorCardStatus } from './state.js';
 import { formatDemoDateTimeWithZone } from '../../shared/time/demo-time.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
 const COUNTRY_LABELS = new Map([
   ...RADAR_COUNTRIES.map((country) => [country.value, country.label]),
@@ -185,17 +186,25 @@ export function renderRadarMonitor({ el, state }) {
   updateCountryBar(el.radarCountryBar, state.selectedCountry || '');
   if (status === 'loading') {
     el.radarMonitorList.classList?.add?.('is-empty');
-    el.radarMonitorList.innerHTML = '<article class="radar-monitor-empty">Cargando videos monitoreados.</article>';
+    el.radarMonitorList.innerHTML = renderLoadingState({ rows: 2, variant: 'cards' });
     return;
   }
   if (status === 'error') {
     el.radarMonitorList.classList?.add?.('is-empty');
-    el.radarMonitorList.innerHTML = `<article class="radar-monitor-error">${escapeHtml(state.monitorError || 'Channel Monitor no disponible')}</article>`;
+    el.radarMonitorList.innerHTML = renderErrorState({
+      error: state.monitorCause,
+      fallbackKey: 'radar.monitorError',
+      retryAttribute: 'data-radar-action="refresh-monitor"',
+    });
     return;
   }
   if (!visibleCards.length) {
     el.radarMonitorList.classList?.add?.('is-empty');
-    el.radarMonitorList.innerHTML = '<article class="radar-monitor-empty">Sin videos monitoreados para este filtro.</article>';
+    el.radarMonitorList.innerHTML = renderEmptyState({
+      icon: 'search',
+      titleKey: 'radar.emptyTitle',
+      messageKey: 'radar.emptyMessage',
+    });
     return;
   }
   el.radarMonitorList.classList?.remove?.('is-empty');

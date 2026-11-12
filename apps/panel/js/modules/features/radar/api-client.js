@@ -68,13 +68,19 @@ export function createRadarApiClient({ getSettings, fetchImpl = fetch, locationL
     const payload = responseType === 'text' && response.ok ? await response.text() : await parseJsonResponse(response);
     if (!response.ok) {
       const serviceMessage = sanitizeServiceMessage(extractServiceMessage(payload), apiKey);
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(`Autenticación del ${serviceLabel(service)} falló. Revisá la API key.${serviceMessage ? ` Detalle: ${serviceMessage}` : ''}`);
+      const status = response.status;
+      const fail = (message) => {
+        const error = new Error(message);
+        error.status = status;
+        return error;
+      };
+      if (status === 401 || status === 403) {
+        throw fail(`Autenticación del ${serviceLabel(service)} falló. Revisá la API key.${serviceMessage ? ` Detalle: ${serviceMessage}` : ''}`);
       }
-      if (response.status === 409) {
-        throw new Error(serviceMessage || `El ${serviceLabel(service)} ya tiene un job activo. Esperá a que termine.`);
+      if (status === 409) {
+        throw fail(serviceMessage || `El ${serviceLabel(service)} ya tiene un job activo. Esperá a que termine.`);
       }
-      throw new Error(serviceMessage || `${serviceLabel(service)} respondió HTTP ${response.status}`);
+      throw fail(serviceMessage || `${serviceLabel(service)} respondió HTTP ${status}`);
     }
     return payload;
   }

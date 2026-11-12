@@ -15,6 +15,7 @@ import { isScriptProcessed } from '../features/scripts/index.js';
 import { renderScriptCardsView, renderScriptStatsView, renderSelectedScriptEditorView } from '../features/scripts/render.js';
 import { approvalItemMatchesSearch, tokenizeApprovalSearchQuery } from './search-filter.js';
 import { formatNewsSearchTimestamp, resolveLatestSharedPanelTimestamp } from './views/approval-search.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../core/ui/screen-state.js';
 
 const APPROVAL_AUTO_REFRESH_INTERVAL_MS = 30000;
 const MIN_REFRESH_INTERVAL_MS = 5000;
@@ -226,8 +227,24 @@ function renderCards() {
   renderLastNewsSearchMeta();
   bindCardsInteractionEvents();
 
+  if (state.approvalLoading && !list.length) {
+    el.cards.innerHTML = renderLoadingState({ rows: 3, variant: 'cards' });
+    return;
+  }
+  if (state.approvalError && !list.length) {
+    el.cards.innerHTML = renderErrorState({
+      error: state.approvalError,
+      fallbackKey: 'errors.unavailable',
+      retryAttribute: 'data-approval-action="refresh"',
+    });
+    return;
+  }
   if (!list.length) {
-    el.cards.innerHTML = '<p class="meta">No hay temas para mostrar con esos filtros.</p>';
+    el.cards.innerHTML = renderEmptyState({
+      icon: 'search',
+      titleKey: 'approval.emptyTitle',
+      messageKey: 'approval.emptyMessage',
+    });
     return;
   }
 
@@ -239,6 +256,10 @@ function bindCardsInteractionEvents() {
   el.cards.dataset.delegatedCardEvents = 'true';
 
   el.cards.addEventListener('click', async (ev) => {
+    if (ev.target.closest?.('[data-approval-action="refresh"]')) {
+      await refreshAll({ source: 'retry' });
+      return;
+    }
     const card = ev.target.closest?.('.card');
     if (!card || !el.cards.contains(card)) return;
     const interactive = ev.target.closest?.('button, a');

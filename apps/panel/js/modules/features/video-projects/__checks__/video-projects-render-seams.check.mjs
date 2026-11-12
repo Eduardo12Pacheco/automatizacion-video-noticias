@@ -45,8 +45,8 @@ test('project list split module preserves empty-state copy and metadata hydratio
   });
 
   assert.equal(el.videoProjectsMeta.textContent, '0 proyectos');
-  assert.match(el.videoProjectsList.innerHTML, /Todavía no hay proyectos/);
-  assert.match(el.videoProjectsList.innerHTML, /video-projects-empty__plus/);
+  assert.match(el.videoProjectsList.innerHTML, /Sin proyectos todavía/);
+  assert.match(el.videoProjectsList.innerHTML, /screen-state--empty/);
 });
 
 test('video selector hydration syncs previews and updates play toggle state', () => {

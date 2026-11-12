@@ -81,7 +81,8 @@ export function createRadarController({ state, el, api, ui = {}, browser = {} })
       state.monitorStatus = payload.degraded || payload.status === 'degraded' ? 'degraded' : 'ready';
     } catch (error) {
       state.monitorStatus = 'error';
-      state.monitorError = error?.message || 'Channel Monitor no disponible';
+      state.monitorCause = error;
+      state.monitorError = 'Channel Monitor no disponible';
       state.monitorCards = [];
       toast(state.monitorError);
     } finally {
@@ -375,6 +376,7 @@ export function createRadarController({ state, el, api, ui = {}, browser = {} })
       const button = event.target?.closest?.('[data-radar-action]');
       if (!button) return;
       if (button.disabled) return;
+      if (button.dataset.radarAction === 'refresh-monitor') { void refreshMonitor(); return; }
       if (button.dataset.radarAction === 'open-link') openMonitorLink(button.dataset.radarUrl);
       if (button.dataset.radarAction === 'download-monitor-transcript' && button.dataset.radarJobId) void downloadJob(button.dataset.radarJobId);
       if (button.dataset.radarAction === 'dismiss-monitor-card') {

@@ -1,5 +1,6 @@
 import { buildFutureProjectCard, buildProjectCard } from './project-list-markup.js';
 import { hydrateProjectListCards } from '../events/project-list-events.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../../core/ui/screen-state.js';
 
 export function renderVideoProjectsListView({ state, el, openVideoProject, prefetchProjectDetail, disableVideoProject, confirmDelete }) {
   if (!el.videoProjectsList) return;
@@ -13,16 +14,23 @@ export function renderVideoProjectsListView({ state, el, openVideoProject, prefe
       : `${projects.length} proyecto${projects.length === 1 ? '' : 's'}`;
   }
   if (loading && !projects.length) {
-    el.videoProjectsList.innerHTML = '<p class="video-projects-empty">Buscando proyectos de edición…</p>';
+    el.videoProjectsList.innerHTML = renderLoadingState({ rows: 3, variant: 'cards' });
+    return;
+  }
+  if (state.videoProjectsError && !projects.length) {
+    el.videoProjectsList.innerHTML = renderErrorState({
+      error: state.videoProjectsError,
+      fallbackKey: 'scripts.emptyTitle',
+      retryAttribute: 'data-video-projects-action="refresh"',
+    });
     return;
   }
   if (!projects.length) {
-    el.videoProjectsList.innerHTML = `
-      <div class="video-projects-empty video-projects-empty--catalog-card">
-        <p>Todavía no hay proyectos. Procesá un guion y acá va a aparecer automáticamente.</p>
-        <span class="video-projects-empty__plus" aria-hidden="true">+</span>
-      </div>
-    `;
+    el.videoProjectsList.innerHTML = renderEmptyState({
+      icon: 'video',
+      titleKey: 'scripts.emptyTitle',
+      messageKey: 'scripts.emptyMessage',
+    });
     return;
   }
 

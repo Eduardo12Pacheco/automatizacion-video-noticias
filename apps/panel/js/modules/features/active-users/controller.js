@@ -20,7 +20,8 @@ export function createActiveUsersController({ state = createActiveUsersState(), 
     } catch (error) {
       state.status = 'error';
       state.snapshot = emptyPresenceSnapshot();
-      state.error = error?.message || 'Activos no disponible.';
+      state.cause = error;
+      state.error = 'Activos no disponible.';
       if (!silent) toast(state.error);
     } finally {
       state.refreshInFlight = false;

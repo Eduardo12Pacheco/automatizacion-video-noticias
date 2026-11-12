@@ -274,6 +274,9 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
   async function refreshPending({ silent = false } = {}) {
     const state = store.getState();
     try {
+      state.approvalLoading = true;
+      state.approvalError = null;
+      renderCards();
       const data = await api.get('/webhook/approval/pending/supabase/v2');
       state.items = (data.items || []).map((item) => ({
         ...item,
@@ -284,9 +287,13 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
       renderCards();
     } catch (err) {
       console.error(err);
+      state.approvalError = err;
       if (!silent) {
         ui.toast('Error cargando pendientes');
       }
+    } finally {
+      state.approvalLoading = false;
+      renderCards();
     }
   }
 

@@ -3,6 +3,7 @@ export function createConnectorsState() {
     connectors: [],
     status: 'idle',
     error: '',
+    cause: null,
     busyId: '',
     refreshInFlight: false,
     results: {},

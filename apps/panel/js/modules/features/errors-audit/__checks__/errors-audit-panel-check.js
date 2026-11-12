@@ -114,7 +114,7 @@ function runStateAndRenderCheck() {
   assertNotIncludes(listEl.innerHTML, 'token', 'event list must not expose nested secret field names');
 
   renderErrorsAuditEvents({ el: { errorsAuditList: listEl, errorsAuditStatus: statusEl }, state: { status: 'ready', events: [], filters: { kind: 'audit' } } });
-  assertIncludes(listEl.innerHTML, 'Sin eventos para estos filtros', 'empty state drift');
+  assertIncludes(listEl.innerHTML, 'No hay eventos que coincidan con estos filtros.', 'empty state drift');
 
   renderErrorsAuditEvents({ el: { errorsAuditList: listEl, errorsAuditStatus: statusEl }, state: { status: 'error', error: 'Gateway events no disponible. Detalle: raw-secret-token' } });
   assertIncludes(listEl.innerHTML, 'Reintentar', 'error state must be retryable');

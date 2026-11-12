@@ -4,6 +4,7 @@ export function createAdminUsersState() {
     roles: [],
     status: 'idle',
     error: '',
+    cause: null,
     busyUserId: '',
     refreshInFlight: false,
   };

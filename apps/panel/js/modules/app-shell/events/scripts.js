@@ -133,6 +133,11 @@ export function bindScriptEvents({
     void refreshVideoProjects();
   });
 
+  bindOnce(el.videoProjectsList, 'video-projects-retry', 'click', (event) => {
+    if (!event.target?.closest?.('[data-video-projects-action="refresh"]')) return;
+    void refreshVideoProjects();
+  });
+
   bindOnce(el.videoProjectsNewBtn, 'manual-video-project-open', 'click', () => {
     resetManualVideoProjectForm();
     el.manualVideoProjectDialog?.showModal();

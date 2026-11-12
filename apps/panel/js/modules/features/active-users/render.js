@@ -1,4 +1,5 @@
 import { emptyPresenceSnapshot, normalizePresenceSnapshot } from './state.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
 function escapeHtml(value) {
   return (value ?? '').toString()
@@ -30,16 +31,24 @@ export function renderActiveUsersView({ el, state }) {
   }
   if (!el.activeUsersList) return;
   if (state.status === 'loading') {
-    el.activeUsersList.innerHTML = '<article class="active-users-empty">Cargando actividad.</article>';
+    el.activeUsersList.innerHTML = renderLoadingState({ rows: 3, variant: 'cards' });
     return;
   }
   if (state.status === 'error') {
-    el.activeUsersList.innerHTML = `<article class="active-users-error" role="alert"><strong>Activos no disponible.</strong><p>${escapeHtml(state.error || 'Iniciá sesión o reintentá la lectura.')}</p><button type="button" data-active-users-action="refresh">Reintentar</button></article>`;
+    el.activeUsersList.innerHTML = renderErrorState({
+      error: state.cause,
+      fallbackKey: 'activeUsers.empty',
+      retryAttribute: 'data-active-users-action="refresh"',
+    });
     return;
   }
   el.activeUsersList.innerHTML = snapshot.sessions.length
     ? snapshot.sessions.map(renderPresenceCard).join('')
-    : '<article class="active-users-empty">No hay sesiones activas para mostrar.</article>';
+    : renderEmptyState({
+        icon: 'users',
+        titleKey: 'activeUsers.emptyTitle',
+        messageKey: 'activeUsers.emptyMessage',
+      });
 }
 
 function renderPresenceCard(session) {

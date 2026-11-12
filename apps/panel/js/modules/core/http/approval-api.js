@@ -54,7 +54,11 @@ export function createApprovalApiClient({ getSettings, fetchImpl = fetch }) {
       credentials: 'include',
       ...(sharedReadPath ? { cache: 'no-store' } : {}),
     });
-    if (!res.ok) throw new Error(`GET ${path} ${res.status}`);
+    if (!res.ok) {
+      const error = new Error(`GET ${path} ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
     const raw = await res.text();
     if (!raw) return {};
     try {
@@ -97,7 +101,9 @@ export function createApprovalApiClient({ getSettings, fetchImpl = fetch }) {
 
     if (!res.ok) {
       const message = data?.message || data?.error || `POST ${path} ${res.status}`;
-      throw new Error(message);
+      const error = new Error(message);
+      error.status = res.status;
+      throw error;
     }
 
     if (data?.error || data?.status === 'error') {

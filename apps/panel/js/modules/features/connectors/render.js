@@ -1,5 +1,6 @@
 import { escapeHtmlCore } from '../../core/ui/escape-html.js';
 import { t } from '../../core/i18n/index.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
 const STATUS_CLASS = Object.freeze({
   local: 'status-chip--local',
@@ -59,16 +60,28 @@ function renderCard(connector, state) {
 export function renderConnectorsView({ el, state }) {
   if (el.connectorsStatus) {
     if (state.status === 'loading') el.connectorsStatus.textContent = t('common.loading');
-    else if (state.error) el.connectorsStatus.textContent = state.error;
+    else if (state.error) el.connectorsStatus.textContent = '';
     else el.connectorsStatus.textContent = `${state.connectors.length} ${t('connectors.title').toLowerCase()}`;
   }
   if (!el.connectorsList) return;
   if (state.status === 'loading' && !state.connectors.length) {
-    el.connectorsList.innerHTML = `<article class="connector-empty">${escapeHtmlCore(t('common.loading'))}</article>`;
+    el.connectorsList.innerHTML = renderLoadingState({ rows: 4, variant: 'cards' });
+    return;
+  }
+  if (state.status === 'error' && !state.connectors.length) {
+    el.connectorsList.innerHTML = renderErrorState({
+      error: state.cause,
+      fallbackKey: 'connectors.error',
+      retryAttribute: 'data-connectors-action="refresh"',
+    });
     return;
   }
   if (!state.connectors.length) {
-    el.connectorsList.innerHTML = `<article class="connector-empty">${escapeHtmlCore(t('connectors.empty'))}</article>`;
+    el.connectorsList.innerHTML = renderEmptyState({
+      icon: 'connector',
+      titleKey: 'connectors.emptyTitle',
+      messageKey: 'connectors.emptyMessage',
+    });
     return;
   }
   el.connectorsList.innerHTML = state.connectors

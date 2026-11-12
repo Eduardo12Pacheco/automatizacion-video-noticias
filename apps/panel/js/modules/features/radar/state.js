@@ -23,6 +23,7 @@ export function createRadarState() {
     basuraItems: [],
     basuraCount: 0,
     monitorError: '',
+    monitorCause: null,
     selectedCountry: '',
     monitorSearchQuery: '',
     monitorSortMode: 'relevance',

@@ -178,7 +178,9 @@ export function createSubtitleSessionController(ctx, callbacks = {}) {
       const [health, sessions] = await Promise.all([ttsApi.getSubtitlesHealth(), ttsApi.listSubtitleSessions(20)]);
       state.subtitles2.serviceHealth = { status: (health?.status || 'online').toString(), message: 'Servicio remoto disponible.' };
       state.subtitles2.sessionHistory = Array.isArray(sessions?.items) ? sessions.items : [];
+      state.subtitles2.sessionHistoryError = null;
     } catch (error) {
+      state.subtitles2.sessionHistoryError = error;
       state.subtitles2.serviceHealth = { status: 'offline', message: getErrorMessage(error, 'No se pudo alcanzar el servicio remoto.') };
     }
     renderHealthBanner();

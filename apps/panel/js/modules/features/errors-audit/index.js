@@ -39,7 +39,8 @@ export function createErrorsAuditController({ state = createErrorsAuditState(), 
       renderErrorsAuditDetail({ el, event: findSelectedEvent() });
     } catch (error) {
       state.status = 'error';
-      state.error = error?.message || 'Gateway events no disponible.';
+      state.cause = error;
+      state.error = 'Gateway events no disponible.';
       if (!silent) toast(state.error);
     } finally {
       state.refreshInFlight = false;

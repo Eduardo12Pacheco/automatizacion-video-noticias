@@ -1,5 +1,6 @@
 import { escapeHtmlCore } from '../../core/ui/escape-html.js';
 import { t } from '../../core/i18n/index.js';
+import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
 function roleLabel(role) {
   return t(`users.role${role.charAt(0).toUpperCase()}${role.slice(1)}`);
@@ -17,16 +18,28 @@ function formatLastLogin(value) {
 export function renderAdminUsersView({ el, state }) {
   if (el.adminUsersStatus) {
     if (state.status === 'loading') el.adminUsersStatus.textContent = t('common.loading');
-    else if (state.error) el.adminUsersStatus.textContent = state.error;
+    else if (state.error) el.adminUsersStatus.textContent = '';
     else el.adminUsersStatus.textContent = `${state.users.length} ${t('users.title').toLowerCase()}`;
   }
   if (!el.adminUsersList) return;
   if (state.status === 'loading' && !state.users.length) {
-    el.adminUsersList.innerHTML = `<article class="admin-users-empty">${escapeHtmlCore(t('common.loading'))}</article>`;
+    el.adminUsersList.innerHTML = renderLoadingState({ rows: 3, variant: 'rows' });
+    return;
+  }
+  if (state.status === 'error' && !state.users.length) {
+    el.adminUsersList.innerHTML = renderErrorState({
+      error: state.cause,
+      fallbackKey: 'users.forbidden',
+      retryAttribute: 'data-admin-users-action="refresh"',
+    });
     return;
   }
   if (!state.users.length) {
-    el.adminUsersList.innerHTML = `<article class="admin-users-empty">${escapeHtmlCore(t('users.empty'))}</article>`;
+    el.adminUsersList.innerHTML = renderEmptyState({
+      icon: 'users',
+      titleKey: 'users.emptyTitle',
+      messageKey: 'users.emptyMessage',
+    });
     return;
   }
   el.adminUsersList.innerHTML = `
