@@ -6,17 +6,17 @@
 #viewSubtitulos2 .subtitle-history-list {
   min-height: 118px;
   padding: 12px;
-  border: 1px solid #262626;
+  border: 1px solid var(--border);
   border-radius: 0;
-  background: #0A0A0A;
-  color: #8B8E93;
+  background: var(--surface);
+  color: var(--muted);
 }
 
 #viewSubtitulos2 .subtitle-history-list button {
   border: 0;
   border-radius: 0;
-  background: #151515;
-  color: #DADDE0;
+  background: var(--surface-raised);
+  color: var(--text-soft);
 }
 
 #viewSubtitulos2 .subtitle-history-item {
@@ -27,7 +27,7 @@
   gap: 10px;
   justify-content: stretch;
   border: 0;
-  background: #151515;
+  background: var(--surface-raised);
   overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
-  background: #9DB8FF;
+  background: var(--info);
 }
 
 #viewSubtitulos2 .subtitle-history-item__resume {
@@ -70,7 +70,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #F5F7F7;
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -96,7 +96,7 @@
   padding: 0;
   border: 0;
   background: transparent !important;
-  color: #FF5A66;
+  color: var(--c-ff5a66);
   font-family: 'JetBrains Mono', monospace;
   font-size: 20px;
   font-weight: 700;
@@ -104,7 +104,7 @@
 }
 
 #viewSubtitulos2 .subtitle-history-item__rename {
-  color: #9DB8FF;
+  color: var(--info);
   font-size: 18px;
 }
 
@@ -115,24 +115,24 @@
 }
 
 #viewSubtitulos2 .subtitle-history-item--editing {
-  background: #111927;
-  color: #AFC6FF;
+  background: var(--c-111927);
+  color: var(--c-afc6ff);
 }
 
 #viewSubtitulos2 .subtitle-history-item--done {
-  background: #071F16;
-  color: #00E88F;
+  background: var(--c-071f16);
+  color: var(--accent);
 }
 
 #viewSubtitulos2 .subtitle-history-item--done::before {
-  background: #00E88F;
+  background: var(--accent);
 }
 
 #viewSubtitulos2 .subtitle-history-item--active {
-  background: #21180B;
-  color: #F7B955;
+  background: var(--c-21180b);
+  color: var(--warning);
 }
 
 #viewSubtitulos2 .subtitle-history-item--active::before {
-  background: #F7B955;
+  background: var(--warning);
 }

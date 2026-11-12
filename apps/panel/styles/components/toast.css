@@ -4,7 +4,7 @@
   bottom: 16px;
   max-width: min(420px, calc(100vw - 32px));
   background:
-    linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(10, 10, 10, 0.98));
+    linear-gradient(180deg, var(--c-rgb-18-18-18-0.98), var(--c-rgb-10-10-10-0.98));
   border: 1px solid var(--border-strong);
   border-left: 3px solid var(--accent);
   border-radius: 0;

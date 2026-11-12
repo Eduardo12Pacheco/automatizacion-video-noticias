@@ -11,10 +11,10 @@
 .active-users-card,
 .active-users-empty,
 .active-users-error {
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 1rem;
+  border: 1px solid var(--c-rgb-148-163-184-0.24);
+  border-radius: var(--radius-xl);
   padding: 1rem;
-  background: rgba(15, 23, 42, 0.3);
+  background: var(--c-rgb-15-23-42-0.3);
 }
 
 .active-users-card header {
@@ -25,5 +25,5 @@
 
 .active-users-card p,
 .active-users-card small {
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted, var(--c-94a3b8));
 }

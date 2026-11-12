@@ -1,13 +1,13 @@
 .video-projects-empty--error {
-  border-color: rgba(255, 92, 92, 0.45);
-  color: #ffb3b3;
+  border-color: var(--c-rgb-255-92-92-0.45);
+  color: var(--c-ffb3b3);
 }
 
 .video-projects-empty {
   margin: 0;
   padding: 18px;
   border: 1px dashed var(--border-strong);
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--c-rgb-255-255-255-0.015);
 }
 
 .video-projects-empty--catalog-card {
@@ -18,8 +18,8 @@
   padding: 28px 26px 24px;
   border-style: solid;
   background:
-    linear-gradient(135deg, rgba(0, 232, 143, 0.055), transparent 62%),
-    rgba(255, 255, 255, 0.02);
+    linear-gradient(135deg, var(--c-rgb-0-232-143-0.055), transparent 62%),
+    var(--c-rgb-255-255-255-0.02);
   text-align: center;
 }
 
@@ -33,9 +33,9 @@
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid rgba(0, 232, 143, 0.28);
-  color: rgba(0, 232, 143, 0.46);
-  font-family: 'Space Grotesk', sans-serif;
+  border: 1px solid var(--c-rgb-0-232-143-0.28);
+  color: var(--c-rgb-0-232-143-0.46);
+  font-family: 'Inter', sans-serif;
   font-size: 2rem;
   font-weight: 700;
   line-height: 1;
@@ -90,20 +90,20 @@
   min-width: 34px;
   min-height: 34px;
   padding: 0;
-  border: 1px solid rgba(194, 88, 88, 0.52);
+  border: 1px solid var(--c-rgb-194-88-88-0.52);
   border-radius: 0;
   background:
-    linear-gradient(135deg, rgba(118, 76, 76, 0.46), rgba(48, 34, 34, 0.98)),
-    #2d2424 !important;
-  color: #ffb7b7 !important;
-  font-family: 'Space Grotesk', sans-serif;
+    linear-gradient(135deg, var(--c-rgb-118-76-76-0.46), var(--c-rgb-48-34-34-0.98)),
+    var(--c-2d2424) !important;
+  color: var(--c-ffb7b7) !important;
+  font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1;
   text-align: center;
   text-transform: none;
   letter-spacing: 0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 10px 22px rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 1px var(--c-rgb-255-255-255-0.04), 0 10px 22px var(--c-rgb-0-0-0-0.28);
   cursor: pointer;
   filter: none;
 }
@@ -115,12 +115,12 @@
 
 .video-project-card button.video-project-card__delete:hover,
 .video-project-card button.video-project-card__delete:focus {
-  border-color: rgba(224, 108, 108, 0.78);
+  border-color: var(--c-rgb-224-108-108-0.78);
   background:
-    linear-gradient(135deg, rgba(144, 82, 82, 0.56), rgba(72, 39, 39, 0.98)),
-    #3a2929 !important;
-  color: #ffe2e2 !important;
-  outline: 1px solid rgba(224, 108, 108, 0.5);
+    linear-gradient(135deg, var(--c-rgb-144-82-82-0.56), var(--c-rgb-72-39-39-0.98)),
+    var(--c-3a2929) !important;
+  color: var(--c-ffe2e2) !important;
+  outline: 1px solid var(--c-rgb-224-108-108-0.5);
   outline-offset: 2px;
   filter: none;
 }
@@ -128,7 +128,7 @@
 .video-project-card__header h3,
 .video-project-card--placeholder h3 {
   margin: 12px 0 0;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 1.18rem;
   line-height: 1.16;
   letter-spacing: -0.035em;
@@ -194,9 +194,9 @@
   width: 100%;
   min-height: 32px;
   padding: 7px 10px;
-  border: 1px solid rgba(0, 232, 143, 0.45);
+  border: 1px solid var(--c-rgb-0-232-143-0.45);
   background: var(--accent);
-  color: #03130c;
+  color: var(--c-03130c);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.78rem;
   font-weight: 800;
@@ -209,7 +209,7 @@
 .video-project-card__open:hover,
 .video-project-card__open:focus {
   filter: brightness(1.05);
-  outline: 1px solid rgba(0, 232, 143, 0.75);
+  outline: 1px solid var(--c-rgb-0-232-143-0.75);
   outline-offset: 2px;
 }
 
@@ -217,14 +217,14 @@
   cursor: default;
   border-style: dashed;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--c-rgb-255-255-255-0.01);
 }
 
 .video-project-card--placeholder:hover,
 .video-project-card--placeholder:focus {
   transform: none;
   border-color: var(--border);
-  background: rgba(255, 255, 255, 0.01);
+  background: var(--c-rgb-255-255-255-0.01);
 }
 
 .video-project-card--placeholder p {
@@ -247,7 +247,7 @@
   margin: 0 0 16px;
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid rgba(0, 232, 143, 0.5);
+  border: 1px solid var(--c-rgb-0-232-143-0.5);
   background: transparent;
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
@@ -259,6 +259,6 @@
 
 .video-project-detail__back:hover,
 .video-project-detail__back:focus {
-  background: rgba(0, 232, 143, 0.08);
+  background: var(--c-rgb-0-232-143-0.08);
   outline: none;
 }

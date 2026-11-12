@@ -49,8 +49,8 @@
   justify-content: center;
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid rgba(0, 232, 143, 0.34);
-  background: rgba(0, 232, 143, 0.08);
+  border: 1px solid var(--c-rgb-0-232-143-0.34);
+  background: var(--c-rgb-0-232-143-0.08);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.72rem;
@@ -80,8 +80,8 @@
   gap: 8px;
   min-width: 0;
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #0c0c0c;
+  border: 1px solid var(--c-rgb-255-255-255-0.12);
+  background: var(--bg);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -91,8 +91,8 @@
 
 .video-editor-video-card:hover,
 .video-editor-video-card:focus-visible {
-  border-color: rgba(0, 232, 143, 0.66);
-  background: rgba(0, 232, 143, 0.08);
+  border-color: var(--c-rgb-0-232-143-0.66);
+  background: var(--c-rgb-0-232-143-0.08);
   outline: none;
 }
 
@@ -107,8 +107,8 @@
   aspect-ratio: 16 / 9;
   padding: 6px;
   overflow: hidden;
-  border: 1px solid #242424;
-  background: #050505;
+  border: 1px solid var(--c-242424);
+  background: var(--surface-deep);
   color: var(--muted);
   font-size: 0.7rem;
 }

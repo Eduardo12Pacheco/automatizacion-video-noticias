@@ -31,9 +31,9 @@
 .errors-audit-error,
 .errors-audit-detail {
   width: 100%;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px;
-  background: #0a0a0a;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   color: inherit;
   padding: 14px;
   text-align: left;
@@ -48,10 +48,10 @@
 .errors-audit-card__status,
 .errors-audit-chip {
   width: fit-content;
-  border: 1px solid #414141;
+  border: 1px solid var(--c-414141);
   border-radius: 999px;
   padding: 3px 8px;
-  color: #b7f7cf;
+  color: var(--c-b7f7cf);
   font-size: 0.75rem;
   text-transform: uppercase;
 }

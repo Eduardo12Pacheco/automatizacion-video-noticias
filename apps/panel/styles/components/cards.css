@@ -23,7 +23,7 @@
 
 .stat strong {
   display: block;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 1.55rem;
 }
 
@@ -37,7 +37,7 @@
   overflow: auto;
   padding-right: 2px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(245, 247, 247, 0.82) transparent;
+  scrollbar-color: var(--c-rgb-245-247-247-0.82) transparent;
 }
 
 .cards--news::-webkit-scrollbar {
@@ -64,7 +64,7 @@
 }
 
 .cards--news::-webkit-scrollbar-thumb {
-  background: rgba(245, 247, 247, 0.82);
+  background: var(--c-rgb-245-247-247-0.82);
   border-radius: 999px;
   border: 1px solid transparent;
   background-clip: padding-box;
@@ -77,13 +77,13 @@
   background: var(--surface-soft);
   border: 1px solid var(--border);
   padding: 16px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
 }
 
 .card:hover {
   transform: translateY(-1px);
-  border-color: #303030;
+  border-color: var(--c-303030);
 }
 
 .topic {
@@ -95,7 +95,7 @@
 
 .summary {
   margin: 0 0 10px;
-  color: #d0d4d8;
+  color: var(--c-d0d4d8);
   line-height: 1.55;
   font-size: 0.79rem;
 }
@@ -106,7 +106,7 @@
   min-height: 26px;
   padding: 4px 10px;
   border: 1px solid var(--border-strong);
-  background: #121212;
+  background: var(--surface-muted);
   color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.64rem;
@@ -117,8 +117,8 @@
 
 .chip--tag {
   color: var(--accent);
-  border-color: rgba(0, 232, 143, 0.3);
-  background: rgba(0, 232, 143, 0.08);
+  border-color: var(--c-rgb-0-232-143-0.3);
+  background: var(--c-rgb-0-232-143-0.08);
 }
 
 .card-actions {
@@ -143,8 +143,8 @@
 
 .card--approval:hover,
 .card--approval.is-selected {
-  background: linear-gradient(0deg, rgba(0, 232, 143, 0.09), rgba(0, 232, 143, 0.09)), var(--surface-soft);
-  border-color: rgba(0, 232, 143, 0.38);
+  background: linear-gradient(0deg, var(--c-rgb-0-232-143-0.09), var(--c-rgb-0-232-143-0.09)), var(--surface-soft);
+  border-color: var(--c-rgb-0-232-143-0.38);
 }
 
 .card--approval .card-title {

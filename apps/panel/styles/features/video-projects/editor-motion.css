@@ -11,7 +11,7 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-  color: #8f949b;
+  color: var(--c-8f949b);
   font-size: 0.82rem;
   line-height: 1.35;
 }
@@ -22,14 +22,14 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--c-rgb-148-163-184-0.45);
   border-radius: 999px;
-  color: #9aa0a8;
+  color: var(--c-9aa0a8);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.78rem;
   font-weight: 800;
   font-style: italic;
-  box-shadow: 0 0 18px rgba(148, 163, 184, 0.08);
+  box-shadow: 0 0 18px var(--c-rgb-148-163-184-0.08);
 }
 
 .video-motion-mode__tabs {
@@ -38,8 +38,8 @@
   gap: 5px;
   align-self: center;
   padding: 4px;
-  border: 1px solid rgba(0, 232, 143, 0.2);
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--c-rgb-0-232-143-0.2);
+  background: var(--c-rgb-0-0-0-0.28);
 }
 
 .video-motion-mode__tabs button {
@@ -59,8 +59,8 @@
 .video-motion-mode__tabs button:hover,
 .video-motion-mode__tabs button:focus-visible,
 .video-motion-mode__tabs button.is-active {
-  border-color: rgba(0, 232, 143, 0.58);
-  background: rgba(0, 232, 143, 0.08);
+  border-color: var(--c-rgb-0-232-143-0.58);
+  background: var(--c-rgb-0-232-143-0.08);
   color: var(--text);
   outline: none;
 }
@@ -86,8 +86,8 @@
   max-height: min(40.5vh, 465px);
   overflow: auto;
   padding: 12px 8px 12px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #050505;
+  border: 1px solid var(--c-rgb-255-255-255-0.08);
+  background: var(--surface-deep);
 }
 
 .video-motion-picker__group {
@@ -127,7 +127,7 @@
   gap: 14px;
   padding: 12px;
   border: 0;
-  background: #0d0d0d;
+  background: var(--surface-soft);
 }
 
 .video-motion-manual__header {
@@ -136,7 +136,7 @@
   gap: 12px;
   align-items: start;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1px solid var(--c-rgb-255-255-255-0.18);
 }
 
 .video-motion-manual__header h4 {
@@ -165,7 +165,7 @@
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid var(--border-strong);
-  background: #0c0c0c;
+  background: var(--bg);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
@@ -177,14 +177,14 @@
 
 .video-motion-manual__seek button:hover,
 .video-motion-manual__seek button:focus-visible {
-  border-color: rgba(0, 232, 143, 0.58);
+  border-color: var(--c-rgb-0-232-143-0.58);
   color: var(--accent);
   outline: none;
 }
 
 .video-motion-manual__seek button.is-active {
-  border-color: rgba(0, 232, 143, 0.86);
-  box-shadow: 0 0 0 1px rgba(0, 232, 143, 0.34), 0 0 18px rgba(0, 232, 143, 0.18);
+  border-color: var(--c-rgb-0-232-143-0.86);
+  box-shadow: 0 0 0 1px var(--c-rgb-0-232-143-0.34), 0 0 18px var(--c-rgb-0-232-143-0.18);
   color: var(--accent);
 }
 
@@ -240,7 +240,7 @@
   min-height: 32px;
   padding: 0 8px;
   border: 1px solid var(--border-strong);
-  background: #050505;
+  background: var(--surface-deep);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.82rem;
@@ -250,13 +250,13 @@
 }
 
 .video-motion-manual__field input:focus {
-  border-color: rgba(0, 232, 143, 0.68);
+  border-color: var(--c-rgb-0-232-143-0.68);
   outline: none;
 }
 
 .video-motion-manual__field input.is-motion-scrubbing {
-  border-color: rgba(0, 232, 143, 0.82);
-  box-shadow: 0 0 0 1px rgba(0, 232, 143, 0.2);
+  border-color: var(--c-rgb-0-232-143-0.82);
+  box-shadow: 0 0 0 1px var(--c-rgb-0-232-143-0.2);
 }
 
 .video-motion-defaults-hint {
@@ -275,7 +275,7 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  border: 1px solid rgba(0, 232, 143, 0.42);
+  border: 1px solid var(--c-rgb-0-232-143-0.42);
   border-radius: 999px;
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
@@ -296,7 +296,7 @@ body.is-motion-scrubbing {
   min-width: 0;
   padding: 9px;
   border: 1px solid var(--border-strong);
-  background: #080808;
+  background: var(--c-080808);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -306,8 +306,8 @@ body.is-motion-scrubbing {
 .video-motion-card:hover,
 .video-motion-card:focus-visible,
 .video-motion-card.is-selected {
-  border-color: rgba(0, 232, 143, 0.68);
-  background: rgba(0, 232, 143, 0.065);
+  border-color: var(--c-rgb-0-232-143-0.68);
+  background: var(--c-rgb-0-232-143-0.065);
 }
 
 .video-motion-card:hover {
@@ -315,7 +315,7 @@ body.is-motion-scrubbing {
 }
 
 .video-motion-card:focus-visible {
-  outline: 2px solid rgba(0, 232, 143, 0.88);
+  outline: 2px solid var(--c-rgb-0-232-143-0.88);
   outline-offset: 2px;
 }
 
@@ -330,7 +330,7 @@ body.is-motion-scrubbing {
   border: 1px solid var(--accent);
   border-radius: 999px;
   background: var(--accent);
-  color: #04110c;
+  color: var(--c-04110c);
   font-size: 0.82rem;
   font-weight: 900;
   opacity: 0;
@@ -374,8 +374,8 @@ body.is-motion-scrubbing {
   inset: -12%;
   display: block;
   background:
-    linear-gradient(135deg, rgba(0, 232, 143, 0.16), transparent 46%),
-    linear-gradient(90deg, rgba(0, 90, 62, 0.72), rgba(7, 45, 35, 0.58));
+    linear-gradient(135deg, var(--c-rgb-0-232-143-0.16), transparent 46%),
+    linear-gradient(90deg, var(--c-rgb-0-90-62-0.72), var(--c-rgb-7-45-35-0.58));
   opacity: 0.9;
 }
 
@@ -383,8 +383,8 @@ body.is-motion-scrubbing {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+    linear-gradient(var(--c-rgb-255-255-255-0.09) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-rgb-255-255-255-0.09) 1px, transparent 1px);
   background-size: 33.333% 50%;
   opacity: 0;
 }
@@ -395,9 +395,9 @@ body.is-motion-scrubbing {
   top: 50%;
   width: 82%;
   aspect-ratio: 16 / 9;
-  border: 2px solid #050505;
-  background: rgba(245, 245, 245, 0.9);
-  box-shadow: 0 0 0 1px rgba(0, 232, 143, 0.42), 0 8px 18px rgba(0, 0, 0, 0.34);
+  border: 2px solid var(--surface-deep);
+  background: var(--c-rgb-245-245-245-0.9);
+  box-shadow: 0 0 0 1px var(--c-rgb-0-232-143-0.42), 0 8px 18px var(--c-rgb-0-0-0-0.34);
   transform: translate3d(calc(-50% + var(--motion-from-x)), calc(-50% + var(--motion-from-y)), 0) scale(var(--motion-from-scale));
   transform-origin: center;
 }

@@ -1,24 +1,24 @@
 #viewSubtitulos2 .subtitle-centered-card {
-  background: #0D0D0D;
-  border-color: #262626;
+  background: var(--surface-soft);
+  border-color: var(--border);
 }
 
 #viewSubtitulos2 .subtitle-processing-card .subtitle-phase-icon {
-  border-color: #F7B95555;
+  border-color: var(--c-f7b95555);
   border-radius: 0;
-  background: #151515;
-  color: #F7B955;
+  background: var(--surface-raised);
+  color: var(--warning);
 }
 
 #viewSubtitulos2 .subtitle-progress-track {
-  border-color: #2A2A2A;
+  border-color: var(--border-soft);
   border-radius: 0;
-  background: #121212;
+  background: var(--surface-muted);
 }
 
 #viewSubtitulos2 .subtitle-progress-fill {
   border-radius: 0;
-  background: #00E88F;
+  background: var(--accent);
 }
 
 #viewSubtitulos2 .subtitle-render-card {
@@ -31,8 +31,8 @@
   gap: 14px;
   margin-top: 32px;
   padding: 18px 24px 20px;
-  border: 1px solid #262626;
-  background: #0A0A0A;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 #viewSubtitulos2 .subtitle-render-card h3 {
@@ -52,7 +52,7 @@
   width: 100%;
   margin-top: 0;
   padding: 0 0 14px;
-  border-bottom: 1px solid #262626;
+  border-bottom: 1px solid var(--border);
   justify-content: flex-end;
   background: transparent;
 }

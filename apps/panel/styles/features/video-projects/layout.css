@@ -11,14 +11,14 @@
   padding: 26px 28px;
   border: 1px solid var(--border);
   background:
-    linear-gradient(135deg, rgba(0, 232, 143, 0.08), transparent 34%),
+    linear-gradient(135deg, var(--c-rgb-0-232-143-0.08), transparent 34%),
     var(--surface);
 }
 
 .video-projects-hero h1,
 .video-project-detail__header h2,
 .video-project-section-heading h3 {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
   letter-spacing: -0.045em;
 }
 
@@ -141,8 +141,8 @@
 .video-project-card:hover,
 .video-project-card:focus,
 .video-project-card.is-selected {
-  border-color: rgba(0, 232, 143, 0.58);
-  background: rgba(0, 232, 143, 0.06);
+  border-color: var(--c-rgb-0-232-143-0.58);
+  background: var(--c-rgb-0-232-143-0.06);
   outline: none;
 }
 
@@ -157,7 +157,7 @@
   height: 56px;
   overflow: hidden;
   border: 1px solid var(--border-strong);
-  background: #050505;
+  background: var(--surface-deep);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-weight: 800;
@@ -200,8 +200,8 @@
   align-self: start;
   justify-self: end;
   padding: 5px 8px;
-  border: 1px solid rgba(0, 232, 143, 0.28);
-  background: rgba(0, 232, 143, 0.08);
+  border: 1px solid var(--c-rgb-0-232-143-0.28);
+  background: var(--c-rgb-0-232-143-0.08);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.66rem;
@@ -211,14 +211,14 @@
 }
 
 .video-project-status[data-status='image_search_error'] {
-  border-color: rgba(217, 87, 100, 0.42);
+  border-color: var(--c-rgb-217-87-100-0.42);
   background: var(--danger-soft);
   color: var(--danger);
 }
 
 .video-project-status[data-status='no_candidates'],
 .video-project-status[data-status='pending'] {
-  border-color: rgba(185, 146, 60, 0.42);
+  border-color: var(--c-rgb-185-146-60-0.42);
   background: var(--warning-soft);
   color: var(--warning);
 }
@@ -238,7 +238,7 @@
   min-height: 52vh;
   text-align: center;
   border: 1px dashed var(--border-strong);
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--c-rgb-255-255-255-0.015);
   padding: 28px;
 }
 
@@ -282,9 +282,9 @@
 }
 
 .video-phase-rail li.is-active {
-  border-color: rgba(0, 232, 143, 0.5);
+  border-color: var(--c-rgb-0-232-143-0.5);
   color: var(--accent);
-  background: rgba(0, 232, 143, 0.08);
+  background: var(--c-rgb-0-232-143-0.08);
 }
 
 .video-project-detail__meta-grid {
@@ -345,7 +345,7 @@
 
 .video-project-detail__side {
   padding-left: 12px;
-  border-left: 1px solid rgba(0, 232, 143, 0.42);
+  border-left: 1px solid var(--c-rgb-0-232-143-0.42);
 }
 
 .video-project-section-heading {

@@ -8,9 +8,9 @@
 
 .auth-card {
   width: min(460px, 100%);
-  background: #232731;
+  background: var(--c-232731);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   padding: 24px;
   box-shadow: var(--shadow);
 }

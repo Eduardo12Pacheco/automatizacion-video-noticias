@@ -1,8 +1,8 @@
 #viewRadar .subtitle2-health-chip {
   padding: 8px 12px;
-  border: 1px solid #2A2A2A;
-  background: #0A0A0A;
-  color: #DADDE0;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -10,13 +10,13 @@
 }
 
 #viewRadar .subtitle2-health-chip.is-online {
-  border-color: #00E88F55;
-  color: #00E88F;
+  border-color: var(--c-00e88f55);
+  color: var(--accent);
 }
 
 #viewRadar .subtitle2-health-chip.is-offline {
-  border-color: #F7B95555;
-  color: #F7B955;
+  border-color: var(--c-f7b95555);
+  color: var(--warning);
 }
 
 #viewRadar .radar-layout {
@@ -31,8 +31,8 @@
 #viewRadar .radar-queue-panel {
   min-height: calc(100vh - 260px);
   padding: 24px;
-  background: #0A0A0A;
-  border: 1px solid #262626;
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 #viewRadar .radar-monitor-panel {
@@ -77,14 +77,14 @@
   place-items: center;
   min-height: 74px;
   padding: 14px 16px;
-  border: 1px solid #262626;
-  background: #0A0A0A;
-  color: #D8DBDE;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-soft);
   text-align: left;
 }
 
 #viewRadar .radar-country-card span {
-  color: #FFFFFF;
+  color: var(--c-ffffff);
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   font-weight: 700;
@@ -94,12 +94,12 @@
 
 #viewRadar .radar-country-card:hover,
 #viewRadar .radar-country-card.is-active {
-  border-color: #00E88F55;
-  background: #03140D;
+  border-color: var(--c-00e88f55);
+  background: var(--c-03140d);
 }
 
 #viewRadar .radar-country-card.is-active span {
-  color: #00E88F;
+  color: var(--accent);
 }
 
 #viewRadar .radar-monitor-list {
@@ -116,8 +116,8 @@
   align-items: stretch;
   min-height: 128px;
   padding: 20px 56px 20px 24px;
-  border: 1px solid #2A2A2A;
-  background: #0A0A0A;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
 }
 
 #viewRadar .radar-monitor-card__dismiss {
@@ -128,23 +128,23 @@
   height: 28px;
   display: inline-grid;
   place-items: center;
-  border: 1px solid #8F1D1D;
-  background: #180606;
-  color: #FF5C5C;
+  border: 1px solid var(--c-8f1d1d);
+  background: var(--c-180606);
+  color: var(--c-ff5c5c);
   font-family: 'JetBrains Mono', monospace;
   font-size: 18px;
   line-height: 1;
 }
 
 #viewRadar .radar-monitor-card__dismiss:hover {
-  border-color: #FF5C5C;
-  color: #FFFFFF;
-  background: #3A0B0B;
+  border-color: var(--c-ff5c5c);
+  color: var(--c-ffffff);
+  background: var(--c-3a0b0b);
 }
 
 #viewRadar .radar-monitor-card:hover {
-  border-color: #00E88F55;
-  background: #0D0D0D;
+  border-color: var(--c-00e88f55);
+  background: var(--surface-soft);
 }
 
 #viewRadar .radar-monitor-card__main {
@@ -156,15 +156,15 @@
 }
 
 #viewRadar .radar-monitor-card strong {
-  color: #FFFFFF;
-  font-family: 'Space Grotesk', sans-serif;
+  color: var(--c-ffffff);
+  font-family: 'Inter', sans-serif;
   font-size: 19px;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
 #viewRadar .radar-monitor-card__meta {
-  color: #8B8E93;
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -174,12 +174,12 @@
   gap: 10px;
   align-items: stretch;
   padding: 14px 16px;
-  border: 1px solid #232323;
-  background: #090909;
+  border: 1px solid var(--c-232323);
+  background: var(--bg-elevated);
 }
 
 #viewRadar .radar-monitor-card__mentions-title {
-  color: #00E88F;
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 700;
@@ -200,18 +200,18 @@
   gap: 10px;
   min-height: 30px;
   padding: 7px 0;
-  border-bottom: 1px solid #1D1D1D;
+  border-bottom: 1px solid var(--c-1d1d1d);
 }
 
 #viewRadar .radar-mention-row strong {
-  color: #00E88F;
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
   line-height: 1;
 }
 
 #viewRadar .radar-mention-row small {
-  color: #DADDE0;
+  color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -219,7 +219,7 @@
 
 #viewRadar .radar-mention-row.is-pending strong,
 #viewRadar .radar-mention-row.is-pending small {
-  color: #8B8E93;
+  color: var(--muted);
 }
 
 #viewRadar .radar-monitor-empty,
@@ -227,14 +227,14 @@
   min-height: 132px;
   display: grid;
   place-items: center;
-  border: 1px dashed #262626;
-  background: #090909;
-  color: #F5F7F7;
+  border: 1px dashed var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
   text-align: center;
 }
 
 #viewRadar .radar-monitor-error {
-  color: #F7B955;
+  color: var(--warning);
 }
 
 #viewRadar .radar-basura-list {
@@ -248,12 +248,12 @@
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border: 1px solid #262626;
-  background: #0A0A0A;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 #viewRadar .radar-basura-item small {
-  color: #8B8E93;
+  color: var(--muted);
 }
 
 #viewRadar .radar-history-secondary {
@@ -265,15 +265,15 @@
 #viewRadar .radar-transcriptions-panel .audio-queue-header h3,
 #viewRadar .radar-queue-panel .audio-queue-header h3 {
   margin-bottom: 6px;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
   letter-spacing: -0.02em;
 }
 
 #viewRadar .audio-queue-list.is-empty {
   min-height: 360px;
-  border: 1px dashed #262626;
-  background: #090909;
-  color: #F5F7F7;
+  border: 1px dashed var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 
 #viewRadar .radar-job-card,
@@ -283,8 +283,8 @@
   gap: 14px;
   align-items: start;
   padding: 18px;
-  border: 1px solid #2A2A2A;
-  background: #0D0D0D;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-soft);
 }
 
 #viewRadar .radar-job-card__main {
@@ -295,15 +295,15 @@
 
 #viewRadar .radar-job-card strong,
 #viewRadar .radar-transcript-card strong {
-  color: #FFFFFF;
-  font-family: 'Space Grotesk', sans-serif;
+  color: var(--c-ffffff);
+  font-family: 'Inter', sans-serif;
   font-size: 18px;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
 #viewRadar .radar-kicker {
-  color: #00E88F;
+  color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   font-weight: 700;
@@ -313,7 +313,7 @@
 
 #viewRadar .radar-error-text {
   margin: 6px 0 0;
-  color: #F7B955;
+  color: var(--warning);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -323,7 +323,7 @@
   align-items: center;
   justify-self: start;
   width: fit-content;
-  border: 1px solid #2A2A2A;
+  border: 1px solid var(--border-soft);
   padding: 7px 9px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
@@ -333,33 +333,33 @@
 }
 
 #viewRadar .radar-status-chip.is-processing {
-  border-color: #9DB8FF55;
-  color: #9DB8FF;
-  background: #9DB8FF12;
+  border-color: var(--c-9db8ff55);
+  color: var(--info);
+  background: var(--c-9db8ff12);
 }
 
 #viewRadar .radar-status-chip.is-info {
-  border-color: #9DB8FF55;
-  color: #9DB8FF;
-  background: #9DB8FF12;
+  border-color: var(--c-9db8ff55);
+  color: var(--info);
+  background: var(--c-9db8ff12);
 }
 
 #viewRadar .radar-status-chip.is-warning {
-  border-color: #F7B95555;
-  color: #F7B955;
-  background: #F7B95512;
+  border-color: var(--c-f7b95555);
+  color: var(--warning);
+  background: var(--c-f7b95512);
 }
 
 #viewRadar .radar-status-chip.is-success {
-  border-color: #22C55E55;
-  color: #22C55E;
-  background: #22C55E12;
+  border-color: var(--c-22c55e55);
+  color: var(--c-22c55e);
+  background: var(--c-22c55e12);
 }
 
 #viewRadar .radar-status-chip.is-failed {
-  border-color: #F7B95555;
-  color: #F7B955;
-  background: #F7B95512;
+  border-color: var(--c-f7b95555);
+  color: var(--warning);
+  background: var(--c-f7b95512);
 }
 
 #viewRadar .radar-card-actions {
@@ -382,9 +382,9 @@
 #viewRadar .radar-job-card button,
 #viewRadar .radar-monitor-card__actions button {
   min-height: 34px;
-  border: 1px solid #353535;
-  background: #0A0A0A;
-  color: #F5F7F7;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -398,17 +398,17 @@
 #viewRadar .radar-card-actions button:hover,
 #viewRadar .radar-job-card button:hover,
 #viewRadar .radar-monitor-card__actions button:hover {
-  border-color: #00E88F55;
-  color: #00E88F;
+  border-color: var(--c-00e88f55);
+  color: var(--accent);
 }
 
 #viewRadar .radar-card-actions button:disabled,
 #viewRadar .radar-job-card button:disabled,
 #viewRadar .radar-monitor-card__actions button:disabled {
   cursor: not-allowed;
-  border-color: #262626;
-  color: #555B60;
-  background: #080808;
+  border-color: var(--border);
+  color: var(--c-555b60);
+  background: var(--c-080808);
 }
 
 #viewRadar #radarNewJobDialog {
@@ -429,8 +429,8 @@
 #viewRadar #radarConfirmDialog article {
   width: auto;
   box-sizing: border-box;
-  border: 1px solid #2A2A2A;
-  background: #0A0A0A;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
 }
 
 #viewRadar #radarNewJobDialog .dialog-header {
@@ -450,13 +450,13 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   padding: 16px;
-  border: 1px solid #262626;
-  background: #090909;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
 }
 
 #viewRadar .settings-section legend {
   padding: 0 8px;
-  color: #8B8E93;
+  color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.1em;
@@ -469,14 +469,14 @@
   gap: 10px;
   min-height: 48px;
   padding: 12px;
-  border: 1px solid #2A2A2A;
-  background: #0D0D0D;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-soft);
 }
 
 #viewRadar .settings-section input[type='checkbox'] {
   width: 18px;
   height: 18px;
-  accent-color: #00E88F;
+  accent-color: var(--accent);
 }
 
 @media (max-width: 960px) {

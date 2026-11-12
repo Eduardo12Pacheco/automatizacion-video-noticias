@@ -45,8 +45,8 @@
   justify-content: center;
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid rgba(0, 232, 143, 0.34);
-  background: rgba(0, 232, 143, 0.08);
+  border: 1px solid var(--c-rgb-0-232-143-0.34);
+  background: var(--c-rgb-0-232-143-0.08);
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.72rem;
@@ -76,9 +76,9 @@
   min-width: 0;
   min-height: 0;
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  background: #0c0c0c;
+  border: 1px solid var(--c-rgb-255-255-255-0.12);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -88,8 +88,8 @@
 
 .video-editor-assets-card:hover,
 .video-editor-assets-card:focus-visible {
-  border-color: rgba(0, 232, 143, 0.66);
-  background: rgba(0, 232, 143, 0.08);
+  border-color: var(--c-rgb-0-232-143-0.66);
+  background: var(--c-rgb-0-232-143-0.08);
   outline: none;
 }
 
@@ -98,9 +98,9 @@
 }
 
 .video-editor-assets-card.is-selected {
-  border-color: rgba(0, 232, 143, 0.9);
-  background: rgba(0, 232, 143, 0.1);
-  box-shadow: 0 0 0 2px rgba(0, 232, 143, 0.28);
+  border-color: var(--c-rgb-0-232-143-0.9);
+  background: var(--c-rgb-0-232-143-0.1);
+  box-shadow: 0 0 0 2px var(--c-rgb-0-232-143-0.28);
 }
 
 .video-editor-assets-card__media {
@@ -110,7 +110,7 @@
   aspect-ratio: 16 / 9;
   max-height: 96px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--muted);
   font-size: 0.7rem;
 }
