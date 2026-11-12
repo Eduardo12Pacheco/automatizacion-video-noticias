@@ -4,14 +4,14 @@
 
 *Read this in [Spanish](README.es.md).*
 
-![Recorded walkthrough of the default profile](docs/images/demo.gif)
+![Recorded showcase walkthrough](docs/images/demo.gif)
 
-The clip above is a short loop recorded from the default keyless Docker Compose
-stack: login, an approval decision, the generated script draft, and the voice,
-subtitles and video-project views. The [MP4](docs/images/demo.mp4) is the full
-34-second showcase walkthrough.
+The clip above is a short loop of the panel in showcase mode (`/?showcase=1`,
+fictional seeded data): pipeline navigation, the approval/Guiones view, Prensa,
+Voz, Subtítulos, Proyectos and Settings. The [MP4](docs/images/demo.mp4) is the
+full 34-second walkthrough.
 
-| Panel after login | Showcase mode |
+| Panel · Guiones | Panel · Prensa |
 |---|---|
 | ![Panel](docs/images/ui-after-login.png) | ![Showcase](docs/images/ui-after-showcase.png) |
 

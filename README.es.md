@@ -6,14 +6,14 @@ nube.**
 
 *Read this in [English](README.md).*
 
-![Recorrido grabado del perfil por defecto](docs/images/demo.gif)
+![Recorrido grabado en modo showcase](docs/images/demo.gif)
 
-El GIF es un loop corto grabado con el stack Docker Compose por defecto, sin
-claves: inicio de sesión, una decisión de aprobación, el borrador de guion
-generado y las vistas de voz, subtítulos y proyectos de video. El
-[MP4](docs/images/demo.mp4) es el recorrido de 34 segundos en modo showcase.
+El GIF es un loop corto del panel en modo showcase (`/?showcase=1`, datos
+ficticios): navegación del pipeline, la vista de aprobación/Guiones, Prensa,
+Voz, Subtítulos, Proyectos y Ajustes. El [MP4](docs/images/demo.mp4) es el
+recorrido completo de 34 segundos.
 
-| Panel tras iniciar sesión | Modo showcase |
+| Panel · Guiones | Panel · Prensa |
 |---|---|
 | ![Panel](docs/images/ui-after-login.png) | ![Showcase](docs/images/ui-after-showcase.png) |
 
