@@ -3,7 +3,7 @@
 Local helper process used by `packages/adapters` for the two capability ports
 that have a mature Python implementation:
 
-- **trafilatura** for article fetch + main-text extraction (replaces Firecrawl),
+- **trafilatura** for article fetch + main-text extraction (replaces the former cloud scraper),
 - **python-docx** for the `.docx` export (the adapter also writes a Markdown
   copy next to it).
 

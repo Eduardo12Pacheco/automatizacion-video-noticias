@@ -137,8 +137,10 @@ export function createAdaptersFromEnv({
     });
   }
 
+  // `yt-dlp` is the pre-T15 name for the same worker-backed adapter; keep it
+  // working for existing .env files while no code spawns yt-dlp in Node.
   const mediaDownload = choice(env.MEDIA_DOWNLOAD, 'worker');
-  if (mediaDownload === 'worker') {
+  if (mediaDownload === 'worker' || mediaDownload === 'yt-dlp') {
     adapters.mediaDownload = new WorkerMediaDownload({
       baseUrl: env.ASR_BASE_URL || 'http://127.0.0.1:8765',
       apiKey: env.ASR_API_KEY || '',

@@ -1,4 +1,4 @@
-import { DRAFT_JOIN_SQL, JOB_JOIN_SQL, normalizeRow, normalizeRows, shapeJobRow, textOrNull, wordCount } from './postgres-helpers.js';
+import { DRAFT_JOIN_SQL, JOB_JOIN_SQL, json, normalizeRow, normalizeRows, shapeJobRow, textOrNull, wordCount } from './postgres-helpers.js';
 import { PostgresNewsRepository } from './postgres-news-repository.js';
 
 export class PostgresScriptRepository extends PostgresNewsRepository {

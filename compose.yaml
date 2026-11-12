@@ -53,6 +53,8 @@ x-api-base: &api-base
     SEARXNG_URL: http://searxng:8080
     IMAGE_SEARCH_WIKIMEDIA: ${IMAGE_SEARCH_WIKIMEDIA:-true}
     DOCUMENT_EXPORT: ${DOCUMENT_EXPORT:-local}
+    MEDIA_DOWNLOAD: ${MEDIA_DOWNLOAD:-worker}
+    ASR_BASE_URL: http://asr-worker:8765
     NOTIFY: ${NOTIFY:-console}
     SMTP_HOST: ${SMTP_HOST:-mailpit}
     SMTP_PORT: ${SMTP_PORT:-1025}
