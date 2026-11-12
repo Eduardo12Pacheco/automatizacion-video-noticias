@@ -57,6 +57,45 @@ export const DEFAULT_PANEL_BOOTSTRAP = Object.freeze({
   featureFlags: {},
 });
 
+/**
+ * Compose runs every local worker as its own container, so the gateway target
+ * for each prefix is configuration rather than a loopback constant. Keep the
+ * defaults for host-based development and let deployments override only the
+ * targets they need.
+ */
+export function resolveRoutesFromEnv(env = process.env, defaults = DEFAULT_ROUTES) {
+  const routes = {};
+  for (const [service, route] of Object.entries(defaults)) {
+    const key = `API_GATEWAY_${service.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_TARGET`;
+    const target = String(env?.[key] || '').trim();
+    routes[service] = { ...route, ...(target ? { target } : {}) };
+  }
+  return routes;
+}
+
+function firstForwardedValue(value) {
+  return String(Array.isArray(value) ? value[0] : value || '').split(',')[0].trim();
+}
+
+/**
+ * The panel is same-origin behind the panel container's reverse proxy. Derive
+ * the public origin from the proxy headers so LAN hostnames work without
+ * hard-coding localhost in the bootstrap payload.
+ */
+export function resolvePanelRequestOrigin(req = {}, fallback = '') {
+  const host = firstForwardedValue(req?.headers?.['x-forwarded-host']);
+  if (!host) return fallback;
+  const proto = firstForwardedValue(req?.headers?.['x-forwarded-proto']) || 'http';
+  if (proto !== 'http' && proto !== 'https') return fallback;
+  try {
+    const parsed = new URL(`${proto}://${host}`);
+    if (parsed.username || parsed.password || parsed.pathname !== '/') return fallback;
+    return parsed.origin;
+  } catch {
+    return fallback;
+  }
+}
+
 export const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 export const DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES = 500 * 1024 * 1024;
 export const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000;
@@ -926,7 +965,8 @@ async function handleLocalRouterRequest(req, res, options, router, { admin = fal
 
 function handlePanelBootstrap(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
-  writeJson(res, 200, normalizePanelBootstrap(options.panelBootstrap, options.routes), {
+  const apiOrigin = resolvePanelRequestOrigin(req, options.panelBootstrap?.apiOrigin || '');
+  writeJson(res, 200, normalizePanelBootstrap({ ...options.panelBootstrap, ...(apiOrigin ? { apiOrigin } : {}) }, options.routes), {
     'cache-control': 'no-store, no-cache, max-age=0, must-revalidate',
     pragma: 'no-cache',
   });
@@ -2072,7 +2112,16 @@ export function startGateway({
     runtimeScheduler.start();
   }
 
+  const routes = resolveRoutesFromEnv(process.env);
+  const configuredPublicOrigin = String(process.env.PANEL_PUBLIC_ORIGIN || '').trim();
+  const panelBootstrap = {
+    ...DEFAULT_PANEL_BOOTSTRAP,
+    ...(configuredPublicOrigin ? { apiOrigin: configuredPublicOrigin } : {}),
+    featureFlags: { localWorkflows: true },
+  };
   const server = createGatewayServer({
+    routes,
+    panelBootstrap,
     allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
     trustedMutationOrigins: trustedMutationOrigins.length ? trustedMutationOrigins : undefined,
     panelAuth,

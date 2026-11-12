@@ -21,7 +21,16 @@ function unavailable(portName) {
 }
 
 function withDefaults(adapter, methods) {
-  const output = { ...(adapter || {}) };
+  if (!adapter) {
+    const missing = {};
+    for (const method of methods) missing[method] = unavailable(method);
+    return missing;
+  }
+  // Class adapters expose their methods on the prototype; spreading an
+  // instance would silently drop them and turn a working adapter into the
+  // "not configured" fallback.
+  const output = Object.create(Object.getPrototypeOf(adapter));
+  Object.assign(output, adapter);
   for (const method of methods) {
     if (typeof output[method] !== 'function') output[method] = unavailable(method);
   }

@@ -15,6 +15,7 @@ import {
 } from '../../../packages/core/src/index.js';
 import { InMemoryRepository } from '../../../packages/data/src/index.js';
 import { createLocalRouter } from '../src/local-router.js';
+import { DemoArticleExtractor, DemoLLMAdapter } from '../../../packages/adapters/src/demo.js';
 
 const NOW = new Date('2026-11-10T12:00:00.000Z');
 
@@ -149,11 +150,17 @@ async function createHarness() {
     createJobId: () => 'manual-router-1',
   });
   const exportDocument = createExportDocument({ repository, documentExport: createDocumentAdapter() });
+  const draftScript = new DraftScript({
+    repository,
+    articleExtractor: new DemoArticleExtractor(),
+    llm: new DemoLLMAdapter(),
+  });
   const jobQueue = new JobQueue({
     handlers: {
       'refresh-search': (payload) => refreshSearch.processRun(payload.run_id, { window: payload.window }),
       'publish-script': (payload) => publishScript.process(payload.job_id),
       'manual-video': (payload) => manualCreateVideoProject.process(payload.job_id),
+      'draft-script': (payload) => draftScript.execute(payload),
     },
   });
   const router = createLocalRouter({
@@ -161,11 +168,7 @@ async function createHarness() {
     jobQueue,
     useCases: {
       decideApproval: new DecideApproval({ repository }),
-      draftScript: new DraftScript({
-        repository,
-        articleExtractor: { async extract() { return { main_content: '' }; } },
-        llm: mockLlm('x'),
-      }),
+      draftScript,
       publishScript,
       manualCreateVideoProject,
       exportDocument,
@@ -208,6 +211,21 @@ describe('local API router', () => {
       pathname: '/webhook/approval/topic/supabase/v2',
     });
     assert.equal(missing.status, 400);
+  });
+
+  it('enqueues the script draft job after an approval', async () => {
+    await repository.upsertNews(structuredClone(NEWS));
+    await repository.persistClusters(structuredClone(CLUSTER));
+    const response = await router.handle({
+      method: 'POST',
+      pathname: '/webhook/approval/decision/supabase/v2',
+      readBody: jsonBody({ id_noticia: 'news-1', cluster_id: CLUSTER.cluster_id, action: 'approve' }),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(jobQueue.list().some((job) => job.name === 'draft-script'), true);
+    await jobQueue.drain();
+    const drafts = await repository.getPendingScriptDrafts();
+    assert.equal(drafts.some((draft) => draft.id_noticia === 'news-1'), true);
   });
 
   it('applies approval decisions through the local use case', async () => {

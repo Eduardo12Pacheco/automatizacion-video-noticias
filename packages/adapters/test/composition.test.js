@@ -7,6 +7,7 @@ import { OllamaLLMAdapter } from '../src/llm.js';
 import { SearxngWikimediaImageSearch } from '../src/image-search.js';
 import { YtDlpMediaDownload } from '../src/media-download.js';
 import { N8nWorkflowTrigger } from '../src/workflow-trigger.js';
+import { DemoArticleExtractor, DemoLLMAdapter } from '../src/demo.js';
 
 test('createAdaptersFromEnv selects the local defaults with no keys', () => {
   const adapters = createAdaptersFromEnv({ env: {}, fetchImpl: async () => ({}) });
@@ -63,4 +64,32 @@ test('createAdaptersFromEnv enables the optional n8n trigger and SMTP notificati
   assert.equal(adapters.workflowTrigger.baseUrl, 'http://n8n.local:5678');
   assert.equal(adapters.notification.host, 'smtp.local');
   assert.equal(adapters.notification.port, 2525);
+});
+
+
+test('createAdaptersFromEnv supports the deterministic demo adapters', async () => {
+  const adapters = createAdaptersFromEnv({
+    env: { LLM: 'demo', ARTICLE_EXTRACTOR: 'demo' },
+    fetchImpl: async () => ({ ok: false, status: 500 }),
+  });
+
+  assert.ok(adapters.llm instanceof DemoLLMAdapter);
+  assert.ok(adapters.articleExtractor instanceof DemoArticleExtractor);
+
+  const extracted = await adapters.articleExtractor.extract({
+    url: 'https://example.local/story',
+    job: {
+      titular: 'Caicedo vuelve a entrenar con el grupo',
+      jugador: 'Moisés Caicedo',
+      seleccion: 'Ecuador',
+      tema_principal: 'Caicedo vuelve a entrenar con el grupo',
+      link: 'https://example.local/story',
+    },
+  });
+  assert.match(extracted.article.main_content, /Caicedo/);
+  assert.ok(extracted.article.main_content.split(/\s+/).length > 30);
+
+  const completion = await adapters.llm.complete({ prompt: 'genera un guion' });
+  assert.ok(completion.text.split(/\s+/).length >= 120);
+  assert.equal(completion.provider, 'demo');
 });

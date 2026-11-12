@@ -1,4 +1,5 @@
 import { TrafilaturaArticleExtractor } from './article-extractor.js';
+import { DemoArticleExtractor, DemoLLMAdapter } from './demo.js';
 import { LocalDocumentExport } from './document-export.js';
 import { SearxngWikimediaImageSearch } from './image-search.js';
 import { OllamaLLMAdapter, OpenAICompatibleLLMAdapter } from './llm.js';
@@ -44,6 +45,8 @@ export function createAdaptersFromEnv({
       fetchImpl,
       timeoutMs: intEnv(env, 'LLM_TIMEOUT_MS', 300_000),
     });
+  } else if (llmKind === 'demo') {
+    adapters.llm = new DemoLLMAdapter();
   } else if (llmKind === 'openai') {
     adapters.llm = new OpenAICompatibleLLMAdapter({
       baseUrl: env.OPENAI_BASE_URL || 'http://127.0.0.1:11434/v1',
@@ -63,7 +66,10 @@ export function createAdaptersFromEnv({
     });
   }
 
-  if (choice(env.ARTICLE_EXTRACTOR, 'trafilatura') !== 'none') {
+  const articleKind = choice(env.ARTICLE_EXTRACTOR, 'trafilatura');
+  if (articleKind === 'demo') {
+    adapters.articleExtractor = new DemoArticleExtractor();
+  } else if (articleKind !== 'none') {
     adapters.articleExtractor = new TrafilaturaArticleExtractor({
       pythonBin,
       scriptPath: env.LOCAL_ADAPTER_SCRIPT || undefined,

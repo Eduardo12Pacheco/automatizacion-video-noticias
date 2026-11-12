@@ -182,7 +182,19 @@ export function createLocalRouter({
         if (wrong) return wrong;
         if (!useCases.decideApproval) throw new DomainError('approval adapter is not configured', { statusCode: 503 });
         const body = await readJson(read);
-        return json(200, await useCases.decideApproval.execute(body));
+        const result = await useCases.decideApproval.execute(body);
+        if (result.enqueued && result.id_noticia) {
+          if (jobQueue && useCases.draftScript) {
+            try {
+              jobQueue.enqueue('draft-script', { id_noticia: result.id_noticia });
+            } catch {
+              void useCases.draftScript.execute({ id_noticia: result.id_noticia }).catch(() => {});
+            }
+          } else if (useCases.draftScript) {
+            void useCases.draftScript.execute({ id_noticia: result.id_noticia }).catch(() => {});
+          }
+        }
+        return json(200, result);
       }
       if (pathname === '/webhook/approval/search-refresh/supabase/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
