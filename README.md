@@ -1,135 +1,243 @@
-# One Clone, Many Local Services
+# Newsroom Video Automation
 
-This repository is the single source tree for the n8n workspace. Before provisioning a new machine, follow the tracked [recovery inventory](docs/recovery/local-artifacts.md); a clone alone is intentionally not operational. Nested repositories have been flattened intentionally; their separate local Git histories are not part of this checkout.
+**A local-first newsroom pipeline that takes a story from discovery to a rendered video without an API key or a cloud account.**
 
-## Local Installation
+*Read this in [Spanish](README.es.md).*
 
-For the supported end-user path (Docker Compose stack, NVIDIA auto-detection, first administrator and the `newsroom` CLI), see [docs/INSTALL.md](docs/INSTALL.md). The installers are `install.sh` (Linux/macOS) and `install.ps1` (Windows); both are idempotent and generate their own local secrets.
+![Recorded walkthrough of the default profile](docs/images/demo.gif)
 
-The keyless default stack is defined in [compose.yaml](compose.yaml): API, panel,
-Postgres, SearXNG, Mailpit, the deterministic CPU demo worker, Ollama and a
-one-shot seed with one pending story plus one complete script/video project. The
-optional profiles are `gpu` (Qwen TTS, faster-whisper ASR, channel monitor) and
-`n8n`. The default demo is exercised by the Playwright happy path:
+The clip above was recorded from the default keyless Docker Compose stack:
+login, an approval decision, the generated script draft, and the voice,
+subtitles and video-project views. A higher-quality [MP4](docs/images/demo.mp4)
+is available too.
+
+## What it does
+
+The product turns a news signal into a publishable short video:
+
+1. **Prensa (news discovery)** polls public RSS feeds, extracts article text
+   locally and groups related stories into approval topics.
+2. **Guiones (scripts)** lets an editor approve a topic; the core drafts a
+   script, checks it against the source and stores a versioned draft.
+3. **Voz (voice)** renders narration with a local TTS engine and keeps the
+   audio beside the script.
+4. **Subtítulos (subtitles)** transcribes or accepts audio, aligns captions and
+   renders them onto video.
+5. **Proyectos (video projects)** composes the brand package, overlays and
+   captions into a final MP4 through Remotion.
+
+Around the pipeline there is a real product shell: bilingual ES/EN UI,
+role-based multi-user login, presence, an admin screen, an approval inbox and
+an authenticated HTTP API that owns every browser request.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        Panel["apps/panel<br/>vanilla ES modules"]
+    end
+
+    subgraph Backend["apps/api"]
+        API["HTTP API<br/>auth · sessions · CSRF<br/>read models · job queue"]
+    end
+
+    subgraph Core["packages/core"]
+        UC["Use cases<br/>discover · cluster · approve<br/>draft · publish · render"]
+        Ports["Ports<br/>Repository · LLM · TTS<br/>ASR · Storage · Feed ..."]
+    end
+
+    subgraph Adapters
+        Local["Local adapters<br/>Ollama · trafilatura<br/>SearXNG · yt-dlp<br/>filesystem · Piper"]
+    end
+
+    subgraph Services
+        ASR["services/asr-worker<br/>faster-whisper"]
+        TTS["services/tts-worker<br/>Qwen / Piper"]
+        Render["services/renderer<br/>Remotion"]
+        Monitor["services/channel-monitor<br/>public RSS"]
+    end
+
+    DB[("Postgres<br/>tracked SQL migrations")]
+    Blobs[("Blob store<br/>./data/blobs")]
+
+    Panel -->|"same-origin /panel,/webhook"| API
+    API --> UC
+    UC --> Ports
+    Ports --> Local
+    API --> DB
+    Local --> Blobs
+    API --> ASR
+    API --> TTS
+    API --> Render
+    Monitor --> DB
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the component boundaries,
+the port/adapter map and the request flow. The key decisions are recorded as
+[ADRs](docs/adr/).
+
+## Stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| UI | Vanilla HTML, CSS and ES modules | No build step, keeps the panel easy to inspect |
+| API | Node.js on `apps/api` | One backend owns auth, sessions, read models and the job queue |
+| Domain | `packages/core` use cases + `packages/contracts` | The n8n business rules are ordinary, tested code |
+| Data | Postgres 16 + tracked SQL migrations | Same engine as Supabase, but self-hosted and disposable in tests |
+| Local AI | Ollama (OpenAI-compatible API), faster-whisper, Qwen TTS / Piper | Runs on the same machine; CPU fallbacks exist |
+| Video | Remotion (React-based renderer) | Programmatic, role-based brand compositions |
+| Packaging | Docker Compose + `install.sh` / `install.ps1` + `newsroom` CLI | One install path for Linux and Windows |
+
+## Local-first by default
+
+The default configuration needs **zero API keys and zero cloud accounts**.
+Every external capability is behind a port with a local adapter, and external
+services are optional and off by default.
+
+| Capability | Local default | Optional adapter |
+|---|---|---|
+| Script writing / clustering | **Ollama** (`qwen2.5:7b-instruct` or any local model) | Any OpenAI-compatible endpoint through `.env` |
+| Article extraction | **trafilatura** (fetch + main-text extraction) | — |
+| Image search | **SearXNG** container + Wikimedia Commons (no key) | — |
+| Database | **Postgres** 16 container with tracked migrations | Point `DATABASE_URL` at any Postgres |
+| Blob storage | Local filesystem served by the API | S3-compatible storage |
+| Speech to text | **faster-whisper** in `asr-worker` (GPU, CPU fallback) | — |
+| Text to speech | Qwen TTS (GPU) with **Piper** CPU fallback | — |
+| Media download | **yt-dlp** on the host/container | — |
+| Notifications | Console adapter | **Mailpit** for local mail; SMTP for a real inbox |
+| Orchestration | In-process job queue + scheduler | Optional **n8n** profile with slim workflows |
+| Export | python-docx `.docx` + Markdown | — |
+
+The GPU workers share a cross-process slot so an 8 GB card never loads the LLM,
+Whisper and TTS at the same time.
+
+## Quick start (one command)
+
+Linux / macOS:
+
+```bash
+git clone https://github.com/<your-account>/newsroom-video-automation.git
+cd newsroom-video-automation
+./install.sh --yes
+```
+
+Windows 10/11:
+
+```powershell
+git clone https://github.com/<your-account>/newsroom-video-automation.git
+cd newsroom-video-automation
+.\install.ps1 -Yes
+```
+
+The installer checks Docker, disk, RAM and ports, detects an NVIDIA GPU, writes
+a `.env` with fresh random secrets, downloads the local models, runs the
+migrations, creates the first administrator and starts the stack. Re-running it
+repairs or upgrades the installation.
+
+Then use the control CLI:
+
+```bash
+newsroom status    # what is running
+newsroom doctor    # Docker, GPU, models, ports, disk
+newsroom logs api  # follow one service
+newsroom down
+```
+
+The panel is served at **http://127.0.0.1:8080**. The detailed path, including
+the manual `docker compose` flow and LAN access, is in [docs/INSTALL.md](docs/INSTALL.md).
+
+For a pure demo without downloading an LLM, the repository also ships a
+deterministic CPU profile used by the browser test:
 
 ```bash
 cp e2e/.env.example .env
 docker compose up -d --build postgres searxng mailpit demo-worker api panel
 docker compose run --rm seed
 pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
 pnpm exec playwright test
 ```
 
-See [e2e/README.md](e2e/README.md) for the fresh-database requirement and
-[docs/INSTALL.md](docs/INSTALL.md) for the full installation flow.
+## Repository map
 
-## Quick Path
+```text
+apps/
+  api/                 HTTP API, auth, sessions, job queue, composition root
+  panel/               Vanilla ES-module editorial UI
+packages/
+  contracts/           Shared contract helpers
+  core/                Use cases and ports (the domain)
+  data/                Repository + blob ports, Postgres and in-memory adapters
+  adapters/            Local-first adapters for every external capability
+services/
+  asr-worker/          faster-whisper GPU/CPU service
+  tts-worker/          Qwen GPU + Piper CPU TTS
+  renderer/            Remotion final renderer
+  subtitles/           Caption alignment and burn-in
+  channel-monitor/     Public RSS channel monitoring
+  demo-worker/         Deterministic keyless worker for the demo profile
+infra/
+  db/migrations/       Tracked SQL schema
+  n8n/                 Optional n8n profile
+  install/             Shared installer library and tests
+  windows/             Optional Windows service helpers
+docs/                  Architecture, ADRs, install guide, data model
+examples/              Fictional brand assets and n8n reference export
+tools/                 Asset generator and structural tests
+```
 
-1. Clone this repository, then use [the recovery inventory](docs/recovery/local-artifacts.md) to obtain every required external artifact from its approved owner.
-2. Copy the available sanitized environment templates before configuring a service: `apps/api/.env.example`, `infra/n8n/.env.example`, `services/asr-worker/.env.example`, `services/channel-monitor/.env.example`, `services/renderer/.env.example`, `services/subtitles/.env.example`, and `services/tts-worker/.env.example`.
-3. Restore required state and binary assets using the inventory, then start services in the listed order.
-4. Verify each local health endpoint or service-specific check before exposing it through any external tunnel or gateway.
+## Testing
 
-The inventory distinguishes repository-proven paths from `REQUIRES PRIVATE INVENTORY` records. Excluded models, media, runtime state, and secrets stay out of Git even when they are necessary to operate a restored machine. Small source-required application assets remain eligible for version control.
+The project is tested at every layer. Examples:
 
-## Service Map
+```bash
+node --test packages/core/test/*.test.js packages/data/test/*.test.js \
+  packages/adapters/test/*.test.js apps/api/test/*.test.js
+node --test services/renderer/tests/*.test.js
+uv run --with pytest pytest apps/panel/tests -q
+uv run --project services/asr-worker --with pytest --with httpx pytest services/asr-worker/tests -q
+uv run --project services/tts-worker --with pytest pytest services/tts-worker/tests -q
+python3 -m unittest discover -s tools/tests -v
+pnpm exec playwright test
+```
 
-| Path | Responsibility | Local operational reference |
-|---|---|---|
-| `apps/panel/` | Editorial browser panel and local Approval Editor | `apps/panel/README.md` |
-| `services/renderer/` | Contract-driven Remotion final renderer | `services/renderer/README.md` |
-| `packages/contracts/` | Shared contract helpers | Source tree |
-| `services/tts-worker/` | Local GPU-backed TTS worker and orchestrator | `services/tts-worker/README.md` |
-| `services/subtitles/` | Remotion subtitles renderer | `services/subtitles/package.json` |
-| `services/asr-worker/` | Radar transcription backend (local yt-dlp only) | `services/asr-worker/README.md` |
-| `apps/api/` | Authenticated local API gateway | `apps/api/src/` |
-| `services/channel-monitor/` | YouTube channel monitoring backend (public RSS by default) | `services/channel-monitor/README.md` |
-| `infra/n8n/` | Local Dockerized n8n instance | `infra/n8n/README.md` |
-| `infra/windows/` | Windows service helpers | `infra/windows/README.md` |
+CI runs the JavaScript, Python and tools suites on every change, validates the
+Compose profiles and runs the Playwright happy path against the keyless stack.
+A few pre-existing panel/subtitles/monitor baselines are reported as
+informational rather than hidden; see the feature log for the exact list.
 
-## Prerequisites
+## Honest scope
 
-| Requirement | Used by | Evidence / note |
-|---|---|---|
-| Git | Entire workspace | Required to clone the consolidated source tree. |
-| Docker Desktop and Docker Compose | `infra/n8n/` | The compose file runs `n8nio/n8n:1.123.52` on loopback port `5678`. |
-| Node.js and pnpm | JavaScript and Remotion services | Root metadata pins `pnpm@11.12.0`; service-specific package manifests define their dependencies. |
-| Python | Control Panel checks and Python services | Transcript and Channel Monitor provide Python-based local workflows. |
-| NVIDIA/CUDA-capable local environment | Voice TTS when generating speech | The TTS worker is documented as GPU-backed; do not assume this is required for source-only work. |
-| ffmpeg and yt-dlp | Transcript workflows | Configurable through `TRANSCRIPT_SERVICE_FFMPEG_BINARY` and `TRANSCRIPT_SERVICE_YT_DLP_BINARY`. |
-| External access configured outside Git | Optional public operation | Cloudflare, Supabase, YouTube, and other provider credentials must be supplied as local secrets. |
+- This repository is a **portfolio rebuild**, not a live system. It is designed
+  to be installed and run locally, and nothing is deployed to the internet.
+- The original private deployment depended on n8n, Supabase and several API
+  keys. Those paths are now local adapters; the historical n8n export is kept
+  only as a reference fixture under `examples/n8n/`.
+- The default CPU demo uses deterministic adapters for the worker-facing steps
+  so a visitor can click through the whole flow without a GPU or a model pull.
+  The real local Ollama / Whisper / Qwen / Piper paths are available behind the
+  `gpu` profile and the installer.
+- Some deep feature labels and generated content values are still in their
+  source language; the shell, navigation and admin screens are fully ES/EN.
+- This project was built with AI assistance: an autonomous coding agent
+  implemented the rebuild from a reviewed feature document, with tests, local
+  verification and human review at the decision points.
 
-## Environment And Secrets
+## Remotion license
 
-Never commit `.env` files, private keys, cookies, API tokens, or credential exports. The root `.gitignore` explicitly keeps `.env.example`, `.env.template`, and the reviewed sanitized n8n workflow exports eligible for version control while ignoring actual environment files and credential exports.
+The renderer uses [Remotion](https://www.remotion.dev/). Remotion is free for
+individuals and small teams; check its license before any commercial use.
 
-One sanitized historical workflow export is versioned for reference during the
-local-first migration. It has placeholders instead of secrets and does not
-restore credentials, accounts or an n8n Docker-volume backup. See the
-[import limitations](examples/n8n/README.md) before using it.
+## Documentation
 
-| Path | Purpose |
-|---|---|
-| `examples/n8n/workflows.json` | Single historical reference containing all 16 workflow definitions |
+- [Architecture](docs/ARCHITECTURE.md)
+- [Architecture decision records](docs/adr/)
+- [Install guide](docs/INSTALL.md)
+- [Data model](docs/data-model.md)
+- [Asset manifest](ASSETS.md)
+- [Spanish README](README.es.md)
 
-The following local credential exports are intentionally untracked and must remain in an encrypted backup location:
+## License
 
-| Path | Purpose |
-|---|---|
-| `infra/n8n/files/credentials-final.json` | n8n credential export |
-| `infra/n8n/files/credentials-clean.json` | n8n credential export |
-| `infra/n8n/import/credentials.json` | n8n import credential file |
-
-`N8N_ENCRYPTION_KEY` is required to restore n8n credentials. Losing or changing it prevents decryption of the restored credential data.
-
-## Asset Manifest Template
-
-Keep a private, versioned inventory outside Git for every model or binary asset needed to operate this workspace. Do not place secrets in this manifest.
-
-| Asset | Source | Version | SHA-256 | Destination | License | Restore note |
-|---|---|---|---|---|---|---|
-| `<name>` | `<approved URL or archive>` | `<version>` | `<checksum>` | `<workspace-relative path>` | `<license>` | `<required service>` |
-
-Typical non-Git asset locations include `services/tts-worker/models/`, `services/renderer/projects/`, `services/renderer/public/`, and service runtime/output directories. Product source assets are not ignored solely because of their file extension.
-
-## State Backup And Restore
-
-| State | Source location | Backup requirement | Restore before |
-|---|---|---|---|
-| n8n Docker volume | Docker volume `n8n_data` | Encrypted volume backup | Starting n8n when historical executions/settings matter |
-| n8n encryption key | Local `infra/n8n/.env` | Encrypted secret backup | Importing or reading n8n credentials |
-| Sanitized n8n workflow reference | `examples/n8n/workflows.json` | Versioned fixture; review placeholders and external adapters before importing | Inspecting historical workflow definitions |
-| n8n credential exports | `infra/n8n/import/credentials.json`, `infra/n8n/files/credentials-clean.json`, `infra/n8n/files/credentials-final.json` | Encrypted backup; never Git | Importing or reading n8n credentials |
-| Approval Editor snapshots/audio/output | `apps/panel/services/approval-editor/projects/` | Project-state backup | Opening existing video projects |
-| Video render project state/output | `services/renderer/projects/` | Project-state and asset backup | Re-rendering existing projects |
-| TTS models, references, output, runtime | `services/tts-worker/` local model/runtime/output paths | Asset plus state backup | TTS startup or reproduction |
-| Transcript jobs/runtime | `services/asr-worker/runtime/` | Runtime backup if jobs must survive | Transcript service startup |
-| Channel Monitor SQLite/runtime | `services/channel-monitor/runtime/` | Consistent SQLite backup | Channel Monitor startup |
-
-## Restore And Start Order
-
-1. Restore local `.env` files and secrets from an encrypted source. Confirm `N8N_ENCRYPTION_KEY` before importing n8n credentials.
-2. Restore required models, binary assets, and persisted service state from the asset and state matrices.
-3. Start local n8n from `infra/n8n/` with `docker compose up -d`.
-4. Start the local Approval Editor from `apps/panel/` with `node .\services\approval-editor\server.js` when Video Projects are required.
-5. Start dependent backend services following their own documented scripts: Transcript Service, Channel Monitor, and TTS as required by the intended workflow.
-6. Serve the Control Panel only after its required backend endpoints are available. Its documented local static path is `http://localhost:8080/apps/panel/` when served from the workspace root.
-7. Configure or enable external tunnels/gateway exposure only after local checks pass. Do not infer deployed settings from this repository.
-
-## Verification
-
-| Component | Check |
-|---|---|
-| Root checkout | `git status --short` shows source, docs, and intentional local state separately. |
-| n8n | From `infra/n8n/`, use `docker compose logs -f n8n` or `docker compose exec n8n n8n --version`. |
-| Approval Editor | `http://127.0.0.1:3042/health` responds when the service is running. |
-| Transcript Service | `GET http://127.0.0.1:8765/api/radar/live`; use its authenticated preflight only with a local key. |
-| Channel Monitor | Run `services/channel-monitor/scripts/check-service.ps1`; it is the documented safe operational check. |
-| TTS | Run `services/tts-worker/scripts/check-services.ps1` when its Windows services are installed. |
-
-## Known Gaps
-
-- This repository does not contain the former nested repositories' individual Git histories.
-- Secrets, Docker volumes, models, generated media, local SQLite databases, and runtime projects require an external encrypted backup process.
-- External deployment, tunnel, provider, and Supabase configuration must be verified in the active environment; repository files alone are not proof of deployed state.
+[MIT](LICENSE) © Eduardo Pacheco. Brand media in this repository is fictional
+and generated by code; see [ASSETS.md](ASSETS.md) for origins and font licenses.
