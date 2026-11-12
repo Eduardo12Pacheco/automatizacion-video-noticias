@@ -410,7 +410,7 @@ function Set-NrEnvValue {
         }
     }
     if (-not $found) { $output = @($output) + ($Key + '=' + $Value) }
-    Set-Content -LiteralPath $path -Value $output -Encoding UTF8
+    Write-NrLinesFile -Path $path -Lines $output
 }
 
 # --- Installation state ----------------------------------------------------
