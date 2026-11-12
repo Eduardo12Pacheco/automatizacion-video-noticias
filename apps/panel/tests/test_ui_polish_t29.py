@@ -169,7 +169,7 @@ def test_generated_brand_art_has_no_license_tagline_and_is_documented():
     assert "LOCAL DEMO / CC0" not in generator
     assert "LOCAL DEMO" not in generator
     assets = _read(REPO / "ASSETS.md")
-    assert "CCO" not in assets
+    assert "LOCAL DEMO / " not in assets
     assert "logo-demo.webm" in assets
     assert "generate_demo_assets.py" in assets
     assert subprocess.run(
