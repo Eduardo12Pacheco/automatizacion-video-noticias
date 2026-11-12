@@ -105,9 +105,6 @@ export function createScriptsFeature({ api, store, ui, selectors, callbacks, hel
     state.selectedScript = row;
     renderScriptCards();
     renderSelectedScriptEditor();
-    if (typeof selectors.scriptEditedArea?.focus !== 'function' && typeof selectors.scriptEditorDialog?.showModal === 'function') {
-      selectors.scriptEditorDialog.showModal();
-    }
     selectors.scriptEditedArea?.focus?.();
     selectors.scriptEditedArea?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
   }

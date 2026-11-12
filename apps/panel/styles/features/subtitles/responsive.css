@@ -24,3 +24,31 @@
     max-height: min(430px, 58vh);
   }
 }
+
+@media (max-width: 859px) {
+  #viewSubtitulos2.subtitle2-screen {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  #viewSubtitulos2 .subtitle2-workspace,
+  #viewSubtitulos2 .subtitle2-master-card,
+  #viewSubtitulos2 .subtitle2-side-card,
+  #viewSubtitulos2 .subtitle2-upload-source-card,
+  #viewSubtitulos2 .subtitle2-editor-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #viewSubtitulos2 .subtitle2-master-card,
+  #viewSubtitulos2 .subtitle2-side-card {
+    padding: 16px;
+  }
+
+  #viewSubtitulos2 .subtitle-preview-stage,
+  #viewSubtitulos2 .subtitle-preview-stage video,
+  #viewSubtitulos2 .subtitle-preview-overlay {
+    width: 100%;
+    min-width: 0;
+  }
+}

@@ -59,7 +59,7 @@
               </svg>
             </div>
             <div class="sidebar-brand__copy">
-              <strong>Editorial system</strong>
+              <strong data-i18n="app.name">Editorial system</strong>
             </div>
           </div>
 
@@ -70,31 +70,31 @@
           </button>
 
           <nav class="sidebar-nav" id="sidebarNav">
-            <button class="nav-item" data-view="radar" title="Prensa" aria-label="Prensa">
+            <button class="nav-item" data-view="radar" title="Prensa" aria-label="Prensa" data-i18n-title="nav.press" data-i18n-aria-label="nav.press">
               <span class="nav-item__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="7.25" fill="none" stroke="currentColor" stroke-width="1.7"></circle><path d="M12 4.75v3M12 16.25v3M4.75 12h3M16.25 12h3M12 9.75a2.25 2.25 0 1 0 0 4.5a2.25 2.25 0 0 0 0-4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
               </span>
               <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.press">Prensa</span></span>
             </button>
-            <button class="nav-item active" data-view="approval" title="Guiones" aria-label="Guiones">
+            <button class="nav-item active" data-view="approval" title="Guiones" aria-label="Guiones" data-i18n-title="nav.scripts" data-i18n-aria-label="nav.scripts">
               <span class="nav-item__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false"><path d="M7.25 4.75h6.5l4 4v10.5a2 2 0 0 1-2 2h-8.5a2 2 0 0 1-2-2v-12.5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13.75 4.75v4h4M8.75 12h6.5M8.75 15.25h6.5M8.75 18.5h4.25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               </span>
               <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.scripts">Guiones</span></span>
             </button>
-            <button class="nav-item" data-view="audio" title="Voz" aria-label="Voz">
+            <button class="nav-item" data-view="audio" title="Voz" aria-label="Voz" data-i18n-title="nav.voice" data-i18n-aria-label="nav.voice">
               <span class="nav-item__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false"><path d="M12 4.5a3.5 3.5 0 0 0-3.5 3.5v4a3.5 3.5 0 1 0 7 0V8A3.5 3.5 0 0 0 12 4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6.5 10.5a5.5 5.5 0 0 0 11 0M12 16v3.5M8.5 19.5h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               </span>
               <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.voice">Voz</span></span>
             </button>
-            <button class="nav-item" data-view="subtitulos2" title="Subtítulos" aria-label="Subtítulos">
+            <button class="nav-item" data-view="subtitulos2" title="Subtítulos" aria-label="Subtítulos" data-i18n-title="nav.subtitles" data-i18n-aria-label="nav.subtitles">
               <span class="nav-item__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false"><rect x="4.75" y="5.5" width="14.5" height="10.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></rect><path d="M8 10h3M8 13h3M13.5 10h2.5M13.5 13h2.5M8.75 16v2.25M15.25 16v2.25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               </span>
               <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.subtitles">Subtítulos</span></span>
             </button>
-            <button class="nav-item" data-view="scripts" title="Proyectos" aria-label="Proyectos de video">
+            <button class="nav-item" data-view="scripts" title="Proyectos" aria-label="Proyectos de video" data-i18n-title="nav.projects" data-i18n-aria-label="nav.projectsAria">
               <span class="nav-item__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false"><path d="M4.75 6.5a2 2 0 0 1 2-2h10.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6.75a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"></path><path d="M8 9.25h5.5M8 12h8M8 14.75h4.75M16.25 9.25v5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
               </span>
@@ -102,19 +102,19 @@
             </button>
             <div class="sidebar-admin-group" data-admin-only hidden>
               <span class="sidebar-quick-label" data-i18n="nav.admin">Administración</span>
-              <button class="nav-item" data-view="errors-audit" title="Errores" aria-label="Errores y auditoría">
+              <button class="nav-item" data-view="errors-audit" title="Errores" aria-label="Errores y auditoría" data-i18n-title="nav.errors" data-i18n-aria-label="nav.errorsAria">
                 <span class="nav-item__icon" aria-hidden="true">!</span>
                 <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.errors">Errores</span></span>
               </button>
-              <button class="nav-item" data-view="active-users" title="Activos" aria-label="Usuarios activos">
+              <button class="nav-item" data-view="active-users" title="Activos" aria-label="Usuarios activos" data-i18n-title="nav.activeUsers" data-i18n-aria-label="nav.activeUsersAria">
                 <span class="nav-item__icon" aria-hidden="true">◎</span>
                 <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.activeUsers">Activos</span></span>
               </button>
-              <button class="nav-item" data-view="admin-users" title="Usuarios" aria-label="Administración de usuarios">
+              <button class="nav-item" data-view="admin-users" title="Usuarios" aria-label="Administración de usuarios" data-i18n-title="nav.users" data-i18n-aria-label="nav.usersAria">
                 <span class="nav-item__icon" aria-hidden="true">+</span>
                 <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.users">Usuarios</span></span>
               </button>
-              <button class="nav-item" data-view="connectors" title="Conectores" aria-label="Conectores">
+              <button class="nav-item" data-view="connectors" title="Conectores" aria-label="Conectores" data-i18n-title="nav.connectors" data-i18n-aria-label="nav.connectors">
                 <span class="nav-item__icon" aria-hidden="true">⇄</span>
                 <span class="nav-item__copy"><span class="nav-item__title" data-i18n="nav.connectors">Conectores</span></span>
               </button>
@@ -141,17 +141,16 @@
               <button id="searchRefreshBtn" class="primary approval-search-refresh__button" type="button" data-i18n="approval.refresh">Actualizar noticias de hoy</button>
               <label class="control-group approval-control approval-control--search-refresh">
                 <span class="control-label" data-i18n="approval.range">Rango búsqueda</span>
-                <select id="searchRefreshWindow" data-custom-dropdown data-dropdown-label="Rango búsqueda" data-dropdown-placeholder="Rango búsqueda">
+                <select id="searchRefreshWindow" data-custom-dropdown data-dropdown-label="Rango búsqueda" data-dropdown-placeholder="Rango búsqueda" data-i18n-placeholder="approval.range">
                   <option value="1h" data-i18n="approval.range1h">Última hora</option>
                   <option value="24h" selected data-i18n="approval.range24h">Últimas 24 horas</option>
                 </select>
               </label>
-              <aside class="approval-refresh-note" aria-label="Alcance de la actualización">
+              <aside class="approval-refresh-note" aria-label="Alcance de la actualización" data-i18n-aria-label="approval.refreshScope">
                 <span class="approval-refresh-note__icon" aria-hidden="true">i</span>
                 <span data-i18n="approval.refreshNote">Importa noticias de todos los jugadores y de las selecciones pre-registradas.</span>
               </aside>
               <span id="searchRefreshStatus" class="approval-search-refresh__status" data-i18n="approval.refreshStatus">Puede tardar aproximadamente 3 minutos.</span>
-              <button id="openQueueBtn" class="secondary legacy-only">Abrir cola legacy</button>
             </div>
           </header>
 
@@ -165,7 +164,7 @@
                 </header>
 
                 <div class="news-panel__filters" aria-label="Filtros de noticias" data-i18n-aria-label="approval.filters">
-                  <label class="control-group control-group--search approval-control approval-control--search" aria-label="Filtrar noticias anteriores">
+                  <label class="control-group control-group--search approval-control approval-control--search" aria-label="Filtrar noticias anteriores" data-i18n-aria-label="approval.filterPrevious">
                     <span class="control-input-shell control-input-shell--search">
                       <span class="control-input-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" focusable="false">
@@ -179,7 +178,7 @@
 
                   <label class="control-group approval-control approval-control--select">
                     <span class="control-label" data-i18n="approval.countries">Países</span>
-                    <select id="countryFilter" data-custom-dropdown data-dropdown-label="Países" data-dropdown-placeholder="Países">
+                    <select id="countryFilter" data-custom-dropdown data-dropdown-label="Países" data-dropdown-placeholder="Países" data-i18n-placeholder="approval.countries">
                       <option value="" data-i18n="approval.allCountries">Todos los países</option>
                     </select>
                   </label>
@@ -327,7 +326,7 @@
             <h2 id="dialogTitle" data-i18n="approval.topicTitle">Detalle</h2>
             <p class="meta" data-i18n="approval.topicMeta">Pantalla emergente para revisar una noticia filtrada.</p>
           </div>
-          <button id="closeDialog" class="dialog-close" aria-label="Cerrar" title="Cerrar">×</button>
+          <button id="closeDialog" class="dialog-close" aria-label="Cerrar" title="Cerrar" data-i18n-aria-label="common.close" data-i18n-title="common.close">×</button>
         </header>
         <div id="dialogBody" class="topic-dialog-body"></div>
       </article>
@@ -337,10 +336,10 @@
       <article>
         <header class="dialog-header">
           <h2 data-i18n="settings.title">Configuración</h2>
-          <button id="closeSettings" class="dialog-close" aria-label="Cerrar" title="Cerrar">×</button>
+          <button id="closeSettings" class="dialog-close" aria-label="Cerrar" title="Cerrar" data-i18n-aria-label="common.close" data-i18n-title="common.close">×</button>
         </header>
 
-        <p class="meta settings-intro">Configurá el origen del Gateway. Las credenciales de servicios se administran en el servidor.</p>
+        <p class="meta settings-intro" data-i18n="settings.intro">Configurá el origen del Gateway. Las credenciales de servicios se administran en el servidor.</p>
 
         <div class="settings-form">
           <section class="settings-section">
@@ -381,12 +380,12 @@
             </select>
 
             <label class="settings-field">
-              API Origin / Endpoint del proyecto
+              <span data-i18n="settings.apiOrigin">API Origin / Endpoint del proyecto</span>
               <input id="apiOriginInput" placeholder="https://api.example.local" />
-              <span class="meta">Se usa como origen compartido para n8n, Audio, Subtítulos, Radar, Remotion y Approval.</span>
+              <span class="meta" data-i18n="settings.apiOriginHelp">Se usa como origen compartido para n8n, Audio, Subtítulos, Radar, Remotion y Approval.</span>
             </label>
 
-            <aside class="settings-server-credentials-note" aria-label="Credenciales administradas por el Gateway">
+            <aside class="settings-server-credentials-note" aria-label="Credenciales administradas por el Gateway" data-i18n-aria-label="settings.credentialsAria">
               <strong data-i18n="settings.credentials">Credenciales de servicios</strong>
               <span class="meta" data-i18n="settings.credentialsHelp">Las API keys y Basic Auth ya no se configuran en el navegador. Se administran en el API Gateway para que todos usen la misma configuración segura.</span>
             </aside>
@@ -396,7 +395,7 @@
 
           <section class="settings-legacy-group">
             <h3 data-i18n="settings.legacyEditor">Panel editorial (n8n)</h3>
-            <p class="meta settings-help">Estos datos se usan para aprobar temas, editar y publicar guiones.</p>
+            <p class="meta settings-help" data-i18n="settings.legacyEditorHelp">Estos datos se usan para aprobar temas, editar y publicar guiones.</p>
 
             <label class="settings-field">
               Base URL n8n
@@ -405,7 +404,7 @@
 
             <label class="settings-field">
               x-approval-secret (opcional)
-              <input id="secretInput" placeholder="Solo si habilitás secret en n8n" />
+              <input id="secretInput" placeholder="Solo si habilitás secret en n8n" data-i18n-placeholder="settings.secretPlaceholder" />
             </label>
 
             <label class="settings-field">
@@ -414,16 +413,16 @@
             </label>
 
             <label class="settings-field">
-              Approval Pipeline URL (opcional, solo preparación)
+              <span data-i18n="settings.approvalPipeline">Approval Pipeline URL (opcional, solo preparación)</span>
               <input id="approvalPipelineBaseUrlInput" placeholder="http://127.0.0.1:3042" />
-              <span class="meta">Si lo dejás vacío, sigue el fallback a Remotion.</span>
+              <span class="meta" data-i18n="settings.approvalPipelineHelp">Si lo dejás vacío, sigue el fallback a Remotion.</span>
             </label>
 
           </section>
 
           <section class="settings-legacy-group">
-            <h3>Creación de audios (TTS)</h3>
-            <p class="meta settings-help">Estos datos protegen la API de audio que ejecuta la RTX local.</p>
+            <h3 data-i18n="settings.ttsTitle">Creación de audios (TTS)</h3>
+            <p class="meta settings-help" data-i18n="settings.ttsHelp">Estos datos protegen la API de audio que ejecuta la RTX local.</p>
 
             <label class="settings-field">
               Base URL Audio API
@@ -433,19 +432,19 @@
           </section>
 
           <section class="settings-legacy-group">
-            <h3>Subtítulos</h3>
-            <p class="meta settings-help">Servicio remoto/local de Subtítulos 2. No depende de la API de voz.</p>
+            <h3 data-i18n="settings.subtitlesTitle">Subtítulos</h3>
+            <p class="meta settings-help" data-i18n="settings.subtitlesHelp">Servicio remoto/local de Subtítulos 2. No depende de la API de voz.</p>
 
             <label class="settings-field">
-              Base URL Subtítulos
+              <span data-i18n="settings.subtitlesBaseUrl">Base URL Subtítulos</span>
               <input id="subtitlesBaseUrlInput" placeholder="http://127.0.0.1:8092" />
             </label>
 
           </section>
 
           <section class="settings-legacy-group">
-            <h3>Radar / Prensa</h3>
-            <p class="meta settings-help">Servicio local de transcripción y menciones. local-only por defecto si apunta a localhost; la API key no se muestra en errores ni historial.</p>
+            <h3 data-i18n="settings.radarTitle">Radar / Prensa</h3>
+            <p class="meta settings-help" data-i18n="settings.radarHelp">Servicio local de transcripción y menciones. local-only por defecto si apunta a localhost; la API key no se muestra en errores ni historial.</p>
 
             <label class="settings-field">
               Base URL Transcript Service
@@ -467,19 +466,19 @@
     <dialog id="scriptOriginalDialog">
       <article>
         <header class="dialog-header">
-          <h2 id="scriptOriginalTitle">Guion IA (referencia)</h2>
-          <button id="closeOriginalDialog" class="dialog-close" aria-label="Cerrar" title="Cerrar">×</button>
+          <h2 id="scriptOriginalTitle" data-i18n="approval.originalTitle">Guion IA (referencia)</h2>
+          <button id="closeOriginalDialog" class="dialog-close" aria-label="Cerrar" title="Cerrar" data-i18n-aria-label="common.close" data-i18n-title="common.close">×</button>
         </header>
         <p id="scriptOriginalMeta" class="meta"></p>
 
         <label class="editor-label">
-          Guion IA (referencia)
+          <span data-i18n="approval.originalTitle">Guion IA (referencia)</span>
           <textarea id="scriptOriginalArea" class="script-area" readonly></textarea>
         </label>
 
         <footer class="dialog-actions">
           <p id="scriptOriginalWordCount" class="meta word-count">Palabras: 0</p>
-          <button id="cancelOriginalDialog" class="secondary" type="button">Cancelar</button>
+          <button id="cancelOriginalDialog" class="secondary" type="button" data-i18n="common.cancel">Cancelar</button>
         </footer>
       </article>
     </dialog>
@@ -487,13 +486,13 @@
     <dialog id="publishConfirmDialog">
       <article>
         <header class="dialog-header">
-          <h2>Confirmar reproceso</h2>
-          <button id="closePublishDialog" class="dialog-close" aria-label="Cerrar" title="Cerrar">×</button>
+          <h2 data-i18n="approval.reprocess">Confirmar reproceso</h2>
+          <button id="closePublishDialog" class="dialog-close" aria-label="Cerrar" title="Cerrar" data-i18n-aria-label="common.close" data-i18n-title="common.close">×</button>
         </header>
-        <p>¿Procesar de nuevo este guion? Se generará el documento local y el TXT, y el estado quedará como procesado.</p>
+        <p data-i18n="approval.reprocessBody">¿Procesar de nuevo este guion? Se generará el documento local y el TXT, y el estado quedará como procesado.</p>
         <footer class="dialog-actions">
-          <button id="cancelPublishBtn" class="secondary" type="button">Cancelar</button>
-          <button id="confirmPublishBtn" class="primary" type="button">Procesar</button>
+          <button id="cancelPublishBtn" class="secondary" type="button" data-i18n="common.cancel">Cancelar</button>
+          <button id="confirmPublishBtn" class="primary" type="button" data-i18n="approval.process">Procesar</button>
         </footer>
       </article>
     </dialog>
@@ -501,40 +500,40 @@
     <dialog id="manualVideoProjectDialog">
       <article>
         <header class="dialog-header">
-          <h2>Nuevo proyecto de edición</h2>
-          <button id="manualVideoProjectCancelBtn" class="dialog-close" aria-label="Cerrar" title="Cerrar">×</button>
+          <h2 data-i18n="scripts.manualTitle">Nuevo proyecto de edición</h2>
+          <button id="manualVideoProjectCancelBtn" class="dialog-close" aria-label="Cerrar" title="Cerrar" data-i18n-aria-label="common.close" data-i18n-title="common.close">×</button>
         </header>
-        <p class="meta">Pegá un guion ya separado con pipes. Se creará el proyecto y se buscarán imágenes por jugador.</p>
+        <p class="meta" data-i18n="scripts.manualMeta">Pegá un guion ya separado con pipes. Se creará el proyecto y se buscarán imágenes por jugador.</p>
 
         <label class="editor-label">
-          <span>Título / tema principal</span>
-          <input id="manualVideoProjectTitleInput" type="text" placeholder="Valor de mercado y coleccionismo de la lámina..." />
+          <span data-i18n="scripts.manualTitleLabel">Título / tema principal</span>
+          <input id="manualVideoProjectTitleInput" type="text" placeholder="Valor de mercado y coleccionismo de la lámina..." data-i18n-placeholder="scripts.manualTitlePlaceholder" />
         </label>
 
         <label class="editor-label">
-          <span>Selección / país</span>
+          <span data-i18n="scripts.country">Selección / país</span>
           <select id="manualVideoProjectCountryInput">
-            <option value="">Elegí una selección</option>
+            <option value="" data-i18n="scripts.chooseCountry">Elegí una selección</option>
           </select>
         </label>
 
         <label class="editor-label">
-          <span>Jugador</span>
+          <span data-i18n="scripts.player">Jugador</span>
           <select id="manualVideoProjectPlayerInput" disabled>
-            <option value="">Primero elegí una selección</option>
+            <option value="" data-i18n="scripts.chooseCountryFirst">Primero elegí una selección</option>
           </select>
         </label>
 
         <label class="editor-label">
-          <span>Guion pipeado</span>
-          <textarea id="manualVideoProjectScriptInput" class="script-area" placeholder="Frase uno | Frase dos | Frase tres"></textarea>
+          <span data-i18n="scripts.pipedScript">Guion pipeado</span>
+          <textarea id="manualVideoProjectScriptInput" class="script-area" placeholder="Frase uno | Frase dos | Frase tres" data-i18n-placeholder="scripts.pipedPlaceholder"></textarea>
         </label>
 
         <p id="manualVideoProjectValidation" class="meta" aria-live="polite"></p>
 
         <footer class="dialog-actions">
-          <button id="manualVideoProjectCancelFooterBtn" class="secondary" type="button">Cancelar</button>
-          <button id="manualVideoProjectSubmitBtn" class="primary" type="button">Crear proyecto</button>
+          <button id="manualVideoProjectCancelFooterBtn" class="secondary" type="button" data-i18n="common.cancel">Cancelar</button>
+          <button id="manualVideoProjectSubmitBtn" class="primary" type="button" data-i18n="scripts.createProject">Crear proyecto</button>
         </footer>
       </article>
     </dialog>
@@ -542,17 +541,17 @@
     <dialog id="voicePresetDialog">
       <article>
         <header class="dialog-header">
-          <h2>Elegir preset de voz</h2>
-          <button id="closeVoicePresetBtn" class="dialog-close" aria-label="Cerrar" title="Cerrar">×</button>
+          <h2 data-i18n="scripts.voicePreset">Elegir preset de voz</h2>
+          <button id="closeVoicePresetBtn" class="dialog-close" aria-label="Cerrar" title="Cerrar" data-i18n-aria-label="common.close" data-i18n-title="common.close">×</button>
         </header>
-        <p>Este audio se va a generar desde la versión procesada con pronunciación. Elegí el preset antes de enviarlo a Voz con IA.</p>
+        <p data-i18n="scripts.voicePresetBody">Este audio se va a generar desde la versión procesada con pronunciación. Elegí el preset antes de enviarlo a Voz con IA.</p>
         <label class="editor-label audio-field">
-          <span>Preset de generación</span>
+          <span data-i18n="scripts.presetLabel">Preset de generación</span>
           <select id="voicePresetSelect" data-custom-dropdown data-dropdown-label="Preset" data-dropdown-placeholder="Preset"></select>
         </label>
         <footer class="dialog-actions">
-          <button id="cancelVoicePresetBtn" class="secondary" type="button">Cancelar</button>
-          <button id="confirmVoicePresetBtn" class="primary" type="button">Generar voz</button>
+          <button id="cancelVoicePresetBtn" class="secondary" type="button" data-i18n="common.cancel">Cancelar</button>
+          <button id="confirmVoicePresetBtn" class="primary" type="button" data-i18n="scripts.generateVoice">Generar voz</button>
         </footer>
       </article>
     </dialog>

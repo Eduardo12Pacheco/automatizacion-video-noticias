@@ -62,7 +62,6 @@
   border-color: var(--accent-a60);
   background: var(--accent-a08);
   color: var(--text);
-  outline: none;
 }
 
 .video-motion-editor-panel[hidden] {
@@ -179,7 +178,6 @@
 .video-motion-manual__seek button:focus-visible {
   border-color: var(--accent-a60);
   color: var(--accent);
-  outline: none;
 }
 
 .video-motion-manual__seek button.is-active {
@@ -251,7 +249,6 @@
 
 .video-motion-manual__field input:focus {
   border-color: var(--accent-a70);
-  outline: none;
 }
 
 .video-motion-manual__field input.is-motion-scrubbing {

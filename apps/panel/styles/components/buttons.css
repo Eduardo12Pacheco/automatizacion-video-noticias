@@ -108,7 +108,6 @@ button:active:not(:disabled) {
 }
 
 button:focus-visible {
-  outline: none;
   box-shadow: var(--focus-ring);
 }
 

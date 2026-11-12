@@ -379,7 +379,6 @@
 .script-selection-card:focus-visible {
   transform: translateY(-1px);
   border-color: var(--overlay-16);
-  outline: none;
 }
 
 .script-selection-card.is-selected {
@@ -472,7 +471,6 @@
 .script-selection-card__dismiss:hover:not(:disabled),
 .script-selection-card__dismiss:focus-visible {
   transform: none;
-  outline: none;
   filter: brightness(1.2);
   border-color: var(--success-text);
 }
@@ -545,4 +543,42 @@
 .scripts-selection-panel .section-heading,
 .script-workbench .section-heading {
   margin-bottom: 16px;
+}
+
+/* Responsive approval layout: this file loads after the shared responsive
+   sheet, so the two layout ranges are repeated here with the same widths. */
+@media (max-width: 1199px) {
+  .approval-shell-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .approval-side-column,
+  .approval-primary-column {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 859px) {
+  .approval-shell-grid,
+  .approval-primary-column,
+  .approval-side-column,
+  .news-panel,
+  .script-workbench,
+  .news-panel__filters,
+  .approval-controls,
+  .approval-controls__actions {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
+  }
+
+  .news-panel,
+  .script-workbench {
+    padding: 16px;
+  }
+
+  .approval-control--select,
+  .approval-control--search {
+    min-width: 0;
+  }
 }

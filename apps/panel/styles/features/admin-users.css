@@ -25,6 +25,26 @@
   margin: 0;
 }
 
+.admin-users-form .settings-field span {
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.admin-users-form input,
+.admin-users-form select {
+  min-height: 44px;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  color: var(--text-1);
+}
+
+.admin-users-form input:focus-visible,
+.admin-users-form select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
 .admin-users-list {
   overflow-x: auto;
 }

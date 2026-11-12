@@ -1,8 +1,8 @@
 import { bootApp } from './app-shell.js';
 
 export const EVENT_BINDING_ROUTE_MAP = {
-  approval: ['searchInput', 'countryFilter', 'sourcesFilter', 'cards', 'queueDialog'],
-  scripts: ['scriptCards', 'scriptEditorDialog', 'voiceAiBtn', 'publishDraftBtn'],
+  approval: ['searchInput', 'countryFilter', 'sourcesFilter', 'cards'],
+  scripts: ['scriptCards', 'voiceAiBtn', 'publishDraftBtn'],
   audio: ['audioRunBtn', 'audioQueueList', 'audioTextArea', 'audioClearBtn'],
   subtitles: ['subtitle2UploadInput', 'subtitle2SaveBtn', 'subtitle2ReadyBtn', 'subtitle2DownloadBtn', 'subtitle2RowsBody'],
 };

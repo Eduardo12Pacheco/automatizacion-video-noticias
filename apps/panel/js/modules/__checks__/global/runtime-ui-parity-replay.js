@@ -329,7 +329,6 @@ async function replayScriptsScenario() {
   const posts = [];
   const blobs = [];
   const downloads = [];
-  let showModalCount = 0;
   let publishMode = 'sync';
 
   const selectors = {
@@ -337,7 +336,6 @@ async function replayScriptsScenario() {
     scriptEditorMeta: { textContent: '' },
     scriptEditedArea: { value: '' },
     scriptEditedWordCount: { textContent: '' },
-    scriptEditorDialog: { showModal() { showModalCount += 1; }, close() {} },
     saveDraftBtn: { disabled: false },
     downloadDraftBtn: { disabled: false },
     publishConfirmDialog: { close() {} },
@@ -438,7 +436,7 @@ async function replayScriptsScenario() {
   if (state.scriptPublishJob?.status !== 'failed') return { ok: false, reason: 'scripts failed publish job state drift' };
   if (!state.scriptPublishJob?.error || !toasts.includes('Falló desde replay')) return { ok: false, reason: 'scripts failed publish toast drift' };
 
-  if (state.scriptDrafts.length !== 1 || showModalCount !== 1) {
+  if (state.scriptDrafts.length !== 1) {
     return { ok: false, reason: 'scripts replay drift' };
   }
 

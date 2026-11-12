@@ -70,15 +70,15 @@
   --text-1: #161a21;
   --text-2: #343b47;
   --text-3: #5b6371;
-  --text-4: #6d7482;
+  --text-4: #5f6673;
 
   --border-1: #d9dee7;
   --border-2: #c4cbd7;
 
-  --accent: #00875a;
+  --accent: #006b47;
   --accent-contrast: #ffffff;
   --accent-ink: #dff7ec;
-  --accent-soft: rgba(0, 135, 90, 0.1);
+  --accent-soft: rgba(0, 107, 71, 0.12);
 
   --success: #157f4a;
   --success-text: #0d5c35;
@@ -105,7 +105,7 @@
   --shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.16);
   --shadow-panel: 0 14px 30px rgba(15, 23, 42, 0.12);
 
-  --focus-ring: 0 0 0 3px rgba(0, 135, 90, 0.35);
+  --focus-ring: 0 0 0 3px rgba(0, 107, 71, 0.35);
 }
 
 /* Alpha variants derive from the semantic base so they follow the theme. */

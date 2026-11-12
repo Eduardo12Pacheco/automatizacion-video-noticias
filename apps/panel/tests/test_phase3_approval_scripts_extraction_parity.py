@@ -72,7 +72,6 @@ def test_selector_facade_owns_dom_query_contract_for_approval_and_scripts_views(
         "sourcesFilter",
         "scriptStats",
         "scriptCards",
-        "scriptEditorDialog",
         "scriptEditedArea",
         "saveDraftBtn",
         "downloadDraftBtn",

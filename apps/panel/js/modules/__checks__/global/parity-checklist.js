@@ -6,7 +6,6 @@ export const REQUIRED_SELECTOR_IDS = [
   'countryFilter',
   'sourcesFilter',
   'cards',
-  'queueDialog',
   'settingsDialog',
   'sidebarNav',
   'viewApproval',

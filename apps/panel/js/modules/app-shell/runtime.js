@@ -50,7 +50,7 @@ import { createShellNavigationController } from './views/navigation.js';
 import { createApprovalSearchController } from './views/approval-search.js';
 import { createShellRenderers } from './views/renderers.js';
 import { createScriptToAudioVoiceController } from './voice/script-to-audio.js';
-import { createI18n, setSharedI18n } from '../core/i18n/index.js';
+import { createI18n, installDomLocalizer, setSharedI18n } from '../core/i18n/index.js';
 import { createThemeController } from '../core/theme/index.js';
 import { createRuntimeRenderers } from './runtime-renderers.js';
 
@@ -59,6 +59,7 @@ const sessionKey = 'approval-panel-session-v1';
 const lastNewsSearchKey = 'approval-panel-last-news-search-at-v1';
 
 const i18n = setSharedI18n(createI18n());
+installDomLocalizer({ i18n });
 const theme = createThemeController();
 
 function waitForNextFrame() {

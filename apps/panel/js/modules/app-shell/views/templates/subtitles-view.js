@@ -151,7 +151,7 @@ export const subtitlesViewHTML = `\
                 </div>
                 <div class="subtitle-preview-controls">
                   <button id="subtitle2PreviewPlayBtn" class="subtitle-preview-play-btn" type="button" aria-label="Reproducir preview">\u25b6</button>
-                  <div id="subtitle2PreviewTimeline" class="subtitle-preview-timeline" role="slider" aria-label="Timeline preview subt\u00edtulos 2">
+                  <div id="subtitle2PreviewTimeline" class="subtitle-preview-timeline" role="group" aria-label="Timeline preview subt\u00edtulos 2" data-i18n-aria-label="subtitles.previewTimeline">
                     <div id="subtitle2PreviewTimelineTrack" class="subtitle-preview-timeline-track">
                       <div id="subtitle2PreviewPlayhead" class="subtitle-preview-playhead"></div>
                     </div>

@@ -93,7 +93,6 @@
 .video-editor-video-card:focus-visible {
   border-color: var(--accent-a65);
   background: var(--accent-a08);
-  outline: none;
 }
 
 .video-editor-video-card:hover {

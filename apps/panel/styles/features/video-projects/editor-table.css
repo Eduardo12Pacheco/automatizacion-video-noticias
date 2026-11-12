@@ -49,7 +49,6 @@
 .video-editor-row:focus,
 .video-editor-row.is-selected {
   background: var(--accent-a08);
-  outline: none;
 }
 
 .video-editor-row.is-selected {
@@ -327,7 +326,6 @@
 .video-editor-row__upload-label:focus-visible {
   border-color: var(--accent-a50);
   color: var(--accent);
-  outline: none;
 }
 
 .video-editor-row__upload-label input {

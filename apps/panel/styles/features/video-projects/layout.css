@@ -142,7 +142,6 @@
 .video-project-card.is-selected {
   border-color: var(--accent-a60);
   background: var(--accent-a06);
-  outline: none;
 }
 
 .video-project-card:hover {

@@ -299,7 +299,6 @@
   border-color: var(--accent-a65);
   background: var(--accent-a10);
   color: var(--text);
-  outline: none;
 }
 
 .video-editor-content-type__button.is-active {

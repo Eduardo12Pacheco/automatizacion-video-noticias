@@ -69,11 +69,6 @@ export function bindCoreEvents({
     closeMobileNav();
   });
 
-  el.openQueueBtn?.addEventListener('click', () => {
-    refreshQueue();
-    el.queueDialog?.showModal?.();
-  });
-  el.closeQueueBtn?.addEventListener('click', () => el.queueDialog?.close?.());
   el.refreshQueueBtn?.addEventListener('click', refreshQueue);
   el.runQueueBtn?.addEventListener('click', runQueue);
   el.settingsBtn.addEventListener('click', () => el.settingsDialog.showModal());

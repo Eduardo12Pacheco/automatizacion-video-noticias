@@ -193,6 +193,7 @@
 
 #viewSubtitulos2 .subtitle2-side-card {
   width: 100%;
+  min-width: 0;
   height: 100%;
   padding: 24px;
   display: grid;

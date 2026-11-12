@@ -257,5 +257,4 @@
 .video-project-detail__back:hover,
 .video-project-detail__back:focus {
   background: var(--accent-a08);
-  outline: none;
 }

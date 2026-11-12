@@ -51,3 +51,11 @@
   color: var(--text-soft);
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* The preview lives in a narrow side card: let its width drive the 16:9
+   ratio instead of the legacy 240px min-height forcing a 427px-wide stage. */
+#viewSubtitulos2 .subtitle2-side-card .subtitle-preview-stage {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}

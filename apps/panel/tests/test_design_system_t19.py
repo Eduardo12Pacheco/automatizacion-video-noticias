@@ -167,3 +167,145 @@ def test_theme_catalogs_stay_in_sync():
     assert set(es) == set(en)
     for key in ("settings.theme", "settings.themeDark", "settings.themeLight", "nav.openMenu"):
         assert key in es and key in en
+
+
+def test_index_has_no_spanish_copy_outside_the_catalogs():
+    from html.parser import HTMLParser
+
+    allowed = {"Español", "English", "×", "AP", "Demo Sports News", "Unified", "!", "＋", "↻", "⇄", "◎", "i"}
+
+    class Scanner(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.stack = []
+            self.problems = []
+
+        def handle_starttag(self, tag, attrs):
+            self.stack.append((tag, dict(attrs)))
+
+        def handle_endtag(self, tag):
+            if self.stack:
+                self.stack.pop()
+
+        def handle_data(self, data):
+            text = data.strip()
+            if not text or text in allowed:
+                return
+            if not re.search(r"[áéíóúñÁÉÍÓÚÑ¿¡]", text):
+                return
+            translated = any("data-i18n" in attrs for _, attrs in self.stack)
+            if not translated:
+                self.problems.append(text)
+
+    scanner = Scanner()
+    scanner.feed(_read(INDEX))
+    assert scanner.problems == []
+
+    # Attributes with user-facing Spanish copy must be bound to the catalog too.
+    for match in re.finditer(r'(placeholder|title|aria-label)="([^"]*)"', _read(INDEX)):
+        attribute, value = match.groups()
+        if not re.search(r"[áéíóúñÁÉÍÓÚÑ¿¡]", value):
+            continue
+        source = _read(INDEX)
+        start = source.rfind("<", 0, match.start())
+        end = source.find(">", match.end())
+        tag = source[start:end]
+        assert f"data-i18n-{attribute}" in tag, f"{attribute}={value!r} is not translated"
+
+
+def test_phrase_catalog_translates_and_reverses():
+    script = r"""
+import { translateText } from './js/modules/core/i18n/index.js';
+const cases = [
+  ['Actualizar cola', 'en', 'Refresh queue'],
+  ['Actualizar cola', 'es', null],
+  ['Refresh queue', 'es', 'Actualizar cola'],
+  ['Última actualización del panel: 12/11 09:00', 'en', 'Last panel update: 12/11 09:00'],
+  ['3 resultados', 'en', '3 results'],
+  ['3 results', 'es', '3 resultados'],
+  ['Cola de jobs', 'en', 'Job queue'],
+  ['LIVE PREVIEW', 'es', 'VISTA PREVIA'],
+];
+for (const [source, language, expected] of cases) {
+  const actual = translateText(source, language);
+  if (actual !== expected) throw new Error(`${source} -> ${actual} (expected ${expected})`);
+}
+if (translateText('Aurenia', 'en') !== null) throw new Error('data must pass through untouched');
+"""
+    import subprocess
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_named_t19_strings_are_translated():
+    es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
+    en = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "en.json"))
+    phrases = _read(ROOT / "js" / "modules" / "core" / "i18n" / "phrases.js")
+    corpus = " ".join(list(es.values()) + list(en.values()) + [phrases])
+    for literal in [
+        "Editorial system",
+        "WORKSTATION SUBTITLE PIPELINE",
+        "LIVE PREVIEW",
+        "Roles",
+        "API Origin / Endpoint",
+        "Errors/Audit",
+        "Nuevo",
+        "Servidor desconectado",
+        "Todavía no hay sesiones remotas.",
+        "Detecta automáticamente",
+        "Preset",
+        "Cola de jobs",
+        "render",
+    ]:
+        assert literal.lower() in corpus.lower(), f"missing translation coverage for {literal!r}"
+
+
+def test_dynamic_feature_copy_goes_through_the_phrase_catalog():
+    runtime = _read(ROOT / "js" / "modules" / "app-shell" / "runtime.js")
+    i18n = _read(ROOT / "js" / "modules" / "core" / "i18n" / "index.js")
+    assert "installDomLocalizer" in runtime
+    assert "installDomLocalizer" in i18n
+    assert "MutationObserver" in i18n
+    assert "translateText" in i18n
+
+
+def test_focus_rings_are_never_removed_without_a_visible_replacement():
+    offenders = []
+    for path in _feature_css():
+        for match in re.finditer(r"outline:\s*none", _read(path)):
+            line_start = _read(path).rfind("\n", 0, match.start())
+            rule_start = _read(path).rfind("{", 0, match.start())
+            selector = _read(path)[line_start + 1:rule_start]
+            if ":focus" in selector or ":focus-visible" in selector:
+                offenders.append(f"{path}: {selector.strip()}")
+    assert offenders == []
+    base = _read(STYLES / "base.css")
+    assert ":focus-visible" in base
+    assert "outline: 2px solid var(--accent);" in base
+
+
+def test_admin_create_user_inputs_are_visible_and_labelled():
+    template = _read(ROOT / "js" / "modules" / "app-shell" / "views" / "templates" / "admin-users-view.js")
+    for field in ("adminUserName", "adminUserEmail", "adminUserPassword"):
+        assert f'id="{field}"' in template
+        assert f'<label class="settings-field">' in template
+    admin = _read(STYLES / "features" / "admin-users.css")
+    assert ".admin-users-form input," in admin
+    assert "border: 1px solid var(--border-2);" in admin
+    assert "background: var(--surface-1);" in admin
+
+
+def test_axe_runs_against_every_view():
+    root = ROOT.parents[1]
+    spec = _read(root / "e2e" / "accessibility.spec.js")
+    assert "axe.run" in spec
+    assert "['serious', 'critical']" in spec
+    for view in ("radar", "approval", "audio", "subtitulos2", "scripts", "admin-users", "connectors", "errors-audit", "active-users"):
+        assert f"'{view}'" in spec
+    assert (root / "e2e" / "vendor" / "axe-core" / "axe.min.js").exists()
+    assert (root / "e2e" / "vendor" / "axe-core" / "LICENSE").exists()

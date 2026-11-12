@@ -79,7 +79,6 @@
 .video-preview-play.is-playing {
   border-color: var(--accent-a60);
   color: var(--accent);
-  outline: none;
 }
 
 .video-preview-timeline {
@@ -148,7 +147,6 @@
 .video-preview-timeline__marker:focus,
 .video-preview-timeline__marker.is-selected,
 .video-preview-timeline__marker.is-current {
-  outline: none;
 }
 
 .video-preview-timeline__marker:hover span,
@@ -381,5 +379,4 @@
 .video-preview-toggle-remotion:focus {
   border-color: var(--accent-a60);
   background: var(--accent-a14);
-  outline: none;
 }

@@ -116,7 +116,7 @@ def test_css_component_layers_receive_expected_rules():
     assert ".script-area" in _read(FORMS_PATH)
     assert ".toast:popover-open" in _read(TOAST_PATH)
     assert ".queue-list" in _read(APPROVAL_PATH)
-    assert "#scriptEditorDialog" in _read(SCRIPTS_PATH)
+    assert "#scriptEditorDialog" not in _read(SCRIPTS_PATH)
 
 
 def test_readme_documents_architecture_guardrails_and_slice_workflow_in_spanish():

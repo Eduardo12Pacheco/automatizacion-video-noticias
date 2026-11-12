@@ -11,10 +11,10 @@
 .active-users-card,
 .active-users-empty,
 .active-users-error {
-  border: 1px solid var(--surface-a24);
+  border: 1px solid var(--border-1);
   border-radius: var(--radius-lg);
   padding: 1rem;
-  background: var(--surface-a28);
+  background: var(--surface-2);
 }
 
 .active-users-card header {

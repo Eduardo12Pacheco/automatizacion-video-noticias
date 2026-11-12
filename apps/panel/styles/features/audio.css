@@ -234,3 +234,26 @@
   align-items: center;
   margin-top: auto;
 }
+
+@media (max-width: 1199px) {
+  .audio-screen__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 859px) {
+  .audio-screen__grid,
+  .audio-panel,
+  .audio-panel--queue,
+  .audio-panel--main {
+    width: 100%;
+    min-width: 0;
+    max-height: none;
+  }
+
+  .audio-queue-header,
+  .audio-queue-list {
+    width: 100%;
+    min-width: 0;
+  }
+}

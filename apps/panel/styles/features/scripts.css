@@ -4,10 +4,6 @@
   padding: 28px;
 }
 
-#scriptEditorDialog {
-  width: min(560px, 92vw);
-}
-
 #scriptOriginalDialog .script-area {
   min-height: 500px;
 }
