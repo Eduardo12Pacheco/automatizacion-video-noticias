@@ -63,6 +63,8 @@ El servicio local activo vive en:
 apps/panel/services/approval-editor/
 ```
 
+Antes de ejecutar los comandos, definí `$env:NEWSROOM_ROOT` con la ruta absoluta del repositorio.
+
 Se levanta con:
 
 ```powershell

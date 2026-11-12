@@ -109,7 +109,7 @@ else {
 }
 
 Write-Host "`n=== Dependencias locales críticas ==="
-$approvalEditorPython = '$env:LOCALAPPDATA\Programs\Python\Python311\python.exe'
+$approvalEditorPython = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"
 if (-not (Test-Path -LiteralPath $approvalEditorPython)) {
   Write-Host "approval-editor-python: FAIL -> no existe $approvalEditorPython" -ForegroundColor Red
   $allOk = $false
