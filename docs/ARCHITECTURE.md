@@ -159,7 +159,9 @@ The worker ports are HTTP clients for `services/tts-worker`,
 `services/asr-worker`, `services/subtitles` and `services/renderer`. The demo
 adapters implement the same contract so the keyless showcase path never opens a
 socket. Every worker adapter is selectable with `TTS`, `ASR`, `TRANSLATION`,
-`RENDERER` and `AUTH` (`worker`/`local`, `demo`, `none`).
+`RENDERER` and `AUTH` (`worker`/`local`, `demo`, `none`). The API's `/tts`,
+`/subtitles` and `/remotion` prefixes stay transparent transport proxies for
+browser-driven worker screens; any domain call goes through the ports above.
 
 Every port has an explicit disabled state (`LLM=none`, `IMAGE_SEARCH=none`,
 `NOTIFY=none`, `WORKFLOW=disabled`, `*_ADAPTER=none`). A missing adapter returns
