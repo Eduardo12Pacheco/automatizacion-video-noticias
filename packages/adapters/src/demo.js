@@ -66,3 +66,178 @@ export class DemoArticleExtractor {
     };
   }
 }
+
+function demoWavBytes({ durationSeconds = 0.25, sampleRate = 8000 } = {}) {
+  const samples = Math.max(1, Math.round(durationSeconds * sampleRate));
+  const dataBytes = samples * 2;
+  const buffer = Buffer.alloc(44 + dataBytes);
+  buffer.write('RIFF', 0);
+  buffer.writeUInt32LE(36 + dataBytes, 4);
+  buffer.write('WAVE', 8);
+  buffer.write('fmt ', 12);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36);
+  buffer.writeUInt32LE(dataBytes, 40);
+  return new Uint8Array(buffer);
+}
+
+/** Deterministic keyless TTS adapter used by demo/showcase mode. */
+export class DemoTTSAdapter {
+  constructor({ now = () => new Date() } = {}) {
+    this.now = now;
+    this.jobs = new Map();
+    this.sequence = 0;
+  }
+
+  async createJob({ text = '', title = '', voiceProfile = 'default' } = {}) {
+    const value = String(text || '').trim();
+    if (!value) throw new AdapterError('tts_text_required', 'TTS text is required', { statusCode: 400 });
+    this.sequence += 1;
+    const jobId = `tts-demo-${this.sequence}`;
+    this.jobs.set(jobId, {
+      job_id: jobId,
+      status: 'done',
+      title: String(title || ''),
+      voice_profile: String(voiceProfile || 'default'),
+      created_at: this.now().toISOString(),
+    });
+    return { job_id: jobId, status: 'done' };
+  }
+
+  async getJob(jobId = '') {
+    const job = this.jobs.get(String(jobId));
+    if (!job) throw new AdapterError('tts_job_not_found', `unknown TTS job: ${jobId}`, { statusCode: 404 });
+    return { job_id: job.job_id, status: job.status, download_url: `/api/tts/jobs/${job.job_id}/download` };
+  }
+
+  async download(jobId = '') {
+    const job = await this.getJob(jobId);
+    return { bytes: demoWavBytes(), content_type: 'audio/wav', job_id: job.job_id };
+  }
+}
+
+/** Deterministic keyless ASR adapter used by demo/showcase mode. */
+export class DemoASRAdapter {
+  async transcribe({ audioPath = '', language = 'es' } = {}) {
+    const path = String(audioPath || '').trim();
+    if (!path) throw new AdapterError('asr_audio_path_required', 'audioPath is required', { statusCode: 400 });
+    const text = 'Aurenia ajusta su mediocampo para el próximo partido.';
+    return {
+      segments: [
+        { id: 0, start_ms: 0, end_ms: 1800, text },
+        { id: 1, start_ms: 1800, end_ms: 3600, text: 'El equipo entrenó con normalidad.' },
+      ],
+      language: String(language || 'es'),
+      device: 'demo',
+      fallback_used: false,
+    };
+  }
+}
+
+/** Deterministic keyless translation adapter used by demo/showcase mode. */
+export class DemoTranslationAdapter {
+  async translate({ segments = [], sourceLanguage = 'auto', targetLanguage = 'es' } = {}) {
+    if (!Array.isArray(segments)) throw new AdapterError('translation_segments_invalid', 'segments must be an array', { statusCode: 400 });
+    const target = String(targetLanguage || 'es');
+    return {
+      segments: segments.map((segment, index) => ({
+        ...segment,
+        id: segment.id ?? index,
+        source_language: String(sourceLanguage || 'auto'),
+        target_language: target,
+        translated_text: String(segment.text ?? segment.translated_text ?? ''),
+      })),
+      target_language: target,
+    };
+  }
+}
+
+/** Deterministic keyless renderer adapter used by demo/showcase mode. */
+export class DemoVideoRendererAdapter {
+  constructor({ now = () => new Date() } = {}) {
+    this.now = now;
+    this.projects = new Map();
+    this.sequence = 0;
+  }
+
+  async createProject(payload = {}) {
+    this.sequence += 1;
+    const projectId = `demo-project-${this.sequence}`;
+    this.projects.set(projectId, { project_id: projectId, status: 'queued', title: String(payload.title || ''), created_at: this.now().toISOString() });
+    return { project_id: projectId, status: 'queued' };
+  }
+
+  async renderProject(projectId = '', { profile = 'final' } = {}) {
+    const project = this.projects.get(String(projectId));
+    if (!project) throw new AdapterError('renderer_project_not_found', `unknown render project: ${projectId}`, { statusCode: 404 });
+    project.status = 'done';
+    project.output = `/api/projects/${project.project_id}/download/${profile === 'preview' ? 'preview' : 'final'}`;
+    return { project_id: project.project_id, status: 'done', output: project.output };
+  }
+
+  async getRenderStatus(projectId = '') {
+    const project = this.projects.get(String(projectId));
+    if (!project) throw new AdapterError('renderer_project_not_found', `unknown render project: ${projectId}`, { statusCode: 404 });
+    return { project_id: project.project_id, status: project.status, ...(project.output ? { output: project.output } : {}) };
+  }
+
+  async downloadRender(projectId = '') {
+    const project = await this.getRenderStatus(projectId);
+    return { bytes: new Uint8Array(Buffer.from(`demo-mp4:${project.project_id}`)), content_type: 'video/mp4' };
+  }
+}
+
+/** Deterministic keyless auth adapter used by demo/showcase mode. */
+export class DemoAuthAdapter {
+  constructor({ users = [{ email: 'demo@example.local', password: 'demo-password', display_name: 'Demo User', roles: ['admin'] }] } = {}) {
+    this.users = new Map(users.map((user) => [String(user.email).toLowerCase(), { ...user }]));
+    this.sessions = new Map();
+    this.sequence = 0;
+  }
+
+  async authenticate({ user = '', password = '' } = {}) {
+    const record = this.users.get(String(user || '').toLowerCase());
+    if (!record || record.password !== String(password || '')) {
+      throw new AdapterError('invalid_credentials', 'Invalid credentials', { statusCode: 401 });
+    }
+    return {
+      user: { user_id: record.user_id || record.email, email: record.email, display_name: record.display_name || record.email },
+      roles: [...(record.roles || ['viewer'])],
+      source: 'demo',
+    };
+  }
+
+  async createSession({ user = {}, roles = [], ipAddress = '', userAgent = '' } = {}) {
+    this.sequence += 1;
+    const token = `demo-session-${this.sequence}`;
+    const session = {
+      user: { user_id: user.user_id || user.email, email: user.email, display_name: user.display_name || user.email },
+      roles: [...roles],
+      session_id: `demo-session-id-${this.sequence}`,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      last_seen_at: null,
+      token,
+      ipAddress: String(ipAddress || ''),
+      userAgent: String(userAgent || ''),
+    };
+    this.sessions.set(token, session);
+    return session;
+  }
+
+  async getSession(token = '') {
+    const session = this.sessions.get(String(token || ''));
+    if (!session) return null;
+    return { ...session, token: undefined };
+  }
+
+  async revokeSession(token = '') {
+    this.sessions.delete(String(token || ''));
+    return undefined;
+  }
+}

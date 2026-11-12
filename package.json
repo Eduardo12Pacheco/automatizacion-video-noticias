@@ -11,7 +11,9 @@
     "test:core": "node --test packages/core/test/*.test.js",
     "test:adapters": "node --test packages/adapters/test/*.test.js",
     "test:demo-worker": "node --test services/demo-worker/test/*.test.js",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:contracts": "node --test packages/contracts/test/*.test.js",
+    "test:worker-ports": "node --test packages/adapters/test/worker-ports.test.js"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0"

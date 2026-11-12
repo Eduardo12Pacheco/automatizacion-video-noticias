@@ -1,5 +1,5 @@
 import { TrafilaturaArticleExtractor } from './article-extractor.js';
-import { DemoArticleExtractor, DemoLLMAdapter } from './demo.js';
+import { DemoASRAdapter, DemoArticleExtractor, DemoLLMAdapter, DemoTranslationAdapter, DemoVideoRendererAdapter, DemoTTSAdapter } from './demo.js';
 import { LocalDocumentExport } from './document-export.js';
 import { SearxngWikimediaImageSearch } from './image-search.js';
 import { OllamaLLMAdapter, OpenAICompatibleLLMAdapter } from './llm.js';
@@ -7,6 +7,7 @@ import { YtDlpMediaDownload } from './media-download.js';
 import { ConsoleNotificationAdapter, SmtpNotificationAdapter } from './notification.js';
 import { RssChannelFeedAdapter, RssNewsSourceAdapter } from './rss.js';
 import { N8nWorkflowTrigger } from './workflow-trigger.js';
+import { HttpASRAdapter, HttpTranslationAdapter, HttpTTSAdapter, HttpVideoRendererAdapter, workerAuthHeaders } from './worker-ports.js';
 
 function choice(value, fallback) {
   return String(value || fallback || '').trim().toLowerCase();
@@ -142,6 +143,54 @@ export function createAdaptersFromEnv({
       maxDurationSeconds: intEnv(env, 'YT_DLP_MAX_DURATION_SECONDS', 7200),
       timeoutMs: intEnv(env, 'YT_DLP_TIMEOUT_MS', 30 * 60 * 1000),
     });
+  }
+
+
+  const workerKinds = {
+    tts: choice(env.TTS, 'worker'),
+    asr: choice(env.ASR, 'worker'),
+    translation: choice(env.TRANSLATION, 'worker'),
+    renderer: choice(env.RENDERER, 'worker'),
+  };
+  if (workerKinds.tts === 'worker') {
+    adapters.tts = new HttpTTSAdapter({
+      baseUrl: env.TTS_BASE_URL || 'http://127.0.0.1:8088',
+      fetchImpl,
+      timeoutMs: intEnv(env, 'TTS_TIMEOUT_MS', 60_000),
+      headers: workerAuthHeaders({ apiKey: env.TTS_API_KEY, basicUser: env.TTS_BASIC_USER, basicPass: env.TTS_BASIC_PASS }),
+    });
+  } else if (workerKinds.tts === 'demo') {
+    adapters.tts = new DemoTTSAdapter();
+  }
+  if (workerKinds.asr === 'worker') {
+    adapters.asr = new HttpASRAdapter({
+      baseUrl: env.ASR_BASE_URL || 'http://127.0.0.1:8765',
+      fetchImpl,
+      timeoutMs: intEnv(env, 'ASR_TIMEOUT_MS', 120_000),
+      headers: workerAuthHeaders({ apiKey: env.ASR_API_KEY }),
+    });
+  } else if (workerKinds.asr === 'demo') {
+    adapters.asr = new DemoASRAdapter();
+  }
+  if (workerKinds.translation === 'worker') {
+    adapters.translation = new HttpTranslationAdapter({
+      baseUrl: env.SUBTITLES_BASE_URL || 'http://127.0.0.1:8092',
+      fetchImpl,
+      timeoutMs: intEnv(env, 'TRANSLATION_TIMEOUT_MS', 120_000),
+      headers: workerAuthHeaders({ apiKey: env.SUBTITLES_API_KEY, basicUser: env.SUBTITLES_BASIC_USER, basicPass: env.SUBTITLES_BASIC_PASS }),
+    });
+  } else if (workerKinds.translation === 'demo') {
+    adapters.translation = new DemoTranslationAdapter();
+  }
+  if (workerKinds.renderer === 'worker') {
+    adapters.videoRenderer = new HttpVideoRendererAdapter({
+      baseUrl: env.RENDERER_BASE_URL || 'http://127.0.0.1:8088',
+      fetchImpl,
+      timeoutMs: intEnv(env, 'RENDERER_TIMEOUT_MS', 30 * 60 * 1000),
+      headers: workerAuthHeaders({ apiKey: env.RENDERER_API_KEY }),
+    });
+  } else if (workerKinds.renderer === 'demo') {
+    adapters.videoRenderer = new DemoVideoRendererAdapter();
   }
 
   return adapters;
