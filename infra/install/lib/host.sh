@@ -76,19 +76,21 @@ nr_check_environment() {
 
   if nr_docker_cli_ok; then
     nr_ok "docker: $(docker --version 2>/dev/null | head -n 1)"
+  elif [ "$NR_ALLOW_MISSING_DOCKER" = "1" ]; then
+    nr_warn "docker is not installed; skipping the Docker-dependent checks"
   else
     nr_check_fail "docker is not installed or not in PATH"
   fi
 
   if nr_docker_cli_ok && nr_compose_cli_ok; then
     nr_ok "docker compose: $(docker compose version --short 2>/dev/null | head -n 1)"
-  else
+  elif [ "$NR_ALLOW_MISSING_DOCKER" != "1" ]; then
     nr_check_fail "docker compose v2 plugin is not available"
   fi
 
   if nr_docker_cli_ok && nr_docker_daemon_ok; then
     nr_ok "docker daemon is reachable"
-  else
+  elif [ "$NR_ALLOW_MISSING_DOCKER" != "1" ]; then
     nr_check_fail "docker daemon is not reachable (start Docker Desktop or the docker service)"
   fi
 

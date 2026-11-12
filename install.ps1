@@ -18,6 +18,7 @@ param(
     [switch]$NoOpen,
     [switch]$Open,
     [switch]$Help,
+    [switch]$AllowMissingDocker,
     [string]$BinDir = '',
     [string]$AdminEmail = '',
     [string]$ProjectDir = '',
@@ -51,6 +52,7 @@ Options:
   -AdminEmail <email>   First administrator email
   -ProjectDir <path>    Directory holding .env and compose.yaml
   -ComposeFile <path>   Docker Compose file
+  -AllowMissingDocker   CI/self-check: warn instead of failing without Docker
   -Help                 Show this help
 
 Environment:
@@ -76,6 +78,7 @@ try {
     Set-NrOption -Name DownloadModels -Value (-not [bool]$NoModels)
     Set-NrOption -Name StartStack -Value (-not [bool]$NoStart)
     Set-NrOption -Name OpenPanel -Value ([bool]$Open)
+    Set-NrOption -Name AllowMissingDocker -Value ([bool]$AllowMissingDocker)
     if ($BinDir) { Set-NrOption -Name BinDir -Value $BinDir }
     if ($env:NEWSROOM_BIN_DIR -and -not $BinDir) { Set-NrOption -Name BinDir -Value $env:NEWSROOM_BIN_DIR }
     if ($AdminEmail) { $env:NEWSROOM_ADMIN_EMAIL = $AdminEmail }
@@ -103,9 +106,12 @@ try {
         exit 0
     }
 
-    if (-not (Test-NrDockerCli)) { Stop-NrInstall 'docker is not installed or not in PATH' }
-    if (-not (Test-NrDockerDaemon)) { Stop-NrInstall 'docker daemon is not reachable; start Docker Desktop' }
-    if (-not (Test-NrComposeCli)) { Stop-NrInstall 'the docker compose v2 plugin is required' }
+    $allowNoDocker = $AllowMissingDocker -and $DryRun
+    if (-not $allowNoDocker) {
+        if (-not (Test-NrDockerCli)) { Stop-NrInstall 'docker is not installed or not in PATH' }
+        if (-not (Test-NrDockerDaemon)) { Stop-NrInstall 'docker daemon is not reachable; start Docker Desktop' }
+        if (-not (Test-NrComposeCli)) { Stop-NrInstall 'the docker compose v2 plugin is required' }
+    }
 
     Resolve-NrProfile -Requested $Profile
 

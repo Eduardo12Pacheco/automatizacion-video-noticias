@@ -20,6 +20,7 @@ $script:NrConfig = @{
     BinDir         = ''
     CheckFailures  = 0
     CheckWarnings  = 0
+    AllowMissingDocker = $false
     PendingAdminPassword = ''
 }
 
@@ -456,6 +457,12 @@ function Get-NrRamMB {
             $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
             return [int]($os.TotalVisibleMemorySize / 1024)
         } catch {
+            # PowerShell on Linux/macOS (development smoke runs).
+            try {
+                $meminfo = Get-Content -LiteralPath '/proc/meminfo' -ErrorAction Stop
+                $line = $meminfo | Where-Object { $_ -match '^MemTotal:\s+(\d+)' } | Select-Object -First 1
+                if ($line -match '^MemTotal:\s+(\d+)') { return [int]([int64]$Matches[1] / 1024) }
+            } catch { }
             return 0
         }
     }
@@ -522,17 +529,19 @@ function Test-NrEnvironment {
 
     if (Test-NrDockerCli) {
         Write-NrOk ("docker: {0}" -f ((& docker --version) -join ' '))
+    } elseif ($script:NrConfig.AllowMissingDocker) {
+        Write-NrWarn 'docker is not installed; skipping the Docker-dependent checks'
     } else {
         Write-NrCheckFail 'docker is not installed or not in PATH'
     }
     if (Test-NrComposeCli) {
         Write-NrOk ("docker compose: {0}" -f ((& docker compose version --short) -join ' '))
-    } else {
+    } elseif (-not $script:NrConfig.AllowMissingDocker) {
         Write-NrCheckFail 'docker compose v2 plugin is not available'
     }
     if (Test-NrDockerDaemon) {
         Write-NrOk 'docker daemon is reachable'
-    } else {
+    } elseif (-not $script:NrConfig.AllowMissingDocker) {
         Write-NrCheckFail 'docker daemon is not reachable (start Docker Desktop)'
     }
     if ($env:OS -eq 'Windows_NT' -and (Test-NrDockerDaemon)) {

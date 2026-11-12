@@ -110,6 +110,17 @@ class HelpAndCheckTests(InstallerTestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("docker is not installed", result.stdout + result.stderr)
 
+    def test_check_can_allow_a_missing_docker_for_ci(self):
+        result = self.run_installer(
+            "--check",
+            "--allow-missing-docker",
+            "--project-dir", str(self.project),
+            env_extra={"PATH": f"{BROKEN_BIN}:/usr/local/bin:/usr/bin:/bin"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("prerequisites OK", result.stdout)
+        self.assertIn("skipping the Docker-dependent checks", result.stdout + result.stderr)
+
     def test_check_fails_when_the_daemon_is_down(self):
         result = self.run_installer(
             "--check",

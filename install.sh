@@ -30,6 +30,7 @@ Options:
       --admin-email <email> First administrator email
       --project-dir <path>  Directory holding .env and compose.yaml
       --compose-file <path> Docker Compose file
+      --allow-missing-docker  Warn instead of failing when Docker is absent
   -h, --help                Show this help
       --version             Show the installer version
 
@@ -73,6 +74,7 @@ while [ "$#" -gt 0 ]; do
     --project-dir=*) PROJECT_DIR_OVERRIDE="${1#*=}" ;;
     --compose-file) COMPOSE_FILE_OVERRIDE="${2:-}"; shift ;;
     --compose-file=*) COMPOSE_FILE_OVERRIDE="${1#*=}" ;;
+    --allow-missing-docker) NR_ALLOW_MISSING_DOCKER=1 ;;
     -h|--help) usage; exit 0 ;;
     --version) printf 'newsroom installer %s\n' "${NEWSROOM_VERSION:-0.1.0}"; exit 0 ;;
     *) nr_die "unknown argument: $1 (use --help)" ;;
@@ -137,14 +139,18 @@ fi
 
 # --- Install ---------------------------------------------------------------
 
-if ! nr_docker_cli_ok; then
-  nr_die "docker is not installed or not in PATH"
-fi
-if ! nr_docker_daemon_ok; then
-  nr_die "docker daemon is not reachable; start Docker Desktop or the docker service"
-fi
-if ! nr_compose_cli_ok; then
-  nr_die "the docker compose v2 plugin is required"
+if [ "$NR_ALLOW_MISSING_DOCKER" = "1" ] && [ "$NR_DRY_RUN" = "1" ]; then
+  nr_info "docker checks skipped (--allow-missing-docker with --dry-run)"
+else
+  if ! nr_docker_cli_ok; then
+    nr_die "docker is not installed or not in PATH"
+  fi
+  if ! nr_docker_daemon_ok; then
+    nr_die "docker daemon is not reachable; start Docker Desktop or the docker service"
+  fi
+  if ! nr_compose_cli_ok; then
+    nr_die "the docker compose v2 plugin is required"
+  fi
 fi
 
 nr_resolve_profile "${REQUESTED_PROFILE:-${NEWSROOM_PROFILE:-auto}}"

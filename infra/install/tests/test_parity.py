@@ -47,6 +47,7 @@ class InstallerParityTests(unittest.TestCase):
             "admin-email": "adminemail",
             "project-dir": "projectdir",
             "compose-file": "composefile",
+            "allow-missing-docker": "allowmissingdocker",
         }
         switches = powershell_switches(INSTALL_PS1)
         for flag, switch in bash_flags.items():
