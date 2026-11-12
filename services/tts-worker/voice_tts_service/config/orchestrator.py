@@ -34,21 +34,21 @@ class OrchestratorConfig:
 
 def load_config() -> OrchestratorConfig:
     service_root = Path(__file__).resolve().parents[2]
-    runtime_dir = Path(os.getenv("TTS_ORCH_RUNTIME_DIR", service_root / "tts-orchestrator" / "runtime")).resolve()
-    origins_raw = os.getenv("TTS_ORCH_ALLOWED_ORIGINS", "http://localhost:8080")
+    runtime_dir = Path(os.getenv("TTS_WORKER_RUNTIME_DIR", service_root / "tts-orchestrator" / "runtime")).resolve()
+    origins_raw = os.getenv("TTS_WORKER_ALLOWED_ORIGINS", "http://localhost:8080")
     allowed_origins = [x.strip() for x in origins_raw.split(",") if x.strip()]
     return OrchestratorConfig(
         runtime_dir=runtime_dir,
-        worker_base_url=os.getenv("TTS_ORCH_WORKER_BASE_URL", "http://127.0.0.1:8091").rstrip("/"),
-        worker_internal_token=os.getenv("TTS_ORCH_WORKER_INTERNAL_TOKEN", ""),
-        frontend_api_key=os.getenv("TTS_ORCH_FRONTEND_API_KEY", ""),
-        basic_user=os.getenv("TTS_ORCH_BASIC_USER", ""),
-        basic_pass=os.getenv("TTS_ORCH_BASIC_PASS", ""),
-        request_timeout_sec=_env_int("TTS_ORCH_REQUEST_TIMEOUT_SEC", 30),
-        poll_timeout_sec=_env_int("TTS_ORCH_POLL_TIMEOUT_SEC", 30),
-        rate_limit_per_min=_env_int("TTS_ORCH_RATE_LIMIT_PER_MIN", 10),
-        queue_max_hint=_env_int("TTS_ORCH_QUEUE_MAX_HINT", 20),
-        stream_poll_interval_sec=max(1, _env_int("TTS_ORCH_STREAM_POLL_INTERVAL_SEC", 2)),
-        stream_heartbeat_sec=max(5, _env_int("TTS_ORCH_STREAM_HEARTBEAT_SEC", 15)),
+        worker_base_url=os.getenv("TTS_WORKER_INTERNAL_URL", "http://127.0.0.1:8091").rstrip("/"),
+        worker_internal_token=os.getenv("TTS_WORKER_INTERNAL_TOKEN", ""),
+        frontend_api_key=os.getenv("TTS_WORKER_FRONTEND_API_KEY", ""),
+        basic_user=os.getenv("TTS_WORKER_BASIC_USER", ""),
+        basic_pass=os.getenv("TTS_WORKER_BASIC_PASS", ""),
+        request_timeout_sec=_env_int("TTS_WORKER_REQUEST_TIMEOUT_SEC", 30),
+        poll_timeout_sec=_env_int("TTS_WORKER_POLL_TIMEOUT_SEC", 30),
+        rate_limit_per_min=_env_int("TTS_WORKER_RATE_LIMIT_PER_MIN", 10),
+        queue_max_hint=_env_int("TTS_WORKER_QUEUE_MAX_HINT", 20),
+        stream_poll_interval_sec=max(1, _env_int("TTS_WORKER_STREAM_POLL_INTERVAL_SEC", 2)),
+        stream_heartbeat_sec=max(5, _env_int("TTS_WORKER_STREAM_HEARTBEAT_SEC", 15)),
         allowed_origins=allowed_origins,
     )

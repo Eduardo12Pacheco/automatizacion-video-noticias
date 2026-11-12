@@ -193,7 +193,7 @@ def test_orchestrator_startup_lifespan_preserves_runtime_checks(tmp_path: Path) 
             with TestClient(missing_token_app):
                 pass
         except RuntimeError as exc:
-            assert str(exc) == "TTS_ORCH_WORKER_INTERNAL_TOKEN es obligatorio"
+            assert str(exc) == "TTS_WORKER_INTERNAL_TOKEN es obligatorio"
         else:
             raise AssertionError("startup accepted an empty worker internal token")
 

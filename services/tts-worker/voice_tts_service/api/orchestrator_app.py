@@ -114,11 +114,11 @@ def create_app(
     async def lifespan(_: FastAPI):
         cfg.runtime_dir.mkdir(parents=True, exist_ok=True)
         if not cfg.worker_internal_token:
-            raise RuntimeError("TTS_ORCH_WORKER_INTERNAL_TOKEN es obligatorio")
+            raise RuntimeError("TTS_WORKER_INTERNAL_TOKEN es obligatorio")
         if not cfg.frontend_api_key:
-            raise RuntimeError("TTS_ORCH_FRONTEND_API_KEY es obligatorio")
+            raise RuntimeError("TTS_WORKER_FRONTEND_API_KEY es obligatorio")
         if not cfg.basic_user or not cfg.basic_pass:
-            raise RuntimeError("TTS_ORCH_BASIC_USER y TTS_ORCH_BASIC_PASS son obligatorios")
+            raise RuntimeError("TTS_WORKER_BASIC_USER y TTS_WORKER_BASIC_PASS son obligatorios")
         yield
 
     app = FastAPI(title="tts-orchestrator", version="0.1.0", lifespan=lifespan)
