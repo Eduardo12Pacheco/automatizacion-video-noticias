@@ -99,8 +99,9 @@ jobs:
         run: docker compose --env-file e2e/.env.example -f compose.yaml config -q
       - name: Config with the gpu and n8n profiles
         run: docker compose --env-file e2e/.env.example --profile gpu --profile n8n -f compose.yaml config -q
-      - name: Compatibility alias
-        run: docker compose --env-file e2e/.env.example -f compose.yaml config -q
+      # T26 removed the duplicate compose alias; keep it removed.
+      - name: No duplicate compose alias
+        run: test ! -e docker-compose.yml
       - name: Installer/CLI behaviour under the fake docker stand-in
         run: bash infra/install/tests/run.sh
 
@@ -141,8 +142,8 @@ jobs:
           docker compose run --rm seed
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
-      - name: Playwright happy path
-        run: pnpm exec playwright test
+      - name: Playwright functional flows
+        run: pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
       - name: Stack logs on failure
         if: failure()
         run: docker compose logs --tail=300
