@@ -149,7 +149,8 @@ Other options:
 --profile / -Profile           auto (default), cpu or gpu
 --gpu / -Gpu                   use the gpu profile
 --no-gpu / -NoGpu              use cpu even when a GPU is present
---port / -Port                 published panel port (default 8080)
+--port / -Port                 published panel port (default 8080); the
+                               localhost origin allow-lists follow it
 --no-models / -NoModels        skip the model download
 --no-start / -NoStart          prepare the installation without starting it
 --no-open / -NoOpen            do not open the panel
