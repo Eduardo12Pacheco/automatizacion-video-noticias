@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const { prepareApprovalInputs } = require("../scripts/lib/contracts/approval-input-preparation");
-const sharedApprovalPipeline = require("../../../packages/contracts/approval-contract-pipeline");
+const sharedApprovalPipeline = require("@newsroom/contracts/approval-contract-pipeline");
 
 function makeProjectRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "remotion-approval-prep-"));

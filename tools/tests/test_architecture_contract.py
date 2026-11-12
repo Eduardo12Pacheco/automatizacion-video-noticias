@@ -87,10 +87,15 @@ class RuntimeServiceTest(unittest.TestCase):
     def test_approval_editor_is_a_compose_service(self) -> None:
         compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
         self.assertIn("  approval-editor:\n", compose)
-        self.assertIn("dockerfile: apps/panel/services/approval-editor/Dockerfile", compose)
+        self.assertIn("dockerfile: services/approval-editor/Dockerfile", compose)
         self.assertIn("  renderer:\n", compose)
         self.assertIn("dockerfile: services/renderer/Dockerfile", compose)
-        self.assertTrue((ROOT / "apps/panel/services/approval-editor/Dockerfile").is_file())
+        self.assertTrue((ROOT / "services/approval-editor/Dockerfile").is_file())
+        self.assertEqual(compose.count("dockerfile: services/approval-editor/Dockerfile"), 1, "exactly one approval-editor container")
+        renderer_dockerfile = (ROOT / "services/renderer/Dockerfile").read_text(encoding="utf-8")
+        self.assertNotIn("apps/panel/services", renderer_dockerfile)
+        self.assertNotIn("approval-editor/server.js", renderer_dockerfile)
+        self.assertIn("scripts/render/render-server.js", renderer_dockerfile)
 
     def test_script_draft_save_is_a_core_use_case(self) -> None:
         use_case = (ROOT / "packages/core/src/use-cases/save-script-draft.js").read_text(encoding="utf-8")

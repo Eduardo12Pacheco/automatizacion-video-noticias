@@ -30,31 +30,24 @@ RUN corepack enable && pnpm install --frozen-lockfile --prod --filter @newsroom/
 
 COPY packages/contracts packages/contracts
 COPY services/renderer services/renderer
-COPY apps/panel/services/approval-editor apps/panel/services/approval-editor
 
 WORKDIR /app/services/renderer
 RUN npx remotion browser ensure
 
-# The local renderer is the approval pipeline API with Remotion bundled: the
-# panel edits a snapshot there and the same container renders the final 720p
-# MP4 on CPU (D10). The legacy CLI stays available as `docker run ... node
-# scripts/render-video.js`.
-ENV APPROVAL_EDITOR_SERVICE_HOST=0.0.0.0 \
-    APPROVAL_EDITOR_SERVICE_PORT=3042 \
-    APPROVAL_EDITOR_RENDER_ADAPTER=video-engine \
-    APPROVAL_EDITOR_VIDEO_ENGINE_ROOT=/app/services/renderer \
-    APPROVAL_EDITOR_VIDEO_ENGINE_PROJECTS_ROOT=/app/runtime/media/renderer \
-    APPROVAL_EDITOR_PYTHON_BIN=python3 \
+# Render-only worker: the approval editor calls it over HTTP through the
+# VideoRendererPort and never imports renderer files.
+ENV RENDER_SERVER_HOST=0.0.0.0 \
+    RENDER_SERVER_PORT=3042 \
+    RENDER_OUTPUT_ROOT=/app/runtime/media/renderer \
     RENDERER_PROFILE=local \
     REMOTION_HARDWARE_ACCELERATION=disable \
     REMOTION_GL=swangle
 
-WORKDIR /app
-RUN mkdir -p /app/node_modules/@newsroom /app/apps/panel/services/approval-editor/projects /app/runtime/media/renderer \
+RUN mkdir -p /app/node_modules/@newsroom /app/runtime/media/renderer \
     && ln -sfn /app/packages/contracts /app/node_modules/@newsroom/contracts
 
 EXPOSE 3042
 HEALTHCHECK --interval=15s --timeout=5s --retries=20 \
     CMD node -e "fetch('http://127.0.0.1:3042/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "apps/panel/services/approval-editor/server.js"]
+CMD ["node", "scripts/render/render-server.js"]

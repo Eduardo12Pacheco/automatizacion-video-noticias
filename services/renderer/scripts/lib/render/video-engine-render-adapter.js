@@ -3,7 +3,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { spawn } = require("child_process");
 const { stableId, normalizeBrandChannel, resolveBrandChannelAssets, buildBrandAssetRecords } = require("@newsroom/contracts/approval-contract-pipeline");
-const { addBoundaryTransitionAssets, normalizeBoundaryTransitionRows } = require("./boundary-transitions");
+const { addBoundaryTransitionAssets, normalizeBoundaryTransitionRows } = require("@newsroom/contracts/editor/boundary-transitions");
 
 const AUTHORITATIVE_DUST_ASSETS = {
   "particle-1": {
@@ -581,7 +581,7 @@ function createVideoEngineRenderAdapter({
   fetchImpl = globalThis.fetch,
   renderAssetRetryDelaysMs = DEFAULT_RENDER_ASSET_RETRY_DELAYS_MS,
 } = {}) {
-  const resolvedVideoEngineRoot = path.resolve(videoEngineRoot || env.APPROVAL_EDITOR_VIDEO_ENGINE_ROOT || path.join(__dirname, "..", "..", "..", "..", "services/renderer"));
+  const resolvedVideoEngineRoot = path.resolve(videoEngineRoot || env.APPROVAL_EDITOR_VIDEO_ENGINE_ROOT || path.join(__dirname, "..", "..", ".."));
   const resolvedProjectsRoot = path.resolve(projectsRoot || env.APPROVAL_EDITOR_VIDEO_ENGINE_PROJECTS_ROOT || env.REMOTION_EDITOR_PROJECTS_ROOT || path.join(resolvedVideoEngineRoot, "projects"));
   const scriptPath = path.join(resolvedVideoEngineRoot, "scripts", "render-video.js");
 

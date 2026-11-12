@@ -6,7 +6,7 @@ const {
   buildCompositionContractFromPreparedInput,
   computeApprovalSnapshotHash,
 } = require("../scripts/lib/contracts/approval-contract-pipeline");
-const sharedApprovalPipeline = require("../../../packages/contracts/approval-contract-pipeline");
+const sharedApprovalPipeline = require("@newsroom/contracts/approval-contract-pipeline");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
@@ -374,7 +374,7 @@ test("brand channel registry resolves preview and render assets with legacy Aure
   assert.equal(montelia.logo.previewPath, "logo-secondary.webm");
   assert.equal(montelia.logo.renderPath, "overlays/logo-secondary.mp4");
   assert.equal(montelia.outro.assetId, "brand-outro-secondary");
-  assert.equal(montelia.outro.previewPath, "outro-secondary.webm");
+  assert.equal(montelia.outro.previewPath, "outro-secondary.mp4");
   assert.equal(montelia.outro.renderPath, "overlays/outro-secondary.mp4");
   assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-secondary", kind: "logo" }), "./assets/logo-secondary.webm");
 
@@ -384,11 +384,11 @@ test("brand channel registry resolves preview and render assets with legacy Aure
   assert.equal(finalBrand.logo.previewPath, "logo-final.png");
   assert.equal(finalBrand.logo.renderPath, "overlays/logo-final.png");
   assert.equal(finalBrand.outro.assetId, "brand-outro-final");
-  assert.equal(finalBrand.outro.previewPath, "outro-final.webm");
+  assert.equal(finalBrand.outro.previewPath, "outro-final.mp4");
   assert.equal(finalBrand.outro.renderPath, "overlays/outro-final.mp4");
   assert.equal(finalBrand.outro.durationSeconds, 30.12);
   assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-final", kind: "logo" }), "./assets/logo-final.png");
-  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-final", kind: "outro" }), "./assets/outro-final.webm");
+  assert.equal(resolveBrandChannelPreviewAssetUrl({ channel: "demo-final", kind: "outro" }), "./assets/outro-final.mp4");
 
   const fallback = resolveBrandChannelAssets(null);
   assert.equal(fallback.channel, "demo-primary");
@@ -428,7 +428,7 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
   assert.equal(aurenia.assets["brand-logo-primary"].previewUrl, "./assets/logo-primary.webm");
   assert.equal(aurenia.assets["brand-logo-primary"].renderPath, "overlays/logo-primary.webm");
   assert.equal(aurenia.globalLayers.outro.assetId, "brand-outro-primary");
-  assert.equal(aurenia.assets["brand-outro-primary"].previewUrl, "./assets/outro-primary.webm");
+  assert.equal(aurenia.assets["brand-outro-primary"].previewUrl, "./assets/outro-primary.mp4");
   assert.equal(aurenia.assets["brand-outro-primary"].renderPath, "overlays/outro-primary.mp4");
 
   assert.equal(montelia.brandChannel, "demo-secondary");
@@ -445,7 +445,7 @@ test("approval editor V1 contract seeds brand channel assets and changes hash by
   assert.equal(finalBrand.globalLayers.outro.assetId, "brand-outro-final");
   assert.equal(finalBrand.assets["brand-logo-final"].previewUrl, "./assets/logo-final.png");
   assert.equal(finalBrand.assets["brand-logo-final"].renderPath, "overlays/logo-final.png");
-  assert.equal(finalBrand.assets["brand-outro-final"].previewUrl, "./assets/outro-final.webm");
+  assert.equal(finalBrand.assets["brand-outro-final"].previewUrl, "./assets/outro-final.mp4");
   assert.equal(finalBrand.assets["brand-outro-final"].renderPath, "overlays/outro-final.mp4");
   assert.equal(finalBrand.assets["brand-outro-final"].durationSeconds, 30.12);
   assert.notEqual(computeApprovalSnapshotHash(aurenia), computeApprovalSnapshotHash(finalBrand));

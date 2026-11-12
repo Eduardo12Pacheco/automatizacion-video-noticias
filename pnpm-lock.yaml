@@ -12,15 +12,6 @@ importers:
         specifier: 1.65.0
         version: 1.65.0
 
-  apps/panel:
-    dependencies:
-      '@newsroom/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
-      '@newsroom/renderer':
-        specifier: workspace:*
-        version: link:../../services/renderer
-
   apps/api:
     dependencies:
       '@newsroom/adapters':
@@ -36,7 +27,23 @@ importers:
         specifier: ^3.0.3
         version: 3.0.3
 
-  packages/adapters: {}
+  apps/panel:
+    dependencies:
+      '@newsroom/approval-editor':
+        specifier: workspace:*
+        version: link:../../services/approval-editor
+      '@newsroom/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@newsroom/renderer':
+        specifier: workspace:*
+        version: link:../../services/renderer
+
+  packages/adapters:
+    devDependencies:
+      '@newsroom/data':
+        specifier: workspace:*
+        version: link:../data
 
   packages/contracts: {}
 
@@ -47,6 +54,12 @@ importers:
       pg:
         specifier: ^8.16.0
         version: 8.23.1
+
+  services/approval-editor:
+    dependencies:
+      '@newsroom/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
 
   services/demo-worker: {}
 

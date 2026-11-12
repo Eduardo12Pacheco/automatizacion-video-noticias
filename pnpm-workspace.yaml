@@ -5,6 +5,7 @@ packages:
   - "packages/core"
   - "packages/adapters"
   - "services/renderer"
+  - "services/approval-editor"
   - "services/demo-worker"
   - "services/subtitles"
   - "packages/data"

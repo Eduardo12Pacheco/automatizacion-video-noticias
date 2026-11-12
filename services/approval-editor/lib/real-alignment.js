@@ -11,7 +11,7 @@ const DEFAULT_LOCAL_WHISPER_MODEL = path.resolve(__dirname, '..', '..', '..', '.
 // mounts the same code at `/app/apps/panel/...` with the engine at
 // `/app/services/renderer`. The env override is authoritative when set.
 const VIDEO_ENGINE_ROOT = path.resolve(
-  process.env.APPROVAL_EDITOR_VIDEO_ENGINE_ROOT || path.join(__dirname, '..', '..', '..', '..', 'services/renderer'),
+  process.env.APPROVAL_EDITOR_VIDEO_ENGINE_ROOT || path.join(__dirname, '..', '..', '..', 'services/renderer'),
 );
 
 function createAlignmentError(code, message, details) {

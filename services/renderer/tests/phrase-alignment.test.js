@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { alignPhrasesToTranscript } = require("../../../packages/contracts/approval-contract-pipeline/phrase-alignment");
+const { alignPhrasesToTranscript } = require("@newsroom/contracts/approval-contract-pipeline/phrase-alignment");
 
 test("alignPhrasesToTranscript usa timestamps reales de palabras", () => {
   const phrases = [

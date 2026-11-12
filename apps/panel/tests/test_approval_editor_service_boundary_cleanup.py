@@ -11,7 +11,7 @@ def read(relative_path: str) -> str:
 
 
 def test_approval_editor_service_lives_under_services_boundary_only():
-    new_service = ROOT / "services" / "approval-editor"
+    new_service = WORKSPACE / "services" / "approval-editor"
     old_service = ROOT / "approval-editor-service"
 
     assert (new_service / "server.js").is_file()
@@ -20,17 +20,23 @@ def test_approval_editor_service_lives_under_services_boundary_only():
     assert not any(old_service.rglob("*"))
 
 
+def test_panel_composition_assets_come_from_the_api_bootstrap():
+    overlay_source = read("apps/panel/js/modules/features/video-projects/composition/overlay-assets.js")
+    main_source = read("apps/panel/js/main.js")
+    assert "127.0.0.1:3042" not in overlay_source
+    assert "COMPOSITION_LOCAL_OVERLAY_BASE_URL" not in overlay_source
+    assert "configureCompositionAssetBaseUrl" in main_source
+    assert "asset_base_url" in main_source
+
+
 def test_active_import_consumers_resolve_approval_editor_from_new_boundary():
     consumers = {
         "apps/panel/js/modules/__checks__/approval-editor-service-timings.check.cjs": [
-            "../../../services/approval-editor/server.js",
-            "../../../services/approval-editor/lib/real-alignment.js",
+            "@newsroom/approval-editor/server",
+            "@newsroom/approval-editor/lib/real-alignment",
         ],
         "apps/panel/js/modules/features/video-projects/__checks__/video-segment-picker-ux.check.mjs": [
             "@newsroom/contracts/editor/contract-updates",
-        ],
-        "services/renderer/tests/approval-editor-service-v1.test.js": [
-            "../../../apps/panel/services/approval-editor/server",
         ],
         "services/renderer/scripts/services/approval-pipeline-local-service.js": [
             "@newsroom/contracts/editor/contract-updates",
@@ -47,23 +53,23 @@ def test_active_import_consumers_resolve_approval_editor_from_new_boundary():
 
 
 def test_runtime_projects_data_is_ignored_at_new_service_path():
-    assert "apps/panel/services/approval-editor/projects/" in read(".gitignore")
+    assert "services/approval-editor/projects/" in read(".gitignore")
     assert "services/approval-editor/projects/" in read("apps/panel/.gitignore")
 
 
 def test_active_docs_show_new_service_path_and_manual_snapshot_migration():
     control_panel_readme = read("apps/panel/README.md")
-    service_readme = read("apps/panel/services/approval-editor/README.md")
+    service_readme = read("services/approval-editor/README.md")
 
     combined = f"{control_panel_readme}\n{service_readme}"
-    assert "apps/panel/services/approval-editor/" in combined
+    assert "services/approval-editor/" in combined
     assert "node .\\services\\approval-editor\\server.js" in combined
     assert "apps/panel/approval-editor-service/projects/" in combined
-    assert "apps/panel/services/approval-editor/projects/" in combined
+    assert "services/approval-editor/projects/" in combined
 
 
 def test_approval_editor_docs_require_explicit_python_bin_for_services():
-    service_readme = read("apps/panel/services/approval-editor/README.md")
+    service_readme = read("services/approval-editor/README.md")
 
     assert '$env:REMOTION_EDITOR_PYTHON_BIN = "py"' not in service_readme
     assert '$env:REMOTION_EDITOR_PYTHON_BIN = "<PYTHON_EXE>"' in service_readme
@@ -76,7 +82,7 @@ def test_approval_editor_project_audio_previews_are_cacheable_for_editor_reopen(
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createApprovalEditorService } = require('./services/approval-editor/server.js');
+const { createApprovalEditorService } = require('@newsroom/approval-editor/server');
 
 (async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-cache-'));
@@ -126,7 +132,7 @@ def test_approval_editor_creation_canonically_defaults_boundary_transitions():
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createApprovalEditorService } = require('./services/approval-editor/server.js');
+const { createApprovalEditorService } = require('@newsroom/approval-editor/server');
 
 (async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-boundary-defaults-'));
@@ -199,7 +205,7 @@ const { createApprovalEditorService } = require('./services/approval-editor/serv
 
 def test_video_engine_render_scaffold_preserves_boundary_transition_metadata():
     script = r"""
-const { buildMinimalRenderScaffold } = require('./services/approval-editor/lib/video-engine-render-adapter.js');
+const { buildMinimalRenderScaffold } = require('@newsroom/renderer/render-adapter');
 
 const scaffold = buildMinimalRenderScaffold({
   projectId: 'render-boundary-project',
@@ -229,7 +235,7 @@ if (row.transitionConfig?.assetId !== 'transition-1') throw new Error(`expected 
 
 def test_approval_editor_set_boundary_transition_none_preserves_manual_removal():
     script = r"""
-const { applyContractOperations } = require('./services/approval-editor/lib/contract-updates.js');
+const { applyContractOperations } = require('@newsroom/contracts/editor/contract-updates');
 
 const snapshot = {
   projectId: 'boundary-none-project',
@@ -263,7 +269,7 @@ if (next.snapshotHash === 'h1') throw new Error('expected snapshot hash to chang
 
 def test_approval_editor_set_row_video_segment_uses_http_asset_id_as_renderable_source():
     script = r"""
-const { applyContractOperations } = require('./services/approval-editor/lib/contract-updates.js');
+const { applyContractOperations } = require('@newsroom/contracts/editor/contract-updates');
 
 const sourceUrl = 'https://cdn.test/projects/demo/videos/source.mp4';
 const snapshot = {

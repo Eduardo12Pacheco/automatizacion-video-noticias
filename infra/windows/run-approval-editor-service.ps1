@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $workspaceRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$root = Join-Path $workspaceRoot 'apps\panel\services\approval-editor'
+$root = Join-Path $workspaceRoot 'services\approval-editor'
 $videoEngineRoot = Join-Path $workspaceRoot 'services/renderer'
 $node = 'C:\Program Files\nodejs\node.exe'
 $python = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"
@@ -13,7 +13,8 @@ if (-not (Test-Path -LiteralPath $node)) {
 }
 
 $env:APPROVAL_EDITOR_SERVICE_PORT = if ($env:APPROVAL_EDITOR_SERVICE_PORT) { $env:APPROVAL_EDITOR_SERVICE_PORT } else { '3042' }
-$env:APPROVAL_EDITOR_RENDER_ADAPTER = if ($env:APPROVAL_EDITOR_RENDER_ADAPTER) { $env:APPROVAL_EDITOR_RENDER_ADAPTER } else { '02-video-engine' }
+$env:APPROVAL_EDITOR_RENDER_ADAPTER = if ($env:APPROVAL_EDITOR_RENDER_ADAPTER) { $env:APPROVAL_EDITOR_RENDER_ADAPTER } else { 'http' }
+$env:APPROVAL_EDITOR_RENDERER_URL = if ($env:APPROVAL_EDITOR_RENDERER_URL) { $env:APPROVAL_EDITOR_RENDERER_URL } else { 'http://127.0.0.1:3042' }
 $env:APPROVAL_EDITOR_VIDEO_ENGINE_ROOT = if ($env:APPROVAL_EDITOR_VIDEO_ENGINE_ROOT) { $env:APPROVAL_EDITOR_VIDEO_ENGINE_ROOT } else { $videoEngineRoot }
 $env:APPROVAL_EDITOR_PYTHON_BIN = if ($env:APPROVAL_EDITOR_PYTHON_BIN) { $env:APPROVAL_EDITOR_PYTHON_BIN } elseif (Test-Path -LiteralPath $python) { $python } else { '' }
 $env:REMOTION_EDITOR_PYTHON_BIN = if ($env:REMOTION_EDITOR_PYTHON_BIN) { $env:REMOTION_EDITOR_PYTHON_BIN } elseif ($env:APPROVAL_EDITOR_PYTHON_BIN) { $env:APPROVAL_EDITOR_PYTHON_BIN } else { '' }

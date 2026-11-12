@@ -1,0 +1,19 @@
+{
+  "name": "@newsroom/approval-editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Approval editor HTTP service for local editor snapshots.",
+  "main": "server.js",
+  "exports": {
+    ".": "./server.js",
+    "./server": "./server.js",
+    "./lib/*": "./lib/*.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js __checks__/*.mjs"
+  },
+  "dependencies": {
+    "@newsroom/contracts": "workspace:*"
+  }
+}

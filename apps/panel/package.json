@@ -5,6 +5,7 @@
   "description": "Vanilla ES-module panel for the local newsroom API.",
   "dependencies": {
     "@newsroom/contracts": "workspace:*",
-    "@newsroom/renderer": "workspace:*"
+    "@newsroom/renderer": "workspace:*",
+    "@newsroom/approval-editor": "workspace:*"
   }
 }

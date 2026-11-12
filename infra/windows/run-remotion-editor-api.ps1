@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$root = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'apps\panel'
+$root = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) ''
 $node = 'C:\Program Files\nodejs\node.exe'
 
 if (-not (Test-Path -LiteralPath $node)) {

@@ -4,16 +4,14 @@ import {
   Img,
   OffthreadVideo,
   Sequence,
-  cancelRender,
-  continueRender,
-  delayRender,
   interpolate,
   staticFile,
   useCurrentFrame,
 } from "remotion";
-import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { resolveCoverPanLayer } from "./cover-pan-layer";
+import { NewspaperScene } from "./newspaper-scene";
+import { resolveMotionRange } from "./motion-range";
 
 type OverlayVideoLayer = {
   src?: string | null;
@@ -143,33 +141,6 @@ const isLogoFrameSequenceSource = (src?: string | null) => /logo-[a-z0-9-]+-alph
 const isFinalLogoSource = (src?: string | null) => /logo-final\.png$/i.test(src || "");
 const logoFrameSequenceSrc = (src: string, frame: number) => `${src}/frame-${String(frame % 900).padStart(4, "0")}.png`;
 
-const resolveMotionRange = (motion?: TimelineSegment["motion"] | null) => {
-  if (motion && typeof motion === "object") {
-    return {
-      fromScale: motion.fromScale ?? 1,
-      toScale: motion.toScale ?? 1,
-      fromX: motion.fromX ?? 0,
-      fromY: motion.fromY ?? 0,
-      toX: motion.toX ?? 0,
-      toY: motion.toY ?? 0,
-    };
-  }
-  const normalized = (motion || "").toString().trim().toLowerCase();
-
-  if (normalized === "still" || normalized === "none") return { fromScale: 1, toScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-  if (normalized === "slow-zoom") return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-  if (normalized === "slow-zoom-out") return { fromScale: 1.08, toScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-  if (normalized === "slow-zoom-in") return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-  if (normalized === "pan-left") return { fromScale: 1.1, toScale: 1.1, fromX: 72, fromY: 0, toX: -72, toY: 0 };
-  if (normalized === "pan-right") return { fromScale: 1.1, toScale: 1.1, fromX: -72, fromY: 0, toX: 72, toY: 0 };
-
-  // Unknown values fallback to slow-zoom-in.
-  return { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-};
-
-const NEWSPAPER_LABEL_LINES = ["RECREACIÓN", "ARTÍSTICA"];
-const NEWSPAPER_MOTION = { fromScale: 1, toScale: 1.1, fromX: 0, fromY: 0, toX: 0, toY: 0 };
-const NEWSPAPER_BACKGROUND_BLUR = 15;
 
 const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFrom: number }) => {
   if (!layer?.src) {
@@ -497,129 +468,6 @@ const VideoSegmentScene = ({
           style={{ width: "100%", height: "100%", objectFit: "contain", transform: `translate(${foregroundTransform.x}px, ${foregroundTransform.y}px) scale(${foregroundTransform.scale})`, transformOrigin: "center center" }}
         />
       </Sequence>
-    </AbsoluteFill>
-  );
-};
-
-const NEWSPAPER_LOCAL_FONT_FAMILY = "Demo Display";
-const NEWSPAPER_LOCAL_FONT_URL = staticFile("fonts/display/Demo-Display.woff2");
-const NEWSPAPER_LABEL_FONT_FAMILY = "\"Demo Display\", Inter, Arial, sans-serif";
-const NEWSPAPER_LABEL_FONT_SIZE = 40;
-const NEWSPAPER_LABEL_LINE_HEIGHT = 1.12;
-const NEWSPAPER_LABEL_TOP = 40;
-const NEWSPAPER_LABEL_RIGHT = 40;
-const NEWSPAPER_FONT_FACE_CSS = `@font-face {
-  font-family: "${NEWSPAPER_LOCAL_FONT_FAMILY}";
-  src: url("${NEWSPAPER_LOCAL_FONT_URL}") format("woff2");
-  font-style: normal;
-  font-weight: 900;
-  font-display: block;
-}`;
-
-const useNewspaperFont = () => {
-  const [fontHandle] = useState(() => delayRender("Loading Demo Display newspaper font"));
-
-  useEffect(() => {
-    if (typeof document === "undefined" || typeof FontFace === "undefined") {
-      continueRender(fontHandle);
-      return;
-    }
-
-    const font = new FontFace(
-      NEWSPAPER_LOCAL_FONT_FAMILY,
-      `url("${NEWSPAPER_LOCAL_FONT_URL}") format("woff2")`,
-      { style: "normal", weight: "900" },
-    );
-
-    font
-      .load()
-      .then((loadedFont) => {
-        document.fonts.add(loadedFont);
-        return document.fonts.load(`900 ${NEWSPAPER_LABEL_FONT_SIZE}px "${NEWSPAPER_LOCAL_FONT_FAMILY}"`);
-      })
-      .then(() => continueRender(fontHandle))
-      .catch((error) => cancelRender(error));
-  }, [fontHandle]);
-};
-
-const NewspaperScene = ({
-  segment,
-  frame,
-  durationInFrames,
-}: {
-  segment: TimelineSegment;
-  frame: number;
-  durationInFrames: number;
-}) => {
-  useNewspaperFont();
-  const motionRange = segment.newspaper?.foregroundMotion ? resolveMotionRange(segment.newspaper.foregroundMotion) : NEWSPAPER_MOTION;
-  const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const x = interpolate(frame, [0, durationInFrames], [motionRange.fromX, motionRange.toX], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const y = interpolate(frame, [0, durationInFrames], [motionRange.fromY, motionRange.toY], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  return (
-    <AbsoluteFill>
-      <style>{NEWSPAPER_FONT_FACE_CSS}</style>
-      <Img
-        data-layer="newspaper-background"
-        src={staticFile(segment.image)}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center top",
-          filter: `blur(${NEWSPAPER_BACKGROUND_BLUR}px)`,
-          transform: "scale(1.08)",
-        }}
-      />
-      <Img
-        data-layer="newspaper-foreground"
-        src={staticFile(segment.image)}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "contain",
-          objectPosition: "center center",
-          transform: `translate3d(${x}px, ${y}px, 0) scale(${scale})`,
-          transformOrigin: "center center",
-        }}
-      />
-      {segment.newspaper?.labelEnabled === false ? null : <div
-        data-layer="newspaper-artistic-label"
-        style={{
-          position: "absolute",
-          left: "auto",
-          right: NEWSPAPER_LABEL_RIGHT,
-          top: NEWSPAPER_LABEL_TOP,
-          color: "#000",
-          background: "transparent",
-          padding: 0,
-          borderRadius: 0,
-          fontFamily: NEWSPAPER_LABEL_FONT_FAMILY,
-          fontSize: NEWSPAPER_LABEL_FONT_SIZE,
-          fontWeight: 900,
-          lineHeight: NEWSPAPER_LABEL_LINE_HEIGHT,
-          textAlign: "center",
-          letterSpacing: "0.02em",
-          transform: "none",
-          whiteSpace: "pre-line",
-        }}
-      >
-        {NEWSPAPER_LABEL_LINES.join("\n")}
-      </div>}
     </AbsoluteFill>
   );
 };

@@ -4,18 +4,15 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const { adaptCompositionContractToRenderProps, buildWhipRenderEvents } = require("../scripts/lib/contracts/composition-contract");
-const { computeApprovalSnapshotHash } = require("../../../packages/contracts/approval-contract-pipeline");
+const { computeApprovalSnapshotHash } = require("@newsroom/contracts/approval-contract-pipeline");
 
 function loadCompositionMotionResolver() {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const start = source.indexOf("const resolveMotionRange = ");
-  assert.notEqual(start, -1, "Composition.tsx must define resolveMotionRange");
-  const end = source.indexOf(";\n\nconst DustOverlay", start);
-  assert.notEqual(end, -1, "Composition.tsx motion resolver extraction boundary changed");
-  const snippet = source
-    .slice(start, end + 1)
-    .replace(/\?: TimelineSegment\["motion"\] \| null/, "");
-  return Function(`${snippet}; return resolveMotionRange;`)();
+  let source = fs.readFileSync(path.join(__dirname, "../src/remotion/motion-range.ts"), "utf8");
+  source = source.slice(source.indexOf("export const resolveMotionRange"));
+  source = source.replace("export const resolveMotionRange", "const resolveMotionRange");
+  source = source.replace(/\(motion\?: MotionSource \| string \| null\)/, "(motion)");
+  assert.match(source, /const resolveMotionRange = /, "motion-range.ts must define resolveMotionRange");
+  return Function(`${source}; return resolveMotionRange;`)();
 }
 
 function loadPreviewMotionResolver() {
@@ -1105,7 +1102,9 @@ test("Remotion final image and overlay source keeps preview fidelity rules", () 
 });
 
 test("Remotion composition source contains newspaper visual mode parity branch", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const compositionSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
+  const newspaperSource = fs.readFileSync(path.join(__dirname, "../src/remotion/newspaper-scene.tsx"), "utf8");
+  const source = `${compositionSource}\n${newspaperSource}`;
   const localFontPath = path.join(__dirname, "../public/fonts/display/Demo-Display.woff2");
 
   assert.ok(fs.existsSync(localFontPath), "Remotion render must ship the local Demo Display WOFF2 font asset");

@@ -53,7 +53,7 @@ recovery-artifacts/
 infra/windows/logs/
 profesor/data/runtime/
 subtitles-local-minimal/runtime-remote/
-apps/panel/services/approval-editor/projects/
+services/approval-editor/projects/
 services/renderer/projects/
 services/renderer/public/generated/
 services/tts-worker/output/

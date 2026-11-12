@@ -27,7 +27,7 @@
   "scripts": {
     "dev": "remotion studio",
     "build": "remotion bundle",
-    "check:render-boundary": "node --test tests/render-only-boundary.test.js",
+    "check:render-boundary": "node --test tests/render-only-boundary.test.js tests/video-engine-render-adapter.test.js",
     "lint": "eslint src && tsc",
     "render:video": "node scripts/render-video.js",
     "test": "node --test",
@@ -35,13 +35,15 @@
     "approval:service:local": "node scripts/approval-pipeline-local-service.js",
     "legacy:approval-service:local": "node scripts/approval-pipeline-local-service.js",
     "legacy:diagnose:stt": "py scripts/transcribe-audio.py --diagnose-backends",
-    "legacy:install:python-deps": "py -m pip install -r requirements.txt"
+    "legacy:install:python-deps": "py -m pip install -r requirements.txt",
+    "render:server": "node scripts/render/render-server.js"
   },
   "sideEffects": [
     "*.css"
   ],
   "exports": {
     ".": "./scripts/render-video.js",
-    "./approval-pipeline-local-service": "./scripts/services/approval-pipeline-local-service.js"
+    "./approval-pipeline-local-service": "./scripts/services/approval-pipeline-local-service.js",
+    "./render-adapter": "./scripts/lib/render/video-engine-render-adapter.js"
   }
 }
