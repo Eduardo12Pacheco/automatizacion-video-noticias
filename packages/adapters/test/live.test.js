@@ -6,7 +6,12 @@ import { LocalDocumentExport } from '../src/document-export.js';
 import { SearxngWikimediaImageSearch } from '../src/image-search.js';
 import { OllamaLLMAdapter } from '../src/llm.js';
 import { RssChannelFeedAdapter } from '../src/rss.js';
+import { SmtpNotificationAdapter } from '../src/notification.js';
+import { YtDlpMediaDownload } from '../src/media-download.js';
 import { N8nWorkflowTrigger } from '../src/workflow-trigger.js';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const live = process.env.NEWSROOM_LIVE_TESTS === '1';
 const skip = live ? false : 'set NEWSROOM_LIVE_TESTS=1 to run the live adapter checks';
@@ -56,4 +61,21 @@ test('live: optional n8n webhook accepts a trigger', { skip: live && process.env
   const adapter = new N8nWorkflowTrigger({ baseUrl: process.env.N8N_WEBHOOK_BASE_URL });
   const result = await adapter.trigger(process.env.N8N_LIVE_WORKFLOW || 'health', { ping: true });
   assert.equal(result.status, 'triggered');
+});
+
+test('live: SMTP notification reaches Mailpit', { skip: live ? false : skip }, async () => {
+  const adapter = new SmtpNotificationAdapter({
+    host: process.env.SMTP_HOST || '127.0.0.1',
+    port: Number(process.env.SMTP_PORT || 1025),
+    from: 'newsroom@example.local',
+  });
+  const result = await adapter.send({ to: 'editor@example.local', subject: 'Live SMTP check', text: 'Local delivery.' });
+  assert.equal(result.status, 'sent');
+});
+
+test('live: yt-dlp downloads a configured media URL', { skip: live && process.env.NEWSROOM_LIVE_MEDIA_URL ? false : 'set NEWSROOM_LIVE_TESTS=1 and NEWSROOM_LIVE_MEDIA_URL to run' }, async () => {
+  const adapter = new YtDlpMediaDownload({ timeoutMs: 120_000 });
+  const dir = await mkdtemp(join(tmpdir(), 'newsroom-live-media-'));
+  const result = await adapter.download({ url: process.env.NEWSROOM_LIVE_MEDIA_URL, jobDir: dir });
+  assert.ok(result.path);
 });
