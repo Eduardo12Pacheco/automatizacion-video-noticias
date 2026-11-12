@@ -49,6 +49,22 @@ class PortsAndAdaptersTest(unittest.TestCase):
         for name in ("DemoTTSAdapter", "DemoASRAdapter", "DemoTranslationAdapter", "DemoVideoRendererAdapter", "DemoAuthAdapter"):
             self.assertIn(f"export class {name}", demo_source)
 
+
+    def test_runtime_code_has_no_unfinished_markers(self) -> None:
+        marker = re.compile(r"\b(?:TODO|FIXME)\b|not implemented|NotImplemented")
+        violations = []
+        for path in tracked_files((".js", ".mjs", ".cjs", ".py", ".ts", ".tsx")):
+            relative = path.relative_to(ROOT).as_posix()
+            if not relative.startswith(("apps/", "packages/", "services/")):
+                continue
+            if "/tests/" in relative or "/test/" in relative or "/__checks__/" in relative:
+                continue
+            source = path.read_text(encoding="utf-8", errors="ignore")
+            for line_number, line in enumerate(source.splitlines(), 1):
+                if marker.search(line):
+                    violations.append(f"{path.relative_to(ROOT)}:{line_number}")
+        self.assertEqual(violations, [], f"unfinished runtime markers: {violations}")
+
     def test_no_cross_package_relative_imports_remain(self) -> None:
         violations = []
         for path in tracked_files((".js", ".mjs", ".cjs")):

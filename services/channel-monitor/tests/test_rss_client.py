@@ -12,27 +12,8 @@ from app.rss_client import (
 )
 from app.youtube_client import MetadataUnavailable
 
-FEED_XML = """<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"
-      xmlns:yt="http://www.youtube.com/xml/schemas/2015"
-      xmlns:media="http://search.yahoo.com/mrss/">
-  <title>Demo Sports News</title>
-  <entry>
-    <id>yt:video:video-1</id>
-    <yt:videoId>video-1</yt:videoId>
-    <yt:channelId>UCdemoChannel123</yt:channelId>
-    <title>Gol de demostración</title>
-    <published>2026-01-01T10:00:00+00:00</published>
-  </entry>
-  <entry>
-    <id>yt:video:video-2</id>
-    <yt:videoId>video-2</yt:videoId>
-    <yt:channelId>UCdemoChannel123</yt:channelId>
-    <title>Segundo partido</title>
-    <published>2026-01-02T10:00:00+00:00</published>
-  </entry>
-</feed>
-"""
+FIXTURES = Path(__file__).resolve().parents[3] / "packages" / "test-fixtures" / "rss"
+FEED_XML = (FIXTURES / "youtube-channel-feed.xml").read_text(encoding="utf-8")
 
 
 class _Response:
