@@ -19,7 +19,7 @@ from .store import ChannelRecord, MonitorCardRecord, MonitorStore
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, load_title_catalog, normalize_country
 from .transcript_service_client import TranscriptServiceSubtitleProvider
 from .workers import ClassificationService, CatchupWorker, CleanupWorker, DiscoveryWorker, EnqueueWorker, TranscriptSyncWorker, WebSubRenewalWorker
-from .youtube_client import CallbackValidationError, CompositeSubtitleProvider, WebSubClient, YouTubeDataClient, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider, parse_websub_video_ids, validate_websub_callback
+from .youtube_client import CallbackValidationError, CompositeSubtitleProvider, WebSubClient, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider, parse_websub_video_ids, validate_websub_callback
 
 
 def _error(code: str, message: str, status_code: int) -> HTTPException:
