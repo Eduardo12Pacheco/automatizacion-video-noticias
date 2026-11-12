@@ -151,14 +151,20 @@ nr_purge_confirmed() {
     nr_warn "force-purge: deleting volumes, local models and .env without confirmation"
     return 0
   fi
-  if [ "$NR_YES" = "1" ]; then
-    nr_warn "purge requires the typed confirmation; pass --force-purge for non-interactive use"
-    return 1
-  fi
   local answer=""
-  printf "Type 'delete' to permanently delete volumes, local models and .env: " >&2
+  if [ -t 0 ] && [ -t 2 ]; then
+    printf "Type 'delete' to permanently delete volumes, local models and .env: " >&2
+  else
+    # Non-interactive stdin may still carry a deliberate confirmation (tests,
+    # automation), but never block forever waiting for one.
+    local probe=""
+    if ! IFS= read -r -t 0 probe; then
+      nr_warn "purge requires the typed confirmation; pass --force-purge for non-interactive use"
+      return 1
+    fi
+  fi
   if ! IFS= read -r answer; then
-    nr_warn "no confirmation input; keeping volumes, local models and .env"
+    nr_warn "no confirmation input; keeping volumes, local models and .env (pass --force-purge for non-interactive use)"
     return 1
   fi
   if [ "$answer" != "delete" ]; then
