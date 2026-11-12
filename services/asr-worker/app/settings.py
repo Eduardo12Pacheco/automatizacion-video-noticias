@@ -21,6 +21,14 @@ def _parse_int(value: str, *, default: int) -> int:
         return default
 
 
+def _parse_float(value: str, *, default: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
 def _optional_path_env(name: str, default: Path) -> Path | None:
     value = os.environ.get(name, str(default)).strip()
     return Path(value) if value else None
@@ -51,6 +59,11 @@ class Settings:
     transcript_remote_fetcher_token: str | None = None
     subprocess_timeout_seconds: int = 1800
     cleanup_ttl_seconds: int = DEFAULT_CLEANUP_TTL_SECONDS
+    cpu_fallback: bool = True
+    cpu_fallback_model: str = "small"
+    cpu_fallback_compute_type: str = "int8"
+    gpu_lock_path: str | None = None
+    gpu_lock_timeout_seconds: float = 300.0
 
     @property
     def whisper_model_source(self) -> str:
@@ -84,5 +97,14 @@ def load_settings() -> Settings:
         cleanup_ttl_seconds=_parse_int(
             os.environ.get("TRANSCRIPT_SERVICE_CLEANUP_TTL_SECONDS", str(DEFAULT_CLEANUP_TTL_SECONDS)),
             default=DEFAULT_CLEANUP_TTL_SECONDS,
+        ),
+        cpu_fallback=os.environ.get("TRANSCRIPT_SERVICE_CPU_FALLBACK", "1").strip().lower()
+        not in {"0", "false", "no", "off"},
+        cpu_fallback_model=os.environ.get("TRANSCRIPT_SERVICE_CPU_FALLBACK_MODEL", "small"),
+        cpu_fallback_compute_type=os.environ.get("TRANSCRIPT_SERVICE_CPU_FALLBACK_COMPUTE_TYPE", "int8"),
+        gpu_lock_path=(os.environ.get("NEWSROOM_GPU_LOCK_PATH") or "").strip() or None,
+        gpu_lock_timeout_seconds=_parse_float(
+            os.environ.get("NEWSROOM_GPU_LOCK_TIMEOUT_SECONDS", "300"),
+            default=300.0,
         ),
     )

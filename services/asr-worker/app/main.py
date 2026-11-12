@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -10,7 +11,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from .audio import FfmpegAudioExtractor
 from .catalog import get_catalog_summary
 from .downloader import RemoteFetcherDownloader, YtDlpDownloader, validate_media_url
-from .models import HealthResponse, HistoryResponse, JobCreateRequest, JobCreateResponse
+from .models import HealthResponse, HistoryResponse, JobCreateRequest, JobCreateResponse, TranscribeRequest, TranscribeResponse
 from .preflight import PreflightChecker, collect_preflight_failures
 from .settings import Settings, load_settings
 from .store import JobStore, JobStoreError
@@ -75,17 +76,19 @@ def create_app(
     store: JobStore | None = None,
     worker: Any | None = None,
     preflight_checker: Any | None = None,
+    transcriber: Any | None = None,
 ) -> FastAPI:
     settings = settings or load_settings()
     store = store or JobStore(settings.runtime_dir)
     store.cleanup_expired_job_artifacts(ttl_seconds=settings.cleanup_ttl_seconds)
     store.recover_orphaned_active_jobs()
+    transcriber = transcriber or FasterWhisperTranscriber(settings=settings)
     worker = worker or TranscriptWorker(
         settings=settings,
         store=store,
         downloader=create_downloader(settings),
         audio_extractor=FfmpegAudioExtractor(binary=settings.ffmpeg_binary, timeout_seconds=settings.subprocess_timeout_seconds),
-        transcriber=FasterWhisperTranscriber(settings=settings),
+        transcriber=transcriber,
     )
     preflight_checker = preflight_checker or PreflightChecker(settings)
     app = FastAPI(title="transcript-service-radar", version="0.1.0")
@@ -148,6 +151,25 @@ def create_app(
         )
         worker.enqueue(job.job_id)
         return JobCreateResponse(job_id=job.job_id, status=job.status)
+
+    @app.post("/api/radar/transcribe", response_model=TranscribeResponse)
+    async def transcribe_audio(request: TranscribeRequest) -> TranscribeResponse:
+        audio_path = Path(request.audio_path)
+        if audio_path.suffix.lower() not in {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".opus", ".mp4", ".mkv", ".webm"}:
+            raise _error("unsupported_audio_format", "Unsupported audio file extension", 422)
+        if not audio_path.is_file():
+            raise _error("audio_not_found", "Audio file was not found on the worker host", 404)
+        try:
+            segments, language = transcriber.transcribe(audio_path)
+        except DependencyFailure as exc:
+            status_code = 409 if exc.code == "gpu_busy" else 503
+            raise _error(exc.code, exc.message, status_code) from exc
+        return TranscribeResponse(
+            segments=segments,
+            language=language,
+            device=getattr(transcriber, "device", None),
+            fallback_used=bool(getattr(transcriber, "fallback_used", False)),
+        )
 
     @app.get("/api/radar/catalog")
     async def catalog() -> dict[str, Any]:

@@ -7,6 +7,7 @@ dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn[standard]>=0.29,<1",
   "pydantic>=2,<3",
+  "newsroom-worker-common",
 ]
 
 [project.optional-dependencies]
@@ -14,6 +15,9 @@ asr = ["faster-whisper>=1.1"]
 fetch = ["yt-dlp>=2025.1"]
 dev = ["pytest>=8", "httpx>=0.27"]
 
+[tool.uv.sources]
+newsroom-worker-common = { path = "../../packages/python/newsroom_worker_common" }
+
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = [".", "../../packages/python/newsroom_worker_common"]
 testpaths = ["tests"]

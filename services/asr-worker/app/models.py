@@ -42,6 +42,18 @@ class TranscriptSegment(BaseModel):
     text: str
 
 
+class TranscribeRequest(BaseModel):
+    audio_path: str
+    language: str | None = None
+
+
+class TranscribeResponse(BaseModel):
+    segments: list[TranscriptSegment] = Field(default_factory=list)
+    language: str | None = None
+    device: str | None = None
+    fallback_used: bool = False
+
+
 class TranscriptArtifact(BaseModel):
     segments: list[TranscriptSegment] = Field(default_factory=list)
     text: str = ""

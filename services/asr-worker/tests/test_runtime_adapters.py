@@ -521,3 +521,122 @@ def test_remote_only_downloader_does_not_invoke_local_yt_dlp_on_remote_failure(t
         downloader.download("https://youtu.be/abc", tmp_path)
 
     assert failure.value.code == "remote_fetcher_http_error"
+
+
+class _RecordingSlot:
+    def __init__(self):
+        self.acquired = 0
+        self.released = 0
+
+    def acquire(self):
+        self.acquired += 1
+        return self
+
+    def release(self):
+        self.released += 1
+
+
+def test_faster_whisper_transcriber_falls_back_to_cpu_small_model_when_gpu_load_fails():
+    calls: list[dict[str, str]] = []
+
+    class FakeSegment:
+        start = 0.0
+        end = 1.0
+        text = " hola "
+
+    class FakeInfo:
+        language = "es"
+
+    class FakeModel:
+        def transcribe(self, audio_path: str):
+            return [FakeSegment()], FakeInfo()
+
+    def model_factory(model: str, *, device: str, compute_type: str):
+        calls.append({"model": model, "device": device, "compute_type": compute_type})
+        if device == "cuda":
+            raise RuntimeError("CUDA out of memory")
+        return FakeModel()
+
+    settings = Settings(
+        api_key="test-key",
+        runtime_dir=Path("runtime"),
+        whisper_model="large-v3",
+        device="cuda",
+        compute_type="float16",
+        cpu_fallback=True,
+        cpu_fallback_model="small",
+        cpu_fallback_compute_type="int8",
+    )
+    transcriber = FasterWhisperTranscriber(settings=settings, model_factory=model_factory, gpu_slot=_RecordingSlot())
+
+    segments, language = transcriber.transcribe(Path("audio-16khz.wav"))
+
+    assert calls == [
+        {"model": "large-v3", "device": "cuda", "compute_type": "float16"},
+        {"model": "small", "device": "cpu", "compute_type": "int8"},
+    ]
+    assert transcriber.fallback_used is True
+    assert transcriber.device == "cpu"
+    assert segments[0].text == "hola"
+    assert language == "es"
+
+
+def test_faster_whisper_transcriber_can_disable_cpu_fallback():
+    def model_factory(model: str, *, device: str, compute_type: str):
+        raise RuntimeError("CUDA unavailable")
+
+    settings = Settings(
+        api_key="test-key",
+        runtime_dir=Path("runtime"),
+        device="cuda",
+        cpu_fallback=False,
+    )
+    transcriber = FasterWhisperTranscriber(settings=settings, model_factory=model_factory, gpu_slot=_RecordingSlot())
+
+    with pytest.raises(DependencyFailure) as failure:
+        transcriber.transcribe(Path("audio-16khz.wav"))
+
+    assert failure.value.code == "faster_whisper_failed"
+
+
+def test_faster_whisper_transcriber_serialises_inference_through_gpu_slot():
+    calls: list[str] = []
+
+    class FakeSegment:
+        start = 0.0
+        end = 1.0
+        text = "hola"
+
+    class FakeModel:
+        def transcribe(self, audio_path: str):
+            calls.append(f"transcribe:{slot.acquired}:{slot.released}")
+            return [FakeSegment()], object()
+
+    slot = _RecordingSlot()
+
+    def model_factory(model: str, *, device: str, compute_type: str):
+        calls.append("load")
+        return FakeModel()
+
+    settings = Settings(api_key="test-key", runtime_dir=Path("runtime"), device="cpu", compute_type="int8")
+    FasterWhisperTranscriber(settings=settings, model_factory=model_factory, gpu_slot=slot).transcribe(Path("audio.wav"))
+
+    assert calls == ["load", "transcribe:1:0"]
+    assert slot.released == 1
+
+
+def test_faster_whisper_transcriber_reports_gpu_busy_as_dependency_failure():
+    from newsroom_worker_common.gpu_slot import GpuSlotTimeout
+
+    class BusySlot:
+        def acquire(self):
+            raise GpuSlotTimeout(Path("/tmp/gpu.lock"), 1)
+
+        def release(self):
+            raise AssertionError("release must not run when acquire fails")
+
+    settings = Settings(api_key="test-key", runtime_dir=Path("runtime"))
+    with pytest.raises(DependencyFailure) as failure:
+        FasterWhisperTranscriber(settings=settings, gpu_slot=BusySlot()).transcribe(Path("audio.wav"))
+
+    assert failure.value.code == "gpu_busy"

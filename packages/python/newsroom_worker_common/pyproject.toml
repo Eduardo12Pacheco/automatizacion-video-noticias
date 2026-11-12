@@ -1,0 +1,20 @@
+[project]
+name = "newsroom-worker-common"
+version = "0.1.0"
+description = "Shared local-worker helpers: cross-process GPU slot and ASR client."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["newsroom_worker_common*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

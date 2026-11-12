@@ -13,7 +13,7 @@ import yaml
 
 from voice_tts_service.application.assemble import assemble_segments
 from voice_tts_service.domain.segmenter import SegmenterConfig, segment_text
-from voice_tts_service.infrastructure.qwen import QwenCloneEngine
+from voice_tts_service.infrastructure.engine_factory import create_tts_engine
 
 
 def parse_args() -> argparse.Namespace:
@@ -115,7 +115,11 @@ def main() -> None:
     segments = segment_text(raw_text, seg_cfg, pauses_cfg)
     print("PROGRESS|stage=loading_model|percent=10", flush=True)
     t_model_load_start = time.perf_counter()
-    engine = QwenCloneEngine(generation_cfg=generation_cfg, device=args.device)
+    engine, gpu_slot = create_tts_engine(generation_cfg, device=args.device)
+    if gpu_slot is not None:
+        import atexit
+
+        atexit.register(gpu_slot.release)
     print("PROGRESS|stage=preparing_reference|percent=20", flush=True)
     engine.prepare_reference(reference_audio_path=ref_audio_path, reference_text=reference_text)
     t_model_load_end = time.perf_counter()
@@ -145,7 +149,7 @@ def main() -> None:
     report = {
         "run_id": run_id, "input": str(input_path), "reference_audio": str(ref_audio_path), "reference_text": str(ref_text_path), "output": str(assembled_file),
         "sample_rate": int(assembled_sr), "sample_rate_native_model": int(sample_rate_last or assembled_sr), "model": model_name, "model_output_tag": model_tag,
-        "language": generation_cfg.get("language", "Spanish"), "preset_used": preset_used, "preset_values": preset_values, "segments": [s.to_dict() for s in segments],
+        "language": generation_cfg.get("language", "Spanish"), "engine": type(engine).__name__, "device": getattr(engine, "device", None), "preset_used": preset_used, "preset_values": preset_values, "segments": [s.to_dict() for s in segments],
         "segment_audio_analysis": segment_analysis,
         "benchmark": {"total_pipeline_seconds": round(t1 - t0, 3), "model_load_and_reference_seconds": round(t_model_load_end - t_model_load_start, 3), "total_synthesis_seconds": round(sum(s["synthesis_seconds"] for s in segment_benchmark), 3), "segment_synthesis": segment_benchmark},
         "audio_output": {"output_gain_db": float(assembler_cfg.get("output_gain_db", 0.0)), "peak_protection": bool(assembler_cfg.get("peak_protection", True)), "peak_target": float(assembler_cfg.get("peak_target", 0.99))},
