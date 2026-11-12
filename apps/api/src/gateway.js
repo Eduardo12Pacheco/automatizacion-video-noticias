@@ -11,6 +11,8 @@ import { createLocalRouter } from './local-router.js';
 import { createAdminRouter } from './admin-router.js';
 import { createAuthService } from './auth.js';
 import { createCoreRuntime } from './core-runtime.js';
+import { normalizePresencePayload, presenceSessionEntry, presenceSnapshot, presenceTtlSeconds } from './presence.js';
+import { isCrossSitePanelRequest, isExpiredSession, normalizePanelSession, readPanelSessionToken, serializePanelSessionCookie, sessionResponse, toExpirationTime } from './sessions.js';
 
 export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8099;
@@ -92,7 +94,6 @@ const CORS_RESPONSE_HEADERS = new Set([
   'access-control-expose-headers',
   'access-control-max-age',
 ]);
-const PANEL_SESSION_COOKIE = 'approval-panel-session-v1';
 const BROWSER_SUPPLIED_IDENTITY_HEADERS = new Set(['x-user-email', 'x-user-roles', 'x-audit-actor']);
 const BROWSER_SUPPLIED_SECRET_HEADERS = new Set(['authorization', 'x-api-key', 'x-approval-secret']);
 const PROTECTED_MUTATION_ROLE = 'editor';
@@ -416,64 +417,6 @@ function actorFromSession(session) {
   };
 }
 
-function presenceTtlSeconds(options) {
-  return Math.ceil(options.presenceTtlMs / 1000);
-}
-
-function normalizePresencePayload(body = {}) {
-  const area = String(body.area || '').trim();
-  const resourceType = String(body.resource_type || body.resourceType || '').trim();
-  const resourceId = String(body.resource_id || body.resourceId || '').trim();
-  const mode = String(body.mode || '').trim();
-  if (!area || !resourceType || !resourceId || !['viewing', 'editing'].includes(mode)) return null;
-  return {
-    area,
-    resource_type: resourceType,
-    resource_id: resourceId,
-    mode,
-  };
-}
-
-function presenceSessionEntry(session, payload, nowMs) {
-  return {
-    session_id: session.session_id,
-    actor: {
-      user_id: session.user.user_id,
-      email: session.user.email,
-      display_name: session.user.display_name,
-    },
-    area: payload.area,
-    resource_type: payload.resource_type,
-    resource_id: payload.resource_id,
-    mode: payload.mode,
-    last_activity_at: new Date(nowMs).toISOString(),
-  };
-}
-
-function presenceSnapshot(options) {
-  const nowMs = options.now();
-  options.presenceStore.cleanup(nowMs);
-  const sessions = [...options.presenceStore.entries.values()].map((entry) => entry.value);
-  const resourcesByKey = new Map();
-  for (const session of sessions) {
-    const key = `${session.area}\u0000${session.resource_type}\u0000${session.resource_id}`;
-    const resource = resourcesByKey.get(key) || {
-      area: session.area,
-      resource_type: session.resource_type,
-      resource_id: session.resource_id,
-      sessions: [],
-    };
-    resource.sessions.push(session.session_id);
-    resourcesByKey.set(key, resource);
-  }
-  for (const resource of resourcesByKey.values()) resource.sessions.sort();
-  return {
-    sessions: sessions.sort((left, right) => left.session_id.localeCompare(right.session_id)),
-    resources: [...resourcesByKey.values()],
-    ttl_seconds: presenceTtlSeconds(options),
-  };
-}
-
 function emitGatewayEvent(req, options, event, session = null) {
   const recorder = options.eventRecorder;
   if (!recorder || typeof recorder.record !== 'function') return;
@@ -551,82 +494,6 @@ export function readPanelAuthFromEnv(env = process.env) {
       roles: ['editor'],
     },
   };
-}
-
-function safeDecodeCookiePart(value) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
-}
-
-function parseCookies(cookieHeader = '') {
-  const cookies = new Map();
-  for (const part of String(cookieHeader || '').split(';')) {
-    const [rawName, ...rawValueParts] = part.trim().split('=');
-    if (!rawName) continue;
-    const name = safeDecodeCookiePart(rawName);
-    const value = safeDecodeCookiePart(rawValueParts.join('='));
-    if (name == null || value == null) continue;
-    cookies.set(name, value);
-  }
-  return cookies;
-}
-
-function readPanelSessionToken(req) {
-  return parseCookies(req.headers.cookie).get(PANEL_SESSION_COOKIE) || '';
-}
-
-function isCrossSitePanelRequest(req) {
-  const origin = String(req.headers.origin || '').trim();
-  const host = String(req.headers.host || '').split(':')[0].toLowerCase();
-  if (!origin || !host) return false;
-  try {
-    return new URL(origin).hostname.toLowerCase() !== host;
-  } catch {
-    return false;
-  }
-}
-
-function serializePanelSessionCookie(value, { maxAgeSeconds, crossSite = false } = {}) {
-  const sameSite = crossSite ? 'SameSite=None; Secure' : 'SameSite=Lax';
-  return `${encodeURIComponent(PANEL_SESSION_COOKIE)}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; ${sameSite}`;
-}
-
-function normalizePanelSession(rawSession = {}) {
-  const user = rawSession.user && typeof rawSession.user === 'object' ? rawSession.user : {};
-  const roles = Array.isArray(rawSession.roles) ? rawSession.roles.map((role) => String(role)) : [];
-  return {
-    user: {
-      user_id: String(user.user_id || user.id || ''),
-      email: String(user.email || ''),
-      display_name: String(user.display_name || user.name || user.email || ''),
-    },
-    roles,
-    session_id: String(rawSession.session_id || rawSession.sessionId || ''),
-    expires_at: rawSession.expires_at || rawSession.expiresAt || null,
-  };
-}
-
-function sessionResponse(session) {
-  const normalized = normalizePanelSession(session);
-  return {
-    user: normalized.user,
-    roles: normalized.roles,
-    session_id: normalized.session_id,
-  };
-}
-
-function toExpirationTime(value) {
-  if (value == null || value === '') return Number.POSITIVE_INFINITY;
-  if (typeof value === 'number') return value;
-  const parsed = Date.parse(String(value));
-  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
-}
-
-function isExpiredSession(session, nowMs) {
-  return toExpirationTime(session.expires_at) <= nowMs;
 }
 
 function cleanupExpiredSessions(options) {
@@ -2181,8 +2048,10 @@ export function startGateway({
       },
     });
   }
+  let runtimeScheduler = null;
   if (repository && !localRouter) {
     const runtime = createCoreRuntime({ repository, logger: console });
+    runtimeScheduler = runtime.scheduler;
     localRouter = createLocalRouter({
       repository,
       readModels: runtime.readModels,
@@ -2190,6 +2059,14 @@ export function startGateway({
       jobQueue: runtime.jobQueue,
     });
     if (!adminRouter) adminRouter = createAdminRouter({ authService });
+  }
+  if (runtimeScheduler && repository) {
+    runtimeScheduler.register('expired-session-cleanup', {
+      everyMs: 60 * 60 * 1000,
+      runOnStart: false,
+      handler: () => repository.deleteExpiredSessions(),
+    });
+    runtimeScheduler.start();
   }
 
   const server = createGatewayServer({
@@ -2204,6 +2081,7 @@ export function startGateway({
     dataRouter,
     eventRecorder,
   });
+  if (runtimeScheduler) server.on('close', () => runtimeScheduler.stop());
   server.listen(port, host, () => {
     console.info(`Control Panel API Gateway listening on http://${host}:${port}`);
   });
