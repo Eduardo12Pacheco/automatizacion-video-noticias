@@ -118,8 +118,8 @@ principales se registran como [ADRs](docs/adr/).
 
 El instalador pregunta qué modo usar y `newsroom mode demo|local` permite
 cambiarlo después. **Modo demo** es determinista e instantáneo; **Modo local**
-ejecuta los modelos y medios locales reales. Ambos modos se ejecutan en CI; el
-pipeline local también corre de noche contra medios reales.
+ejecuta los modelos y medios locales reales. El camino demo corre en cada push;
+el camino local tiene un job de CI nocturno/manual que valida los medios reales.
 
 | Modo | Qué corre | Modelos | Ideal para |
 |---|---|---|---|

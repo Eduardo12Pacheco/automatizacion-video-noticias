@@ -118,8 +118,8 @@ as [ADRs](docs/adr/).
 
 The installer asks which mode to use, and `newsroom mode demo|local` switches
 later. Demo mode is deterministic and instant; local mode runs the real local
-models and media. Both modes are exercised in CI, and the local pipeline is also
-run nightly against real media.
+models and media. The demo path runs on every push; the local path has a
+nightly/manual CI job that asserts the real media.
 
 | Mode | What runs | Models | Best for |
 |---|---|---|---|
