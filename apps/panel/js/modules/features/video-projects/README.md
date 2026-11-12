@@ -6,7 +6,7 @@ This module is organized by responsibility. The migration is structural only: ru
 
 - `index.js` — public feature factory/controller facade.
 - `controller/` — feature orchestration seams for project loading, row/audio/brand commands, preview export commands, Approval snapshot operations, and editor-state persistence.
-- `data/` — Supabase, Approval Pipeline, Remotion API client, detail cache, storage paths, selection/custom image commands, and row media commands. Key split clients include `data/supabase-client.js`, `data/remotion-client.js`, and `data/approval-pipeline-client.js`.
+- `data/` — local API, Approval Pipeline, Remotion API client, detail cache, storage paths, selection/custom image commands, and row media commands. Key split clients include `data/video-projects-client.js`, `data/remotion-client.js`, and `data/approval-pipeline-client.js`.
 - `domain/` — pure normalization, project identity, status labels, formatting, image candidate helpers, `domain/image-files.js`, video asset helpers, and motion preset data.
 - `composition/` — composition contract building, payload helpers, overlay assets, preview rows/assets derivation, `CompositionRenderer`, and nested renderer internals under `composition/renderer/`.
 - `audio/` — `AudioManager` and default background music catalog.
@@ -26,7 +26,7 @@ This module is organized by responsibility. The migration is structural only: ru
 
 ## Public entrypoints and compatibility facades
 
-- Canonical entrypoints: `index.js`, `controller/create-video-projects-controller.js`, `data/api.js`, `data/contract-pipeline-client.js`, `data/supabase-client.js`, `data/remotion-client.js`, `data/approval-pipeline-client.js`, `render/index.js`, `composition/composition-renderer.js`, and `composition/renderer/index.js`.
+- Canonical entrypoints: `index.js`, `controller/create-video-projects-controller.js`, `data/api.js`, `data/contract-pipeline-client.js`, `data/video-projects-client.js`, `data/remotion-client.js`, `data/approval-pipeline-client.js`, `render/index.js`, `composition/composition-renderer.js`, and `composition/renderer/index.js`.
 - Compatibility facades remain at root for existing imports: `api.js`, `contract-pipeline-client.js`, `render.js`, `composition-contract.js`, `composition-renderer.js`, `composition-view-model.js`, `audio-manager.js`, and `default-background-music.js`.
 
 ## Off-limits preview lifecycle

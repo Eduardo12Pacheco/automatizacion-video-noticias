@@ -6,7 +6,7 @@ import {
 } from '../domain/image-files.js';
 import { createCustomImageCommands } from '../data/custom-image-commands.js';
 import { createRowImageCommands } from '../data/row-image-commands.js';
-import { createSupabaseVideoProjectsClient } from '../data/supabase-client.js';
+import { createVideoProjectsClient } from '../data/video-projects-client.js';
 import { normalizeImageLookupKey } from '../composition/composition-contract.js';
 import { buildSetupPhaseContent } from '../render/setup-view.js';
 import { buildEditorAssetsPicker } from '../render/editor-assets-picker.js';
@@ -168,9 +168,9 @@ async function runCandidateMetadataNormalizationCheck() {
   }
 }
 
-async function runSupabaseContentTypeCheck() {
+async function runApiUploadContentTypeCheck() {
   const requests = [];
-  const client = createSupabaseVideoProjectsClient({
+  const client = createVideoProjectsClient({
     fetchImpl: async (url, init = {}) => {
       requests.push({ url, init });
       return { ok: true, text: async () => '{}' };
@@ -193,7 +193,7 @@ export async function runJfifImageUploadSupportCheck() {
   runMimeNormalizationCheck();
   runAcceptMarkupCheck();
   await runCandidateMetadataNormalizationCheck();
-  await runSupabaseContentTypeCheck();
+  await runApiUploadContentTypeCheck();
   runImageLookupKeyCheck();
 }
 

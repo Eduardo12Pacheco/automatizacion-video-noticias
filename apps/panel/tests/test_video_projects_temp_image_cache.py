@@ -186,7 +186,7 @@ if (html.indexOf('video-project-card__phase') < html.indexOf('imagen')) {
 
 
 def test_video_project_list_rpc_includes_detail_for_card_thumbnails():
-    source = (ROOT / "js" / "modules" / "features" / "video-projects" / "data" / "supabase-client.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "modules" / "features" / "video-projects" / "data" / "video-projects-client.js").read_text(encoding="utf-8")
     assert "listVideoProjects: ({ limit = 50 } = {}) => callVideoProjectsRpc({ limit, includeDetail: true })" in source
 
 
@@ -239,11 +239,11 @@ for (const [project, expected] of cases) {
 
 
 def test_video_project_delete_flow_is_soft_disable_with_confirmation_guards():
-    api_source = (ROOT / "js/modules/features/video-projects/data/supabase-client.js").read_text(encoding="utf-8")
+    api_source = (ROOT / "js/modules/features/video-projects/data/video-projects-client.js").read_text(encoding="utf-8")
     loading_source = (ROOT / "js/modules/features/video-projects/controller/project-loading.js").read_text(encoding="utf-8")
     events_source = (ROOT / "js/modules/features/video-projects/events/project-list-events.js").read_text(encoding="utf-8")
 
-    assert "/rest/v1/rpc/disable_video_edit_project" in api_source
+    assert "projectRoute(id, 'disable')" in api_source
     assert "disableVideoProject({ draftId" in api_source
     assert "state.videoProjects = previousProjects.filter" in loading_source
     assert "state.selectedVideoProject = null" in loading_source

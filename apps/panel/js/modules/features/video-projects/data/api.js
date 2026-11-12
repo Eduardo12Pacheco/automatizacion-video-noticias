@@ -1,6 +1,6 @@
 import { createApprovalPipelineClient as createApprovalPipelineClientBase } from './approval-pipeline-client.js';
 import { createRemotionClient as createRemotionClientBase } from './remotion-client.js';
-import { createSupabaseVideoProjectsClient } from './supabase-client.js';
+import { createVideoProjectsClient } from './video-projects-client.js';
 import { resolveServiceConfig } from '../../../core/state/app-store.js';
 import { resolveGatewayBaseUrl, resolveGatewayPresenceHeartbeatPath, resolveGatewayPresenceReadPath } from '../../../core/http/shared-read-models.js';
 
@@ -58,7 +58,7 @@ async function reportPresence({ settings = {}, payload = {}, fetchImpl = fetch }
 
 export function createVideoProjectsApiClient({ fetchImpl = fetch, getSettings = () => ({}) } = {}) {
   return {
-    ...createSupabaseVideoProjectsClient({ fetchImpl }),
+    ...createVideoProjectsClient({ fetchImpl }),
     createManualVideoProject: (options = {}) => createManualVideoProject({ fetchImpl, ...options }),
     createRemotionClient: (options = {}) => createRemotionClientBase({ fetchImpl, ...options }),
     createApprovalPipelineClient: (options = {}) => createApprovalPipelineClientBase({ fetchImpl, ...options }),

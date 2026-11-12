@@ -235,7 +235,7 @@ These are not all fixed yet. Some should wait until after folder organization.
 
 4. `api.js` mixes multiple clients.
    - Eventually split into:
-     - `data/supabase-client.js`
+     - `data/video-projects-client.js`
      - `data/remotion-client.js`
      - `data/approval-pipeline-client.js`
    - Do not split during the structural move unless separately scoped.

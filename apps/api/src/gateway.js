@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { DEFAULT_EVENT_RETENTION, JsonlEventRecorder, sanitizeEventContext, selectCorrelationId } from './gateway-events.js';
+import { createRuntimeDataRouter } from './composition.js';
 
 export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8099;
@@ -888,6 +889,69 @@ function handlePanelLogout(req, res, options) {
   });
 }
 
+async function handlePanelDataRequest(req, res, options) {
+  applyCorsHeaders(res, req.headers.origin, options);
+  const parsed = new URL(req.url || '/', 'http://gateway.local');
+  const pathname = parsed.pathname;
+  const method = String(req.method || 'GET').toUpperCase();
+  const mutating = pathname.startsWith('/panel/uploads/')
+    || /^\/panel\/video-projects\/[^/]+\/(selections|audio|custom-images|disable)$/.test(pathname);
+
+  const session = getVerifiedSession(req, options);
+  if (!session) {
+    rejectUnauthenticated(req, res, options, { action: 'panel.data.authorization' });
+    return;
+  }
+  if (mutating) {
+    if (!session.roles.includes(PROTECTED_MUTATION_ROLE)) {
+      rejectForbidden(req, res, options, { session });
+      return;
+    }
+    if (!isTrustedMutationRequest(req, options)) {
+      rejectCsrf(req, res, options, { action: 'panel.data.csrf', session });
+      return;
+    }
+  }
+
+  let result;
+  try {
+    result = await options.dataRouter.handle({
+      method,
+      pathname,
+      searchParams: parsed.searchParams,
+      headers: req.headers,
+      readBody: (limits = {}) => readRawBody(req, {
+        maxBodyBytes: limits.maxBodyBytes || options.maxBodyBytes,
+      }),
+    });
+  } catch (error) {
+    if (error?.code === 'payload_too_large') {
+      rejectPayloadTooLarge(req, res, options, { session, action: 'panel.data.payload' });
+      return;
+    }
+    emitGatewayEvent(req, options, {
+      kind: 'error',
+      action: 'panel.data.request',
+      outcome: 'failure',
+      status_code: 400,
+      reason_code: 'invalid_request',
+      safe_message: 'Panel data request failed',
+      context: requestBaseContext(req, { error: error.message }),
+    }, session);
+    if (!res.headersSent) writeJson(res, 400, { ok: false, error: 'invalid_request' });
+    return;
+  }
+
+  const headers = result.headers || {};
+  const contentType = String(headers['content-type'] || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    writeJson(res, result.status, result.body, headers);
+    return;
+  }
+  res.writeHead(result.status, headers);
+  res.end(result.body ?? undefined);
+}
+
 function handlePanelBootstrap(req, res, options) {
   applyCorsHeaders(res, req.headers.origin, options);
   writeJson(res, 200, normalizePanelBootstrap(options.panelBootstrap, options.routes), {
@@ -1590,6 +1654,7 @@ export function createGatewayServer({
   createSessionId = randomUUID,
   createCorrelationId = randomUUID,
   eventRecorder = null,
+  dataRouter = null,
   logger = console,
 } = {}) {
   const normalizedPanelUsers = normalizePanelUsers(panelUsers, panelAuth);
@@ -1695,6 +1760,7 @@ export function createGatewayServer({
     createSessionId,
     createCorrelationId,
     eventRecorder,
+    dataRouter,
     logger,
     loginAttempts: new BoundedTtlStore({ maxEntries: maxLoginAttempts }),
     presenceStore: new BoundedTtlStore({ maxEntries: maxPresenceSessions }),
@@ -1802,6 +1868,14 @@ export function createGatewayServer({
         return;
       }
       handlePresenceReadModel(req, res, options);
+      return;
+    }
+    if (options.dataRouter?.matches(panelPath)) {
+      if (req.method === 'OPTIONS') {
+        handlePreflight(req, res, options);
+        return;
+      }
+      void handlePanelDataRequest(req, res, options);
       return;
     }
     if (isPanelReadModelPath(panelPath)) {
@@ -1947,7 +2021,7 @@ function defaultGatewayEventsFilePath() {
   return join(dirname(fileURLToPath(import.meta.url)), '..', 'runtime-logs', 'gateway-events.jsonl');
 }
 
-export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT } = {}) {
+export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT, dataRouter = null } = {}) {
   const allowedOrigins = readAllowedOrigins();
   const trustedMutationOrigins = readTrustedMutationOrigins();
   const eventRecorder = new JsonlEventRecorder({
@@ -1965,6 +2039,7 @@ export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT } = {}) 
     panelAuth: readPanelAuthFromEnv(),
     panelUsers: readPanelUsersFromEnv(),
     serviceCredentials: readServiceCredentialsFromEnv(),
+    dataRouter,
     eventRecorder,
   });
   server.listen(port, host, () => {
@@ -1974,8 +2049,10 @@ export function startGateway({ host = DEFAULT_HOST, port = DEFAULT_PORT } = {}) 
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const { dataRouter } = await createRuntimeDataRouter();
   startGateway({
     host: process.env.API_GATEWAY_HOST || DEFAULT_HOST,
     port: Number(process.env.API_GATEWAY_PORT || DEFAULT_PORT),
+    dataRouter,
   });
 }

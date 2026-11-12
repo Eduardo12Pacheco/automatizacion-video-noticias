@@ -1,5 +1,4 @@
-export const SUPABASE_URL = 'https://example.supabase.co';
-export const SUPABASE_PUBLISHABLE_KEY = '***REMOVED***';
+export const API_DATA_PREFIX = '/panel';
 export const VIDEO_PROJECT_AUDIO_BUCKET = 'video-project-audio';
 export const VIDEO_CANDIDATES_TEMP_BUCKET = 'video-candidates-temp';
 export const VIDEO_PROJECT_VIDEO_BUCKET = 'video-project-videos';
@@ -144,8 +143,12 @@ export function buildVideoUploadPath({ draftId, file }) {
   return `projects/${safeDraftId}/videos/${Date.now()}-${safeName}`;
 }
 
+export function buildUploadPath(bucket, path) {
+  return `${API_DATA_PREFIX}/uploads/${encodeURIComponent(bucket)}/${encodeStoragePath(path)}`;
+}
+
 export function buildPublicStorageUrl(bucket, path) {
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodeStoragePath(path)}`;
+  return `${API_DATA_PREFIX}/blobs/${encodeURIComponent(bucket)}/${encodeStoragePath(path)}`;
 }
 
 export function buildAudioMetadata({ path, kind, file }) {

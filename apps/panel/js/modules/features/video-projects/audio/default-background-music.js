@@ -1,16 +1,15 @@
-const SUPABASE_AUDIO_PUBLIC_BASE = 'https://example.supabase.co/storage/v1/object/public/video-project-audio';
+import { buildPublicStorageUrl, VIDEO_PROJECT_AUDIO_BUCKET } from '../data/storage-paths.js';
+
 const DEFAULT_BACKGROUND_MUSIC_PREFIX = 'defaults/background-music';
 
 function buildDefaultTrack({ id, label, fileName }) {
   const path = `${DEFAULT_BACKGROUND_MUSIC_PREFIX}/${fileName}`;
-  const encodedPath = path.split('/').map(encodeURIComponent).join('/');
-
   return {
     id,
     label,
     fileName,
     path,
-    public_url: `${SUPABASE_AUDIO_PUBLIC_BASE}/${encodedPath}`,
+    public_url: buildPublicStorageUrl(VIDEO_PROJECT_AUDIO_BUCKET, path),
     mime_type: 'audio/wav',
   };
 }
@@ -83,7 +82,7 @@ export function createBackgroundMusicAudioFromTrack(track, { selectedAt = '' } =
 
   return {
     kind: 'background',
-    bucket: 'video-project-audio',
+    bucket: VIDEO_PROJECT_AUDIO_BUCKET,
     storage_path: track.path,
     public_url: track.public_url,
     name: track.label,

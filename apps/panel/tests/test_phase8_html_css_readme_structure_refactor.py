@@ -160,7 +160,7 @@ def test_video_projects_module_readme_maps_controller_checks_and_split_clients()
     for expected in [
         "controller/",
         "__checks__/",
-        "data/supabase-client.js",
+        "data/video-projects-client.js",
         "data/remotion-client.js",
         "data/approval-pipeline-client.js",
         "composition/renderer/",

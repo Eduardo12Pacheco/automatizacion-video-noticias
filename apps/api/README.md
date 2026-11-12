@@ -23,3 +23,21 @@ Keep Voice TTS presets, refs, segmentation, sample rate, artifacts and runtime
 behavior unchanged during this structural migration. See the panel's
 `docs/collaboration-boundary-rollout-checklist.md` for the existing boundary
 checks; optional public deployment is outside this task.
+
+## Local data layer (T3)
+
+The gateway composes `packages/data` at startup (`src/composition.js`):
+
+- `DATABASE_URL` present: Postgres repository + `infra/db/migrations/*.sql`
+  (run `node packages/data/scripts/migrate.js` or let the installer do it).
+- `DATABASE_URL` absent: in-memory repository for demo/showcase mode.
+- Blobs always go to `BLOB_ROOT` (default `./data/blobs`) through
+  `FsBlobStorage`; the browser reads them from `/panel/blobs/...`.
+
+Panel video-project reads and mutations use `/panel/read-models/video-projects`
+and `/panel/video-projects/:draftId/*`. Uploads use
+`POST /panel/uploads/<bucket>/<path>`; the old direct browser→Supabase calls
+were removed. The gateway still enforces the panel session, editor role and
+CSRF origin on mutations.
+
+`POST /panel/uploads/...` accepts up to `MAX_UPLOAD_BYTES` (default 500 MiB).
