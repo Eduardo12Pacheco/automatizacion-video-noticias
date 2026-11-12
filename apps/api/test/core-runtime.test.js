@@ -41,4 +41,14 @@ describe('core runtime adapter injection', () => {
     const result = await runtime.useCases.draftScript.execute({ id_noticia: 'news-1' });
     assert.equal(result.status, 'completed');
   });
+
+  it('exposes the save-draft use case and injected worker ports', async () => {
+    const repository = new InMemoryRepository();
+    await repository.migrate();
+    const tts = { async createJob() { return { job_id: 'job-1', status: 'queued' }; } };
+    const runtime = createCoreRuntime({ repository, adapters: { tts } });
+    assert.equal(typeof runtime.useCases.saveScriptDraft.execute, 'function');
+    assert.equal(runtime.adapters.tts, tts);
+    assert.equal(runtime.adapters.asr, null);
+  });
 });

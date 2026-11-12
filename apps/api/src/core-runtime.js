@@ -6,6 +6,7 @@ import {
   DiscoverNews,
   DraftScript,
   JobQueue,
+  SaveScriptDraft,
   ManualCreateVideoProject,
   PublishScript,
   RefreshSearch,
@@ -55,6 +56,10 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
   const notification = adapters.notification || null;
   const channelFeed = adapters.channelFeed || null;
   const mediaDownload = adapters.mediaDownload || null;
+  const tts = adapters.tts || null;
+  const asr = adapters.asr || null;
+  const translation = adapters.translation || null;
+  const videoRenderer = adapters.videoRenderer || null;
 
   const createVideoProject = new CreateVideoProject({ repository, now });
   const discoverNews = new DiscoverNews({ repository, newsSource, llm, now });
@@ -93,6 +98,7 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
       manualCreateVideoProject,
       refreshSearch,
       exportDocument,
+      saveScriptDraft: new SaveScriptDraft({ repository }),
     },
     readModels,
     jobQueue,
@@ -107,6 +113,10 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
       notification,
       channelFeed,
       mediaDownload,
+      tts,
+      asr,
+      translation,
+      videoRenderer,
     },
   };
 }

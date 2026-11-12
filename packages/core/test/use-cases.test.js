@@ -8,6 +8,7 @@ import {
   DraftScript,
   ManualCreateVideoProject,
   PublishScript,
+  SaveScriptDraft,
   CreateVideoProject,
   RefreshSearch,
   buildReadModels,
@@ -463,5 +464,86 @@ describe('ReadModels and ExportDocument', () => {
       () => exportDocument.execute({ draft_id: 'draft-no-doc' }),
       /Google Doc|documento/i,
     );
+  });
+});
+
+describe('DiscoverNews classifier fallback', () => {
+  function ambiguousRow(overrides = {}) {
+    return {
+      ...NEWS_FIXTURE[1],
+      id_noticia: 'news-ambiguous',
+      titular: 'Andrade visitó una escuela de su ciudad',
+      snippet: 'Actividad social fuera del deporte',
+      link: 'https://news.example.local/andrade-ambiguous',
+      fecha_publicacion: NOW.toISOString(),
+      pass_direct: undefined,
+      football_signals: undefined,
+      ...overrides,
+    };
+  }
+
+  async function runWith(llms, row = ambiguousRow()) {
+    const { repository } = await createHarness();
+    const useCase = new DiscoverNews({
+      repository,
+      now: () => NOW,
+      newsSource: { async fetchFeed() { return [row]; } },
+      players: [{ seleccion: 'Aurenia', jugador: 'Nicolás Andrade' }],
+      batchSize: 10,
+      ...llms,
+    });
+    const summary = await useCase.execute({ window: '24h' });
+    const listed = await repository.listNewsForClustering({});
+    return { summary, rows: listed.rows };
+  }
+
+  it('falls back to the next configured model before marking a batch for review', async () => {
+    const failing = { async complete() { throw new Error('primary model unavailable'); } };
+    const fallback = createMockLLM('{"results":[{"id_noticia":"news-ambiguous","es_futbol":true,"razon":"futbol"}]}');
+    const { rows } = await runWith({ llm: failing, fallbackLlms: [fallback] });
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].classification_source, 'ai');
+    assert.equal(fallback.calls.length, 1);
+  });
+
+  it('keeps unclassified rows as needs_review instead of silently dropping them', async () => {
+    const failing = { async complete() { throw new Error('classifier offline'); } };
+    const { summary, rows } = await runWith({ llm: failing });
+    assert.equal(summary.persisted, 1);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].classification_source, 'needs_review');
+    assert.equal(rows[0].estado_revision, 'pendiente');
+  });
+
+  it('marks ambiguous rows for review when no classifier is configured', async () => {
+    const { rows } = await runWith({ llm: null });
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].classification_source, 'needs_review');
+  });
+});
+
+describe('SaveScriptDraft', () => {
+  it('persists an edited script and dismisses it from the pending panel', async () => {
+    const { repository } = await createHarness();
+    const useCase = new SaveScriptDraft({ repository });
+
+    const saved = await useCase.execute({
+      draftId: 'draft-news-1',
+      guionEditado: 'Nicolás Andrade anotó y fue figura.',
+    });
+    assert.equal(saved.ok, true);
+    assert.equal(saved.draft.guion_editado, 'Nicolás Andrade anotó y fue figura.');
+    assert.equal((await repository.getPendingScriptDrafts()).length, 1);
+
+    const dismissed = await useCase.execute({ draftId: 'draft-news-1', action: 'dismiss_processed' });
+    assert.equal(dismissed.dismissed, true);
+    assert.equal((await repository.getPendingScriptDrafts()).length, 0);
+  });
+
+  it('rejects unknown actions and requests without a draft identity', async () => {
+    const { repository } = await createHarness();
+    const useCase = new SaveScriptDraft({ repository });
+    await assert.rejects(() => useCase.execute({ action: 'maybe' }), /draft_id/i);
+    await assert.rejects(() => useCase.execute({ draftId: 'draft-1', action: 'maybe' }), /unknown action/i);
   });
 });

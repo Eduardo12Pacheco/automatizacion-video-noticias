@@ -1,4 +1,4 @@
-import { DomainError, buildReadModels } from '@newsroom/core';
+import { DomainError, SaveScriptDraft, buildReadModels } from '@newsroom/core';
 
 const JSON_LIMIT = 1024 * 1024;
 
@@ -144,22 +144,17 @@ export function createLocalRouter({
     return json(200, status === 'promoted' ? { ...run, status: 'succeeded' } : run);
   }
 
+  const saveScriptDraft = useCases.saveScriptDraft || new SaveScriptDraft({ repository });
+
   async function saveDraft(body) {
-    const action = String(body.action ?? body.intent ?? 'save').trim().toLowerCase();
-    const ids = {
-      draftId: String(body.draft_id ?? '').trim(),
-      idNoticia: String(body.id_noticia ?? '').trim(),
-      clusterId: String(body.cluster_id ?? '').trim(),
-    };
-    if (action === 'dismiss_processed' || action === 'dismiss') {
-      const result = await repository.dismissScriptFromPanel(ids);
-      return json(200, { ok: true, ...result });
-    }
-    const draft = await repository.saveScriptDraft({
-      ...ids,
-      guionEditado: String(body.guion_editado ?? ''),
+    const result = await saveScriptDraft.execute({
+      action: body.action ?? body.intent ?? 'save',
+      draftId: body.draft_id ?? '',
+      idNoticia: body.id_noticia ?? '',
+      clusterId: body.cluster_id ?? '',
+      guionEditado: body.guion_editado ?? '',
     });
-    return json(200, { ok: true, draft });
+    return json(200, result);
   }
 
   async function startPublish(body) {
