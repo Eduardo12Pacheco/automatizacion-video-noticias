@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "NVIDIA Container Toolkit CLI version 1.17.0"
+exit 0

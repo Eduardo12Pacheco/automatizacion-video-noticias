@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+if [ "${FAKE_GPU:-0}" != "1" ]; then
+  exit 1
+fi
+case "${1:-}" in
+  -L) echo "GPU 0: Fake RTX 4060 (UUID: GPU-fake)"; exit 0 ;;
+  --query-gpu=name) echo "Fake RTX 4060"; exit 0 ;;
+  *) echo "Fake RTX 4060"; exit 0 ;;
+esac

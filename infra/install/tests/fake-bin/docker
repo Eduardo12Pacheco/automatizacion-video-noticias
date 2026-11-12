@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Deterministic docker stand-in for the installer tests.
+
+It records every invocation so assertions can verify the plan without pulling
+images or starting containers. No secret value is ever written to the log.
+"""
+import os
+import sys
+
+log_path = os.environ.get("FAKE_DOCKER_LOG", "")
+args = sys.argv[1:]
+
+if log_path:
+    with open(log_path, "a", encoding="utf-8") as handle:
+        handle.write("docker " + " ".join(args) + "\n")
+
+
+def logged(message):
+    if log_path:
+        with open(log_path, "a", encoding="utf-8") as handle:
+            handle.write(message + "\n")
+
+
+if args[:1] in (["--version"], ["version"]):
+    print("Docker version 27.0.0, build fake")
+    sys.exit(0)
+
+if args[:1] == ["info"]:
+    if os.environ.get("FAKE_DOCKER_DOWN") == "1":
+        sys.stderr.write("Cannot connect to the Docker daemon\n")
+        sys.exit(1)
+    if "--format" in args:
+        print('{"runc":{}}')
+    else:
+        print("Server Version: 27.0.0")
+    sys.exit(0)
+
+if not args or args[0] != "compose":
+    sys.exit(0)
+
+# Move past `compose` and its options to find the subcommand.
+index = 1
+value_options = {"--env-file", "-f", "--profile", "--project-directory", "--project-name"}
+while index < len(args) and args[index].startswith("-"):
+    index += 2 if args[index] in value_options else 1
+command = args[index] if index < len(args) else ""
+rest = args[index + 1:]
+
+if command == "version":
+    print("2.29.0")
+    sys.exit(0)
+
+if command == "run":
+    joined = " ".join(rest)
+    if "create-admin.js" in joined:
+        password = sys.stdin.read() if not sys.stdin.isatty() else ""
+        logged(f"ADMIN_STDIN_LEN={len(password)}")
+        if len(password) < 8:
+            sys.stderr.write("password too short\n")
+            sys.exit(1)
+        if any("password" in value.lower() and len(value) > 20 for value in rest):
+            sys.stderr.write("password leaked into argv\n")
+            sys.exit(1)
+        logged("ADMIN_CREATED")
+    elif "model-init" in joined:
+        logged("MODEL_INIT")
+    elif "migrate" in joined:
+        logged("MIGRATE")
+    sys.exit(0)
+
+if command == "up":
+    logged("STACK_UP")
+elif command == "down":
+    logged("STACK_DOWN")
+    if "--volumes" in rest:
+        logged("VOLUMES_REMOVED")
+elif command == "build":
+    logged("BUILD")
+elif command == "ps":
+    print("NAME STATUS")
+elif command == "logs":
+    print("fake logs")
+elif command == "pull":
+    logged("PULL")
+
+sys.exit(0)
