@@ -8,6 +8,7 @@
     "test:api": "node --test apps/api/test/*.test.js",
     "test:renderer": "node --test services/renderer/tests/*.test.js",
     "test:data": "node --test packages/data/test/*.test.js",
-    "test:core": "node --test packages/core/test/*.test.js"
+    "test:core": "node --test packages/core/test/*.test.js",
+    "test:adapters": "node --test packages/adapters/test/*.test.js"
   }
 }

@@ -43,6 +43,9 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
     ? withDefaults(adapters.documentExport, ['createDocument', 'exportDocument'])
     : null;
   const workflowTrigger = adapters.workflowTrigger || null;
+  const notification = adapters.notification || null;
+  const channelFeed = adapters.channelFeed || null;
+  const mediaDownload = adapters.mediaDownload || null;
 
   const createVideoProject = new CreateVideoProject({ repository, now });
   const discoverNews = new DiscoverNews({ repository, newsSource, llm, now });
@@ -85,5 +88,16 @@ export function createCoreRuntime({ repository, adapters = {}, now = () => new D
     readModels,
     jobQueue,
     scheduler,
+    adapters: {
+      llm,
+      newsSource,
+      articleExtractor,
+      imageSearch,
+      documentExport,
+      workflowTrigger,
+      notification,
+      channelFeed,
+      mediaDownload,
+    },
   };
 }

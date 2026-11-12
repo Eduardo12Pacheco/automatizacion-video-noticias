@@ -23,6 +23,21 @@ export class ImageSearchPort {
   async search() { throw new Error('not_implemented: search'); }
 }
 
+export class ChannelFeedPort {
+  /** @returns {Promise<{channelId: string, title: string, videos: Array<object>}>} */
+  async fetchChannel() { throw new Error('not_implemented: fetchChannel'); }
+}
+
+export class MediaDownloadPort {
+  /** @returns {Promise<{path: string, title?: string}>} */
+  async download() { throw new Error('not_implemented: download'); }
+}
+
+export class NotificationPort {
+  /** @returns {Promise<{status: string, adapter?: string}>} */
+  async send() { throw new Error('not_implemented: send'); }
+}
+
 export class DocumentExportPort {
   async createDocument() { throw new Error('not_implemented: createDocument'); }
   async exportDocument() { throw new Error('not_implemented: exportDocument'); }

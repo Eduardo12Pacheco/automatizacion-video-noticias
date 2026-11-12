@@ -24,7 +24,17 @@ export {
   wordCount,
 } from './domain/script.js';
 
-export { ArticleExtractorPort, DocumentExportPort, ImageSearchPort, LLMPort, NewsSourcePort, WorkflowTriggerPort } from './ports/ports.js';
+export {
+  ArticleExtractorPort,
+  ChannelFeedPort,
+  DocumentExportPort,
+  ImageSearchPort,
+  LLMPort,
+  MediaDownloadPort,
+  NewsSourcePort,
+  NotificationPort,
+  WorkflowTriggerPort,
+} from './ports/ports.js';
 
 export { DiscoverNews } from './use-cases/discover-news.js';
 export { ClusterTopics, buildClusterPrompt } from './use-cases/cluster-topics.js';

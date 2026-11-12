@@ -1,0 +1,14 @@
+{
+  "name": "@newsroom/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first adapters for the newsroom ports (Ollama, trafilatura, SearXNG, RSS, yt-dlp, docx, SMTP).",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

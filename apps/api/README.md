@@ -82,3 +82,38 @@ The gateway modules are now split by concern: `auth.js` (users/passwords),
 (workflow endpoints), `admin-router.js`, `core-runtime.js` (composition),
 `data-router.js`, and `gateway-events.js`. `gateway.js` remains the HTTP
 composition point and protected proxy.
+
+## Local-first adapters (T5)
+
+`packages/adapters` provides the local implementations behind the core ports
+and `src/core-runtime.js` injects them from environment variables:
+
+| Port | Local default | Optional alternative |
+|---|---|---|
+| `LLMPort` | `OllamaLLMAdapter` (`LLM=ollama`, `/api/chat`) | `LLM=openai` OpenAI-compatible endpoint |
+| `NewsSourcePort` | `RssNewsSourceAdapter` (Google News RSS) | `NEWS_SOURCE=none` |
+| `ArticleExtractorPort` | `TrafilaturaArticleExtractor` (local Python CLI) | `ARTICLE_EXTRACTOR=none` |
+| `ImageSearchPort` | `SearxngWikimediaImageSearch` (SearXNG + Wikimedia) | `IMAGE_SEARCH=none` |
+| `DocumentExportPort` | `LocalDocumentExport` (python-docx + Markdown) | `DOCUMENT_EXPORT=none` |
+| `NotificationPort` | `ConsoleNotificationAdapter` | `NOTIFY=smtp` (Mailpit/Gmail app password) |
+| `ChannelFeedPort` | `RssChannelFeedAdapter` (YouTube RSS) | `CHANNEL_FEED=none` |
+| `MediaDownloadPort` | `YtDlpMediaDownload` (local yt-dlp) | `MEDIA_DOWNLOAD=none` |
+| `WorkflowTriggerPort` | off (`WORKFLOW=disabled`) | `WORKFLOW=n8n` + webhook URL |
+
+No key is required by the defaults. The trafilatura/python-docx helper is
+`packages/python/newsroom_local_adapters`; install its dependencies with
+`uv sync` there (or `pip install trafilatura python-docx`) so `PYTHON_BIN` can
+import them. `SMTP_STARTTLS=true` plus `SMTP_USER`/`SMTP_PASS` is the documented
+Gmail path; Mailpit uses the plain `127.0.0.1:1025` default.
+
+Adapter unit tests run without any service:
+
+```sh
+node --test packages/adapters/test/*.test.js
+```
+
+The network/service checks are opt-in and marked `live`:
+
+```sh
+NEWSROOM_LIVE_TESTS=1 node --test packages/adapters/test/live.test.js
+```

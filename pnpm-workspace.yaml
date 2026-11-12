@@ -2,6 +2,7 @@ packages:
   - "apps/api"
   - "packages/contracts"
   - "packages/core"
+  - "packages/adapters"
   - "services/renderer"
   - "services/subtitles"
   - "packages/data"

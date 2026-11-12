@@ -11,6 +11,7 @@ import { createLocalRouter } from './local-router.js';
 import { createAdminRouter } from './admin-router.js';
 import { createAuthService } from './auth.js';
 import { createCoreRuntime } from './core-runtime.js';
+import { createAdaptersFromEnv } from '@newsroom/adapters';
 import { normalizePresencePayload, presenceSessionEntry, presenceSnapshot, presenceTtlSeconds } from './presence.js';
 import { isCrossSitePanelRequest, isExpiredSession, normalizePanelSession, readPanelSessionToken, serializePanelSessionCookie, sessionResponse, toExpirationTime } from './sessions.js';
 
@@ -2022,6 +2023,7 @@ export function startGateway({
   authService = null,
   localRouter = null,
   adminRouter = null,
+  adapters = null,
 } = {}) {
   const allowedOrigins = readAllowedOrigins();
   const trustedMutationOrigins = readTrustedMutationOrigins();
@@ -2050,7 +2052,8 @@ export function startGateway({
   }
   let runtimeScheduler = null;
   if (repository && !localRouter) {
-    const runtime = createCoreRuntime({ repository, logger: console });
+    const runtimeAdapters = adapters || createAdaptersFromEnv({ logger: console });
+    const runtime = createCoreRuntime({ repository, adapters: runtimeAdapters, logger: console });
     runtimeScheduler = runtime.scheduler;
     localRouter = createLocalRouter({
       repository,
