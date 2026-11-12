@@ -43,6 +43,10 @@ def tracked_text_files(root: Path = ROOT) -> list[Path]:
         relative = raw.decode("utf-8")
         if relative.startswith("odd/"):
             continue
+        # The deny-list itself and this scanner's synthetic fixture necessarily
+        # contain the terms they look for.
+        if relative in {"tools/content-denylist.txt", "tools/tests/test_content_policy.py"}:
+            continue
         path = root / relative
         try:
             data = path.read_bytes()
