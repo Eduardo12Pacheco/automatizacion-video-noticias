@@ -192,23 +192,28 @@ tools/                 Asset generator and structural tests
 
 ## Testing
 
-The project is tested at every layer. Examples:
+Run the same suites CI runs, with a summary table, using one command:
 
 ```bash
-node --test packages/core/test/*.test.js packages/data/test/*.test.js \
-  packages/adapters/test/*.test.js apps/api/test/*.test.js
-node --test services/renderer/tests/*.test.js
-uv run --with pytest pytest apps/panel/tests -q
+pnpm install --frozen-lockfile
+pnpm test:all
+```
+
+It covers every Node package, the panel pytest suite and its 46 `__checks__`
+scripts, each Python service, the tools tests, installer tests and the Compose
+config. The Playwright demo E2E needs the running stack, so run it after
+`docker compose up` with `NEWSROOM_E2E=1 pnpm test:all` (CI does this in its
+own job). Focused examples:
+
+```bash
+pnpm test:panel
+pnpm test:checks
+node --test apps/api/test
 uv run --project services/asr-worker --with pytest --with httpx pytest services/asr-worker/tests -q
-uv run --project services/tts-worker --with pytest pytest services/tts-worker/tests -q
-python3 -m unittest discover -s tools/tests -v
 pnpm exec playwright test
 ```
 
-CI runs the JavaScript, Python and tools suites on every change, validates the
-Compose profiles and runs the Playwright happy path against the keyless stack.
-A few pre-existing panel/subtitles/monitor baselines are reported as
-informational rather than hidden; see the feature log for the exact list.
+Every suite is blocking in CI; there are no `continue-on-error` baselines.
 
 ## Honest scope
 

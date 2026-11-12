@@ -151,18 +151,19 @@ tools/                Generador de assets y tests estructurales
 
 ## Pruebas
 
+Corré las mismas suites que CI, con una tabla resumen, con un solo comando:
+
 ```bash
-node --test packages/core/test/*.test.js packages/data/test/*.test.js \
-  packages/adapters/test/*.test.js apps/api/test/*.test.js
-uv run --with pytest pytest apps/panel/tests -q
-python3 -m unittest discover -s tools/tests -v
-pnpm exec playwright test
+pnpm install --frozen-lockfile
+pnpm test:all
 ```
 
-La CI ejecuta las suites de JavaScript, Python y herramientas, valida los
-perfiles de Compose y corre el camino feliz de Playwright contra el stack sin
-claves. Algunos fallos preexistentes de panel/subtítulos/monitor se reportan como
-informativos en lugar de ocultarse; el detalle está en el log del proyecto.
+Cubre todos los paquetes Node, la suite pytest del panel y sus 46 scripts
+`__checks__`, cada servicio Python, las pruebas de tools, las de instaladores y
+la configuración de Compose. El E2E demo de Playwright necesita el stack
+levantado, así que se corre con `NEWSROOM_E2E=1 pnpm test:all` después de
+`docker compose up` (CI lo ejecuta en su propio job). Todos los pasos son
+bloqueantes en CI; no hay baselines con `continue-on-error`.
 
 ## Alcance honesto
 

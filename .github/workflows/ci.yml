@@ -62,18 +62,14 @@ jobs:
         run: python3 -m unittest discover -s tools/tests -v
 
   panel-suite:
-    # The 20 remaining failures are the pre-existing L19/L21/L24 UI/parity
-    # baseline recorded in odd/tasks/newsroom-video-automation.md. The full
-    # suite stays visible and informational; the S5/T7 contract test blocks.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Full panel suite (baseline visible)
-        continue-on-error: true
+      - name: Panel suite
         run: uv run --with pytest pytest apps/panel/tests -q
-      - name: T7 UI contract
-        run: uv run --with pytest pytest apps/panel/tests/test_ui_design_recomposition.py -q
+      - name: Panel __checks__ scripts
+        run: node tools/run-panel-checks.mjs
 
   python-suites:
     runs-on: ubuntu-latest
@@ -88,23 +84,21 @@ jobs:
         run: uv run --project packages/python/newsroom_worker_common --with pytest pytest packages/python/newsroom_worker_common/tests -q
       - name: Local adapters
         run: uv run --project packages/python/newsroom_local_adapters --with pytest --with python-docx pytest packages/python/newsroom_local_adapters/tests -q
-      - name: Channel monitor (known L19 baseline is informational)
-        continue-on-error: true
+      - name: Channel monitor
         run: uv run --project services/channel-monitor --with pytest --with httpx --with pyyaml --with uvicorn pytest services/channel-monitor/tests -q
-      - name: Subtitles (torch baseline is informational)
-        continue-on-error: true
-        run: uv run --project services/subtitles --with pytest --with httpx --with pyyaml pytest services/subtitles/tests -q
+      - name: Subtitles
+        run: uv run --project services/subtitles --extra translation --with pytest --with httpx --with pyyaml pytest services/subtitles/tests -q
 
   compose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Config with the default profile
-        run: docker compose -f compose.yaml config -q
+        run: docker compose --env-file e2e/.env.example -f compose.yaml config -q
       - name: Config with the gpu and n8n profiles
-        run: docker compose --profile gpu --profile n8n -f compose.yaml config -q
+        run: docker compose --env-file e2e/.env.example --profile gpu --profile n8n -f compose.yaml config -q
       - name: Compatibility alias
-        run: docker compose -f docker-compose.yml config -q
+        run: docker compose --env-file e2e/.env.example -f docker-compose.yml config -q
       - name: Installer/CLI behaviour under the fake docker stand-in
         run: bash infra/install/tests/run.sh
 

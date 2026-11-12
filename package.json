@@ -13,7 +13,10 @@
     "test:demo-worker": "node --test services/demo-worker/test/*.test.js",
     "test:e2e": "playwright test",
     "test:contracts": "node --test packages/contracts/test/*.test.js",
-    "test:worker-ports": "node --test packages/adapters/test/worker-ports.test.js"
+    "test:worker-ports": "node --test packages/adapters/test/worker-ports.test.js",
+    "test:all": "node tools/run-all-tests.mjs",
+    "test:checks": "node tools/run-panel-checks.mjs",
+    "test:panel": "uv run --with pytest pytest apps/panel/tests -q"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0"

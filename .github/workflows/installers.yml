@@ -5,25 +5,7 @@ name: installers
 
 on:
   push:
-    paths:
-      - "install.sh"
-      - "install.ps1"
-      - "bin/newsroom.*"
-      - "infra/install/**"
-      - ".env.example"
-      - "apps/api/scripts/create-admin.js"
-      - "apps/api/src/create-admin.js"
-      - ".github/workflows/installers.yml"
   pull_request:
-    paths:
-      - "install.sh"
-      - "install.ps1"
-      - "bin/newsroom.*"
-      - "infra/install/**"
-      - ".env.example"
-      - "apps/api/scripts/create-admin.js"
-      - "apps/api/src/create-admin.js"
-      - ".github/workflows/installers.yml"
   workflow_dispatch:
 
 jobs:
@@ -73,6 +55,12 @@ jobs:
       - name: Prerequisite check
         shell: powershell
         run: ./install.ps1 -Check -AllowMissingDocker -Yes
+
+      - name: PowerShell installer and CLI behaviour tests
+        shell: bash
+        run: |
+          python -m unittest discover -s infra/install/tests -p 'test_install_ps1.py' -v
+          python -m unittest discover -s infra/install/tests -p 'test_parity.py' -v
 
       - name: Non-interactive dry run
         shell: powershell
