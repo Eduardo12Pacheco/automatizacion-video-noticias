@@ -9,9 +9,9 @@ The installer supports Windows 10/11 (PowerShell 5.1+ and PowerShell 7+) and
 Linux (tested on Ubuntu 24.04 and Arch). macOS works with the bash installer on
 a best-effort basis.
 
-![Linux installer check](images/installer-linux.png)
+![Linux guided demo install](images/installer-linux.png)
 
-![Windows installer check](images/installer-windows.png)
+![Windows installer prerequisite check](images/installer-windows.png)
 
 ## Requirements
 
