@@ -190,7 +190,7 @@ def test_radar_monitor_card_layout_has_wide_cards_filters_and_mention_columns():
     template = RADAR_TEMPLATE_PATH.read_text(encoding="utf-8")
 
     previous = -1
-    for country in ["Aurenia", "Montelia", "Valdoria", "Rivamar", "Bosquemar", "M\\u00e9xico", "IMPORTANTES"]:
+    for country in ["Aurenia", "Montelia", "Valdoria", "Rivamar", "Bosquemar", "Terramar", "IMPORTANTES"]:
         assert country in template
         current = template.index(country)
         assert current > previous
