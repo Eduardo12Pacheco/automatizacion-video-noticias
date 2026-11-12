@@ -47,6 +47,16 @@ class TranscribeRequest(BaseModel):
     language: str | None = None
 
 
+class DownloadRequest(BaseModel):
+    url: str
+    job_dir: str | None = None
+
+
+class DownloadResponse(BaseModel):
+    path: str
+    title: str | None = None
+
+
 class TranscribeResponse(BaseModel):
     segments: list[TranscriptSegment] = Field(default_factory=list)
     language: str | None = None

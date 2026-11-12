@@ -5,7 +5,7 @@ import { createAdaptersFromEnv } from '../src/composition.js';
 import { ConsoleNotificationAdapter } from '../src/notification.js';
 import { OllamaLLMAdapter } from '../src/llm.js';
 import { SearxngWikimediaImageSearch } from '../src/image-search.js';
-import { YtDlpMediaDownload } from '../src/media-download.js';
+import { WorkerMediaDownload } from '../src/media-download.js';
 import { N8nWorkflowTrigger } from '../src/workflow-trigger.js';
 import { DemoArticleExtractor, DemoLLMAdapter } from '../src/demo.js';
 
@@ -19,7 +19,7 @@ test('createAdaptersFromEnv selects the local defaults with no keys', () => {
   assert.ok(adapters.documentExport);
   assert.ok(adapters.notification instanceof ConsoleNotificationAdapter);
   assert.ok(adapters.channelFeed);
-  assert.ok(adapters.mediaDownload instanceof YtDlpMediaDownload);
+  assert.ok(adapters.mediaDownload instanceof WorkerMediaDownload);
   assert.equal(adapters.workflowTrigger, null);
 });
 

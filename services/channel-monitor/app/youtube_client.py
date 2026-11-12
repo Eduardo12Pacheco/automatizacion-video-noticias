@@ -5,7 +5,14 @@ import html
 import hmac
 import json
 import re
-import subprocess
+
+from newsroom_media.ytdlp import (
+    build_common_args as _build_media_common_args,
+    build_subtitle_download_args,
+    build_subtitle_info_args,
+    error_text as _ytdlp_error_text,
+    run_ytdlp as _run_shared_ytdlp,
+)
 import tempfile
 import urllib.parse
 import urllib.request
@@ -376,36 +383,30 @@ class YtDlpSubtitleProvider:
             raise SubtitleUnavailable(video_id, choice.language, reason="empty_transcript", details={**details, "reason": "empty_transcript"})
         return segments
 
-    def _base_args(self) -> list[str]:
-        args = [self.binary, "--skip-download", "--no-playlist"]
-        if self.cookies_path and self.cookies_path.exists():
-            args.extend(["--cookies", str(self.cookies_path)])
-        return args
+    def _common_args(self) -> list[str]:
+        return _build_media_common_args(cookies_path=self.cookies_path)
+
+    def _run(self, args: list[str], workdir: Path):
+        return _run_shared_ytdlp(args, cwd=workdir, timeout=90, runner=self.runner)
 
     def _dump_info(self, video_id: str, workdir: Path) -> dict[str, Any]:
-        result = self.runner([*self._base_args(), "--dump-json", _video_url(video_id)], workdir)
+        command = build_subtitle_info_args(self.binary, _video_url(video_id), common_args=self._common_args())
+        result = self._run(command, workdir)
         if int(getattr(result, "returncode", 1)) != 0:
-            raise RuntimeError(_yt_dlp_error(result))
+            raise RuntimeError(_ytdlp_error_text(result))
         return json.loads(str(getattr(result, "stdout", "") or "{}"))
 
     def _download_subtitle(self, video_id: str, workdir: Path, choice: _YtDlpSubtitleChoice) -> None:
-        write_flag = "--write-auto-subs" if choice.source == "automatic" else "--write-subs"
-        result = self.runner(
-            [
-                *self._base_args(),
-                write_flag,
-                "--sub-langs",
-                choice.language,
-                "--sub-format",
-                "vtt/json3/srv3/srv2/srv1",
-                "--output",
-                "%(id)s.%(ext)s",
-                _video_url(video_id),
-            ],
-            workdir,
+        command = build_subtitle_download_args(
+            self.binary,
+            _video_url(video_id),
+            language=choice.language,
+            automatic=choice.source == "automatic",
+            common_args=self._common_args(),
         )
+        result = self._run(command, workdir)
         if int(getattr(result, "returncode", 1)) != 0:
-            raise RuntimeError(_yt_dlp_error(result))
+            raise RuntimeError(_ytdlp_error_text(result))
 
 
 def resolve_caption_language(*, source_country: str | None, default_language: str) -> CaptionLanguageResolution:
@@ -513,15 +514,6 @@ def _parse_transcript_api_snippets(snippets: Any, *, language: str) -> list[Subt
             continue
         segments.append(SubtitleSegment(start_ms=start_ms, end_ms=start_ms + duration_ms, text=text, language=language))
     return segments
-
-
-def _run_yt_dlp(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, timeout=90)
-
-
-def _yt_dlp_error(result: Any) -> str:
-    text = str(getattr(result, "stderr", "") or getattr(result, "stdout", "") or "yt-dlp failed")
-    return " ".join(text.split())[:500]
 
 
 def _choose_yt_dlp_subtitle(info: dict[str, Any], *, preferred_language: str) -> _YtDlpSubtitleChoice | None:

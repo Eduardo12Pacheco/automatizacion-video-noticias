@@ -238,6 +238,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "newsroom-media" },
     { name = "pyyaml" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -252,10 +253,20 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115,<1" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
+    { name = "newsroom-media", directory = "../../packages/python/newsroom_media" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.29,<1" },
 ]
+provides-extras = ["dev"]
+
+[[package]]
+name = "newsroom-media"
+version = "0.1.0"
+source = { directory = "../../packages/python/newsroom_media" }
+
+[package.metadata]
+requires-dist = [{ name = "pytest", marker = "extra == 'dev'", specifier = ">=8" }]
 provides-extras = ["dev"]
 
 [[package]]

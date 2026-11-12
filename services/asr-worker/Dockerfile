@@ -12,7 +12,8 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY packages/python/newsroom_worker_common /app/packages/python/newsroom_worker_common
-RUN pip install /app/packages/python/newsroom_worker_common
+COPY packages/python/newsroom_media /app/packages/python/newsroom_media
+RUN pip install /app/packages/python/newsroom_worker_common /app/packages/python/newsroom_media
 
 COPY services/asr-worker/pyproject.toml /app/services/asr-worker/pyproject.toml
 COPY services/asr-worker/app /app/services/asr-worker/app

@@ -7,7 +7,7 @@ import { SearxngWikimediaImageSearch } from '../src/image-search.js';
 import { OllamaLLMAdapter } from '../src/llm.js';
 import { RssChannelFeedAdapter } from '../src/rss.js';
 import { SmtpNotificationAdapter } from '../src/notification.js';
-import { YtDlpMediaDownload } from '../src/media-download.js';
+import { WorkerMediaDownload } from '../src/media-download.js';
 import { N8nWorkflowTrigger } from '../src/workflow-trigger.js';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -73,9 +73,8 @@ test('live: SMTP notification reaches Mailpit', { skip: live ? false : skip }, a
   assert.equal(result.status, 'sent');
 });
 
-test('live: yt-dlp downloads a configured media URL', { skip: live && process.env.NEWSROOM_LIVE_MEDIA_URL ? false : 'set NEWSROOM_LIVE_TESTS=1 and NEWSROOM_LIVE_MEDIA_URL to run' }, async () => {
-  const adapter = new YtDlpMediaDownload({ timeoutMs: 120_000 });
-  const dir = await mkdtemp(join(tmpdir(), 'newsroom-live-media-'));
-  const result = await adapter.download({ url: process.env.NEWSROOM_LIVE_MEDIA_URL, jobDir: dir });
+test('live: the ASR worker downloads a configured media URL', { skip: live && process.env.NEWSROOM_LIVE_MEDIA_URL && process.env.NEWSROOM_LIVE_ASR_URL ? false : 'set NEWSROOM_LIVE_TESTS=1, NEWSROOM_LIVE_MEDIA_URL and NEWSROOM_LIVE_ASR_URL to run' }, async () => {
+  const adapter = new WorkerMediaDownload({ baseUrl: process.env.NEWSROOM_LIVE_ASR_URL, timeoutMs: 120_000 });
+  const result = await adapter.download({ url: process.env.NEWSROOM_LIVE_MEDIA_URL, jobDir: '/tmp/newsroom-live-media' });
   assert.ok(result.path);
 });

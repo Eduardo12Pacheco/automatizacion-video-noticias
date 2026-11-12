@@ -4,7 +4,7 @@ export { TrafilaturaArticleExtractor } from './article-extractor.js';
 export { LocalDocumentExport } from './document-export.js';
 export { SearxngWikimediaImageSearch, mapWikimediaPages } from './image-search.js';
 export { OllamaLLMAdapter, OpenAICompatibleLLMAdapter } from './llm.js';
-export { YtDlpMediaDownload, classifyYtDlpFailure, validateYouTubeUrl } from './media-download.js';
+export { WorkerMediaDownload, validateYouTubeUrl } from './media-download.js';
 export { ConsoleNotificationAdapter, SmtpNotificationAdapter, buildSmtpMessage } from './notification.js';
 export { HttpASRAdapter, HttpTranslationAdapter, HttpTTSAdapter, HttpVideoRendererAdapter, basicAuthHeader, workerAuthHeaders } from './worker-ports.js';
 export { RssChannelFeedAdapter, RssNewsSourceAdapter, parseChannelFeed, parseNewsFeed } from './rss.js';

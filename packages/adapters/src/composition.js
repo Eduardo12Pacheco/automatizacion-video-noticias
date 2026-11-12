@@ -3,7 +3,7 @@ import { DemoASRAdapter, DemoArticleExtractor, DemoLLMAdapter, DemoTranslationAd
 import { LocalDocumentExport } from './document-export.js';
 import { SearxngWikimediaImageSearch } from './image-search.js';
 import { OllamaLLMAdapter, OpenAICompatibleLLMAdapter } from './llm.js';
-import { YtDlpMediaDownload } from './media-download.js';
+import { WorkerMediaDownload } from './media-download.js';
 import { ConsoleNotificationAdapter, SmtpNotificationAdapter } from './notification.js';
 import { RssChannelFeedAdapter, RssNewsSourceAdapter } from './rss.js';
 import { N8nWorkflowTrigger } from './workflow-trigger.js';
@@ -137,14 +137,16 @@ export function createAdaptersFromEnv({
     });
   }
 
-  if (choice(env.MEDIA_DOWNLOAD, 'yt-dlp') !== 'none') {
-    adapters.mediaDownload = new YtDlpMediaDownload({
-      binary: env.YT_DLP_BINARY || 'yt-dlp',
-      cookiesPath: env.YT_DLP_COOKIES_PATH || '',
-      maxFilesize: env.YT_DLP_MAX_FILESIZE || '2G',
-      maxDurationSeconds: intEnv(env, 'YT_DLP_MAX_DURATION_SECONDS', 7200),
-      timeoutMs: intEnv(env, 'YT_DLP_TIMEOUT_MS', 30 * 60 * 1000),
+  const mediaDownload = choice(env.MEDIA_DOWNLOAD, 'worker');
+  if (mediaDownload === 'worker') {
+    adapters.mediaDownload = new WorkerMediaDownload({
+      baseUrl: env.ASR_BASE_URL || 'http://127.0.0.1:8765',
+      apiKey: env.ASR_API_KEY || '',
+      fetchImpl,
+      timeoutMs: intEnv(env, 'MEDIA_DOWNLOAD_TIMEOUT_MS', 30 * 60 * 1000),
     });
+  } else if (mediaDownload !== 'none') {
+    throw new Error(`Unsupported MEDIA_DOWNLOAD adapter: ${mediaDownload}`);
   }
 
 

@@ -11,6 +11,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+COPY packages/python/newsroom_media /app/packages/python/newsroom_media
+RUN pip install /app/packages/python/newsroom_media
+
 COPY services/channel-monitor/pyproject.toml ./
 COPY services/channel-monitor/app ./app
 COPY services/channel-monitor/config ./config

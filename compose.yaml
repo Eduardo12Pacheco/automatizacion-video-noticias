@@ -66,6 +66,7 @@ x-api-base: &api-base
     - newsroom_blobs:/app/data/blobs
     - newsroom_documents:/app/data/documents
     - newsroom_runtime:/app/runtime-logs
+    - newsroom_media:/app/runtime/media
   restart: unless-stopped
 
 services:
@@ -227,9 +228,12 @@ services:
       WHISPER_MODEL: /models/whisper/${WHISPER_MODEL:-small}
       WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
       NEWSROOM_GPU_LOCK_PATH: /tmp/newsroom-gpu.lock
+      TRANSCRIPT_SERVICE_MEDIA_DOWNLOAD_ROOT: /app/runtime/media
+      TRANSCRIPT_SERVICE_RUNTIME_DIR: /app/runtime
     volumes:
       - newsroom_whisper_models:/models/whisper
       - newsroom_gpu_lock:/tmp
+      - newsroom_media:/app/runtime/media
     expose:
       - "8765"
     restart: unless-stopped
@@ -276,6 +280,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  newsroom_media:
   newsroom_postgres:
   newsroom_blobs:
   newsroom_documents:

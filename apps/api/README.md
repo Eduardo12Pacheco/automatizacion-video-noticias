@@ -97,7 +97,7 @@ and `src/core-runtime.js` injects them from environment variables:
 | `DocumentExportPort` | `LocalDocumentExport` (python-docx + Markdown) | `DOCUMENT_EXPORT=none` |
 | `NotificationPort` | `ConsoleNotificationAdapter` | `NOTIFY=smtp` (Mailpit/Gmail app password) |
 | `ChannelFeedPort` | `RssChannelFeedAdapter` (YouTube RSS) | `CHANNEL_FEED=none` |
-| `MediaDownloadPort` | `YtDlpMediaDownload` (local yt-dlp) | `MEDIA_DOWNLOAD=none` |
+| `MediaDownloadPort` | `WorkerMediaDownload` (ASR worker `/api/radar/download`) | `MEDIA_DOWNLOAD=none` |
 | `WorkflowTriggerPort` | off (`WORKFLOW=disabled`) | `WORKFLOW=n8n` + webhook URL |
 
 No key is required by the defaults. The trafilatura/python-docx helper is

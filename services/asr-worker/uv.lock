@@ -473,6 +473,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "newsroom-media" },
     { name = "newsroom-worker-common" },
     { name = "pydantic" },
     { name = "uvicorn", extra = ["standard"] },
@@ -495,6 +496,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115,<1" },
     { name = "faster-whisper", marker = "extra == 'asr'", specifier = ">=1.1" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
+    { name = "newsroom-media", directory = "../../packages/python/newsroom_media" },
     { name = "newsroom-worker-common", directory = "../../packages/python/newsroom_worker_common" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
@@ -502,6 +504,15 @@ requires-dist = [
     { name = "yt-dlp", marker = "extra == 'fetch'", specifier = ">=2025.1" },
 ]
 provides-extras = ["asr", "fetch", "dev"]
+
+[[package]]
+name = "newsroom-media"
+version = "0.1.0"
+source = { directory = "../../packages/python/newsroom_media" }
+
+[package.metadata]
+requires-dist = [{ name = "pytest", marker = "extra == 'dev'", specifier = ">=8" }]
+provides-extras = ["dev"]
 
 [[package]]
 name = "newsroom-worker-common"

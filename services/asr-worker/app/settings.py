@@ -53,6 +53,7 @@ class Settings:
     yt_dlp_socket_timeout_seconds: int = 30
     yt_dlp_retries: int = 3
     yt_dlp_fragment_retries: int = 3
+    media_download_root: Path = Path("runtime/media")
     media_url_dns_check: bool = True
     subprocess_timeout_seconds: int = 1800
     cleanup_ttl_seconds: int = DEFAULT_CLEANUP_TTL_SECONDS
@@ -86,6 +87,7 @@ def load_settings() -> Settings:
         yt_dlp_socket_timeout_seconds=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_SOCKET_TIMEOUT_SECONDS", "30"), default=30),
         yt_dlp_retries=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_RETRIES", "3"), default=3),
         yt_dlp_fragment_retries=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_YT_DLP_FRAGMENT_RETRIES", "3"), default=3),
+        media_download_root=Path(os.environ.get("TRANSCRIPT_SERVICE_MEDIA_DOWNLOAD_ROOT", str(Path(os.environ.get("TRANSCRIPT_SERVICE_RUNTIME_DIR", "runtime")) / "media"))),
         media_url_dns_check=os.environ.get("TRANSCRIPT_SERVICE_MEDIA_URL_DNS_CHECK", "1").strip().lower() not in {"0", "false", "no", "off"},
         subprocess_timeout_seconds=_parse_int(os.environ.get("TRANSCRIPT_SERVICE_SUBPROCESS_TIMEOUT_SECONDS", "1800"), default=1800),
         cleanup_ttl_seconds=_parse_int(

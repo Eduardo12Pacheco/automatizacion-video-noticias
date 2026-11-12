@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,7 +12,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from .audio import FfmpegAudioExtractor
 from .catalog import get_catalog_summary
 from .downloader import YtDlpDownloader, validate_media_url
-from .models import HealthResponse, HistoryResponse, JobCreateRequest, JobCreateResponse, TranscribeRequest, TranscribeResponse
+from .models import DownloadRequest, DownloadResponse, HealthResponse, HistoryResponse, JobCreateRequest, JobCreateResponse, TranscribeRequest, TranscribeResponse
 from .preflight import PreflightChecker, collect_preflight_failures
 from .settings import Settings, load_settings
 from .store import JobStore, JobStoreError
@@ -53,16 +54,18 @@ def create_app(
     worker: Any | None = None,
     preflight_checker: Any | None = None,
     transcriber: Any | None = None,
+    media_downloader: Any | None = None,
 ) -> FastAPI:
     settings = settings or load_settings()
     store = store or JobStore(settings.runtime_dir)
     store.cleanup_expired_job_artifacts(ttl_seconds=settings.cleanup_ttl_seconds)
     store.recover_orphaned_active_jobs()
     transcriber = transcriber or FasterWhisperTranscriber(settings=settings)
+    media_downloader = media_downloader or create_downloader(settings)
     worker = worker or TranscriptWorker(
         settings=settings,
         store=store,
-        downloader=create_downloader(settings),
+        downloader=media_downloader,
         audio_extractor=FfmpegAudioExtractor(binary=settings.ffmpeg_binary, timeout_seconds=settings.subprocess_timeout_seconds),
         transcriber=transcriber,
     )
@@ -127,6 +130,27 @@ def create_app(
         )
         worker.enqueue(job.job_id)
         return JobCreateResponse(job_id=job.job_id, status=job.status)
+
+    @app.post("/api/radar/download", response_model=DownloadResponse)
+    async def download_media(request: DownloadRequest) -> DownloadResponse:
+        try:
+            validate_media_url(request.url, resolve_host=settings.media_url_dns_check)
+        except DependencyFailure as exc:
+            raise _error(exc.code, exc.message, 422) from exc
+        root = settings.media_download_root.resolve()
+        if request.job_dir:
+            job_dir = Path(request.job_dir).resolve()
+            if not job_dir.is_relative_to(root):
+                raise _error("invalid_job_dir", "job_dir must live under the media download root", 422)
+        else:
+            job_dir = root / uuid4().hex
+        try:
+            result = media_downloader.download(request.url, job_dir)
+        except DependencyFailure as exc:
+            raise _error(exc.code, exc.message, 502) from exc
+        except OSError as exc:
+            raise _error("download_error", str(exc), 500) from exc
+        return DownloadResponse(path=str(result.path), title=result.title)
 
     @app.post("/api/radar/transcribe", response_model=TranscribeResponse)
     async def transcribe_audio(request: TranscribeRequest) -> TranscribeResponse:

@@ -11,8 +11,9 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.models import JobStatus, MentionMatch, TranscriptSegment
 from app.settings import Settings
+from app.downloader import DownloadResult
 from app.store import JobStore
-from app.worker import TranscriptWorker
+from app.worker import DependencyFailure, TranscriptWorker
 
 
 class CompletingWorker:
@@ -426,3 +427,83 @@ def test_submit_rejects_concurrent_active_job_with_typed_busy_error(tmp_path):
 
     assert response.status_code == 409
     assert response.json() == {"detail": {"code": "busy", "message": "A radar job is already active"}}
+
+
+class FakeMediaDownloader:
+    def __init__(self, error: DependencyFailure | None = None):
+        self.error = error
+        self.calls: list[tuple[str, Path]] = []
+
+    def download(self, url: str, job_dir: Path) -> DownloadResult:
+        self.calls.append((url, job_dir))
+        if self.error:
+            raise self.error
+        job_dir.mkdir(parents=True, exist_ok=True)
+        target = job_dir / "source.webm"
+        target.write_text("media", encoding="utf-8")
+        return DownloadResult(path=target, title="Demo highlight")
+
+
+def _download_client(tmp_path, downloader):
+    settings = Settings(
+        api_key="test-key",
+        runtime_dir=tmp_path,
+        cors_origins=["https://panel.example"],
+        media_url_dns_check=False,
+        media_download_root=tmp_path / "media",
+    )
+    store = JobStore(tmp_path)
+    app = create_app(
+        settings=settings,
+        store=store,
+        worker=CompletingWorker(store),
+        preflight_checker=FixedPreflightChecker(),
+        media_downloader=downloader,
+    )
+    return TestClient(app)
+
+
+def test_media_download_endpoint_returns_the_worker_path(tmp_path):
+    downloader = FakeMediaDownloader()
+    client = _download_client(tmp_path, downloader)
+    job_dir = tmp_path / "media" / "job-1"
+
+    response = client.post(
+        "/api/radar/download",
+        json={"url": "https://www.youtube.com/watch?v=abc123", "job_dir": str(job_dir)},
+        headers=_headers(),
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"path": str(job_dir / "source.webm"), "title": "Demo highlight"}
+    assert downloader.calls == [("https://www.youtube.com/watch?v=abc123", job_dir)]
+
+
+def test_media_download_endpoint_rejects_paths_outside_the_media_root(tmp_path):
+    client = _download_client(tmp_path, FakeMediaDownloader())
+
+    response = client.post(
+        "/api/radar/download",
+        json={"url": "https://www.youtube.com/watch?v=abc123", "job_dir": "/tmp/not-allowed"},
+        headers=_headers(),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "invalid_job_dir"
+
+
+def test_media_download_endpoint_reports_guardrail_and_download_failures(tmp_path):
+    client = _download_client(tmp_path, FakeMediaDownloader())
+
+    blocked = client.post("/api/radar/download", json={"url": "http://127.0.0.1/private"}, headers=_headers())
+    assert blocked.status_code == 422
+    assert blocked.json()["detail"]["code"] == "invalid_url"
+
+    failing = _download_client(tmp_path, FakeMediaDownloader(DependencyFailure("yt_dlp_geo_blocked", "blocked")))
+    failed = failing.post(
+        "/api/radar/download",
+        json={"url": "https://youtu.be/abc123"},
+        headers=_headers(),
+    )
+    assert failed.status_code == 502
+    assert failed.json()["detail"]["code"] == "yt_dlp_geo_blocked"
