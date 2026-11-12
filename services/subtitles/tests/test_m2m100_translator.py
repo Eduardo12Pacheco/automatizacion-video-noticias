@@ -126,6 +126,14 @@ def test_translate_happy_path_calls_generate_with_forced_bos(
     segment carrying `text`, `translated_text`, `source_text`, plus
     preserved `start_ms` / `end_ms` from the input.
     """
+    torch = pytest.importorskip(
+        "torch",
+        reason=(
+            "torch is not installed locally; CI installs the "
+            "services/subtitles[translation] extra so this test runs there"
+        ),
+    )
+    assert torch is not None
     tokenizer, model = _install_fake_transformers(monkeypatch)
 
     from subtitles_service.infrastructure.translation.m2m100 import (
