@@ -28,8 +28,6 @@ const STATUS_MESSAGE_KEYS = Object.freeze({
   503: 'errors.unavailable',
 });
 
-const UNSAFE_MESSAGE = /[<>{}[\]]|https?:\/\/|\b(?:GET|POST|PUT|PATCH|DELETE)\s+\/|HTTP\s*\d|Detalle:|<!doctype|<html/i;
-
 export function isAdminSession(session = globalThis.__CONTROL_PANEL_SESSION__) {
   return Array.isArray(session?.roles) && session.roles.includes('admin');
 }
@@ -56,16 +54,6 @@ export function describeError(error, fallbackKey = 'errors.generic') {
   if (STATUS_MESSAGE_KEYS[status]) return STATUS_MESSAGE_KEYS[status];
   if (status >= 500) return 'errors.unavailable';
   return fallbackKey;
-}
-
-/**
- * Keeps a short human message only when it does not look like a response
- * body, URL, markup or request line. Returns '' otherwise.
- */
-export function safeErrorMessage(error) {
-  const raw = (error?.message || '').toString().replace(/\s+/g, ' ').trim();
-  if (!raw || raw.length > 140 || UNSAFE_MESSAGE.test(raw)) return '';
-  return raw;
 }
 
 function stateContainer(className, body, { role = 'status', live = 'polite' } = {}) {

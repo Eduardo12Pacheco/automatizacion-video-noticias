@@ -87,9 +87,3 @@ function renderEventCard(rawEvent) {
 function detailRow(label, value) {
   return `<p><strong>${escapeHtml(label)}</strong>: ${escapeHtml(value || '—')}</p>`;
 }
-
-function safeErrorMessage(message = '') {
-  const text = (message || '').toString();
-  if (!text) return 'Iniciá sesión o reintentá la lectura.';
-  return text.replace(/Detalle:.*/i, '').replace(/raw[-_\w]*secret[-_\w]*/gi, '[redacted]').trim() || 'Iniciá sesión o reintentá la lectura.';
-}
