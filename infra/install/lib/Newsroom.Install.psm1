@@ -2,7 +2,7 @@
 #
 # Mirror of infra/install/lib/steps.sh. Depends on Newsroom.Core.psm1.
 
-Import-Module (Join-Path $PSScriptRoot 'Newsroom.Core.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Newsroom.Core.psm1')
 
 # Share the mutable configuration object with Newsroom.Core instead of relying
 # on module-local copies of its script scope.

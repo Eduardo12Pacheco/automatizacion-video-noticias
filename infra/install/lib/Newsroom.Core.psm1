@@ -136,7 +136,7 @@ function Write-NrLinesFile {
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)]$Lines
     )
-    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $encoding = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false
     [System.IO.File]::WriteAllLines($Path, [string[]]@($Lines), $encoding)
 }
 
@@ -365,8 +365,8 @@ function Update-NrEnvFile {
             $acl.SetAccessRuleProtection($true, $false)
             $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
             if ($null -ne $identity -and $identity.Name) {
-                $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                    $identity.Name, 'FullControl', 'Allow')
+                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule `
+                    -ArgumentList @($identity.Name, 'FullControl', 'Allow')
                 $acl.SetAccessRule($rule)
             }
             Set-Acl -LiteralPath $target -AclObject $acl
@@ -455,7 +455,7 @@ function Get-NrFreeDiskMB {
         if (-not $full.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
             $full += [System.IO.Path]::DirectorySeparatorChar
         }
-        $drive = New-Object System.IO.DriveInfo($full)
+        $drive = New-Object -TypeName System.IO.DriveInfo -ArgumentList $full
         return [int]($drive.AvailableFreeSpace / 1MB)
     } catch {
         return 0
