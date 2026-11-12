@@ -36,7 +36,12 @@ test('login -> approve -> script -> voice -> subtitles -> render on the default 
   await expect(page.locator('#cards .card--approval').first()).toBeVisible();
   await page.locator('#cards .card--approval').first().click();
   await expect(page.locator('#topicDialog')).toBeVisible();
-  await page.locator('#topicDialog [data-action="approve-source"]').first().click();
+  const approveButton = page.locator('#topicDialog [data-action="approve-source"]').first();
+  await expect(approveButton).toBeVisible();
+  await Promise.all([
+    page.waitForResponse((response) => response.url().includes('/webhook/approval/decision') && response.request().method() === 'POST'),
+    approveButton.click(),
+  ]);
 
   let approvedDraft = null;
   await waitFor(async () => {
