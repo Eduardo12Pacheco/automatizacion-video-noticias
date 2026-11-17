@@ -278,6 +278,24 @@ def test_feature_renderers_translate_at_render_time_instead_of_rewriting_the_dom
     assert "Subido " not in radar
 
 
+def test_spanish_catalog_uses_neutral_tu_register_and_plain_language():
+    es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
+    voseo = re.compile(
+        r"\b(Configurá|Elegí|Actualizá|Probá|Guardá|Seleccioná|Creá|asigná|"
+        r"deshabilitá|dejás|Usá|Tenés|podés|Querés|Soltá|Poné|Pegá|Subí|volvé|"
+        r"Abrí|Cerrá|mirá|hacé|decí|salí|vení|andá|esperá|cargá|buscá|escribí|"
+        r"agregá|quitá|tocá|copiá|descargá|renderizá|procesá|publicá|confirmá|"
+        r"cancelá|revisá|verificá|completá|ingresá|iniciá|arrastrá|intentá)\b"
+    )
+    offenders = {key: value for key, value in es.items() if voseo.search(value)}
+    assert offenders == {}
+    assert es["subtitles.start"] == "Inicio / Fin"
+    assert es["errors.correlation"] == "ID de correlación"
+    assert "cue" not in es["subtitles.sizeHint"].lower()
+    assert "cue" not in es["subtitles.colorHint"].lower()
+    assert es["nav.activeUsers"] == "Usuarios activos"
+
+
 def test_focus_rings_are_never_removed_without_a_visible_replacement():
     offenders = []
     for path in _feature_css():
