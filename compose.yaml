@@ -57,6 +57,7 @@ x-api-base: &api-base
     SUBTITLES_BASE_URL: ${SUBTITLES_BASE_URL:-http://subtitles:8092}
     RENDERER_BASE_URL: ${RENDERER_BASE_URL:-http://renderer:3042}
     RENDERER_API_KEY: ${API_GATEWAY_RENDERER_API_KEY:?run ./install.sh first to generate .env; docker compose up alone cannot create the required secrets}
+    API_GATEWAY_RENDERER_API_KEY: ${API_GATEWAY_RENDERER_API_KEY:?run ./install.sh first to generate .env; docker compose up alone cannot create the required secrets}
     RENDERER_PROFILE: ${RENDERER_PROFILE:-local}
     NOTIFY: ${NOTIFY:-console}
     SMTP_HOST: ${SMTP_HOST:-mailpit}
