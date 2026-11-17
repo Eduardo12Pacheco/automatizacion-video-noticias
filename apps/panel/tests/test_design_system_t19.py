@@ -309,5 +309,6 @@ def test_axe_runs_against_every_view():
     assert "['serious', 'critical']" in spec
     for view in ("radar", "approval", "audio", "subtitulos2", "scripts", "admin-users", "connectors", "errors-audit", "active-users"):
         assert f"'{view}'" in spec
-    assert (root / "e2e" / "vendor" / "axe-core" / "axe.min.js").exists()
-    assert (root / "e2e" / "vendor" / "axe-core" / "LICENSE").exists()
+    package = json.loads((root / "package.json").read_text(encoding="utf-8"))
+    assert "axe-core" in package["devDependencies"]
+    assert "axe-core/axe.min.js" in spec

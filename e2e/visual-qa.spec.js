@@ -3,7 +3,7 @@ import { PHRASES } from '../apps/panel/js/modules/core/i18n/phrases.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const AXE_PATH = path.resolve(process.cwd(), 'e2e', 'vendor', 'axe-core', 'axe.min.js');
+const AXE_PATH = path.resolve(process.cwd(), 'node_modules', 'axe-core', 'axe.min.js');
 const AXE_SOURCE = fs.readFileSync(AXE_PATH, 'utf8');
 
 // Inline <script> injection is blocked by the panel CSP (script-src 'self').
