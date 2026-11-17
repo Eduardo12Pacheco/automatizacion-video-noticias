@@ -104,6 +104,31 @@ class ComposeStackTests(unittest.TestCase):
         self.assertIn("proxy_set_header X-Forwarded-For $remote_addr;", nginx)
         self.assertNotIn("proxy_add_x_forwarded_for", nginx)
 
+    def test_panel_sends_anti_framing_and_csp_headers(self) -> None:
+        nginx = (ROOT / "infra" / "panel" / "nginx.conf").read_text(encoding="utf-8")
+        self.assertIn('add_header X-Frame-Options "DENY" always;', nginx)
+        self.assertIn('add_header X-Content-Type-Options "nosniff" always;', nginx)
+        self.assertIn('add_header Referrer-Policy "same-origin" always;', nginx)
+        self.assertIn('add_header Permissions-Policy "', nginx)
+        csp_match = re.search(r'add_header Content-Security-Policy "([^"]+)" always;', nginx)
+        self.assertIsNotNone(csp_match, "nginx must send a Content-Security-Policy")
+        csp = csp_match.group(1)
+        self.assertIn("frame-ancestors 'none'", csp)
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("script-src 'self'", csp)
+        self.assertNotIn("script-src 'self' 'unsafe-inline'", csp)
+        self.assertNotIn("unsafe-eval", csp)
+
+        # The static panel server used by visual QA must enforce the same policy.
+        server = (ROOT / "tools" / "serve-panel.mjs").read_text(encoding="utf-8")
+        for directive in ("frame-ancestors 'none'", "script-src 'self'", "default-src 'self'"):
+            self.assertIn(directive, server)
+
+        # No inline <script> may remain, or the strict script-src would break it.
+        index = (ROOT / "apps" / "panel" / "index.html").read_text(encoding="utf-8")
+        self.assertIsNone(re.search(r"<script(?![^>]*\bsrc=)[^>]*>", index))
+        self.assertTrue((ROOT / "apps" / "panel" / "js" / "theme-init.js").is_file())
+
     def test_internal_services_are_not_published_by_default(self) -> None:
         for name in ("postgres", "searxng", "mailpit", "ollama", "n8n"):
             self.assertNotIn("ports", self.services[name], name)

@@ -1,7 +1,15 @@
 import { expect, test } from '@playwright/test';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const AXE_PATH = path.resolve(process.cwd(), 'e2e', 'vendor', 'axe-core', 'axe.min.js');
+const AXE_SOURCE = fs.readFileSync(AXE_PATH, 'utf8');
+
+// Inline <script> injection is blocked by the panel CSP (script-src 'self').
+async function injectAxe(page) {
+  await page.evaluate(AXE_SOURCE);
+  await expect(page.evaluate(() => typeof window.axe)).resolves.toBe('object');
+}
 const VIEWS = ['radar', 'approval', 'audio', 'subtitulos2', 'scripts', 'admin-users', 'connectors', 'errors-audit', 'active-users'];
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
@@ -21,7 +29,7 @@ for (const language of LANGUAGES) {
         }, { lang: language, mode: theme });
         await page.goto('/?showcase=1');
         await expect(page.locator('#appShell')).toBeVisible();
-        await page.addScriptTag({ path: AXE_PATH });
+        await injectAxe(page);
 
         for (const view of VIEWS) {
           if (viewport.name === 'mobile') {

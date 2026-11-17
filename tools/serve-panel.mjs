@@ -12,6 +12,17 @@ const ROOT = resolve(fileURLToPath(new URL('../apps/panel', import.meta.url)));
 const PORT = Number(process.argv[2] || process.env.PANEL_PORT || 8154);
 const HOST = process.env.PANEL_HOST || '127.0.0.1';
 
+// Same policy as infra/panel/nginx.conf, so visual QA runs under the CSP the
+// container enforces. Inline style attributes are allowed for the progress and
+// timeline renderers; scripts and stylesheets themselves must be same-origin.
+export const SECURITY_HEADERS = Object.freeze({
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'same-origin',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+  'content-security-policy': "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:",
+});
+
 const MIME = Object.freeze({
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -47,6 +58,7 @@ const server = createServer((request, response) => {
     const info = statSync(target);
     if (!info.isFile()) throw new Error('not a file');
     response.writeHead(200, {
+      ...SECURITY_HEADERS,
       'content-type': MIME[extname(target).toLowerCase()] || 'application/octet-stream',
       'content-length': info.size,
       'cache-control': 'no-store',

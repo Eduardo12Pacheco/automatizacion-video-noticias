@@ -5,21 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Newsroom Video Automation</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <script>
-      // Apply the stored/system theme before CSS paints.
-      (function () {
-        try {
-          var key = 'newsroom-panel-theme-v1';
-          var stored = localStorage.getItem(key);
-          var theme = stored === 'light' || stored === 'dark'
-            ? stored
-            : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-          document.documentElement.dataset.theme = theme;
-        } catch (error) {
-          document.documentElement.dataset.theme = 'dark';
-        }
-      })();
-    </script>
+    <script src="./js/theme-init.js"></script>
     <link rel="stylesheet" href="./styles/eager.css" />
     <link rel="stylesheet" href="./styles/features/approval.css" />
   </head>

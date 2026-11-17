@@ -4,6 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const AXE_PATH = path.resolve(process.cwd(), 'e2e', 'vendor', 'axe-core', 'axe.min.js');
+const AXE_SOURCE = fs.readFileSync(AXE_PATH, 'utf8');
+
+// Inline <script> injection is blocked by the panel CSP (script-src 'self').
+// Runtime.evaluate still runs the vendored axe bundle in the page world.
+async function injectAxe(page) {
+  await page.evaluate(AXE_SOURCE);
+  await expect(page.evaluate(() => typeof window.axe)).resolves.toBe('object');
+}
 const SCREENSHOT_DIR = path.resolve(process.cwd(), 'docs', 'images', 'screens');
 
 const VIEWS = [
@@ -222,7 +230,7 @@ for (const language of LANGUAGES) {
       }, { lang: language });
       await page.goto('/?showcase=1');
       await expect(page.locator('#appShell')).toBeVisible();
-      await page.addScriptTag({ path: AXE_PATH });
+      await injectAxe(page);
 
       const foreign = foreignPhrases(language);
       for (const view of VIEWS) {
@@ -328,7 +336,7 @@ for (const language of LANGUAGES) {
       }
       await page.locator('#settingsBtn').click();
       await expect(page.locator('#settingsDialog')).toBeVisible();
-      await page.addScriptTag({ path: AXE_PATH });
+      await injectAxe(page);
 
       const measured = await page.evaluate(() => ({
         bodyOverflow: document.body.scrollWidth - window.innerWidth,
@@ -405,7 +413,7 @@ test('light theme keeps every view contained and accessible (wcag21aa)', async (
   });
   await page.goto('/?showcase=1');
   await expect(page.locator('#appShell')).toBeVisible();
-  await page.addScriptTag({ path: AXE_PATH });
+  await injectAxe(page);
   for (const view of VIEWS) {
     await openView(page, view, { name: 'desktop', width: 1440, height: 900 });
     const measured = await page.evaluate(({ container }) => ({
