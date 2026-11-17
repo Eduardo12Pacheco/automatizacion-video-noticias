@@ -250,7 +250,7 @@ def create_app(
     @app.exception_handler(HTTPException)
     async def http_exception_handler(_: Request, exc: HTTPException):
         if exc.detail == "UNAUTHORIZED":
-            return _error("UNAUTHORIZED", "No autorizado.", exc.status_code)
+            return _error("UNAUTHORIZED", "Unauthorized.", exc.status_code)
         return _error("INTERNAL_ERROR", str(exc.detail), exc.status_code)
 
     @app.exception_handler(RequestValidationError)

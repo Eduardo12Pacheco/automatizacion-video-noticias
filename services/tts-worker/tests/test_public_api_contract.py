@@ -109,7 +109,7 @@ def test_public_status_download_and_error_envelopes_remain_stable(tmp_path: Path
 
     unauthorized = client.get("/api/tts/jobs/job_existing")
     assert unauthorized.status_code == 401
-    assert unauthorized.json() == {"error": {"code": "UNAUTHORIZED", "message": "No autorizado.", "details": None}}
+    assert unauthorized.json() == {"error": {"code": "UNAUTHORIZED", "message": "Unauthorized.", "details": None}}
 
     status_response = client.get("/api/tts/jobs/job_existing", headers=_headers())
     assert status_response.status_code == 200
