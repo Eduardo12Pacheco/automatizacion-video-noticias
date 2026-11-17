@@ -6,6 +6,7 @@ from typing import Callable, Protocol
 
 from .radar_client import RadarBusy, RadarJobResult, RadarServerError
 from .youtube_client import SubtitleSegment, SubtitleUnavailable
+from .video_urls import video_watch_url
 
 
 class TranscriptServiceClient(Protocol):
@@ -29,7 +30,7 @@ class TranscriptServiceSubtitleProvider:
     def fetch(self, *, video_id: str, source_language: str | None, default_language: str) -> list[SubtitleSegment]:
         countries = [str(source_language or default_language or "en").strip().casefold() or "en"]
         try:
-            submitted = self.radar.submit_job(_video_url(video_id), countries=countries)
+            submitted = self.radar.submit_job(video_watch_url(video_id), countries=countries)
             detail = self._wait_for_completion(submitted.job_id)
             if str(detail.get("status") or "").casefold() != "succeeded":
                 raise self._unavailable(video_id, default_language, reason="transcript_service_failed", detail=detail)
@@ -70,8 +71,6 @@ class TranscriptServiceSubtitleProvider:
         return SubtitleUnavailable(video_id, language or "en", reason=reason, details=details)
 
 
-def _video_url(video_id: str) -> str:
-    return f"https://www.youtube.com/watch?v={video_id}"
 
 
 def _segment_from_transcript(item: object, *, language: str) -> SubtitleSegment | None:

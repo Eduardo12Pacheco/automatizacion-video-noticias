@@ -1,27 +1,14 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime, timedelta
 from typing import Any, Callable, Protocol
 
 from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport
+from .time_utils import add_minutes, now_iso
 
 
 class TranscriptRetentionPlanner(Protocol):
     def plan_cleanup(self, *, job_ids: list[str], urls: list[str], video_ids: list[str], mode: str) -> dict[str, Any]: ...
-
-
-def _now_iso() -> str:
-    return datetime.now(tz=UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _add_minutes(value: str, minutes: int) -> str:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return (parsed + timedelta(minutes=minutes)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _parse_iso(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 class CleanupWorker:
@@ -35,7 +22,7 @@ class CleanupWorker:
         transcript: TranscriptRetentionPlanner | None = None,
     ):
         self.store = store
-        self.now = now or _now_iso
+        self.now = now or now_iso
         self.retention_hours = retention_hours
         self.mode = mode
         self.transcript = transcript
@@ -47,7 +34,7 @@ class CleanupWorker:
         if self.mode not in {"dry-run", "apply"}:
             raise ValueError("mode must be dry-run or apply")
         started_at = self.now()
-        cutoff = _add_minutes(started_at, -self.retention_hours * 60)
+        cutoff = add_minutes(started_at, -self.retention_hours * 60)
         report = self.store.build_retention_dry_run_report(cutoff=cutoff)
         if self.mode == "dry-run" and self.transcript is None:
             return report

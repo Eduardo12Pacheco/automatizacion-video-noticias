@@ -1,4 +1,5 @@
 import { DomainError } from '@newsroom/core';
+import { readJson } from './read-json.js';
 
 const JSON_LIMIT = 1024 * 1024;
 
@@ -27,17 +28,6 @@ function json(status, body) {
   return { status, headers: { 'content-type': 'application/json' }, body };
 }
 
-async function readJson(readBody) {
-  const raw = await readBody({ maxBodyBytes: JSON_LIMIT });
-  if (!raw || !raw.length) return {};
-  const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw);
-  if (!text.trim()) return {};
-  const parsed = JSON.parse(text);
-  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('JSON body must be an object');
-  }
-  return parsed;
-}
 
 /**
  * Admin user management. Mounted behind the gateway's admin-role check.
@@ -79,7 +69,7 @@ export function createAdminRouter({ authService, connectors = null } = {}) {
           return json(200, { ok: true, users: await authService.listUsers() });
         }
         if (upperMethod === 'POST') {
-          const body = await readJson(read);
+          const body = await readJson(read, { maxBodyBytes: JSON_LIMIT });
           const user = await authService.createUser({
             email: body.email,
             display_name: body.display_name ?? body.displayName,
@@ -96,7 +86,7 @@ export function createAdminRouter({ authService, connectors = null } = {}) {
           return json(405, { ok: false, error: 'method_not_allowed' });
         }
         const userId = decodeURIComponent(match[1]);
-        const body = await readJson(read);
+        const body = await readJson(read, { maxBodyBytes: JSON_LIMIT });
         const user = await authService.updateUser(userId, {
           display_name: body.display_name ?? body.displayName,
           status: body.status,

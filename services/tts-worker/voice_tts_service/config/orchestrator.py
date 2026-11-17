@@ -4,15 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        return default
+from .env import env_int
 
 
 @dataclass(frozen=True)
@@ -44,11 +36,11 @@ def load_config() -> OrchestratorConfig:
         frontend_api_key=os.getenv("TTS_WORKER_FRONTEND_API_KEY", ""),
         basic_user=os.getenv("TTS_WORKER_BASIC_USER", ""),
         basic_pass=os.getenv("TTS_WORKER_BASIC_PASS", ""),
-        request_timeout_sec=_env_int("TTS_WORKER_REQUEST_TIMEOUT_SEC", 30),
-        poll_timeout_sec=_env_int("TTS_WORKER_POLL_TIMEOUT_SEC", 30),
-        rate_limit_per_min=_env_int("TTS_WORKER_RATE_LIMIT_PER_MIN", 10),
-        queue_max_hint=_env_int("TTS_WORKER_QUEUE_MAX_HINT", 20),
-        stream_poll_interval_sec=max(1, _env_int("TTS_WORKER_STREAM_POLL_INTERVAL_SEC", 2)),
-        stream_heartbeat_sec=max(5, _env_int("TTS_WORKER_STREAM_HEARTBEAT_SEC", 15)),
+        request_timeout_sec=env_int("TTS_WORKER_REQUEST_TIMEOUT_SEC", 30),
+        poll_timeout_sec=env_int("TTS_WORKER_POLL_TIMEOUT_SEC", 30),
+        rate_limit_per_min=env_int("TTS_WORKER_RATE_LIMIT_PER_MIN", 10),
+        queue_max_hint=env_int("TTS_WORKER_QUEUE_MAX_HINT", 20),
+        stream_poll_interval_sec=max(1, env_int("TTS_WORKER_STREAM_POLL_INTERVAL_SEC", 2)),
+        stream_heartbeat_sec=max(5, env_int("TTS_WORKER_STREAM_HEARTBEAT_SEC", 15)),
         allowed_origins=allowed_origins,
     )

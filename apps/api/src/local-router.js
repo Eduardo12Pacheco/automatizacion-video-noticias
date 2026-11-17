@@ -1,4 +1,5 @@
 import { DomainError, SaveScriptDraft, buildReadModels } from '@newsroom/core';
+import { readJson } from './read-json.js';
 
 const JSON_LIMIT = 1024 * 1024;
 
@@ -108,17 +109,6 @@ function errorResponse(error) {
   });
 }
 
-async function readJson(readBody) {
-  const raw = await readBody({ maxBodyBytes: JSON_LIMIT });
-  if (!raw || !raw.length) return {};
-  const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw);
-  if (!text.trim()) return {};
-  const parsed = JSON.parse(text);
-  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('JSON body must be an object');
-  }
-  return parsed;
-}
 
 function assertMethod(method, expected) {
   if (method !== expected) return json(405, { ok: false, error: 'method_not_allowed' });
@@ -242,13 +232,13 @@ export function createLocalRouter({
       if (routePath === '/webhook/approval/search-refresh/status/v1' || pathname === '/panel/read-models/approval/search-refresh/status') {
         if (upperMethod === 'GET') return searchRefreshStatus(searchParams);
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || searchRefreshStatus(searchParams, await readJson(read));
+        return wrong || searchRefreshStatus(searchParams, await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       if (routePath === '/webhook/approval/decision/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
         if (wrong) return wrong;
         if (!useCases.decideApproval) throw new DomainError('approval adapter is not configured', { statusCode: 503 });
-        const body = await readJson(read);
+        const body = await readJson(read, { maxBodyBytes: JSON_LIMIT });
         const result = await useCases.decideApproval.execute(body);
         if (result.enqueued && result.id_noticia) {
           if (jobQueue && useCases.draftScript) {
@@ -265,7 +255,7 @@ export function createLocalRouter({
       }
       if (routePath === '/webhook/approval/search-refresh/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || startRefresh(await readJson(read));
+        return wrong || startRefresh(await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       if (routePath === '/webhook/mvp-script-drafts-pending/v2' || pathname === '/panel/read-models/scripts/drafts') {
         const wrong = assertMethod(upperMethod, 'GET');
@@ -273,23 +263,23 @@ export function createLocalRouter({
       }
       if (routePath === '/webhook/mvp-script-draft-save/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || saveDraft(await readJson(read));
+        return wrong || saveDraft(await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       if (routePath === '/webhook/mvp-script-publish/v2') {
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || startPublish(await readJson(read));
+        return wrong || startPublish(await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       if (routePath === '/webhook/mvp-script-publish-status/v1') {
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || publishStatus(await readJson(read));
+        return wrong || publishStatus(await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       if (routePath === '/webhook/mvp-script-download-doc/v1') {
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || downloadDocument(await readJson(read));
+        return wrong || downloadDocument(await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       if (routePath === '/webhook/video-projects/manual-create/v1') {
         const wrong = assertMethod(upperMethod, 'POST');
-        return wrong || startManual(await readJson(read));
+        return wrong || startManual(await readJson(read, { maxBodyBytes: JSON_LIMIT }));
       }
       return json(404, { ok: false, error: 'not_found' });
     } catch (error) {

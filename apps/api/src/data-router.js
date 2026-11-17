@@ -1,3 +1,5 @@
+import { readJson } from './read-json.js';
+
 const ALLOWED_BUCKETS = new Set([
   'video-project-audio',
   'video-candidates-temp',
@@ -197,17 +199,6 @@ function uploadMetadata({ bucket, key, stored, headers }) {
   };
 }
 
-async function readJson(readBody) {
-  const raw = await readBody({ maxBodyBytes: MAX_JSON_BODY_BYTES });
-  if (!raw || !raw.length) return {};
-  const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw);
-  if (!text.trim()) return {};
-  const parsed = JSON.parse(text);
-  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('JSON body must be an object');
-  }
-  return parsed;
-}
 
 /**
  * HTTP surface for the local data layer. The gateway owns authentication,
@@ -237,7 +228,7 @@ export function createDataRouter({
 
     try {
       if (action === 'selections') {
-        const body = await readJson(readBody);
+        const body = await readJson(readBody, { maxBodyBytes: MAX_JSON_BODY_BYTES });
         const selected = body.selectedImageIds ?? body.selected_image_ids ?? [];
         return jsonResponse(200, await repository.saveVideoProjectSelections({
           draftId,
@@ -245,14 +236,14 @@ export function createDataRouter({
         }));
       }
       if (action === 'editor-state') {
-        const body = await readJson(readBody);
+        const body = await readJson(readBody, { maxBodyBytes: MAX_JSON_BODY_BYTES });
         return jsonResponse(200, await repository.saveVideoProjectEditorState({
           draftId,
           editorState: body.editorState ?? body.editor_state ?? body,
         }));
       }
       if (action === 'audio') {
-        const body = await readJson(readBody);
+        const body = await readJson(readBody, { maxBodyBytes: MAX_JSON_BODY_BYTES });
         return jsonResponse(200, await repository.saveVideoProjectAudio({
           draftId,
           voiceAudio: body.voiceAudio ?? body.voice_audio ?? {},
@@ -260,7 +251,7 @@ export function createDataRouter({
         }));
       }
       if (action === 'custom-images') {
-        const body = await readJson(readBody);
+        const body = await readJson(readBody, { maxBodyBytes: MAX_JSON_BODY_BYTES });
         return jsonResponse(200, await repository.addVideoProjectCustomImages({
           draftId,
           customCandidates: body.customCandidates ?? body.custom_candidates ?? [],

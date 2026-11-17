@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { readJson } from './read-json.js';
 
 const JSON_LIMIT = 64 * 1024;
 
@@ -13,17 +14,6 @@ function safeEqual(left, right) {
   return timingSafeEqual(a, b);
 }
 
-async function readJson(readBody) {
-  const raw = await readBody({ maxBodyBytes: JSON_LIMIT });
-  if (!raw || !raw.length) return {};
-  const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw);
-  if (!text.trim()) return {};
-  const parsed = JSON.parse(text);
-  if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('JSON body must be an object');
-  }
-  return parsed;
-}
 
 /**
  * Machine-to-machine endpoints used by the optional n8n connector. They are

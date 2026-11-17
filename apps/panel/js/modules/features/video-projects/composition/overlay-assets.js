@@ -1,4 +1,5 @@
 const DEFAULT_COMPOSITION_ASSET_BASE_URL = './assets';
+import { DEFAULT_BRAND_CHANNEL, normalizeBrandChannel } from '../domain/brand-channel.js';
 let compositionAssetBaseUrl = DEFAULT_COMPOSITION_ASSET_BASE_URL;
 
 /**
@@ -20,7 +21,7 @@ export const VIDEO_SEGMENT_EFFECT_ASSETS = [
   { assetId: 'overlay-layer-02', fileName: 'overlay-layer-02.webm', blendMode: 'multiply' },
 ];
 
-export const DEFAULT_BRAND_CHANNEL = 'demo-primary';
+export { DEFAULT_BRAND_CHANNEL };
 export const BRAND_CHANNEL_ASSETS = {
   'demo-primary': {
     channel: 'demo-primary',
@@ -74,11 +75,6 @@ export const BRAND_CHANNEL_ASSETS = {
     },
   },
 };
-
-export function normalizeBrandChannel(value = DEFAULT_BRAND_CHANNEL) {
-  const normalized = (value || '').toString().trim().toLowerCase();
-  return Object.prototype.hasOwnProperty.call(BRAND_CHANNEL_ASSETS, normalized) ? normalized : DEFAULT_BRAND_CHANNEL;
-}
 
 export function resolveBrandChannelAssets(channel = DEFAULT_BRAND_CHANNEL) {
   const normalized = normalizeBrandChannel(channel);

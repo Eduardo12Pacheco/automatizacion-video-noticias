@@ -1,3 +1,7 @@
+import { normalizeBrandChannel } from './brand-channel.js';
+
+export { normalizeBrandChannel };
+
 export const DEFAULT_MUSIC_VOLUME = 0.7;
 
 export function sanitizePipelineHealthMetadata(healthPayload) {
@@ -41,11 +45,6 @@ export function normalizeEditorState(editorState = {}) {
     global_audio: globalAudio,
     updated_at: editorState.updated_at || new Date().toISOString(),
   };
-}
-
-export function normalizeBrandChannel(value = 'demo-primary') {
-  const normalized = (value || '').toString().trim().toLowerCase();
-  return ['demo-secondary', 'demo-final'].includes(normalized) ? normalized : 'demo-primary';
 }
 
 export function normalizeGlobalAudioState(globalAudio = {}) {

@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from typing import Any, Callable, Protocol
 
 from .radar_client import RadarBusy, RadarJobResult, RadarServerError
 from .store import MonitorStore, RetentionDryRunItem, RetentionDryRunReport, VideoRecord
 from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, match_program_title, normalize_country
+from .time_utils import add_minutes, add_seconds, iso_equal, iso_gt, iso_lt, iso_lte, now_iso, parse_iso
+from .video_urls import video_watch_url
 from .retention import CleanupWorker
 from .youtube_client import MetadataUnavailable, SubtitleProvider, SubtitleUnavailable, UploadItem, VideoMetadata
 
@@ -73,7 +75,7 @@ class ClassificationBackfill:
     def __init__(self, *, store: MonitorStore, classifier: ClassificationService, now: Callable[[], str] | None = None):
         self.store = store
         self.classifier = classifier
-        self.now = now or _now_iso
+        self.now = now or now_iso
 
     def run(self, *, mode: str, limit: int) -> ClassificationBackfillResult:
         if mode not in {"dry-run", "apply"}:
@@ -179,7 +181,7 @@ class DiscoveryWorker:
     ):
         self.store = store
         self.youtube = youtube
-        self.now = now or _now_iso
+        self.now = now or now_iso
         if classifier is None:
             if matcher is None:
                 raise ValueError("matcher or classifier is required")
@@ -193,7 +195,7 @@ class DiscoveryWorker:
         try:
             metadata = self.get_video_metadata(video_id)
         except MetadataUnavailable as exc:
-            failed = existing or VideoRecord(video_id=video_id, url=_video_url(video_id), lifecycle="metadata_failed")
+            failed = existing or VideoRecord(video_id=video_id, url=video_watch_url(video_id), lifecycle="metadata_failed")
             return self.store.upsert_video(
                 failed.with_updates(lifecycle="metadata_failed", matched=False, match_reason=_metadata_unavailable_reason(exc))
             )
@@ -222,7 +224,7 @@ class DiscoveryWorker:
         updated = base.with_updates(
             channel_id=channel_id,
             title=metadata.title,
-            url=_video_url(metadata.video_id),
+            url=video_watch_url(metadata.video_id),
             published_at=metadata.published_at,
             live_status=metadata.live_status,
         )
@@ -313,7 +315,7 @@ class DiscoveryWorker:
         return saved
 
     def _record_item_failure(self, video_id: str, *, existing: VideoRecord | None, error: Exception) -> VideoRecord:
-        failed = existing or VideoRecord(video_id=video_id, url=_video_url(video_id), lifecycle="metadata_failed")
+        failed = existing or VideoRecord(video_id=video_id, url=video_watch_url(video_id), lifecycle="metadata_failed")
         return self.store.upsert_video(
             failed.with_updates(
                 lifecycle="metadata_failed",
@@ -363,7 +365,7 @@ class CatchupWorker:
                             self.store.record_channel_catchup_error(
                                 channel.id,
                                 error=f"metadata_unresolved:{item.video_id}",
-                                caught_up_at=_now_iso(),
+                                caught_up_at=now_iso(),
                             )
                         continue
                     except Exception as exc:
@@ -373,7 +375,7 @@ class CatchupWorker:
                             self.store.record_channel_catchup_error(
                                 channel.id,
                                 error=f"metadata_unresolved:{item.video_id}:{type(exc).__name__}",
-                                caught_up_at=_now_iso(),
+                                caught_up_at=now_iso(),
                             )
                         continue
                     item_published_at = metadata.published_at
@@ -383,14 +385,14 @@ class CatchupWorker:
                             self.store.record_channel_catchup_error(
                                 channel.id,
                                 error=f"metadata_missing_published_at:{item.video_id}",
-                                caught_up_at=_now_iso(),
+                                caught_up_at=now_iso(),
                             )
                         continue
                 if effective_since and item_published_at:
-                    if _iso_lt(item_published_at, effective_since):
+                    if iso_lt(item_published_at, effective_since):
                         reached_effective_since = True
                         break
-                    if _iso_equal(item_published_at, effective_since):
+                    if iso_equal(item_published_at, effective_since):
                         reached_effective_since = True
                 if existing is not None:
                     continue
@@ -400,12 +402,12 @@ class CatchupWorker:
                     non_blocking_error = f"item_failed:{item.video_id}"
                     continue
                 if item_published_at and not checkpoint_blocked:
-                    if checkpoint_candidate is None or _iso_gt(item_published_at, checkpoint_candidate):
+                    if checkpoint_candidate is None or iso_gt(item_published_at, checkpoint_candidate):
                         checkpoint_candidate = item_published_at
             if channel.id is not None and checkpoint_candidate is not None and reached_effective_since and not checkpoint_blocked:
-                self.store.advance_channel_catchup_checkpoint(channel.id, published_at=checkpoint_candidate, caught_up_at=_now_iso())
+                self.store.advance_channel_catchup_checkpoint(channel.id, published_at=checkpoint_candidate, caught_up_at=now_iso())
             if channel.id is not None and non_blocking_error is not None:
-                self.store.record_channel_catchup_error(channel.id, error=non_blocking_error, caught_up_at=_now_iso())
+                self.store.record_channel_catchup_error(channel.id, error=non_blocking_error, caught_up_at=now_iso())
         return processed
 
     def _iter_upload_items(self, uploads_playlist_id: str):
@@ -420,7 +422,7 @@ class EnqueueWorker:
     def __init__(self, *, store: MonitorStore, radar: RadarSubmitter, now: Callable[[], str] | None = None):
         self.store = store
         self.radar = radar
-        self.now = now or _now_iso
+        self.now = now or now_iso
 
     def enqueue_due(self) -> list[VideoRecord]:
         now = self.now()
@@ -431,9 +433,9 @@ class EnqueueWorker:
             target_matches = self.store.list_target_matches(video_id=video.video_id)
             countries = _submission_countries_for_video(video, target_matches)
             try:
-                submitted = self.radar.submit_job(video.url or _video_url(video.video_id), countries=countries)
+                submitted = self.radar.submit_job(video.url or video_watch_url(video.video_id), countries=countries)
             except RadarBusy:
-                next_attempt_at = _add_minutes(now, 5)
+                next_attempt_at = add_minutes(now, 5)
                 self.store.record_enqueue_attempt(
                     video_id=video.video_id,
                     status="busy",
@@ -445,7 +447,7 @@ class EnqueueWorker:
                 results.append(video)
                 break
             except RadarServerError as exc:
-                next_attempt_at = _add_minutes(now, 5)
+                next_attempt_at = add_minutes(now, 5)
                 self.store.record_enqueue_attempt(
                     video_id=video.video_id,
                     status="retry",
@@ -537,50 +539,12 @@ class TranscriptSyncWorker:
         return synced
 
 
-def _video_url(video_id: str) -> str:
-    return f"https://www.youtube.com/watch?v={video_id}"
-
-
-def _now_iso() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
 def _metadata_unavailable_reason(error: MetadataUnavailable) -> str:
     return str(getattr(error, "reason", "") or "metadata_unavailable")
 
 
 def _next_poll_at() -> str:
-    return (datetime.now(UTC) + timedelta(minutes=15)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _add_minutes(value: str, minutes: int) -> str:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return (parsed + timedelta(minutes=minutes)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _add_seconds(value: str, seconds: int) -> str:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return (parsed + timedelta(seconds=seconds)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _parse_iso(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
-
-
-def _iso_lte(left: str, right: str) -> bool:
-    return _parse_iso(left) <= _parse_iso(right)
-
-
-def _iso_lt(left: str, right: str) -> bool:
-    return _parse_iso(left) < _parse_iso(right)
-
-
-def _iso_equal(left: str, right: str) -> bool:
-    return _parse_iso(left) == _parse_iso(right)
-
-
-def _iso_gt(left: str, right: str) -> bool:
-    return _parse_iso(left) > _parse_iso(right)
+    return add_minutes(now_iso(), 15)
 
 
 def _countries_from_match_reason(match_reason: str | None) -> list[str]:

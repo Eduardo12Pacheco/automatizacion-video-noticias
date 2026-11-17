@@ -5,6 +5,7 @@ import { resolveRowImageUrl } from '../composition/composition-view-model.js';
 import { resolveCandidateImageUrl, resolveCandidateDimensions } from '../domain/image-candidates.js';
 import { DEFAULT_MUSIC_VOLUME } from '../domain/editor-state.js';
 import { resolveProjectVideoLibrary } from '../domain/video-assets.js';
+import { DEFAULT_BRAND_CHANNEL, normalizeBrandChannel } from '../domain/brand-channel.js';
 
 const EDITOR_EFFECT_TAB_IDS = new Set(['content', 'framing', 'layers', 'audio']);
 const LEGACY_EFFECT_TAB_MAP = {
@@ -16,12 +17,6 @@ const LEGACY_EFFECT_TAB_MAP = {
 };
 const MOTION_EDITOR_TAB_IDS = new Set(['presets', 'manual']);
 const DEFAULT_MOTION_PRESET_NAME = 'Zoom 150';
-const DEFAULT_BRAND_CHANNEL = 'demo-primary';
-
-function normalizeBrandChannel(value = DEFAULT_BRAND_CHANNEL) {
-  const normalized = (value || '').toString().trim().toLowerCase();
-  return ['demo-secondary', 'demo-final'].includes(normalized) ? normalized : DEFAULT_BRAND_CHANNEL;
-}
 
 function normalizeLegacyMotionName(value = '', { defaultEmpty = false } = {}) {
   const normalized = value.toString().trim().toLowerCase();

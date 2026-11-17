@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Callable, Protocol
 
 from .title_matcher import normalize_country, normalize_title
+from .video_urls import video_watch_url
 
 
 NETWORK_MODE_PROTECTED = "protected"
@@ -383,7 +384,7 @@ class YtDlpSubtitleProvider:
         return _run_shared_ytdlp(args, cwd=workdir, timeout=90, runner=self.runner)
 
     def _dump_info(self, video_id: str, workdir: Path) -> dict[str, Any]:
-        command = build_subtitle_info_args(self.binary, _video_url(video_id), common_args=self._common_args())
+        command = build_subtitle_info_args(self.binary, video_watch_url(video_id), common_args=self._common_args())
         result = self._run(command, workdir)
         if int(getattr(result, "returncode", 1)) != 0:
             raise RuntimeError(_ytdlp_error_text(result))
@@ -392,7 +393,7 @@ class YtDlpSubtitleProvider:
     def _download_subtitle(self, video_id: str, workdir: Path, choice: _YtDlpSubtitleChoice) -> None:
         command = build_subtitle_download_args(
             self.binary,
-            _video_url(video_id),
+            video_watch_url(video_id),
             language=choice.language,
             automatic=choice.source == "automatic",
             common_args=self._common_args(),
@@ -636,8 +637,6 @@ def _clean_subtitle_text(value: str) -> str:
     return " ".join(html.unescape(without_tags).split())
 
 
-def _video_url(video_id: str) -> str:
-    return f"https://www.youtube.com/watch?v={video_id}"
 
 
 def _snippet_value(snippet: Any, key: str, default: Any) -> Any:

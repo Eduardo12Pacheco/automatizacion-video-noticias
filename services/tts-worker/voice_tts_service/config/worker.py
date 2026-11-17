@@ -5,15 +5,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-
-def _env_int(name: str, default: int) -> int:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        return default
+from .env import env_int
 
 
 @dataclass(frozen=True)
@@ -53,8 +45,8 @@ def load_config() -> WorkerConfig:
         ref_text_path=Path(os.getenv("TTS_WORKER_REF_TEXT", project_root / "refs" / "voz.txt")),
         config_yaml_path=Path(os.getenv("TTS_WORKER_CONFIG", project_root / "config" / "default.yaml")),
         internal_token=os.getenv("TTS_WORKER_INTERNAL_TOKEN", ""),
-        queue_max=_env_int("TTS_WORKER_QUEUE_MAX", 20),
-        job_timeout_sec=_env_int("TTS_WORKER_JOB_TIMEOUT_SEC", 1200),
+        queue_max=env_int("TTS_WORKER_QUEUE_MAX", 20),
+        job_timeout_sec=env_int("TTS_WORKER_JOB_TIMEOUT_SEC", 1200),
         preset=preset,
         device=device,
     )
