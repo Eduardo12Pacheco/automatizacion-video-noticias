@@ -95,12 +95,18 @@ function Install-NrModels {
 
     $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'run', '--rm', 'model-init')
     if ($code -ne 0) { Stop-NrInstall 'model download failed' }
-    $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'up', '-d', 'ollama')
+    $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'up', '-d', '--wait', 'ollama')
+    if ($code -ne 0) {
+        Write-NrWarn 'Ollama server did not become healthy; run ''newsroom models pull'' later'
+    }
     if ($code -eq 0) {
         $code = Invoke-NrCompose -Arguments @('--profile', 'local', 'exec', '-T', 'ollama', '/bin/ollama', 'pull', $ollamaModel)
     }
-    if ($code -ne 0) { Write-NrWarn "Ollama model pull failed; run 'newsroom models pull' after the stack is healthy" }
-    Set-NrStateValue -Key 'MODELS_DOWNLOADED' -Value '1'
+    if ($code -eq 0) {
+        Set-NrStateValue -Key 'MODELS_DOWNLOADED' -Value '1'
+    } else {
+        Write-NrWarn "Ollama model pull failed; run 'newsroom models pull' after the stack is healthy"
+    }
     Write-NrOk 'local models ready'
 }
 

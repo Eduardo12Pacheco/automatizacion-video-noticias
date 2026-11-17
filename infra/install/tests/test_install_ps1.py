@@ -157,6 +157,10 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         log = self.read_log()
         self.assertIn("MODEL_INIT", log)
+        self.assertTrue(
+            any(" up -d --wait ollama" in line for line in log.splitlines()),
+            "the installer must wait for Ollama health before pulling",
+        )
         stack_up = [line for line in log.splitlines() if " up -d --build" in line][-1]
         self.assertIn("--profile local", stack_up)
         self.assertEqual(self.env_values()["TTS_WORKER_ENGINE"], "piper")

@@ -54,15 +54,17 @@ nr_download_models() {
   nr_info "Downloading local models; this can take a while"
 
   nr_run_compose --profile local run --rm model-init
-  # `ollama pull` needs the server; start only that service for the download
-  # and leave the full stack start to the installer's normal step.
-  if ! nr_compose ps --status running --services 2>/dev/null | grep -qx ollama; then
-    nr_run_compose --profile local up -d ollama
+  # `ollama pull` needs a healthy server; start only that service for the
+  # download (waiting on its healthcheck) and leave the full stack start to
+  # the installer's normal step.
+  if ! nr_run_compose --profile local up -d --wait ollama; then
+    nr_warn "Ollama server did not become healthy; run 'newsroom models pull' later"
   fi
-  if ! nr_run_compose --profile local exec -T ollama /bin/ollama pull "$ollama_model"; then
+  if nr_run_compose --profile local exec -T ollama /bin/ollama pull "$ollama_model"; then
+    nr_state_set MODELS_DOWNLOADED 1
+  else
     nr_warn "Ollama model pull failed; run 'newsroom models pull' after the stack is healthy"
   fi
-  nr_state_set MODELS_DOWNLOADED 1
   nr_ok "local models ready"
 }
 

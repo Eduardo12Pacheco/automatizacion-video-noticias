@@ -239,6 +239,10 @@ class InstallTests(InstallerTestCase):
         log = self.read_log()
         self.assertIn("MODEL_INIT", log)
         self.assertIn("OLLAMA_PULL", log)
+        self.assertTrue(
+            any(" up -d --wait ollama" in line for line in log.splitlines()),
+            "the installer must wait for Ollama health before pulling",
+        )
         self.assertIn("~2 GB", result.stdout)
         self.assertIn("~0.5 GB", result.stdout)
         stack_up = [line for line in log.splitlines() if " up -d --build" in line][-1]
