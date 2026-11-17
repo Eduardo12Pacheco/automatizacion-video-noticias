@@ -6,11 +6,11 @@
 #    an empty default. The generic-api-key rule flags the property name, not a
 #    value. The current line carries an inline `gitleaks:allow`; this entry
 #    covers the historical revision that predates that annotation.
-2ad42774d776c093f54a4968c4eb3edef32e341d:apps/api/src/composition.js:generic-api-key:26
+6b8a09c757bf6485010ed440e8637d63577fa6e8:apps/api/src/composition.js:generic-api-key:26
 #
 # 2. e2e/.env.example ships deterministic, non-production E2E fixture
 #    credentials (`e2e-minio`, `e2e-jobs-key`) for the disposable compose stack.
 #    They are not connected to any real service. The current lines carry an
 #    inline `gitleaks:allow`; this entry covers the historical revision that
 #    predates that annotation.
-46f17407edfec030310b9e7169c373021e3fcb4c:e2e/.env.example:generic-api-key:60
+bddff24a8e6cc799a56358620f50e7ca8f28a3e5:e2e/.env.example:generic-api-key:60
