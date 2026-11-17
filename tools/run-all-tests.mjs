@@ -24,6 +24,7 @@ const SKIP_ALLOWLIST = new Set([
   'missing-bash',
   'missing-docker',
   'missing-playwright',
+  'missing-python-docx',
   'needs-stack',
 ]);
 const skip = (code, reason) => ({ code, reason });

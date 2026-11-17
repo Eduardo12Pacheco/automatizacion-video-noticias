@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdtemp, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,7 +7,16 @@ import test from 'node:test';
 
 import { LocalDocumentExport } from '../src/document-export.js';
 
-test('LocalDocumentExport creates a real docx and a markdown copy through python-docx', async () => {
+// The adapter shells out to python-docx. A missing module is an optional
+// local-runtime gap: skip with an allow-listed reason instead of failing with
+// an obscure traceback. CI installs python-docx so this test really runs there.
+const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
+const docxProbe = spawnSync(PYTHON_BIN, ['-c', 'import docx'], { encoding: 'utf8' });
+const docxSkip = docxProbe.status === 0
+  ? false
+  : `missing-python-docx: install python-docx for ${PYTHON_BIN} (see CONTRIBUTING.md)`;
+
+test('LocalDocumentExport creates a real docx and a markdown copy through python-docx', { skip: docxSkip }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'newsroom-docs-'));
   const adapter = new LocalDocumentExport({ root, timeoutMs: 30_000 });
 
