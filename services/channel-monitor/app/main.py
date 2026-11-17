@@ -3,7 +3,6 @@ from __future__ import annotations
 import secrets
 import json
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 from typing import Any, Callable
 
 from fastapi import FastAPI, HTTPException, Request
@@ -20,6 +19,7 @@ from .title_matcher import TARGET_COUNTRY_ORDER, TitleMatcher, load_title_catalo
 from .transcript_service_client import TranscriptServiceSubtitleProvider
 from .workers import ClassificationService, CatchupWorker, CleanupWorker, DiscoveryWorker, EnqueueWorker, TranscriptSyncWorker
 from .youtube_client import CompositeSubtitleProvider, YouTubeTranscriptSubtitleProvider, YtDlpSubtitleProvider
+from .time_utils import utc_now_iso
 
 
 def _error(code: str, message: str, status_code: int) -> HTTPException:
@@ -106,7 +106,7 @@ def create_app(
     async def cleanup_dry_run(now: str | None = None, limit: int = 200) -> dict[str, Any]:
         worker = CleanupWorker(
             store=store,
-            now=(lambda: now) if now else _utc_now_iso,
+            now=(lambda: now) if now else utc_now_iso,
             retention_hours=settings.cleanup_retention_hours,
             mode="dry-run",
         )
@@ -125,7 +125,7 @@ def create_app(
             raise _error("backup_path_required", "backup_path is required", 400)
         if mode == "apply" and payload.get("confirm") != "RESET_RADAR_BASELINE":
             raise _error("confirmation_required", "Reset apply requires RESET_RADAR_BASELINE confirmation", 400)
-        baseline_started_at = _optional_text(payload.get("baseline_started_at")) or _utc_now_iso()
+        baseline_started_at = _optional_text(payload.get("baseline_started_at")) or utc_now_iso()
         try:
             return store.reset_radar_baseline(mode=mode, backup_path=backup_path, baseline_started_at=baseline_started_at)
         except ValueError as exc:
@@ -149,7 +149,7 @@ def create_app(
                 target_context=target_context,
                 video_id=video_id,
                 candidate_id=candidate_id,
-                dismissed_at=_utc_now_iso(),
+                dismissed_at=utc_now_iso(),
                 dismissed_by=_optional_text(payload.get("dismissed_by")),
                 reason=_optional_text(payload.get("reason")) or "operator-dismissed",
             )
@@ -161,7 +161,7 @@ def create_app(
     async def list_monitor_cards(limit: int | None = None, offset: int = 0, target_country: str | None = None) -> dict[str, Any]:
         safe_limit = _safe_page_limit(limit, settings=settings)
         safe_offset = max(0, int(offset))
-        now = _utc_now_iso()
+        now = utc_now_iso()
         target = normalize_country(target_country) if target_country else None
         if target == "important":
             total = store.count_important_cards(now=now)
@@ -182,13 +182,13 @@ def create_app(
 
     @app.get("/api/monitor/summary")
     async def monitor_summary() -> dict[str, Any]:
-        counts = store.target_status_counts(now=_utc_now_iso())
+        counts = store.target_status_counts(now=utc_now_iso())
         return {
             "targets": [
                 {"country": country, "label": _country_label(country), **counts[country]}
                 for country in TARGET_COUNTRY_ORDER
             ],
-            "basura_count": store.count_rejected_videos(now=_utc_now_iso()),
+            "basura_count": store.count_rejected_videos(now=utc_now_iso()),
             "classification": {
                 "version": settings.classification_version,
                 "stale_count": store.count_stale_classification_candidates(
@@ -201,7 +201,7 @@ def create_app(
     async def list_basura(limit: int | None = None, offset: int = 0) -> dict[str, Any]:
         safe_limit = _safe_page_limit(limit, settings=settings)
         safe_offset = max(0, int(offset))
-        page = store.list_rejected_videos(limit=safe_limit, offset=safe_offset, now=_utc_now_iso())
+        page = store.list_rejected_videos(limit=safe_limit, offset=safe_offset, now=utc_now_iso())
         return {
             "total": page.total,
             "pagination": _pagination(total=page.total, limit=safe_limit, offset=safe_offset),
@@ -255,7 +255,7 @@ def create_app(
             # catchup worker only ingests content published from this moment
             # forward. For existing channels, pass None and let
             # upsert_channel coalesce preserve any baseline already set.
-            baseline_started_at = _utc_now_iso() if existing is None else None
+            baseline_started_at = utc_now_iso() if existing is None else None
         record = store.upsert_channel(
             ChannelRecord(
                 country=country,
@@ -608,10 +608,6 @@ def _optional_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise _error("invalid_candidate_id", "candidate_id must be an integer", 400) from exc
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _build_discovery_worker(*, settings: Settings, store: MonitorStore) -> DiscoveryWorker | None:

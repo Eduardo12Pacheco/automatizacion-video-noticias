@@ -9,6 +9,11 @@ def now_iso() -> str:
     return datetime.now(tz=UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def utc_now_iso() -> str:
+    """Timestamp with microseconds, used by bootstrap and maintenance paths."""
+    return datetime.now(tz=UTC).isoformat().replace("+00:00", "Z")
+
+
 def add_minutes(value: str, minutes: int) -> str:
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     return (parsed + timedelta(minutes=minutes)).replace(microsecond=0).isoformat().replace("+00:00", "Z")

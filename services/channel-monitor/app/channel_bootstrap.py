@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
 from .settings import ConfigFinding, load_channel_config, validate_channel_config
 from .store import ChannelRecord, MonitorStore
 from .youtube_client import ChannelMetadata
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+from .time_utils import utc_now_iso
 
 
 class ChannelResolver(Protocol):
@@ -71,7 +67,7 @@ def sync_configured_channels(
             # worker only sees content published from this moment forward. For
             # existing channels, pass None and let upsert_channel coalesce to
             # preserve any baseline already set (e.g. by a radar reset).
-            baseline_started_at = _utc_now_iso() if existing is None else None
+            baseline_started_at = utc_now_iso() if existing is None else None
             store.upsert_channel(
                 ChannelRecord(
                     country=country.code,
