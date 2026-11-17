@@ -36,10 +36,13 @@ export {
   NewsSourcePort,
   NotificationPort,
   TranslationPort,
+  RepositoryPort,
+  BlobStoragePort,
   TTSPort,
   VideoRendererPort,
   WorkflowTriggerPort,
 } from './ports/ports.js';
+export { missingPortMethods, verifyPortContracts } from './ports/contracts.js';
 
 export { DiscoverNews } from './use-cases/discover-news.js';
 export { ClusterTopics, buildClusterPrompt } from './use-cases/cluster-topics.js';

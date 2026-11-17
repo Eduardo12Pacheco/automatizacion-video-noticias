@@ -19,6 +19,7 @@
     "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
+    "@newsroom/core": "workspace:*",
     "pg": "^8.16.0"
   }
 }
