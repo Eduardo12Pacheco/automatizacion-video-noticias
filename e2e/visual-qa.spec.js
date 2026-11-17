@@ -303,6 +303,8 @@ for (const language of LANGUAGES) {
       await expect(page.locator('#authGate')).not.toContainText('Operations Studio');
       await expect(page.locator('.auth-card__product')).toHaveText('Newsroom Video Automation');
       await expect(page.locator('.auth-card__mark svg')).toBeVisible();
+      await parkPointerAndBlur(page, viewport);
+      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `login-${language}-${viewport.name}.png`) });
       await page.fill('#authUser', 'demo');
       await page.fill('#authPass', 'not-the-password');
       await page.locator('#authForm button[type="submit"]').click();
@@ -310,8 +312,6 @@ for (const language of LANGUAGES) {
       await expect(page.locator('#authError')).toContainText(language === 'es' ? 'Usuario o contraseña incorrectos' : 'Incorrect username or password');
       const measured = await page.evaluate(() => document.body.scrollWidth - window.innerWidth);
       expect(measured).toBeLessThanOrEqual(1);
-      await parkPointerAndBlur(page, viewport);
-      await page.screenshot({ path: path.join(SCREENSHOT_DIR, `login-${language}-${viewport.name}.png`) });
       expect(telemetry.pageErrors, 'page errors').toEqual([]);
     });
   }

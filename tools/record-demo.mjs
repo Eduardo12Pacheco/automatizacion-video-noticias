@@ -33,11 +33,15 @@ if (!password) {
   process.exit(2);
 }
 
+// Full demo story: discovery, approval, voice, subtitles and the final
+// project list, with enough hold time to land inside the 60-90 second
+// portfolio target while staying under the README limits.
 const views = [
-  { key: 'approval', hold: 6000 },
-  { key: 'audio', hold: 5000 },
-  { key: 'subtitulos2', hold: 5000 },
-  { key: 'scripts', hold: 5000 },
+  { key: 'radar', hold: 9000 },
+  { key: 'approval', hold: 9000 },
+  { key: 'audio', hold: 8000 },
+  { key: 'subtitulos2', hold: 8000 },
+  { key: 'scripts', hold: 9000 },
 ];
 
 // The panel probes /panel/session before login; a 401 there is expected and is
@@ -85,7 +89,7 @@ try {
   await page.locator('#authForm button[type="submit"]').click();
   await page.waitForSelector('#appShell', { state: 'visible' });
   await parkPointerAndBlur(page, 1440, 900);
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(4000);
 
   for (const view of views) {
     await page.locator(`.nav-item[data-view="${view.key}"]`).click({ force: true });
@@ -107,7 +111,7 @@ try {
   await page.locator('#settingsBtn').click();
   await page.waitForSelector('#settingsDialog', { state: 'visible' });
   await parkPointerAndBlur(page, 1440, 900);
-  await page.waitForTimeout(6000);
+  await page.waitForTimeout(7000);
   await page.locator('#closeSettings').click();
   await parkPointerAndBlur(page, 1440, 900);
 

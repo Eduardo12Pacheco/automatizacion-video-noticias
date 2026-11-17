@@ -194,6 +194,9 @@ class PortfolioDocsTests(unittest.TestCase):
         contributing = _read(ROOT / "CONTRIBUTING.md")
         for expected in ["pnpm test:all", "install.sh", "install.ps1", "Conventional Commits"]:
             self.assertIn(expected, contributing, expected)
+        self.assertIn("Co-Authored-By", contributing)
+        self.assertIn("AI-assistance note", contributing)
+        self.assertNotIn("any AI attribution line", contributing)
         security = _read(ROOT / "SECURITY.md")
         for expected in ["report", "127.0.0.1", "password", "admin", "MIT"]:
             self.assertIn(expected.lower(), security.lower(), expected)
@@ -219,6 +222,8 @@ class PortfolioDocsTests(unittest.TestCase):
         source = _read(ASSETS)
         self.assertIn("OFL.txt", source)
         self.assertIn("docs/images/demo.gif", source)
+        self.assertIn("apps/panel/assets/fonts/inter/", source)
+        self.assertIn("apps/panel/assets/fonts/jetbrains-mono/", source)
         self.assertNotIn("deliverable", source.lower())
         self.assertNotIn("must be kept next to the font", source)
 
@@ -230,8 +235,8 @@ class PortfolioDocsTests(unittest.TestCase):
         self.assertIn(DEMO_GIF.read_bytes()[:6], (b"GIF87a", b"GIF89a"))
         self.assertEqual(DEMO_MP4.read_bytes()[4:8], b"ftyp")
         duration = _mp4_duration_seconds(DEMO_MP4)
-        self.assertGreaterEqual(duration, 30, f"demo video is only {duration:.1f}s")
-        self.assertLessEqual(duration, 60, f"demo video is {duration:.1f}s")
+        self.assertGreaterEqual(duration, 60, f"demo video is only {duration:.1f}s")
+        self.assertLessEqual(duration, 90, f"demo video is {duration:.1f}s")
 
     def test_assets_manifest_describes_the_demo_recording_source(self) -> None:
         source = _read(ASSETS)
@@ -255,6 +260,25 @@ class PortfolioDocsTests(unittest.TestCase):
                 line = source.count("\n", 0, match.start()) + 1
                 self.fail(f"{path.relative_to(ROOT)}:{line} exposes internal id {match.group(0)!r}")
 
+    def test_public_docs_do_not_reference_removed_process_material(self) -> None:
+        removed = (
+            "odd/",
+            "docs/recovery",
+            "openspec/",
+            "sdd/",
+            ".understand-anything",
+            "SUBTITLES_UPLOAD_INCIDENT_INVESTIGATION",
+        )
+        for path in _public_markdown_files():
+            source = _read(path)
+            for token in removed:
+                self.assertNotIn(token, source, f"{path.relative_to(ROOT)} references removed process material")
+
+    def test_panel_docs_keep_only_the_contributor_contracts(self) -> None:
+        panel_docs = ROOT / "apps" / "panel" / "docs"
+        markdown = sorted(path.relative_to(panel_docs).as_posix() for path in panel_docs.rglob("*.md"))
+        self.assertEqual(markdown, ["parity/contract-matrix.md", "parity/style-guards.md"])
+
     def test_every_public_relative_link_and_image_resolves(self) -> None:
         broken: list[str] = []
         for path in _public_markdown_files():
@@ -270,6 +294,18 @@ class PortfolioDocsTests(unittest.TestCase):
     def test_readmes_show_current_dark_and_light_screenshots(self) -> None:
         for path in (README, README_ES):
             source = _read(path)
+            first = source.index("docs/images/screens/")
+            second = source.index("docs/images/screens/", first + 1)
+            self.assertEqual(
+                source[first:first + len("docs/images/screens/approval-es-desktop.png")],
+                "docs/images/screens/approval-es-desktop.png",
+                f"{path.name} must open the gallery with the Spanish approval desktop shot",
+            )
+            self.assertEqual(
+                source[second:second + len("docs/images/screens/approval-en-desktop.png")],
+                "docs/images/screens/approval-en-desktop.png",
+                f"{path.name} must put the English approval desktop shot next",
+            )
             for screenshot in [
                 "docs/images/screens/approval-es-desktop.png",
                 "docs/images/screens/approval-es-mobile.png",
