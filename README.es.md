@@ -333,7 +333,7 @@ pnpm install --frozen-lockfile
 pnpm test:all
 ```
 
-Cubre todos los paquetes Node, la suite pytest del panel y sus 46 scripts
+Cubre todos los paquetes Node, la suite pytest del panel y sus 42 scripts
 `__checks__`, cada servicio Python, las pruebas de tools, las de instaladores y
 la configuración de Compose: **27 de 29 suites pasan, 0 fallos y 2 omisiones
 permitidas** en la revisión actual (el E2E demo y el E2E local necesitan el stack

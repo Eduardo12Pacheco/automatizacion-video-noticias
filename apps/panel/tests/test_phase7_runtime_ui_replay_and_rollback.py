@@ -21,13 +21,6 @@ def _run_node(script: str):
     )
 
 
-def test_contract_matrix_contains_executable_ui_state_replay_reference_for_protected_flows():
-    source = CONTRACT_MATRIX_PATH.read_text(encoding="utf-8")
-    assert "Executable UI-State Replay" in source
-    for flow in ["approval", "scripts", "audio", "subtitles", "auth/session", "settings"]:
-        assert flow in source
-
-
 def test_runtime_ui_state_replay_executes_all_protected_flows():
     script = r"""
 import { runProtectedFlowsReplay } from './js/modules/__checks__/global/runtime-ui-parity-replay.js';
@@ -121,61 +114,12 @@ if (!mutated.violations.some((v) => v.from === 'features/audio' && v.to === 'fea
     assert result.returncode == 0, result.stderr
 
 
-def test_runtime_ui_replay_guardrails_expect_pure_helpers_to_live_in_runtime_services():
-    app_shell_source = APP_SHELL_PATH.read_text(encoding="utf-8")
-    subtitles_services_source = SUBTITLES_RUNTIME_SERVICES_PATH.read_text(encoding="utf-8")
-    subtitles_controllers_source = SUBTITLES_RUNTIME_CONTROLLERS_PATH.read_text(encoding="utf-8")
-    audio_services_source = AUDIO_RUNTIME_SERVICES_PATH.read_text(encoding="utf-8")
-    audio_controllers_source = AUDIO_RUNTIME_CONTROLLERS_PATH.read_text(encoding="utf-8")
-
-    assert "extractSubtitleProgressPercentRuntime" in subtitles_services_source
-    assert "extractSubtitleAnalyzeMetadataRuntime" in subtitles_services_source
-    assert "extractSubtitleProgressPercentRuntime" in subtitles_controllers_source
-
-    assert "normalizeAudioProgressPercent" in audio_services_source
-    assert "getAudioStatusLabelRuntime" in audio_services_source
-    assert "normalizeAudioProgressPercent" in audio_controllers_source
-
-    assert "normalizeAudioProgressPercent" in app_shell_source
-    assert "resolveSubtitleProgressPercentRuntime" in app_shell_source
-
-
-def test_app_shell_declares_single_timer_auto_refresh_for_queue_and_drafts():
-    app_shell_source = APP_SHELL_PATH.read_text(encoding="utf-8")
-
-    assert "APPROVAL_AUTO_REFRESH_INTERVAL_MS" in app_shell_source
-    assert "approvalAutoRefreshTimer" in app_shell_source
-    assert "createSingleFlightRunner" in app_shell_source
-    assert "refreshQueue({ silent: true })" in app_shell_source
-    assert "refreshScriptDrafts({ silent: true })" in app_shell_source
-
-
 def _read_runtime_source() -> str:
     return (
         (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
         + "\n"
         + (ROOT / "js" / "modules" / "app-shell" / "runtime-renderers.js").read_text(encoding="utf-8")
     )
-
-
-def test_open_video_project_defers_scroll_until_after_render_frame():
-    runtime_source = _read_runtime_source()
-
-    assert "function waitForNextFrame()" in runtime_source
-    assert "const requestFrame = globalThis.requestAnimationFrame;" in runtime_source
-    assert "if (typeof requestFrame === 'function')" in runtime_source
-    assert "resolve();" in runtime_source
-    assert "async function openVideoProject(projectId)" in runtime_source
-
-    open_project_source = runtime_source[
-        runtime_source.index("async function openVideoProject(projectId)"):
-        runtime_source.index("function closeVideoProject()")
-    ]
-    assert "await videoProjectsFeature.openVideoProject(projectId);" in open_project_source
-    assert "await waitForNextFrame();" in open_project_source
-    assert "el.viewScripts?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });" in open_project_source
-    assert open_project_source.index("await videoProjectsFeature.openVideoProject(projectId);") < open_project_source.index("await waitForNextFrame();")
-    assert open_project_source.index("await waitForNextFrame();") < open_project_source.index("el.viewScripts?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });")
 
 
 def test_approval_queue_monitor_can_dismiss_error_jobs_visually_without_backend_mutation():

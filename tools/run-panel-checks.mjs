@@ -16,6 +16,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PANEL = join(ROOT, 'apps', 'panel');
 const MANIFEST = await import(pathToFileURL(join(PANEL, 'js/modules/__checks__/manifest.js')).href);
 const commandKindByPath = new Map(MANIFEST.CHECK_MANIFEST.map((entry) => [entry.path, entry.commandKind]));
+const declaredChecks = new Set(MANIFEST.CHECK_MANIFEST.map((entry) => entry.path));
+// Helper modules may live under __checks__ without being executable checks.
+// Only declared entries and files whose basename marks them as a check run.
+const CHECK_FILE = /[-.]check\.(?:m?js|cjs)$/;
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir).sort()) {
@@ -65,6 +69,10 @@ function commandFor(full) {
 
 const checks = findChecks(PANEL)
   .filter((full) => !full.endsWith('/__checks__/manifest.js') && !full.endsWith('\\__checks__\\manifest.js'))
+  .filter((full) => {
+    const relativePath = relative(PANEL, full).split('\\').join('/');
+    return declaredChecks.has(relativePath) || CHECK_FILE.test(relativePath);
+  })
   .sort();
 
 let failed = 0;

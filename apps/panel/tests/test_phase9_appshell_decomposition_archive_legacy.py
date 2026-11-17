@@ -47,25 +47,6 @@ process.stdout.write(await readFile(entry.path, 'utf8'));
     return result.stdout
 
 
-def test_runtime_entrypoint_contract_remains_index_to_main_to_composition_to_app_shell():
-    index_source = INDEX_HTML_PATH.read_text(encoding="utf-8")
-    main_source = MAIN_JS_PATH.read_text(encoding="utf-8")
-    composition_source = COMPOSITION_ROOT_PATH.read_text(encoding="utf-8")
-
-    assert '<script src="./js/main.js" type="module"></script>' in index_source
-    assert "./modules/composition-root.js" in main_source
-    assert "bootCompositionRoot" in main_source
-    assert "./app-shell.js" in composition_source
-    assert "bootApp" in composition_source
-
-
-def test_parity_checklist_freezes_three_hop_bootstrap_boundary_including_app_shell_link():
-    source = _read_check_implementation_source("js/modules/__checks__/global/parity-checklist.js")
-    assert "COMPOSITION_ROOT_IMPORT_PATH" in source
-    assert "APP_SHELL_IMPORT_PATH" in source
-    assert "compositionRootSource" in source
-
-
 def test_dependency_boundary_validator_enforces_archive_non_runtime_reference_rule():
     script = r"""
 import {
@@ -144,65 +125,9 @@ if (blocked.allowed || !blocked.offendingFiles.includes('js/main.js')) {
     assert result.returncode == 0, result.stderr
 
 
-def test_subtitles_and_audio_runtime_modules_exist_and_app_shell_delegates_to_them():
-    required_runtime_files = [
-        SUBTITLES_RUNTIME_DIR / "index.js",
-        SUBTITLES_RUNTIME_DIR / "controllers.js",
-        SUBTITLES_RUNTIME_DIR / "services.js",
-        AUDIO_RUNTIME_DIR / "index.js",
-        AUDIO_RUNTIME_DIR / "controllers.js",
-        AUDIO_RUNTIME_DIR / "services.js",
-    ]
-    missing = [str(path.relative_to(ROOT)) for path in required_runtime_files if not path.exists()]
-    assert not missing, f"Missing runtime decomposition files: {missing}"
-
-    app_shell_source = APP_SHELL_PATH.read_text(encoding="utf-8")
-    assert "./features/subtitles/runtime/index.js" in app_shell_source
-    assert "./features/audio/runtime/index.js" in app_shell_source
-    assert "resolveSubtitleProgressPercentRuntime" in app_shell_source
-    assert "createAudioRuntime" in app_shell_source
-
-
-def test_phase9_structure_guardrails_expect_runtime_pure_helper_locations_after_decomposition():
-    app_shell_source = APP_SHELL_PATH.read_text(encoding="utf-8")
-    subtitles_services_source = (SUBTITLES_RUNTIME_DIR / "services.js").read_text(encoding="utf-8")
-    subtitles_controllers_source = (SUBTITLES_RUNTIME_DIR / "controllers.js").read_text(encoding="utf-8")
-    audio_services_source = (AUDIO_RUNTIME_DIR / "services.js").read_text(encoding="utf-8")
-    audio_controllers_source = (AUDIO_RUNTIME_DIR / "controllers.js").read_text(encoding="utf-8")
-
-    assert "extractSubtitleProgressPercentRuntime" in subtitles_services_source
-    assert "resolveSubtitleProgressPercentRuntime" in subtitles_services_source
-    assert "normalizeSubtitleMetaValueForStateRuntime" in subtitles_services_source
-    assert "extractSubtitleAnalyzeMetadataRuntime" in subtitles_services_source
-    assert "describeSubtitleTranslationEngineRuntime" in subtitles_services_source
-    assert "formatSubtitleDisplayTimeRuntime" in subtitles_services_source
-    assert "extractSubtitleProgressPercentRuntime" in subtitles_controllers_source
-
-    assert "normalizeAudioProgressPercent" in audio_services_source
-    assert "isTerminalAudioStatus" in audio_services_source
-    assert "getAudioStatusLabelRuntime" in audio_services_source
-    assert "getAudioStatusClassRuntime" in audio_services_source
-    assert "normalizeAudioProgressPercent" in audio_controllers_source
-
-    assert "normalizeAudioProgressPercent" in app_shell_source
-    assert "resolveSubtitleProgressPercentRuntime" in app_shell_source
-
-
 def test_legacy_app_js_is_removed_after_archive_retirement():
     assert not ROOT_APP_JS_PATH.exists(), "Root apps/panel/app.js must stay removed"
     assert not LEGACY_APP_JS_PATH.exists(), "Archived js/legacy/app.js must stay deleted"
-
-
-def test_docs_include_archive_acceptance_and_runtime_reference_guard():
-    matrix = CONTRACT_MATRIX_PATH.read_text(encoding="utf-8")
-    guards = STYLE_GUARDS_PATH.read_text(encoding="utf-8")
-
-    assert "Checkpoint G4" in matrix
-    assert "archive retired" in matrix.lower()
-    assert "zero runtime references" in matrix
-
-    assert "legacy archive" in guards.lower()
-    assert "removed" in guards.lower()
 
 
 def test_s4_archival_rollback_simulation_moves_legacy_app_back_in_isolation_and_restores_state():

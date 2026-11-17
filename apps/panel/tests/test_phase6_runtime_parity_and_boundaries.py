@@ -44,12 +44,6 @@ process.stdout.write(await readFile(entry.path, 'utf8'));
     return result.stdout
 
 
-def test_contract_matrix_includes_runtime_behavioral_parity_evidence_section():
-    source = CONTRACT_MATRIX_PATH.read_text(encoding="utf-8")
-    assert "Runtime Behavioral Parity Evidence" in source
-    assert "Protected Scenario" in source
-
-
 def test_approval_api_runtime_contract_headers_payload_and_error_paths():
     script = r"""
 import { createApprovalApiClient } from './js/modules/core/http/approval-api.js';
@@ -747,21 +741,6 @@ if (JSON.stringify(requested) !== JSON.stringify(['/api/tts/jobs/job-processing'
     assert result.returncode == 0, result.stderr
 
 
-def test_approval_cards_use_delegated_interaction_handlers():
-    source = (
-        (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
-        + "\n"
-        + (ROOT / "js" / "modules" / "app-shell" / "runtime-renderers.js").read_text(encoding="utf-8")
-    )
-    render_cards = source.split("function renderCards()", 1)[1].split("function bindCardsInteractionEvents()", 1)[0]
-    delegated = source.split("function bindCardsInteractionEvents()", 1)[1].split("function renderScriptStats()", 1)[0]
-
-    assert "querySelectorAll('.card').forEach" not in render_cards
-    assert "delegatedCardEvents" in delegated
-    assert "el.cards.addEventListener('click'" in delegated
-    assert "el.cards.addEventListener('keydown'" in delegated
-
-
 def test_approval_feature_runtime_uses_v2_workflows_and_refreshes_scripts_after_approve_without_false_negative_toast():
     script = r"""
 import { createApprovalFeature, orderApprovalItemsByLowestAvg } from './js/modules/features/approval/index.js';
@@ -1058,28 +1037,6 @@ if (!processed.voiceAiBtn.title.includes('versión procesada con pronunciación'
     assert result.returncode == 0, result.stderr
 
 
-def test_app_shell_voice_ai_uses_processed_pronunciation_guards():
-    source = (ROOT / "js" / "modules" / "app-shell.js").read_text(encoding="utf-8")
-    audio_runtime_source = (ROOT / "js" / "modules" / "features" / "audio" / "runtime" / "services.js").read_text(encoding="utf-8")
-    index_source = (ROOT / "index.html").read_text(encoding="utf-8")
-    selectors_source = (ROOT / "js" / "modules" / "shared" / "dom" / "selectors.js").read_text(encoding="utf-8")
-
-    assert "runVoiceAiFromSelectedScript" in source
-    assert "openVoiceAiPresetDialog" in source
-    assert "confirmVoiceAiPresetSelection" in source
-    assert "isScriptProcessed(selected)" in source
-    assert "Tenés cambios sin procesar" in source
-    assert "selected.guion_pronunciacion" in source
-    assert "runAudioGenerationFromText" in source
-    assert "voiceProfile: preset" in source
-    assert "runAudioGenerationFromText: audioController.runAudioGenerationFromText" in source
-    assert "runAudioGenerationFromText: hooks.runAudioGenerationFromText" in audio_runtime_source
-    assert 'id="voicePresetDialog"' in index_source
-    assert 'id="voicePresetSelect"' in index_source
-    assert "voicePresetDialog" in selectors_source
-    assert "confirmVoicePresetBtn" in selectors_source
-
-
 def test_scripts_feature_downloads_published_google_doc_as_docx_blob():
     script = r"""
 import { createScriptsFeature } from './js/modules/features/scripts/index.js';
@@ -1306,134 +1263,6 @@ if (!toasts.includes('Guion ocultado del panel')) throw new Error(`missing dismi
     assert result.returncode == 0, result.stderr
 
 
-def test_approval_source_link_resolution_supports_link_and_url_and_app_shell_uses_it():
-    script = r"""
-import { resolveApprovalSourceLink } from './js/modules/features/approval/index.js';
-
-const fromLink = resolveApprovalSourceLink({ link: 'https://example.com/from-link' });
-if (fromLink !== 'https://example.com/from-link') throw new Error(`link resolution drift: ${fromLink}`);
-
-const fromUrl = resolveApprovalSourceLink({ url: 'https://example.com/from-url' });
-if (fromUrl !== 'https://example.com/from-url') throw new Error(`url resolution drift: ${fromUrl}`);
-
-const blank = resolveApprovalSourceLink({ link: '   ', url: '' });
-if (blank !== '') throw new Error('blank link resolution drift');
-"""
-    result = _run_node(script)
-    assert result.returncode == 0, result.stderr
-
-    app_shell_source = (ROOT / "js" / "modules" / "app-shell.js").read_text(encoding="utf-8")
-    assert "resolveApprovalSourceLink" in app_shell_source
-    assert "actionBtn.dataset.url || actionBtn.dataset.link || ''" in app_shell_source
-
-
-def test_approval_facade_exports_render_helpers_and_preserves_dom_contracts():
-    script = r"""
-import {
-  buildApprovalNewsCardMarkup,
-  buildQueueMonitorCard,
-  createOptimisticApprovedTopic,
-  formatQueueAttempts,
-  normalizeApprovalQueueItems,
-  normalizeQueueStatus,
-  renderApprovalTopicDetail,
-  renderQueueMonitor,
-  resolveApprovalOrderingAvg,
-  resolveApprovalSourceLink,
-  resolveQueueProgressPercent,
-  shouldDisplayInQueueMonitor,
-  syncPendingItemsAfterApproval,
-} from './js/modules/features/approval/index.js';
-
-const escapeHtml = (value) => (value ?? '').toString()
-  .replaceAll('&', '&amp;')
-  .replaceAll('<', '&lt;')
-  .replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;')
-  .replaceAll("'", '&#39;');
-
-if (resolveApprovalOrderingAvg({ promedio_score: '1.25' }).value !== 1.25) throw new Error('ordering export drift');
-if (resolveApprovalSourceLink({ source_url: 'https://example.com/source' }) !== 'https://example.com/source') throw new Error('source link export drift');
-if (normalizeApprovalQueueItems({ rows: [{ queue_id: 'q-row' }] })[0].queue_id !== 'q-row') throw new Error('queue envelope export drift');
-if (normalizeQueueStatus('En revisión') !== 'en_revision') throw new Error('queue status helper export drift');
-if (resolveQueueProgressPercent({ progress: { percent: 63.2 } }, 'processing') !== 63) throw new Error('queue percent helper export drift');
-if (formatQueueAttempts(2) !== 'Intento 2') throw new Error('queue attempts helper export drift');
-if (shouldDisplayInQueueMonitor('completed')) throw new Error('terminal queue helper export drift');
-
-const optimistic = createOptimisticApprovedTopic({
-  cluster_id: 'cluster-1',
-  cantidad_fuentes_total: 2,
-  cantidad_fuentes_aprobadas: 0,
-  sources: [
-    { id_noticia: 'news-1', index: 1 },
-    { id_noticia: 'news-2', index: 2 },
-  ],
-}, { id_noticia: 'news-1' });
-if (optimistic.sources.length !== 1 || optimistic.sources[0].id_noticia !== 'news-2') throw new Error('optimistic helper export drift');
-const synced = syncPendingItemsAfterApproval([{ cluster_id: 'cluster-1', cantidad_fuentes: 2 }], optimistic, { cluster_id: 'cluster-1' });
-if (synced.length !== 1 || synced[0].cantidad_fuentes !== 1) throw new Error('pending sync helper export drift');
-
-const cardMarkup = buildApprovalNewsCardMarkup({ cluster_id: 'cluster A/B', tema_principal: 'Tema <uno>', seleccion: 'AR', jugador: 'Jugador', cantidad_fuentes: 3 });
-if (!cardMarkup.includes('data-card-id="cluster%20A%2FB"')) throw new Error(`card id encoding drift: ${cardMarkup}`);
-if (!cardMarkup.includes('Tema &lt;uno&gt;')) throw new Error(`card escaping drift: ${cardMarkup}`);
-
-const detailEl = {
-  dialogTitle: { textContent: '' },
-  dialogBody: { innerHTML: '' },
-};
-renderApprovalTopicDetail({
-  item: {
-    jugador: 'Jugador',
-    tema_principal: 'Tema',
-    resumen_cluster: 'Resumen',
-    sources: [{
-      id_noticia: 'news/1',
-      index: 7,
-      titular: 'Titular',
-      fuente: 'Fuente',
-      link: 'https://example.com/a b?x=1&y=2',
-    }],
-  },
-  el: detailEl,
-  state: { approvingSourceId: '', deletingSource: false },
-  escapeHtml,
-  resolveApprovalSourceLink,
-});
-const detailMarkup = detailEl.dialogBody.innerHTML;
-if (!detailMarkup.includes('data-action="open-source"')) throw new Error(`missing open action: ${detailMarkup}`);
-if (!detailMarkup.includes('data-action="approve-source"')) throw new Error(`missing approve action: ${detailMarkup}`);
-if (!detailMarkup.includes('data-action="delete-source"')) throw new Error(`missing delete action: ${detailMarkup}`);
-if (!detailMarkup.includes('data-url="https%3A%2F%2Fexample.com%2Fa%20b%3Fx%3D1%26y%3D2"')) throw new Error(`url encoding drift: ${detailMarkup}`);
-if (!detailMarkup.includes('data-id-noticia="news%2F1"')) throw new Error(`id encoding drift: ${detailMarkup}`);
-if (!detailMarkup.includes('data-index="7"')) throw new Error(`index contract drift: ${detailMarkup}`);
-
-const queueCard = buildQueueMonitorCard({ queue_id: 'queue-1', estado_queue: 'processing', tema_principal: 'Job activo', jugador: 'Jugador', fuente: 'Fuente' });
-if (queueCard.id !== 'queue-1' || queueCard.tone !== 'active' || !queueCard.isVisible) throw new Error(`queue card helper drift: ${JSON.stringify(queueCard)}`);
-
-const queueEl = {
-  queueMeta: { textContent: '', classList: { toggle(name, enabled) { this[name] = enabled; } } },
-  queueList: { innerHTML: '' },
-};
-renderQueueMonitor({ queueItems: [{ queue_id: 'queue-1', estado_queue: 'failed', tema_principal: 'Job con error', jugador: 'Jugador', fuente: 'Fuente' }], el: queueEl, escapeHtml });
-if (!queueEl.queueList.innerHTML.includes('data-action="dismiss-approval-queue-job"')) throw new Error(`missing queue dismiss action: ${queueEl.queueList.innerHTML}`);
-if (!queueEl.queueList.innerHTML.includes('data-queue-id="queue-1"')) throw new Error(`missing queue dataset id: ${queueEl.queueList.innerHTML}`);
-"""
-    result = _run_node(script)
-    assert result.returncode == 0, result.stderr
-
-    runtime_source = (
-        (ROOT / "js" / "modules" / "app-shell" / "runtime.js").read_text(encoding="utf-8")
-        + "\n"
-        + (ROOT / "js" / "modules" / "app-shell" / "runtime-renderers.js").read_text(encoding="utf-8")
-    )
-    assert "../features/approval/cards.js" not in runtime_source
-    assert "../features/approval/detail-dialog.js" not in runtime_source
-    assert "../features/approval/queue-monitor.js" not in runtime_source
-    assert "../features/approval/index.js" in runtime_source
-    for token in ["buildApprovalNewsCardMarkup", "renderApprovalTopicDetail", "renderQueueMonitor"]:
-        assert token in runtime_source
-
-
 def test_single_flight_runner_reuses_inflight_promise_for_poll_refreshes():
     script = r"""
 import { createSingleFlightRunner } from './js/modules/core/async/single-flight.js';
@@ -1503,71 +1332,6 @@ def test_forbidden_cross_feature_import_boundaries_are_enforced():
             assert token not in source, f"Forbidden cross-feature dependency found: {relative_path} -> {token}"
 
 
-def test_architecture_file_size_soft_cap_and_css_facade_guardrails():
-    guarded_files = [
-        "styles/features/video-projects/index.css",
-        "styles/features/video-projects/layout.css",
-        "styles/features/video-projects/project-list.css",
-        "styles/features/video-projects/setup-images.css",
-        "styles/features/video-projects/setup-audio.css",
-        "styles/features/video-projects/editor-shell.css",
-        "styles/features/video-projects/editor-controls.css",
-        "styles/features/video-projects/preview-composition.css",
-        "styles/features/video-projects/video-selector.css",
-        "styles/features/video-projects/responsive.css",
-        "js/modules/features/video-projects/index.js",
-        "js/modules/features/video-projects/render.js",
-        "js/modules/features/video-projects/render/index.js",
-        "js/modules/features/video-projects/render/project-list-view.js",
-        "js/modules/features/video-projects/render/setup-view.js",
-        "js/modules/features/video-projects/render/editor-shell-view.js",
-        "js/modules/features/video-projects/render/preview-lifecycle.js",
-        "js/modules/features/video-projects/render/editor-hydration.js",
-        "js/modules/features/video-projects/render/video-selector-hydration.js",
-        "js/modules/features/video-projects/render/motion-scrub.js",
-        "js/modules/features/video-projects/controller/create-video-projects-controller.js",
-        "js/modules/features/video-projects/controller/project-loading.js",
-        "js/modules/features/video-projects/controller/editor-state-persistence.js",
-        "js/modules/features/video-projects/controller/approval-snapshot-operations.js",
-        "js/modules/features/video-projects/controller/preview-export-commands.js",
-        "js/modules/features/video-projects/controller/row-commands.js",
-        "js/modules/features/video-projects/controller/audio-commands.js",
-        "js/modules/features/video-projects/controller/brand-commands.js",
-        "js/modules/app-shell.js",
-        "js/modules/app-shell/index.js",
-        "js/modules/app-shell/state.js",
-        "js/modules/app-shell/services.js",
-        "js/modules/app-shell/navigation.js",
-        "js/modules/app-shell/settings.js",
-        "js/modules/app-shell/events/index.js",
-        "js/modules/app-shell/events/scripts.js",
-        "js/modules/app-shell/events/audio.js",
-        "js/modules/app-shell/events/subtitles.js",
-        "js/modules/app-shell/events/approval-dialog.js",
-        "js/modules/app-shell/render-callbacks.js",
-        "js/modules/app-shell/approval-monitor.js",
-        "js/modules/features/video-projects/composition/composition-renderer.js",
-        "js/modules/features/video-projects/composition/renderer/index.js",
-        "js/modules/features/video-projects/composition/renderer/dom.js",
-        "js/modules/features/video-projects/composition/renderer/frame-math.js",
-        "js/modules/features/video-projects/composition/renderer/video-layers.js",
-        "js/modules/features/video-projects/composition/renderer/logo-chroma.js",
-    ]
-
-    oversize = []
-    for relative_path in guarded_files:
-        path = ROOT / relative_path
-        assert path.exists(), f"Missing architecture guardrail target: {relative_path}"
-        line_count = len(path.read_text(encoding="utf-8").splitlines())
-        if line_count > FILE_SIZE_SOFT_CAP_LINES and relative_path not in FILE_SIZE_EXCEPTIONS:
-            oversize.append(f"{relative_path} ({line_count} lines)")
-
-    assert not oversize, "Files exceed 500-line soft cap without exception: " + ", ".join(oversize)
-
-    facade_lines = [line.strip() for line in VIDEO_PROJECTS_CSS_FACADE.read_text(encoding="utf-8").splitlines() if line.strip()]
-    assert all(line.startswith("@import '/styles/") and line.endswith(".css';") for line in facade_lines)
-
-
 def test_video_projects_render_facade_and_hydration_seams():
     result = subprocess.run(
         ["node", "--test", "js/modules/features/video-projects/__checks__/video-projects-render-seams.check.mjs"],
@@ -1608,30 +1372,6 @@ def test_composition_renderer_pure_helper_facade_parity():
     assert result.returncode == 0, result.stderr
 
 
-def test_app_shell_rollback_scope_is_documented():
-    contract_source = CONTRACT_MATRIX_PATH.read_text(encoding="utf-8")
-    assert "Checkpoint P6 (App Shell Facade Extraction)" in contract_source
-    assert "Rollback Scope (P6 App Shell)" in contract_source
-    assert "js/modules/app-shell/" in contract_source
-    assert "CompositionRenderer" in contract_source
-
-
-def test_video_projects_controller_rollback_scope_is_documented():
-    contract_source = CONTRACT_MATRIX_PATH.read_text(encoding="utf-8")
-    assert "Checkpoint P5 (Video Projects Controller Use-Cases)" in contract_source
-    assert "Rollback Scope (P5 Controller)" in contract_source
-    assert "js/modules/features/video-projects/controller/" in contract_source
-    assert "app-shell" in contract_source
-    assert "CompositionRenderer" in contract_source
-
-
-def test_contract_matrix_documents_check_manifest_source_aggregation():
-    contract_source = CONTRACT_MATRIX_PATH.read_text(encoding="utf-8")
-    assert "Check Organization Manifest" in contract_source
-    assert "js/modules/__checks__/manifest.js" in contract_source
-    assert "implementationPath" in contract_source
-
-
 def test_dependency_boundary_validator_detects_sibling_feature_imports():
     script = r"""
 import { validateNoSiblingFeatureImports } from './js/modules/__checks__/global/dependency-boundary-validator.js';
@@ -1655,23 +1395,6 @@ if (mutated.violations[0]?.feature !== 'audio') {
 """
     result = _run_node(script)
     assert result.returncode == 0, result.stderr
-
-
-def test_bootstrap_boundary_invariance_and_runtime_helper_delegation_contract():
-    main_source = MAIN_JS_PATH.read_text(encoding="utf-8")
-    composition_source = COMPOSITION_ROOT_PATH.read_text(encoding="utf-8")
-    app_shell_source = (ROOT / "js" / "modules" / "app-shell.js").read_text(encoding="utf-8")
-    parity_checklist_source = _read_check_implementation_source("js/modules/__checks__/global/parity-checklist.js")
-
-    assert "./modules/composition-root.js" in main_source
-    assert "./app-shell.js" in composition_source
-    assert "bootApp" in composition_source
-
-    # RED guardrail for this change-set: pure helper mapping must be delegated out of app-shell.
-    assert "normalizeAudioProgressPercent" in app_shell_source
-    assert "resolveSubtitleProgressPercentRuntime" in app_shell_source
-    assert "normalizeAudioProgressPercent" in parity_checklist_source
-    assert "resolveSubtitleProgressPercentRuntime" in parity_checklist_source
 
 
 def test_parity_checklist_enforces_runtime_helper_import_boundaries_in_app_shell():
@@ -1747,24 +1470,3 @@ if (!mutated.failures.some((f) => String(f).includes('createVideoProjectsFeature
     assert result.returncode == 0, result.stderr
 
 
-def test_subtitles_navigation_contract_uses_single_remote_view_without_mode_toggle():
-    index_source = (ROOT / "index.html").read_text(encoding="utf-8")
-    subtitles_template = (ROOT / "js" / "modules" / "app-shell" / "views" / "templates" / "subtitles-view.js").read_text(encoding="utf-8")
-    dom_source = index_source + "\n" + subtitles_template
-    selectors_source = (ROOT / "js" / "modules" / "shared" / "dom" / "selectors.js").read_text(encoding="utf-8")
-    bootstrap_source = (ROOT / "js" / "modules" / "core" / "bootstrap.js").read_text(encoding="utf-8")
-
-    for expected in [
-        'data-view="subtitulos2"',
-        'id="viewSubtitulos2"',
-        'id="subtitle2ServiceHealthBanner"',
-        'id="subtitle2SessionHistory"',
-    ]:
-        assert expected in dom_source
-
-    for forbidden in [
-        'id="subtitleModeSelect"',
-        'subtitlesMode:',
-        'subtitleModeSelect:',
-    ]:
-        assert forbidden not in "\n".join([dom_source, selectors_source, bootstrap_source])

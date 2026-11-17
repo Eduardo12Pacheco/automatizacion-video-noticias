@@ -66,6 +66,8 @@ jobs:
         run: node --test services/approval-editor/test/*.test.js services/approval-editor/__checks__/*.mjs
       - name: Demo worker
         run: node --test services/demo-worker/test/*.test.js
+      - name: Tooling tests
+        run: node --test tools/tests/ci-parity.test.mjs
       - name: Tools
         run: python3 -m unittest discover -s tools/tests -v
 

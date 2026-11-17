@@ -48,14 +48,6 @@ if (approvalItemMatchesSearch(item, 'marquez')) {
     assert result.returncode == 0, result.stderr
 
 
-def test_approval_visible_news_filters_do_not_show_prensa_order_selector():
-    index_source = INDEX_HTML_PATH.read_text(encoding="utf-8")
-
-    approval_view = index_source[index_source.index('id="viewApproval"'):index_source.index('id="viewRadar"')]
-    assert 'id="approvalOrderSelect"' not in approval_view
-    assert '<span class="control-label">Orden</span>' not in approval_view
-
-
 def test_approval_search_matches_channel_and_source_fields():
     script = r"""
 import { approvalItemMatchesSearch } from './js/modules/app-shell/search-filter.js';

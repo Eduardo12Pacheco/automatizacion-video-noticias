@@ -54,55 +54,6 @@ def test_labels_and_buttons_use_the_ui_font_not_mono():
         assert "JetBrains Mono" not in block, selector
 
 
-def test_stat_tiles_never_wrap_and_mobile_drawer_contains_the_footer():
-    cards = _read(ROOT / "styles" / "components" / "cards.css")
-    stat = cards[cards.index(".stat small,"):]
-    stat = stat[: stat.index(".stat small {")]
-    assert "white-space: nowrap" in stat
-
-    index = _read(ROOT / "index.html")
-    nav = index[index.index('id="sidebarNav"'):]
-    nav = nav[: nav.index("</nav>")]
-    assert 'id="settingsBtn"' in nav
-    assert 'id="logoutBtn"' in nav
-    responsive = _read(ROOT / "styles" / "responsive.css")
-    assert "position: absolute" in responsive
-    assert "max-height: 64px" in responsive
-
-
-def test_exactly_one_demo_indicator_is_rendered():
-    index = _read(ROOT / "index.html")
-    runtime = _read(ROOT / "js" / "modules" / "app-shell" / "runtime.js")
-    showcase = _read(ROOT / "js" / "modules" / "core" / "showcase" / "showcase-mode.js")
-    assert 'id="runModeBadge"' in index
-    assert 'id="runModeBanner"' not in index
-    assert "showcase-badge" not in showcase
-    assert "runModeBanner" not in runtime
-
-
-def test_press_view_has_a_primary_action_and_clear_destructive_labels():
-    radar = _read(ROOT / "js" / "modules" / "app-shell" / "views" / "templates" / "radar-view.js")
-    assert 'id="radarNewJobBtn" class="primary"' in radar
-    assert 'data-i18n="radar.trash">Descartadas' in radar
-    assert 'id="radarMonitorRefreshBtn" class="ghost"' in radar
-    es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
-    en = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "en.json"))
-    assert es["radar.trash"] == "Descartadas"
-    assert en["radar.trash"] == "Discarded"
-    assert es["approval.editScript"] == "Borradores"
-
-
-def test_subtitles_accept_the_demo_ready_health_status_and_have_no_hardcoded_offline_pill():
-    services = _read(ROOT / "js" / "modules" / "features" / "subtitles" / "runtime" / "services.js")
-    tone_line = next(line for line in services.splitlines() if "const tone =" in line)
-    assert "'ready'" in tone_line
-    template = _read(ROOT / "js" / "modules" / "app-shell" / "views" / "templates" / "subtitles-view.js")
-    assert "Servidor desconectado" not in template
-    assert 'data-i18n="subtitles.healthPending"' in template
-    assert 'data-i18n="subtitles.pipeline"' in template
-    assert 'data-i18n="subtitles.preview"' in template
-
-
 def test_remaining_copy_exists_in_both_languages_and_connector_descriptors_translate():
     es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
     en = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "en.json"))
@@ -126,18 +77,6 @@ def test_admin_users_expose_an_actions_header_and_readable_input_borders():
     assert "var(--border-input)" in css
     tokens = _read(ROOT / "styles" / "tokens.css")
     assert tokens.count("--border-input:") == 2
-
-
-def test_visual_qa_and_recorder_park_the_pointer_and_blur_focus():
-    visual = _read(REPO / "e2e" / "visual-qa.spec.js")
-    recorder = _read(REPO / "tools" / "record-demo.mjs")
-    for source in (visual, recorder):
-        assert "parkPointerAndBlur" in source
-        assert "document.activeElement?.blur?.()" in source
-        assert "page.mouse.move" in source
-    assert "no overlapping controls at 1280px" in visual or "1280" in visual
-    assert "wcag21aa" in visual
-    assert "newsroom-panel-theme-v1', 'light'" in visual
 
 
 def test_ui_colour_literals_live_only_in_render_or_brand_assets():

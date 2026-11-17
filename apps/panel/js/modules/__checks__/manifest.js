@@ -1,5 +1,11 @@
 export const CHECK_MANIFEST = [
   {
+    path: 'js/modules/__checks__/global/parity-validators.check.mjs',
+    owner: 'global',
+    commandKind: 'node-test',
+    exportedHelpers: [],
+  },
+  {
     path: 'js/modules/features/video-projects/__checks__/renderer-motion-parity-check.mjs',
     owner: 'video-projects',
     commandKind: 'node-test',
@@ -10,12 +16,6 @@ export const CHECK_MANIFEST = [
     owner: 'audio',
     commandKind: 'node-test',
     exportedHelpers: [],
-  },
-  {
-    path: 'js/modules/__checks__/global/runtime-ui-parity-replay.js',
-    owner: 'global',
-    commandKind: 'module-import',
-    exportedHelpers: ['runProtectedFlowsReplay', 'runAudioParityReplay', 'runAppShellLifecycleReplay', 'runAppShellSetViewReplay', 'runScriptToAudioVoiceReplay'],
   },
   {
     path: 'js/modules/app-shell/__checks__/app-shell-seams.check.mjs',
@@ -58,24 +58,6 @@ export const CHECK_MANIFEST = [
     owner: 'video-projects',
     commandKind: 'node-cli',
     exportedHelpers: ['runEditorAssetsTabCheck'],
-  },
-  {
-    path: 'js/modules/__checks__/global/parity-checklist.js',
-    owner: 'global',
-    commandKind: 'module-import',
-    exportedHelpers: ['REQUIRED_SELECTOR_IDS', 'SUBTITLE_REMOTE_CUTOVER_GATES', 'runParityChecklist'],
-  },
-  {
-    path: 'js/modules/__checks__/global/dependency-boundary-validator.js',
-    owner: 'global',
-    commandKind: 'module-import',
-    exportedHelpers: ['LEGACY_ARCHIVE_PATH', 'validateDependencyBoundaries', 'validateNoLegacyArchiveRuntimeReferences', 'validateNoSiblingFeatureImports'],
-  },
-  {
-    path: 'js/modules/__checks__/global/css-computed-style-parity.js',
-    owner: 'global',
-    commandKind: 'module-import',
-    exportedHelpers: ['runComputedStyleParityCheck'],
   },
   {
     path: 'js/modules/features/video-projects/__checks__/approval-motion-draft-check.js',
@@ -136,12 +118,6 @@ export const CHECK_MANIFEST = [
     owner: 'video-projects',
     commandKind: 'node-cli',
     exportedHelpers: ['runVideoProjectsManifestResolutionCheck'],
-  },
-  {
-    path: 'js/modules/__checks__/global/rollback-scope-validator.js',
-    owner: 'global',
-    commandKind: 'module-import',
-    exportedHelpers: ['evaluateRollbackPlan', 'simulateS4ArchivalRollback'],
   },
 ];
 

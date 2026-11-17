@@ -1090,7 +1090,7 @@ test("logo sources resolve to the correct render layout and frame sequence", () 
   assert.equal(timing.isGreenScreenLogoSource("overlays/logo-secondary-keyed.webm"), true);
   assert.equal(timing.isGreenScreenLogoSource("overlays/logo-green.mp4"), true);
   assert.equal(timing.isGreenScreenLogoSource("overlays/logo-primary.png"), false);
-  assert.equal(timing.isLogoFrameSequenceSource("overlays/logo-demo-alpha-frames"), true);
+  assert.equal(timing.isLogoFrameSequenceSource("overlays/logo-primary-alpha-frames"), true);
   assert.equal(timing.isLogoFrameSequenceSource("overlays/logo-demo.mp4"), false);
   assert.equal(timing.isFinalLogoSource("overlays/logo-final.png"), true);
 
@@ -1110,7 +1110,7 @@ test("logo sources resolve to the correct render layout and frame sequence", () 
     opacity: 0.94,
     objectFit: "contain",
   });
-  assert.equal(timing.logoFrameSequenceSrc("overlays/logo-demo-alpha-frames", 1234), "overlays/logo-demo-alpha-frames/frame-0334.png");
+  assert.equal(timing.logoFrameSequenceSrc("overlays/logo-primary-alpha-frames", 1234), "overlays/logo-primary-alpha-frames/frame-0334.png");
 });
 
 test("newspaper layout keeps the blur, contain fit and label typography", () => {

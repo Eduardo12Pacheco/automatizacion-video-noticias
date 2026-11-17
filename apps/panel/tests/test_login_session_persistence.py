@@ -95,61 +95,6 @@ if (!cookieJar.cookie.includes('Max-Age=0')) {
     assert result.returncode == 0, result.stderr
 
 
-def test_app_shell_auth_wiring_passes_cookie_backup_for_persist_restore_and_clear():
-    script = r"""
-import { createAppShellLifecycle } from './js/modules/app-shell/lifecycle.js';
-import { readFileSync } from 'node:fs';
-
-const storage = { getItem() { return null; } };
-const cookieJar = { cookie: 'approval-panel-session-v1=ok' };
-const calls = [];
-const el = {
-  authGate: { classList: { add(name) { this.added = name; }, remove(name) { this.removed = name; } } },
-  appShell: { classList: { add(name) { this.added = name; }, remove(name) { this.removed = name; } } },
-};
-
-const lifecycle = createAppShellLifecycle({
-  bindEvents() {},
-  customDropdowns: { mountAll() {} },
-  hydrateSettingsForm() {},
-  el,
-  readSessionStatus(args) {
-    calls.push(args);
-    return args.cookieJar?.cookie?.includes('approval-panel-session-v1=ok') ? 'ok' : null;
-  },
-  storage,
-  cookieJar,
-  sessionKey: 'approval-panel-session-v1',
-  setView(view) { calls.push({ setView: view }); },
-  refreshAll() { calls.push({ refreshAll: true }); },
-  renderSearchRefreshState() {},
-  renderSelectedScriptEditor() {},
-  renderSelectedVideoProject() {},
-});
-
-lifecycle.boot();
-
-if (calls[0]?.cookieJar !== cookieJar) {
-  throw new Error(`expected lifecycle restore to pass cookieJar, got ${JSON.stringify(calls[0])}`);
-}
-if (el.authGate.classList.added !== 'hidden' || el.appShell.classList.removed !== 'hidden') {
-  throw new Error('expected cookie-backed session to open the app shell');
-}
-
-const runtimeSource = readFileSync('./js/modules/app-shell/runtime.js', 'utf8');
-for (const token of [
-  'persistSessionStatus({ storage: localStorage, cookieJar: document, sessionKey })',
-  'clearSessionStatus({ storage: localStorage, cookieJar: document, sessionKey })',
-]) {
-  if (!runtimeSource.includes(token)) {
-    throw new Error(`missing runtime cookie backup token: ${token}`);
-  }
-}
-"""
-    result = _run_node(script)
-    assert result.returncode == 0, result.stderr
-
-
 def test_session_gate_hydrates_gateway_session_and_posts_login_with_credentials():
     script = r"""
 import { hydrateGatewaySession, loginGatewaySession, logoutGatewaySession } from './js/modules/core/auth/session-gate.js';

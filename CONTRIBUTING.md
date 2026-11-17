@@ -51,7 +51,7 @@ One command runs exactly what CI runs, with a summary table:
 pnpm test:all
 ```
 
-It covers every Node package, the panel pytest suite and its 46 `__checks__`
+It covers every Node package, the panel pytest suite and its 42 `__checks__`
 scripts, every Python service, the tools tests, the installer tests and the
 Compose config. The demo Playwright happy path needs the running stack:
 
@@ -90,7 +90,24 @@ bash infra/install/tests/run.sh
 Every suite must stay green. Do not weaken a test to make it pass: either fix
 the code, or update the test when it asserts obsolete behaviour and explain why
 in the commit message. Skips are only acceptable for an optional runtime (for
-example, no GPU) and must print the reason.
+example, no GPU) and must print the reason. Nested skips (individual tests that
+skip inside a suite that otherwise runs) are reported separately by
+`node tools/run-all-tests.mjs`; only the reasons declared in that runner are
+allowed, and any other nested skip fails the run.
+
+### What the Windows CI job proves
+
+The `windows-installers` job runs on `windows-latest` with Docker Linux
+containers unavailable, so it calls `./install.ps1 -Check -AllowMissingDocker`
+and a dry run instead of installing the stack. It proves that the PowerShell
+installer and CLI parse and load on Windows PowerShell, that the prerequisite
+check reports missing Docker as a warning instead of failing, that the generated
+`.env` and CLI paths work, and that the installer and parity PowerShell tests
+(including `test_install_ps1.py` and `test_parity.py`) pass under a native
+Windows `python`. It does **not** prove that Docker Desktop/WSL2 starts the
+stack, that the Windows GPU path is exercised, or that the browser E2E runs on
+Windows; those remain covered by the Linux jobs and by the installer's own
+behaviour tests, not by a physical Windows host in this repository's CI.
 
 ## Code conventions
 
