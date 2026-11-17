@@ -15,9 +15,9 @@ test("ffmpeg-static is resolved from the configured video-engine root", () => {
   fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "ffmpeg-static", main: "index.js" }));
   fs.writeFileSync(path.join(packageDir, "index.js"), `module.exports = ${JSON.stringify(binary)};\n`);
 
-  assert.equal(resolveFfmpegPath({ env: {}, remotionEditorRoot: root }), binary);
+  assert.equal(resolveFfmpegPath({ env: {}, moduleRoot: root }), binary);
 
   const explicit = path.join(root, "custom-ffmpeg");
   fs.writeFileSync(explicit, "", { mode: 0o755 });
-  assert.equal(resolveFfmpegPath({ env: { FFMPEG_PATH: explicit }, remotionEditorRoot: root }), explicit);
+  assert.equal(resolveFfmpegPath({ env: { FFMPEG_PATH: explicit }, moduleRoot: root }), explicit);
 });
