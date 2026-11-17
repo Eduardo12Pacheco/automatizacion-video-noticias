@@ -60,21 +60,25 @@ const BRAND_COPIES = [
   ['fonts/Demo-Display.woff2', 'services/renderer/public/fonts/display/Demo-Display.woff2'],
 ];
 
-const APPROVAL_FILES = [
-  'overlay-layer-01.webm',
-  'overlay-layer-02.webm',
-  'particle-1.webm',
-  'particle-2.webm',
-  'particle-3.webm',
-  'particle-4.webm',
-  'logo-primary.webm',
-  'logo-secondary.webm',
-  'logo-secondary.mp4',
-  'logo-final.png',
-  'outro-primary.mp4',
-  'outro-secondary.mp4',
-  'outro-final.mp4',
+// The approval editor's overlay set is built from canonical sources only, so
+// the image build never depends on renderer copies another build step creates.
+const APPROVAL_BRAND_COPIES = [
+  ['overlay-1.webm', 'overlay-layer-01.webm'],
+  ['overlay-2.webm', 'overlay-layer-02.webm'],
+  ['particle-1.webm', 'particle-1.webm'],
+  ['particle-2.webm', 'particle-2.webm'],
+  ['particle-3.webm', 'particle-3.webm'],
+  ['particle-4.webm', 'particle-4.webm'],
+  ['logo-demo.webm', 'logo-primary.webm'],
+  ['logo-demo.webm', 'logo-secondary.webm'],
+  ['logo-demo-green.mp4', 'logo-secondary.mp4'],
+  ['logo-demo.png', 'logo-final.png'],
+  ['final-demo.mp4', 'outro-final.mp4'],
 ];
+
+// These two outtros are tracked renderer assets (not generated from the brand
+// set), and the approval editor serves them alongside its generated overlays.
+const APPROVAL_RENDERER_FILES = ['outro-primary.mp4', 'outro-secondary.mp4'];
 
 function copy(relativeSource, relativeTarget) {
   const source = path.join(BRAND, relativeSource);
@@ -83,15 +87,22 @@ function copy(relativeSource, relativeTarget) {
   copyFileSync(source, target);
 }
 
+function syncApprovalEditor() {
+  mkdirSync(APPROVAL_OVERLAYS, { recursive: true });
+  for (const [source, destination] of APPROVAL_BRAND_COPIES) {
+    copyFileSync(path.join(BRAND, source), path.join(APPROVAL_OVERLAYS, destination));
+  }
+  for (const fileName of APPROVAL_RENDERER_FILES) {
+    copyFileSync(path.join(RENDERER_OVERLAYS, fileName), path.join(APPROVAL_OVERLAYS, fileName));
+  }
+}
+
 function main() {
   const target = process.argv.includes('--target=approval-editor') ? 'approval-editor' : 'all';
   if (target === 'all') {
     for (const [source, destination] of BRAND_COPIES) copy(source, destination);
   }
-  mkdirSync(APPROVAL_OVERLAYS, { recursive: true });
-  for (const fileName of APPROVAL_FILES) {
-    copyFileSync(path.join(RENDERER_OVERLAYS, fileName), path.join(APPROVAL_OVERLAYS, fileName));
-  }
+  syncApprovalEditor();
   console.log(`runtime demo assets synced (${target})`);
 }
 

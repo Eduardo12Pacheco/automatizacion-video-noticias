@@ -14,7 +14,8 @@ WORKDIR /app
 # Mirror the pnpm workspace layout without installing the whole monorepo.
 COPY packages/contracts ./packages/contracts
 COPY examples/brand ./examples/brand
-COPY services/renderer/assets ./services/renderer/assets
+COPY services/renderer/assets/overlays/outro-primary.mp4 ./services/renderer/assets/overlays/outro-primary.mp4
+COPY services/renderer/assets/overlays/outro-secondary.mp4 ./services/renderer/assets/overlays/outro-secondary.mp4
 COPY tools/assets/sync-runtime-assets.mjs ./tools/assets/sync-runtime-assets.mjs
 COPY services/approval-editor ./services/approval-editor
 RUN node tools/assets/sync-runtime-assets.mjs --target=approval-editor

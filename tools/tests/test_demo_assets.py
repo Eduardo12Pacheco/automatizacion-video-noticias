@@ -1,6 +1,9 @@
 """Structural checks for the generated fictional brand asset set."""
 
 from pathlib import Path
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -74,6 +77,51 @@ class DemoAssetTests(unittest.TestCase):
             self.assertIn(relative, source, f"{relative} must be materialized by the sync script")
         for download_name in ("TRANSITION 1 NUEVO", "TRANSITION 2 NUEVO", "efecto-transition"):
             self.assertNotIn(download_name, source, f"{download_name} is not a neutral asset name")
+
+    def test_approval_overlays_materialize_in_a_clean_checkout(self):
+        """The approval image only ships tracked files; generated mirrors must not be required."""
+        sync_script = ROOT / "tools" / "assets" / "sync-runtime-assets.mjs"
+        expected = {
+            "overlay-layer-01.webm",
+            "overlay-layer-02.webm",
+            "particle-1.webm",
+            "particle-2.webm",
+            "particle-3.webm",
+            "particle-4.webm",
+            "logo-primary.webm",
+            "logo-secondary.webm",
+            "logo-secondary.mp4",
+            "logo-final.png",
+            "outro-primary.mp4",
+            "outro-secondary.mp4",
+            "outro-final.mp4",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            checkout = Path(tmp)
+            (checkout / "tools" / "assets").mkdir(parents=True)
+            shutil.copy2(sync_script, checkout / "tools" / "assets" / sync_script.name)
+            shutil.copytree(BRAND, checkout / "examples" / "brand")
+            renderer_overlays = checkout / "services" / "renderer" / "assets" / "overlays"
+            renderer_overlays.mkdir(parents=True)
+            for name in ("outro-primary.mp4", "outro-secondary.mp4"):
+                shutil.copy2(RENDERER / "assets" / "overlays" / name, renderer_overlays / name)
+
+            result = subprocess.run(
+                ["node", str(checkout / "tools" / "assets" / sync_script.name), "--target=approval-editor"],
+                cwd=checkout,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            produced = {
+                path.name
+                for path in (checkout / "services" / "approval-editor" / "assets" / "overlays").iterdir()
+            }
+            self.assertEqual(produced, expected)
+            self.assertFalse(
+                (renderer_overlays / "overlay-layer-01.webm").exists(),
+                "the approval target must not create renderer mirrors",
+            )
 
 
 if __name__ == "__main__":
