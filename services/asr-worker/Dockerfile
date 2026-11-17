@@ -22,7 +22,7 @@ COPY services/asr-worker/app /app/services/asr-worker/app
 COPY services/asr-worker/scripts /app/services/asr-worker/scripts
 WORKDIR /app/services/asr-worker
 RUN pip install ".[${ASR_EXTRAS}]" \
-    && useradd --create-home --uid 10001 newsroom \
+    && useradd --create-home --uid 1000 newsroom \
     && mkdir -p /app/runtime/media /app/runtime/tts /app/gpu-lock \
     && chown -R newsroom:newsroom /app/runtime /app/gpu-lock /tmp
 

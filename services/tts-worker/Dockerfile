@@ -27,10 +27,10 @@ WORKDIR /app/services/tts-worker
 
 ARG TTS_EXTRAS=piper
 RUN pip install ".[${TTS_EXTRAS}]" \
-    && mkdir -p runtime refs /app/gpu-lock \
+    && mkdir -p runtime refs /app/runtime /app/gpu-lock \
     && touch refs/voz.wav refs/voz.txt \
-    && useradd --create-home --uid 10001 newsroom \
-    && chown -R newsroom:newsroom /app/services/tts-worker /app/gpu-lock /tmp
+    && useradd --create-home --uid 1000 newsroom \
+    && chown -R newsroom:newsroom /app/runtime /app/services/tts-worker /app/gpu-lock /tmp
 
 USER newsroom
 

@@ -26,11 +26,10 @@ RUN python3 -m venv /opt/venv \
 
 WORKDIR /app/services/subtitles
 RUN npm ci --no-audit --no-fund \
-    && useradd --create-home --uid 10001 newsroom \
     && mkdir -p /app/runtime/media \
-    && chown -R newsroom:newsroom /app/runtime /app/services/subtitles /home/newsroom
-USER newsroom
-ENV HOME=/home/newsroom
+    && chown -R node:node /app/runtime /app/services/subtitles /home/node
+USER node
+ENV HOME=/home/node
 RUN npx remotion browser ensure
 
 EXPOSE 8092

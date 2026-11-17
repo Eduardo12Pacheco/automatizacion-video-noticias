@@ -94,6 +94,18 @@ class ComposeStackTests(unittest.TestCase):
         panel_ports = self.services["panel"]["ports"]
         self.assertEqual(panel_ports, ["${NEWSROOM_BIND:-127.0.0.1}:${PANEL_PORT:-8080}:8080"])
 
+    def test_media_volume_writers_share_the_same_uid(self) -> None:
+        # API, approval editor and renderer run as node (uid 1000) and share
+        # newsroom_media. The Python media workers must use the same uid or a
+        # fresh named volume (owned by whoever mounts it first) is unwritable.
+        for relative in ("services/asr-worker/Dockerfile", "services/tts-worker/Dockerfile"):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("--uid 1000", text, f"{relative} must share uid 1000")
+            self.assertIn("/app/runtime", text, f"{relative} must prepare its runtime volume")
+        subtitles = (ROOT / "services/subtitles/Dockerfile").read_text(encoding="utf-8")
+        self.assertRegex(subtitles, r"(?m)^USER node\s*$")
+        self.assertIn("chown -R node:node /app/runtime", subtitles)
+
     def test_model_downloads_are_pinned_and_checksummed(self) -> None:
         manifest = yaml.safe_load((ROOT / "infra" / "models" / "model-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(set(manifest), {"piper", "whisper", "qwenTts"})
