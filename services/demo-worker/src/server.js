@@ -9,9 +9,13 @@
  */
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { matchesAnyToken, readInternalToken } = require('@newsroom/contracts/security/internal-token');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const DEFAULT_VIDEO = resolve(ROOT, 'examples/brand/final-demo.mp4');
@@ -119,8 +123,9 @@ function jsonData(data) {
 }
 
 export function createDemoWorkerServer({
-  host = '0.0.0.0',
+  host = '127.0.0.1',
   port = 8088,
+  apiTokens = String(process.env.DEMO_WORKER_API_TOKENS || '').split(',').map((token) => token.trim()).filter(Boolean),
   videoPath = process.env.DEMO_VIDEO_PATH || DEFAULT_VIDEO,
   logger = console,
 } = {}) {
@@ -379,6 +384,17 @@ export function createDemoWorkerServer({
   const server = http.createServer(async (req, res) => {
     try {
       const url = parseUrl(req);
+      const publicPath = ['/health', '/healthz', '/ready', '/api/tts/healthz', '/api/subtitles/health', '/api/radar/live', '/api/monitor/live'].includes(url.pathname);
+      if (!publicPath) {
+        if (!apiTokens.length) {
+          sendJson(res, 503, { ok: false, error: { code: 'internal_token_not_configured', message: 'Demo worker API token is not configured' } });
+          return;
+        }
+        if (!matchesAnyToken(readInternalToken(req.headers), apiTokens)) {
+          sendJson(res, 401, { ok: false, error: { code: 'unauthorized', message: 'Invalid or missing internal API token' } });
+          return;
+        }
+      }
       if (await handleTts(req, res, url)) return;
       if (await handleSubtitles(req, res, url)) return;
       if (await handleProjects(req, res, url)) return;
@@ -399,6 +415,6 @@ export function createDemoWorkerServer({
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const port = Number(process.env.DEMO_WORKER_PORT || 8088);
-  createDemoWorkerServer({ port, host: process.env.DEMO_WORKER_HOST || '0.0.0.0' });
+  createDemoWorkerServer({ port, host: process.env.DEMO_WORKER_HOST || '127.0.0.1' });
   console.info(`demo-worker listening on ${port}`);
 }

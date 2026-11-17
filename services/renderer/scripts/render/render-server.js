@@ -8,6 +8,7 @@
 const http = require("node:http");
 const path = require("node:path");
 const { createVideoEngineRenderAdapter } = require("../lib/render/video-engine-render-adapter");
+const { readInternalToken, tokenMatches } = require("@newsroom/contracts/security/internal-token");
 
 const JSON_LIMIT = 32 * 1024 * 1024;
 
@@ -45,8 +46,9 @@ function readJson(request) {
   });
 }
 
-function createRenderServer({ projectsRoot, videoEngineRoot = path.resolve(__dirname, "..", ".."), env = process.env, renderAdapter } = {}) {
+function createRenderServer({ projectsRoot, videoEngineRoot = path.resolve(__dirname, "..", ".."), env = process.env, renderAdapter, apiToken = null } = {}) {
   const adapter = renderAdapter || createVideoEngineRenderAdapter({ videoEngineRoot, projectsRoot, env });
+  const expectedToken = String(apiToken ?? env.RENDERER_API_KEY ?? "").trim();
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url, "http://renderer.local");
@@ -54,6 +56,12 @@ function createRenderServer({ projectsRoot, videoEngineRoot = path.resolve(__dir
         return sendJson(response, 200, { ok: true, data: { status: "ready", service: "renderer-service" } });
       }
       if (request.method === "POST" && url.pathname === "/api/render") {
+        if (!expectedToken) {
+          return sendJson(response, 503, { ok: false, error: { code: "internal_token_not_configured", message: "Renderer API token is not configured" } });
+        }
+        if (!tokenMatches(readInternalToken(request.headers), expectedToken)) {
+          return sendJson(response, 401, { ok: false, error: { code: "unauthorized", message: "Invalid or missing internal API token" } });
+        }
         const body = await readJson(request);
         const projectId = String(body.project_id || body.projectId || "").trim();
         const snapshot = body.snapshot && typeof body.snapshot === "object" ? body.snapshot : null;
@@ -72,7 +80,7 @@ function createRenderServer({ projectsRoot, videoEngineRoot = path.resolve(__dir
 }
 
 if (require.main === module) {
-  const host = process.env.RENDER_SERVER_HOST || "0.0.0.0";
+  const host = process.env.RENDER_SERVER_HOST || "127.0.0.1";
   const port = Number(process.env.RENDER_SERVER_PORT || 3042);
   const projectsRoot = process.env.RENDER_OUTPUT_ROOT || path.resolve(__dirname, "..", "..", "projects", "renderer");
   const server = createRenderServer({ projectsRoot });

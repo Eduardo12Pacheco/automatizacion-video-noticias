@@ -3,11 +3,12 @@ import { after, before, describe, it } from 'node:test';
 
 import { createDemoWorkerServer } from '../src/server.js';
 
+const TOKEN = 'demo-worker-test-token';
 let server;
 let baseUrl;
 
 before(async () => {
-  server = createDemoWorkerServer({ port: 0, host: '127.0.0.1' });
+  server = createDemoWorkerServer({ port: 0, host: '127.0.0.1', apiTokens: [TOKEN] });
   await new Promise((resolve) => server.once('listening', resolve));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
@@ -16,12 +17,23 @@ after(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
+function withToken(init = {}) {
+  return { ...init, headers: { 'x-api-key': TOKEN, ...(init.headers || {}) } };
+}
+
 async function json(path, init) {
-  const response = await fetch(`${baseUrl}${path}`, init);
+  const response = await fetch(`${baseUrl}${path}`, withToken(init));
   return { response, body: await response.json() };
 }
 
 describe('demo worker', () => {
+  it('rejects API calls without the internal token', async () => {
+    const missing = await fetch(`${baseUrl}/api/tts/jobs`);
+    assert.equal(missing.status, 401);
+    const wrong = await fetch(`${baseUrl}/api/tts/jobs`, { headers: { 'x-api-key': 'wrong-token' } });
+    assert.equal(wrong.status, 401);
+  });
+
   it('serves a health endpoint for every proxied worker surface', async () => {
     for (const path of ['/health', '/api/tts/healthz', '/api/subtitles/health']) {
       const response = await fetch(`${baseUrl}${path}`);
@@ -41,7 +53,7 @@ describe('demo worker', () => {
     const status = await json(`/api/tts/jobs/${created.body.job_id}`);
     assert.equal(status.body.status, 'done');
 
-    const wav = await fetch(`${baseUrl}/api/tts/jobs/${created.body.job_id}/download`);
+    const wav = await fetch(`${baseUrl}/api/tts/jobs/${created.body.job_id}/download`, withToken());
     assert.equal(wav.status, 200);
     assert.match(wav.headers.get('content-type'), /audio\/wav/);
     assert.equal(Buffer.from(await wav.arrayBuffer()).subarray(0, 4).toString(), 'RIFF');
@@ -74,7 +86,7 @@ describe('demo worker', () => {
     assert.equal(status.body.job.status, 'succeeded');
     assert.equal(status.body.download.ready, true);
 
-    const video = await fetch(`${baseUrl}/api/subtitles/sessions/${sessionId}/download/file`);
+    const video = await fetch(`${baseUrl}/api/subtitles/sessions/${sessionId}/download/file`, withToken());
     assert.equal(video.status, 200);
     assert.match(video.headers.get('content-type'), /video\/mp4/);
     assert.ok((await video.arrayBuffer()).byteLength > 0);
@@ -99,7 +111,7 @@ describe('demo worker', () => {
     const status = await json(`/api/projects/${projectId}/status`);
     assert.equal(status.body.data.status, 'done');
 
-    const video = await fetch(`${baseUrl}/api/projects/${projectId}/download/final`);
+    const video = await fetch(`${baseUrl}/api/projects/${projectId}/download/final`, withToken());
     assert.equal(video.status, 200);
     assert.match(video.headers.get('content-type'), /video\/mp4/);
   });

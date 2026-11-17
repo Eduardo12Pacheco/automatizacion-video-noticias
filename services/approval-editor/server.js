@@ -12,6 +12,7 @@ const { prepareAudioPreviewDerivative, audioContentType } = require("./lib/audio
 const { extractVoiceAudioFromMp4, resolveVoiceExtractionErrorStatus } = require("./lib/voice-video-audio-extraction");
 const { createRendererClient } = require("./lib/renderer-client");
 const { BlockedUrlError, assertPublicUrl } = require("@newsroom/contracts/security/url-guard");
+const { readInternalToken, tokenMatches } = require("@newsroom/contracts/security/internal-token");
 const { applyAlternatingBoundaryTransitionDefaults, addBoundaryTransitionAssets } = require("./lib/boundary-transitions");
 
 function sendJson(response, status, payload) {
@@ -566,9 +567,11 @@ async function missingRenderAdapter() {
 function createRenderAdapterFromEnv(env = process.env, renderCommandRunner, fetchImpl = globalThis.fetch) {
   const adapterName = String(env.APPROVAL_EDITOR_RENDER_ADAPTER || "http").trim().toLowerCase();
   if (["http", "02-video-engine", "video-engine", "remotion"].includes(adapterName)) {
+    const rendererApiKey = String(env.APPROVAL_EDITOR_RENDERER_API_KEY || env.RENDERER_API_KEY || "").trim();
     return createRendererClient({
       baseUrl: env.APPROVAL_EDITOR_RENDERER_URL || "",
       fetchImpl,
+      headers: rendererApiKey ? { "x-api-key": rendererApiKey } : {},
     });
   }
   return missingRenderAdapter;
@@ -585,6 +588,7 @@ function resolveRenderedOutputPath(rendered) {
 
 function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "projects"), renderAdapter, renderCommandRunner, alignVoiceAudio = prepareRealVoiceAlignment, prepareAudioPreview = prepareAudioPreviewDerivative, extractVoiceAudio = extractVoiceAudioFromMp4, env = process.env, fetchImpl = globalThis.fetch, urlResolver = null } = {}) {
   const store = createContractStore({ projectsRoot });
+  const apiToken = String(env.APPROVAL_EDITOR_API_TOKEN || env.API_GATEWAY_APPROVAL_SECRET || "").trim();
   const finalRenderAdapter = renderAdapter || createRenderAdapterFromEnv(env, renderCommandRunner, fetchImpl);
   const renderJobs = new Map();
 
@@ -619,6 +623,15 @@ function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "p
 
       if (request.method === "GET" && url.pathname === "/health") {
         return ok(response, { ok: true, status: "ready", service: "approval-editor-service", contractVersion: "approval-editor-service-v1", capabilities: ["prepare", "snapshot", "update", "final-render", "download"] });
+      }
+
+      // Every /api route is internal: the API gateway injects the shared
+      // token. Health stays public for the Compose healthcheck.
+      if (!apiToken) {
+        return sendJson(response, 503, { ok: false, error: { code: "internal_token_not_configured", message: "Approval editor API token is not configured" } });
+      }
+      if (!tokenMatches(readInternalToken(request.headers), apiToken)) {
+        return sendJson(response, 401, { ok: false, error: { code: "unauthorized", message: "Invalid or missing internal API token" } });
       }
 
       if (request.method === "GET" && url.pathname.startsWith("/api/overlays/")) {

@@ -105,6 +105,7 @@ export const SERVICE_CREDENTIAL_ENV = Object.freeze({
   radar: Object.freeze({ apiKey: 'API_GATEWAY_RADAR_API_KEY' }),
   monitor: Object.freeze({ apiKey: 'API_GATEWAY_MONITOR_API_KEY' }),
   approval: Object.freeze({ approvalSecret: 'API_GATEWAY_APPROVAL_SECRET' }),
+  remotion: Object.freeze({ apiKey: 'API_GATEWAY_RENDERER_API_KEY' }),
 });
 
 export const HOP_BY_HOP_HEADERS = new Set([

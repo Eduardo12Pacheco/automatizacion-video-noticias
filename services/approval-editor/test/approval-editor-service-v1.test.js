@@ -7,6 +7,8 @@ const http = require("node:http");
 
 const { createApprovalEditorService } = require("../server");
 
+const INTERNAL_TOKEN = "approval-editor-test-token";
+
 function basePayload() {
   return {
     draft_id: "Draft V1",
@@ -26,6 +28,7 @@ async function withService(fn) {
   const renderCalls = [];
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: INTERNAL_TOKEN },
     urlResolver: async () => ["127.0.0.1"],
     alignVoiceAudio: async ({ segments }) => ({
       segments,
@@ -51,13 +54,13 @@ async function withService(fn) {
 }
 
 async function api(baseUrl, pathName, options = {}) {
-  const response = await fetch(`${baseUrl}${pathName}`, { ...options, headers: { "content-type": "application/json", ...(options.headers || {}) } });
+  const response = await fetch(`${baseUrl}${pathName}`, { ...options, headers: { "content-type": "application/json", "x-api-key": INTERNAL_TOKEN, ...(options.headers || {}) } });
   const text = await response.text();
   return { status: response.status, body: text ? JSON.parse(text) : null };
 }
 
 async function raw(baseUrl, pathName, options = {}) {
-  const response = await fetch(`${baseUrl}${pathName}`, options);
+  const response = await fetch(`${baseUrl}${pathName}`, { ...options, headers: { "x-api-key": INTERNAL_TOKEN, ...(options.headers || {}) } });
   const text = await response.text();
   return { status: response.status, headers: response.headers, text };
 }
@@ -361,6 +364,7 @@ test("approval editor service fails loudly when final render adapter is not conf
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "approval-editor-v1-no-render-"));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: INTERNAL_TOKEN },
     urlResolver: async () => ["127.0.0.1"],
     alignVoiceAudio: async ({ segments }) => ({
       segments,
@@ -404,8 +408,10 @@ test("approval editor service calls the renderer over http and rejects a missing
   const server = createApprovalEditorService({
     projectsRoot: fs.mkdtempSync(path.join(os.tmpdir(), "approval-editor-configured-")),
     env: {
+      APPROVAL_EDITOR_API_TOKEN: INTERNAL_TOKEN,
       APPROVAL_EDITOR_RENDER_ADAPTER: "http",
       APPROVAL_EDITOR_RENDERER_URL: `http://127.0.0.1:${rendererPort}`,
+      APPROVAL_EDITOR_RENDERER_API_KEY: "renderer-key",
     },
     alignVoiceAudio: async ({ segments }) => ({
       segments,
@@ -463,3 +469,14 @@ function baseCanonicalSnapshot() {
     },
   };
 }
+
+test("approval editor rejects API calls without the internal token", async () => {
+  await withService(async (baseUrl) => {
+    const missing = await fetch(`${baseUrl}/api/projects/missing/snapshot`);
+    assert.equal(missing.status, 401);
+    const wrong = await fetch(`${baseUrl}/api/projects/missing/snapshot`, { headers: { "x-api-key": "wrong" } });
+    assert.equal(wrong.status, 401);
+    const health = await fetch(`${baseUrl}/health`);
+    assert.equal(health.status, 200);
+  });
+});

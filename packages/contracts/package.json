@@ -14,6 +14,7 @@
     "./approval-contract-pipeline/*": "./approval-contract-pipeline/*.js",
     "./editor": "./editor/contract-updates.js",
     "./editor/*": "./editor/*.js",
-    "./security/url-guard": "./security/url-guard.js"
+    "./security/url-guard": "./security/url-guard.js",
+    "./security/internal-token": "./security/internal-token.js"
   }
 }

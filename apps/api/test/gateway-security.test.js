@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
-import { BoundedTtlStore, createGatewayServer, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES, resolveRoute, resolveRoutePolicy } from '../src/gateway.js';
+import { BoundedTtlStore, createGatewayServer, readServiceCredentialsFromEnv, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES, resolveRoute, resolveRoutePolicy } from '../src/gateway.js';
 import {
   DEFAULT_EVENT_RETENTION,
   JsonlEventRecorder,
@@ -2033,4 +2033,9 @@ test('routine presence heartbeats are memory-only and do not pollute audit/error
   assert.equal(events.status, 200);
   const body = await readJson(events);
   assert.equal(body.events.some((event) => String(event.action || '').includes('presence')), false);
+});
+
+test('the gateway injects the internal renderer token for the remotion route', () => {
+  const credentials = readServiceCredentialsFromEnv({ API_GATEWAY_RENDERER_API_KEY: 'renderer-secret' });
+  assert.deepEqual(credentials.remotion, { 'x-api-key': 'renderer-secret' });
 });

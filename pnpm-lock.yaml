@@ -65,7 +65,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/contracts
 
-  services/demo-worker: {}
+  services/demo-worker:
+    dependencies:
+      '@newsroom/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
 
   services/renderer:
     dependencies:

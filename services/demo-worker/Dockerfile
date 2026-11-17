@@ -1,9 +1,14 @@
 FROM node:22-alpine
 
 WORKDIR /app
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/contracts/security packages/contracts/security
 COPY services/demo-worker/package.json services/demo-worker/package.json
 COPY services/demo-worker/src services/demo-worker/src
 COPY examples/brand/final-demo.mp4 examples/brand/final-demo.mp4
+
+RUN mkdir -p /app/node_modules/@newsroom \
+    && ln -s ../../packages/contracts /app/node_modules/@newsroom/contracts
 
 ENV NODE_ENV=production \
     DEMO_WORKER_PORT=8088 \
