@@ -167,7 +167,7 @@ function testWhipSfxSchedulerStartsWithOverlayAndReplaysAfterRewind() {
 
 function testTransitionPreviewEventAndVideoLayerWiring() {
   const [event] = buildBoundaryVideoPreviewEvents([
-    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-3', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/efecto-transition-3.mp4', blendMode: 'screen', durationSeconds: 1, audio: true } },
+    { id: 'row-a', startTime: 0, endTime: 1, image: 'previous.jpg', paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-3', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/transition-3.mp4', blendMode: 'screen', durationSeconds: 1, audio: true } },
     { id: 'row-b', startTime: 1, endTime: 2, image: 'next.jpg' },
   ]);
   const video = {
@@ -188,7 +188,7 @@ function testTransitionPreviewEventAndVideoLayerWiring() {
   const frame = resolveBoundaryVideoPreviewFrame(1, [event]);
   applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, frame, { playing: false });
   assertEqual(video.style.visibility, 'visible', 'Expected Transition preview video layer to become visible');
-  assertEqual(video.src, './assets/boundary-transitions/efecto-transition-3.mp4', 'Expected Transition preview video to use the browser asset');
+  assertEqual(video.src, './assets/boundary-transitions/transition-3.mp4', 'Expected Transition preview video to use the browser asset');
   assertEqual(video.style.mixBlendMode, 'screen', 'Expected Transition preview video to use screen blend mode');
   assertEqual(video.paused, true, 'Expected paused preview to avoid free-running the transition video');
   applyBoundaryVideoOverlayLayer({ boundaryTransitionVideo: video }, frame, { playing: true });
@@ -213,14 +213,14 @@ function testTransitionAudioSchedulerStartsWithOverlay() {
     },
   });
   const [event] = buildBoundaryVideoPreviewEvents([
-    { id: 'row-a', startTime: 0, endTime: 1, paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-2', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/TRANSITION 2 NUEVO.mp4', blendMode: 'screen', durationSeconds: 1.4, audio: true } },
+    { id: 'row-a', startTime: 0, endTime: 1, paragraphBoundaryAfter: true, nextRowId: 'row-b', transition: 'transition-2', transitionConfig: { type: 'overlay-video', previewUrl: './assets/boundary-transitions/transition-2.mp4', blendMode: 'screen', durationSeconds: 1.4, audio: true } },
     { id: 'row-b', startTime: 1, endTime: 2 },
   ]);
 
   assertEqual(scheduler.schedule({ event, currentTime: event.startTime - 0.01, playing: true }), false, 'Expected Transition audio not to play before the transition starts');
   assertEqual(scheduler.schedule({ event, currentTime: event.startTime, playing: true }), true, 'Expected Transition audio to play at transition start');
   assertEqual(scheduler.schedule({ event, currentTime: event.startTime + 0.2, playing: true }), false, 'Expected Transition audio not to replay in the same forward pass');
-  assertEqual(calls[0].src, './assets/boundary-transitions/TRANSITION 2 NUEVO.mp4', 'Expected Transition audio scheduler to use the MP4 audio source');
+  assertEqual(calls[0].src, './assets/boundary-transitions/transition-2.mp4', 'Expected Transition audio scheduler to use the MP4 audio source');
   assertEqual(calls[1].currentTime, 0, 'Expected Transition audio to start from the beginning');
   assertEqual(calls[1].volume, 0.9, 'Expected Transition audio to use safe preview volume');
 }

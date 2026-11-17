@@ -27,7 +27,7 @@ function runPreparedRowsPreserveBoundaryTransitionMetadataCheck() {
     nextRowId: 'row-2',
     transition: 'transition-1',
     transitionSource: 'manual',
-    transitionConfig: { type: 'overlay-video', assetId: 'transition-1', src: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', renderPath: 'overlays/TRANSITION 1 NUEVO.mp4', previewUrl: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', blendMode: 'screen', durationSeconds: 0.833333, audio: true },
+    transitionConfig: { type: 'overlay-video', assetId: 'transition-1', src: './assets/boundary-transitions/transition-1.mp4', renderPath: 'overlays/transition-1.mp4', previewUrl: './assets/boundary-transitions/transition-1.mp4', blendMode: 'screen', durationSeconds: 0.833333, audio: true },
     sfx: null,
   }]);
 
@@ -35,7 +35,7 @@ function runPreparedRowsPreserveBoundaryTransitionMetadataCheck() {
   assertEqual(row.nextRowId, 'row-2', 'Expected client row normalizer to preserve next row target');
   assertEqual(row.transition, 'transition-1', 'Expected client row normalizer to preserve active transition');
   assertEqual(row.transitionSource, 'manual', 'Expected client row normalizer to preserve transition provenance');
-  assertDeepEqual(row.transitionConfig, { type: 'overlay-video', assetId: 'transition-1', src: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', renderPath: 'overlays/TRANSITION 1 NUEVO.mp4', previewUrl: './assets/boundary-transitions/TRANSITION 1 NUEVO.mp4', blendMode: 'screen', durationSeconds: 0.833333, audio: true }, 'Expected client row normalizer to preserve Transition config');
+  assertDeepEqual(row.transitionConfig, { type: 'overlay-video', assetId: 'transition-1', src: './assets/boundary-transitions/transition-1.mp4', renderPath: 'overlays/transition-1.mp4', previewUrl: './assets/boundary-transitions/transition-1.mp4', blendMode: 'screen', durationSeconds: 0.833333, audio: true }, 'Expected client row normalizer to preserve Transition config');
   assertDeepEqual(row.sfx, null, 'Expected client row normalizer to preserve disabled SFX reference');
 }
 

@@ -29,6 +29,9 @@ RUN corepack enable && pnpm install --frozen-lockfile --prod --filter @newsroom/
 
 COPY packages/contracts packages/contracts
 COPY services/renderer services/renderer
+COPY examples/brand examples/brand
+COPY tools/assets/sync-runtime-assets.mjs tools/assets/sync-runtime-assets.mjs
+RUN node tools/assets/sync-runtime-assets.mjs
 
 WORKDIR /app/services/renderer
 ENV HOME=/home/node

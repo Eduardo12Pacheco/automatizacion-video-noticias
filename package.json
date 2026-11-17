@@ -17,9 +17,11 @@
     "test:all": "node tools/run-all-tests.mjs",
     "test:checks": "node tools/run-panel-checks.mjs",
     "test:panel": "uv run --with pytest pytest apps/panel/tests -q",
-    "test:visual": "node tools/run-visual-qa.mjs"
+    "test:visual": "node tools/run-visual-qa.mjs",
+    "postinstall": "node -e \"const fs=require('fs'); if (fs.existsSync('tools/assets/sync-runtime-assets.mjs')) require('child_process').execFileSync(process.execPath,['tools/assets/sync-runtime-assets.mjs'],{stdio:'inherit'})\""
   },
   "devDependencies": {
-    "@playwright/test": "1.65.0"
+    "@playwright/test": "1.65.0",
+    "axe-core": "4.10.2"
   }
 }

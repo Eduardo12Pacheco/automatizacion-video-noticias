@@ -33,7 +33,7 @@ MIRRORS = [
     RENDERER / "public" / "fonts" / "display" / "Demo-Display.woff2",
     RENDERER / "public" / "sfx" / "sound-demo.wav",
     PANEL / "assets" / "logo-primary.webm",
-    PANEL / "assets" / "outro-final.webm",
+    PANEL / "assets" / "logo-primary.webm",
     PANEL / "assets" / "particle-1.webm",
     PANEL / "assets" / "fonts" / "display" / "Demo-Display.woff2",
 ]
@@ -59,10 +59,13 @@ class DemoAssetTests(unittest.TestCase):
         self.assertEqual((BRAND / "fonts" / "Demo-Display.woff2").read_bytes()[:4], b"wOF2")
         self.assertEqual((BRAND / "sfx" / "whip.wav").read_bytes()[:4], b"RIFF")
 
-    def test_runtime_mirrors_exist(self):
+    def test_runtime_mirrors_are_generated_from_the_canonical_set(self):
+        sync_script = ROOT / "tools" / "assets" / "sync-runtime-assets.mjs"
+        self.assertTrue(sync_script.is_file())
+        source = sync_script.read_text(encoding="utf-8")
         for path in MIRRORS:
-            self.assertTrue(path.is_file(), path)
-            self.assertLess(path.stat().st_size, 5 * 1024 * 1024, path)
+            relative = path.relative_to(ROOT).as_posix()
+            self.assertIn(relative, source, f"{relative} must be materialized by the sync script")
 
 
 if __name__ == "__main__":

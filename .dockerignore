@@ -18,7 +18,10 @@
 !services/renderer/public/fonts/**
 !services/tts-worker/refs/*.wav
 !services/asr-worker/tests/**/*.json
-!examples/brand/final-demo.mp4
+!examples/brand/**
 docs
 odd
-tools
+tools/*
+!tools/assets/
+tools/assets/*
+!tools/assets/sync-runtime-assets.mjs
