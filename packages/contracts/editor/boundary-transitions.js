@@ -1,7 +1,7 @@
 const BOUNDARY_TRANSITION_CONFIGS = {
-  "transition-1": { type: "overlay-video", assetId: "transition-1", src: "./assets/boundary-transitions/TRANSITION 1 NUEVO.mp4", renderPath: "overlays/TRANSITION 1 NUEVO.mp4", previewUrl: "./assets/boundary-transitions/TRANSITION 1 NUEVO.mp4", blendMode: "screen", durationSeconds: 0.833333, audio: true },
-  "transition-2": { type: "overlay-video", assetId: "transition-2", src: "./assets/boundary-transitions/TRANSITION 2 NUEVO.mp4", renderPath: "overlays/TRANSITION 2 NUEVO.mp4", previewUrl: "./assets/boundary-transitions/TRANSITION 2 NUEVO.mp4", blendMode: "screen", durationSeconds: 1.4, audio: true },
-  "transition-3": { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/efecto-transition-3.mp4", renderPath: "overlays/efecto-transition-3.mp4", previewUrl: "./assets/boundary-transitions/efecto-transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true },
+  "transition-1": { type: "overlay-video", assetId: "transition-1", src: "./assets/boundary-transitions/transition-1.mp4", renderPath: "overlays/transition-1.mp4", previewUrl: "./assets/boundary-transitions/transition-1.mp4", blendMode: "screen", durationSeconds: 0.833333, audio: true },
+  "transition-2": { type: "overlay-video", assetId: "transition-2", src: "./assets/boundary-transitions/transition-2.mp4", renderPath: "overlays/transition-2.mp4", previewUrl: "./assets/boundary-transitions/transition-2.mp4", blendMode: "screen", durationSeconds: 1.4, audio: true },
+  "transition-3": { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/transition-3.mp4", renderPath: "overlays/transition-3.mp4", previewUrl: "./assets/boundary-transitions/transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true },
 };
 
 const WHIP_TRANSITION_CONFIG = { type: "whip", durationSeconds: 0.5, direction: "left-to-right" };

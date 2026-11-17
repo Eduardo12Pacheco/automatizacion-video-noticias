@@ -9,8 +9,9 @@ if (-not (Test-Path -LiteralPath $node)) {
   $node = $cmd.Source
 }
 
-$env:REMOTION_EDITOR_API_PORT = if ($env:REMOTION_EDITOR_API_PORT) { $env:REMOTION_EDITOR_API_PORT } else { '3037' }
-$env:APPROVAL_EDITOR_SERVICE_PORT = $env:REMOTION_EDITOR_API_PORT
-$env:APPROVAL_EDITOR_RENDER_ADAPTER = if ($env:APPROVAL_EDITOR_RENDER_ADAPTER) { $env:APPROVAL_EDITOR_RENDER_ADAPTER } else { '02-video-engine' }
+# Render-only HTTP worker used by the approval editor. It listens on loopback
+# and requires the shared internal token (RENDERER_API_KEY).
+$env:RENDER_SERVER_HOST = if ($env:RENDER_SERVER_HOST) { $env:RENDER_SERVER_HOST } else { '127.0.0.1' }
+$env:RENDER_SERVER_PORT = if ($env:RENDER_SERVER_PORT) { $env:RENDER_SERVER_PORT } else { '3041' }
 Set-Location -LiteralPath $root
-& $node 'services/approval-editor/server.js'
+& $node 'services/renderer/scripts/render/render-server.js'

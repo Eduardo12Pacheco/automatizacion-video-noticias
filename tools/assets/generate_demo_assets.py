@@ -239,9 +239,9 @@ def main() -> None:
 
     # Boundary transitions (same roles as the removed ripped overlays).
     for index, (name, seed) in enumerate((
-        ("TRANSITION 1 NUEVO.mp4", 101),
-        ("TRANSITION 2 NUEVO.mp4", 102),
-        ("efecto-transition-3.mp4", 103),
+        ("transition-1.mp4", 101),
+        ("transition-2.mp4", 102),
+        ("transition-3.mp4", 103),
     ), start=1):
         make_transition(BRAND / f"transition-{index}.mp4", seed, 1.0)
         copy(BRAND / f"transition-{index}.mp4", PANEL_BOUNDARY / name)

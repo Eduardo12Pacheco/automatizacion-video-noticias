@@ -402,6 +402,18 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertEqual(values["COMPOSE_PROFILES"], "")
         self.assertIn("run mode set to demo", mode.stdout)
 
+    def test_windows_editor_service_defaults(self):
+        script = REPO_ROOT / "infra" / "windows" / "tests" / "editor-services.tests.ps1"
+        result = subprocess.run(
+            powershell_command() + ["-File", str(script)],
+            cwd=str(REPO_ROOT),
+            text=True,
+            capture_output=True,
+            timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("editor service defaults OK", result.stdout)
+
     def test_cli_test_runs_the_ci_runner(self):
         self.assertEqual(self.run_ps(*self.ps_args()).returncode, 0)
         self.log.write_text("", encoding="utf-8")

@@ -29,11 +29,6 @@ test("package scripts keep official commands and drop deleted legacy manual pipe
   }
 
   assert.equal(
-    scripts["legacy:approval-service:local"],
-    "node scripts/approval-pipeline-local-service.js",
-    "medium-confidence local approval service stays deferred while its file exists",
-  );
-  assert.equal(
     scripts["legacy:diagnose:stt"],
     "py scripts/transcribe-audio.py --diagnose-backends",
     "Control Panel Python STT compatibility script stays available",
@@ -102,6 +97,8 @@ test("deleted high-confidence legacy pipeline paths stay absent while render ass
     "scripts/fix-timeline.js",
     "scripts/verify-sync.js",
     "scripts/download-vosk-model.py",
+    "scripts/approval-pipeline-local-service.js",
+    "scripts/services/approval-pipeline-local-service.js",
   ];
   for (const relativePath of deletedPaths) {
     assert.equal(

@@ -106,7 +106,6 @@ Lo importante: después de borrar eso, el render oficial siguió funcionando y g
 | Ruta | Por qué se queda |
 |---|---|
 | `scripts/transcribe-audio.py` | Cliente de compatibilidad: el Whisper real vive en `services/asr-worker` (`ASR_WORKER_URL`); este script solo envía el audio por HTTP. |
-| `scripts/approval-pipeline-local-service.js` y `scripts/services/approval-pipeline-local-service.js` | Legacy/local service diferido. No es el flujo oficial, pero no se borró en esta tanda. |
 | `assets/overlays/` | Render final depende de estos assets para fidelidad visual. |
 
 ## Verificación segura
@@ -167,7 +166,6 @@ local (CPU y GPU) están en el README raíz y en `docs/INSTALL.md`.
 `approval:service:local` es un servicio local que solo cubre preparación/status
 de proyectos para el editor: no renderiza video, y el fallback de Remotion siguen igual
 que en el flujo oficial. Escucha en `http://127.0.0.1:3041` y el puerto se puede
-cambiar con `APPROVAL_PIPELINE_LOCAL_SERVICE_PORT`.
 
 ```powershell
 npm run approval:service:local

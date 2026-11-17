@@ -91,7 +91,7 @@ Install-OrUpdateService `
   -Nssm $nssm `
   -Name 'remotion-editor-api' `
   -DisplayName 'Remotion Local Editor API' `
-  -Description 'API local de proyectos Remotion/editor-preview en 127.0.0.1:3037' `
+  -Description 'Render-only HTTP worker for the approval editor en 127.0.0.1:3041' `
   -ScriptPath (Join-Path $scriptsDir 'run-remotion-editor-api.ps1') `
   -AppDirectory $repoRoot `
   -LogOut (Join-Path $logsDir 'remotion-editor-api.out.log') `
@@ -99,19 +99,9 @@ Install-OrUpdateService `
 
 Install-OrUpdateService `
   -Nssm $nssm `
-  -Name 'approval-pipeline-local' `
-  -DisplayName 'Approval Pipeline Local Service' `
-  -Description 'Servicio local de contrato approval pipeline en 127.0.0.1:3041' `
-  -ScriptPath (Join-Path $scriptsDir 'run-approval-pipeline-local.ps1') `
-  -AppDirectory $repoRoot `
-  -LogOut (Join-Path $logsDir 'approval-pipeline-local.out.log') `
-  -LogErr (Join-Path $logsDir 'approval-pipeline-local.err.log')
-
-Install-OrUpdateService `
-  -Nssm $nssm `
   -Name 'approval-editor-service' `
   -DisplayName 'Approval Editor Service' `
-  -Description 'Servicio editor-preview con snapshots y render final en 127.0.0.1:3042' `
+  -Description 'Approval editor snapshots and final-render orchestration en 127.0.0.1:3042' `
   -ScriptPath (Join-Path $scriptsDir 'run-approval-editor-service.ps1') `
   -AppDirectory $repoRoot `
   -LogOut (Join-Path $logsDir 'approval-editor-service.out.log') `
@@ -120,12 +110,10 @@ Install-OrUpdateService `
 if (-not $NoStart) {
   Start-Service remotion-editor-api
   Start-Sleep -Seconds 2
-  Start-Service approval-pipeline-local
-  Start-Sleep -Seconds 2
   Start-Service approval-editor-service
 }
 
-Get-Service -Name remotion-editor-api, approval-pipeline-local, approval-editor-service |
+Get-Service -Name remotion-editor-api, approval-editor-service |
   Select-Object Name, Status, StartType |
   Format-Table -AutoSize
 

@@ -37,7 +37,6 @@ $services = @(
   'tts-tunnel',
   'subtitles-remote-api',
   'remotion-editor-api',
-  'approval-pipeline-local',
   'approval-editor-service'
 )
 
@@ -63,8 +62,7 @@ $checks = @(
   @{ Name = 'tts-worker'; Url = 'http://127.0.0.1:8091/internal/healthz' },
   @{ Name = 'tts-orchestrator'; Url = 'http://127.0.0.1:8088/healthz' },
   @{ Name = 'tts-public'; Url = 'https://tts-api.example.local/healthz' },
-  @{ Name = 'remotion-editor-api'; Url = 'http://127.0.0.1:3037/api/projects' },
-  @{ Name = 'approval-pipeline-local'; Url = 'http://127.0.0.1:3041/health' },
+  @{ Name = 'remotion-editor-api'; Url = 'http://127.0.0.1:3041/health' },
   @{ Name = 'approval-editor-service'; Url = 'http://127.0.0.1:3042/health' }
 )
 

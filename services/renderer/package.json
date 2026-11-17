@@ -32,8 +32,6 @@
     "render:video": "node scripts/render-video.js",
     "test": "node --test",
     "upgrade": "remotion upgrade",
-    "approval:service:local": "node scripts/approval-pipeline-local-service.js",
-    "legacy:approval-service:local": "node scripts/approval-pipeline-local-service.js",
     "legacy:diagnose:stt": "py scripts/transcribe-audio.py --diagnose-backends",
     "legacy:install:python-deps": "py -m pip install -r requirements.txt",
     "render:server": "node scripts/render/render-server.js"
@@ -43,7 +41,6 @@
   ],
   "exports": {
     ".": "./scripts/render-video.js",
-    "./approval-pipeline-local-service": "./scripts/services/approval-pipeline-local-service.js",
     "./render-adapter": "./scripts/lib/render/video-engine-render-adapter.js"
   }
 }

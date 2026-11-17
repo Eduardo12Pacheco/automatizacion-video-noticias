@@ -2,9 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $workspaceRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $root = Join-Path $workspaceRoot 'services\approval-editor'
-$videoEngineRoot = Join-Path $workspaceRoot 'services/renderer'
 $node = 'C:\Program Files\nodejs\node.exe'
-$python = "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe"
 
 if (-not (Test-Path -LiteralPath $node)) {
   $cmd = Get-Command node.exe -ErrorAction SilentlyContinue
@@ -14,14 +12,9 @@ if (-not (Test-Path -LiteralPath $node)) {
 
 $env:APPROVAL_EDITOR_SERVICE_PORT = if ($env:APPROVAL_EDITOR_SERVICE_PORT) { $env:APPROVAL_EDITOR_SERVICE_PORT } else { '3042' }
 $env:APPROVAL_EDITOR_RENDER_ADAPTER = if ($env:APPROVAL_EDITOR_RENDER_ADAPTER) { $env:APPROVAL_EDITOR_RENDER_ADAPTER } else { 'http' }
-$env:APPROVAL_EDITOR_RENDERER_URL = if ($env:APPROVAL_EDITOR_RENDERER_URL) { $env:APPROVAL_EDITOR_RENDERER_URL } else { 'http://127.0.0.1:3042' }
-$env:APPROVAL_EDITOR_VIDEO_ENGINE_ROOT = if ($env:APPROVAL_EDITOR_VIDEO_ENGINE_ROOT) { $env:APPROVAL_EDITOR_VIDEO_ENGINE_ROOT } else { $videoEngineRoot }
-$env:APPROVAL_EDITOR_PYTHON_BIN = if ($env:APPROVAL_EDITOR_PYTHON_BIN) { $env:APPROVAL_EDITOR_PYTHON_BIN } elseif (Test-Path -LiteralPath $python) { $python } else { '' }
-$env:REMOTION_EDITOR_PYTHON_BIN = if ($env:REMOTION_EDITOR_PYTHON_BIN) { $env:REMOTION_EDITOR_PYTHON_BIN } elseif ($env:APPROVAL_EDITOR_PYTHON_BIN) { $env:APPROVAL_EDITOR_PYTHON_BIN } else { '' }
-
-if (-not $env:APPROVAL_EDITOR_PYTHON_BIN) {
-  throw 'No se encontró Python para alineación Whisper. Corregí $python en este wrapper o definí APPROVAL_EDITOR_PYTHON_BIN.'
-}
+# The render-only worker owns rendering and runs on 3041; the ASR worker owns
+# Whisper and is reached over HTTP, so no Python path is configured here.
+$env:APPROVAL_EDITOR_RENDERER_URL = if ($env:APPROVAL_EDITOR_RENDERER_URL) { $env:APPROVAL_EDITOR_RENDERER_URL } else { 'http://127.0.0.1:3041' }
 
 Set-Location -LiteralPath $root
 & $node (Join-Path $root 'server.js')
