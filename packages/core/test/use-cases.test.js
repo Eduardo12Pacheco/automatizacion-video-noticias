@@ -362,6 +362,22 @@ describe('PublishScript', () => {
     assert.match(job.error, /export unavailable/);
   });
 
+  it('uses the injected id factory instead of Math.random for job ids', async () => {
+    const { repository } = await createHarness();
+    await seedPublishableDraft(repository);
+    const useCase = new PublishScript({
+      repository,
+      createVideoProject: new CreateVideoProject({ repository, now: () => NOW }),
+      llm: createMockLLM('Móises Arbelo anotó y fue figura'),
+      documentExport: documentExport(),
+      imageSearch: imageSearch(),
+      now: () => NOW,
+      createId: () => 'factory',
+    });
+    const started = await useCase.start({ draft_id: 'draft-news-1' });
+    assert.match(started.job_id, /^pub-\d+-factory$/);
+  });
+
   it('rejects publish requests without any draft identity', async () => {
     const { repository } = await createHarness();
     const useCase = createUseCase(repository);
@@ -392,6 +408,26 @@ describe('ManualCreateVideoProject', () => {
 
     assert.equal(started.status, 'queued');
     assert.ok(repository._clusters.has(String(started.cluster_id)));
+  });
+
+  it('uses the injected id factory for manual ids', async () => {
+    const { repository } = await createHarness();
+    const useCase = new ManualCreateVideoProject({
+      repository,
+      imageSearch: imageSearch(),
+      now: () => NOW,
+      createId: () => 'manual-factory-id',
+      createJobId: () => 'manual-job-factory',
+    });
+    const started = await useCase.start({
+      titular: 'Manual factory',
+      guion: 'Nicolás Arbelo anotó y fue figura del partido.',
+      jugador: 'Nicolás Arbelo',
+      seleccion: 'Aurenia',
+      tema_principal: 'Manual factory',
+    });
+    assert.match(started.draft_id, /^manual-nicolas-arbelo-manual-factory-\d{4}-\d{2}-\d{2}-manual$/);
+    assert.equal(started.job_id, 'manual-job-factory');
   });
 
   it('creates the manual records and finalizes image candidates asynchronously', async () => {

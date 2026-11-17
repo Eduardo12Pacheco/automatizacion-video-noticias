@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { buildPipedScript, buildVideoSegments, normalizeImageCandidates } from '../domain/script.js';
 import { NotFoundError, ValidationError } from '../errors.js';
 
@@ -25,13 +27,15 @@ export class ManualCreateVideoProject {
     repository,
     imageSearch = null,
     now = () => new Date(),
-    createJobId = () => `manual-video-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    createId = () => randomUUID(),
+    createJobId = null,
   } = {}) {
     if (!repository) throw new Error('repository is required');
     this.repository = repository;
     this.imageSearch = imageSearch;
     this.now = now;
-    this.createJobId = createJobId;
+    this.createId = createId;
+    this.createJobId = createJobId || (() => `manual-video-${Date.now()}-${String(this.createId()).slice(0, 6)}`);
   }
 
   async start(payload = {}) {
@@ -46,7 +50,7 @@ export class ManualCreateVideoProject {
 
     const now = new Date(this.now()).toISOString();
     const day = now.slice(0, 10);
-    const suffix = Math.random().toString(36).slice(2, 8);
+    const suffix = String(this.createId()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 6) || 'manual';
     const draftId = clean(payload.draft_id) || `manual-${slug(player)}-${slug(title)}-${day}-${suffix}`;
     const idNoticia = clean(payload.id_noticia) || `manual-news-${slug(player)}-${day}-${suffix}`;
     const clusterId = clean(payload.cluster_id) || `manual-cluster-${slug(player)}-${day}-${suffix}`;

@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import {
   AdapterUnavailableError,
   ClusterTopics,
@@ -74,15 +76,17 @@ export function createCoreRuntime({ repository, adapters = {}, discovery = {}, n
   const clusterTopics = new ClusterTopics({ repository, llm, now });
   const decideApproval = new DecideApproval({ repository });
   const draftScript = new DraftScript({ repository, articleExtractor, llm, now });
+  const createId = () => randomUUID();
   const publishScript = new PublishScript({
     repository,
+    createId,
     createVideoProject,
     llm,
     documentExport,
     imageSearch,
     now,
   });
-  const manualCreateVideoProject = new ManualCreateVideoProject({ repository, imageSearch, now });
+  const manualCreateVideoProject = new ManualCreateVideoProject({ repository, imageSearch, now, createId });
   const refreshSearch = new RefreshSearch({ repository, discoverNews, clusterTopics, now });
   const exportDocument = createExportDocument({ repository, documentExport: documentExport || withDefaults(null, ['exportDocument']) });
   const readModels = buildReadModels({ repository });

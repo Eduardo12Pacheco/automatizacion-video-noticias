@@ -6,6 +6,8 @@ import {
   normalizeImageCandidates,
   wordCount,
 } from '../domain/script.js';
+import { randomUUID } from 'node:crypto';
+
 import { NotFoundError, ValidationError } from '../errors.js';
 
 function normalizeIdentity(payload = {}) {
@@ -16,8 +18,8 @@ function normalizeIdentity(payload = {}) {
   };
 }
 
-function randomSuffix() {
-  return Math.random().toString(36).slice(2, 8);
+function defaultCreateId() {
+  return randomUUID();
 }
 
 /**
@@ -34,7 +36,8 @@ export class PublishScript {
     documentExport = null,
     imageSearch = null,
     now = () => new Date(),
-    createJobId = () => `pub-${Date.now()}-${randomSuffix()}`,
+    createId = defaultCreateId,
+    createJobId = null,
   } = {}) {
     if (!repository) throw new Error('repository is required');
     if (!createVideoProject) throw new Error('createVideoProject is required');
@@ -44,7 +47,8 @@ export class PublishScript {
     this.documentExport = documentExport;
     this.imageSearch = imageSearch;
     this.now = now;
-    this.createJobId = createJobId;
+    this.createId = createId;
+    this.createJobId = createJobId || (() => `pub-${Date.now()}-${String(this.createId()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`);
   }
 
   async start(payload = {}) {
