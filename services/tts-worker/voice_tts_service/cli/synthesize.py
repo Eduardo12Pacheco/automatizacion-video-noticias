@@ -18,16 +18,16 @@ from voice_tts_service.infrastructure.engine_factory import create_tts_engine, r
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Voice Lab Qwen - CLI de clonación de voz")
-    parser.add_argument("--input", required=True, help="Ruta al guion .txt")
-    parser.add_argument("--ref-audio", required=True, help="Ruta al audio de referencia (.wav)")
-    parser.add_argument("--ref-text", required=True, help="Ruta al txt con transcripción de la referencia")
-    parser.add_argument("--config", default="config/default.yaml", help="Ruta de config YAML")
-    parser.add_argument("--segments-dir", default="segments", help="Carpeta para audios por segmento")
-    parser.add_argument("--output-dir", default="output", help="Carpeta para audio final y reporte")
-    parser.add_argument("--run-id", default=None, help="ID de ejecución opcional")
+    parser = argparse.ArgumentParser(description="Voice Lab Qwen - voice cloning CLI")
+    parser.add_argument("--input", required=True, help="Path to the .txt script")
+    parser.add_argument("--ref-audio", required=True, help="Path to the reference audio (.wav)")
+    parser.add_argument("--ref-text", required=True, help="Path to the reference transcript .txt")
+    parser.add_argument("--config", default="config/default.yaml", help="Path to the YAML config")
+    parser.add_argument("--segments-dir", default="segments", help="Directory for per-segment audio")
+    parser.add_argument("--output-dir", default="output", help="Directory for the final audio and report")
+    parser.add_argument("--run-id", default=None, help="Optional run id")
     parser.add_argument("--device", default=None, help="Device opcional: cuda:0|cpu|mps")
-    parser.add_argument("--preset", default=None, help="Preset de generación (balanced_default|golazo_emotivo|golazo_informativo). Si se omite, usa generation.preset del YAML.")
+    parser.add_argument("--preset", default=None, help="Generation preset (balanced_default|golazo_emotivo|golazo_informativo). Defaults to generation.preset from the YAML.")
     return parser.parse_args()
 
 
@@ -93,7 +93,7 @@ def resolve_generation_with_preset(
         return generation_cfg, None, {}
     if selected_preset not in presets:
         available = ", ".join(sorted(presets.keys())) or "(none)"
-        raise ValueError(f"Preset inválido: '{selected_preset}'. Disponibles: {available}")
+        raise ValueError(f"Invalid preset: '{selected_preset}'. Available: {available}")
     preset_values = dict(presets.get(selected_preset, {}) or {})
     merged = dict(generation_cfg)
     merged.update(preset_values)
@@ -109,19 +109,19 @@ def main() -> None:
     ref_text_path = Path(args.ref_text)
     cfg_path = Path(args.config)
     run_id = args.run_id or datetime.now().strftime("run-%Y%m%d-%H%M%S")
-    for path, label in [(input_path, "input"), (ref_audio_path, "audio de referencia"), (ref_text_path, "ref_text"), (cfg_path, "config")]:
+    for path, label in [(input_path, "input"), (ref_audio_path, "reference audio"), (ref_text_path, "ref_text"), (cfg_path, "config")]:
         if not path.exists():
-            raise FileNotFoundError(f"No existe {label}: {path}")
+            raise FileNotFoundError(f"Missing {label}: {path}")
     cfg = load_config(cfg_path)
     raw_text = input_path.read_text(encoding="utf-8").strip()
     reference_text = ref_text_path.read_text(encoding="utf-8").strip()
     if not raw_text:
-        raise ValueError("El guion está vacío.")
+        raise ValueError("The script is empty.")
     # Piper is a fixed CPU voice and does not use the reference audio/text
     # either for cloning or for its prompt; requiring a reference transcript
     # would make the documented CPU local mode impossible.
     if not reference_text and resolve_engine_mode() != "piper":
-        raise ValueError("El ref_text está vacío. Debe ser la transcripción del audio de referencia.")
+        raise ValueError("ref_text is empty. It must be the transcript of the reference audio.")
     seg_cfg = SegmenterConfig(**cfg.get("segmenter", {}))
     pauses_cfg = cfg.get("pauses_ms", {})
     generation_cfg, preset_used, preset_values = resolve_generation_with_preset(cfg, args.preset)
@@ -173,7 +173,7 @@ def main() -> None:
     report_path = output_dir / f"{run_id}.report.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"OK - audio final: {assembled_file}")
-    print(f"OK - reporte: {report_path}")
+    print(f"OK - report: {report_path}")
     print(f"OK - segmentos: {len(segments)}")
     print(f"OK - sample rate nativo: {assembled_sr}")
     if preset_used:

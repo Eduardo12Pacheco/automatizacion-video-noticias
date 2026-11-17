@@ -114,11 +114,11 @@ def create_app(
     async def lifespan(_: FastAPI):
         cfg.runtime_dir.mkdir(parents=True, exist_ok=True)
         if not cfg.worker_internal_token:
-            raise RuntimeError("TTS_WORKER_INTERNAL_TOKEN es obligatorio")
+            raise RuntimeError("TTS_WORKER_INTERNAL_TOKEN is required")
         if not cfg.frontend_api_key:
-            raise RuntimeError("TTS_WORKER_FRONTEND_API_KEY es obligatorio")
+            raise RuntimeError("TTS_WORKER_FRONTEND_API_KEY is required")
         if not cfg.basic_user or not cfg.basic_pass:
-            raise RuntimeError("TTS_WORKER_BASIC_USER y TTS_WORKER_BASIC_PASS son obligatorios")
+            raise RuntimeError("TTS_WORKER_BASIC_USER and TTS_WORKER_BASIC_PASS are required")
         yield
 
     app = FastAPI(title="tts-orchestrator", version="0.1.0", lifespan=lifespan)
@@ -157,11 +157,11 @@ def create_app(
     async def create_job(payload: CreatePublicJobRequest, user_email: str = Depends(current_user_email)):
         allowed, retry_after = rate_limiter.allow(user_email)
         if not allowed:
-            return _error("RATE_LIMITED", "Demasiadas solicitudes. Intentá de nuevo más tarde.", 429, {"retry_after_seconds": retry_after})
+            return _error("RATE_LIMITED", "Too many requests. Try again later.", 429, {"retry_after_seconds": retry_after})
         try:
             resolved_profile = resolve_voice_profile(payload.voice_profile)
         except ValueError:
-            return _error("INVALID_TEXT", "voice_profile inválido.", 400)
+            return _error("INVALID_TEXT", "Invalid voice_profile.", 400)
         if payload.request_id:
             existing_job = store.get_job_for_request_id(user_email=user_email, request_id=payload.request_id)
             if existing_job:
@@ -170,11 +170,11 @@ def create_app(
         try:
             resp = await worker_client.post("/internal/jobs", {"job_id": job_id, "text": payload.text, "voice_profile": resolved_profile, "requested_by": user_email})
         except httpx.HTTPError:
-            return _error("INTERNAL_ERROR", "No se pudo contactar al worker interno.", 500)
+            return _error("INTERNAL_ERROR", "Could not reach the internal worker.", 500)
         if resp.status_code == 429:
-            return _error("QUEUE_FULL", "La cola está llena. Intentá más tarde.", 429)
+            return _error("QUEUE_FULL", "The queue is full. Try again later.", 429)
         if resp.status_code >= 400:
-            return _error("INTERNAL_ERROR", "El worker devolvió un error al crear el job.", 500)
+            return _error("INTERNAL_ERROR", "The worker returned an error while creating the job.", 500)
         data = resp.json()
         if payload.request_id:
             store.save_request_mapping(user_email=user_email, request_id=payload.request_id, job_id=job_id)
@@ -186,11 +186,11 @@ def create_app(
         try:
             resp = await worker_client.get(f"/internal/jobs/{job_id}")
         except httpx.HTTPError:
-            return _error("INTERNAL_ERROR", "No se pudo consultar estado del worker.", 500)
+            return _error("INTERNAL_ERROR", "Could not query the worker status.", 500)
         if resp.status_code == 404:
-            return _error("JOB_NOT_FOUND", "No existe el job solicitado.", 404)
+            return _error("JOB_NOT_FOUND", "The requested job does not exist.", 404)
         if resp.status_code >= 400:
-            return _error("INTERNAL_ERROR", "Error consultando estado del job.", 500)
+            return _error("INTERNAL_ERROR", "Error while querying the job status.", 500)
         store.add_audit(user_email=user_email, action="get_job", job_id=job_id, meta_json=None)
         return _normalize_public_job(resp.json(), job_id)
 
@@ -205,13 +205,13 @@ def create_app(
                 try:
                     resp = await worker_client.get(f"/internal/jobs/{job_id}")
                 except httpx.HTTPError:
-                    yield _sse_event("error", {"code": "INTERNAL_ERROR", "message": "No se pudo consultar estado del worker."})
+                    yield _sse_event("error", {"code": "INTERNAL_ERROR", "message": "Could not query the worker status."})
                     break
                 if resp.status_code == 404:
-                    yield _sse_event("error", {"code": "JOB_NOT_FOUND", "message": "No existe el job solicitado."})
+                    yield _sse_event("error", {"code": "JOB_NOT_FOUND", "message": "The requested job does not exist."})
                     break
                 if resp.status_code >= 400:
-                    yield _sse_event("error", {"code": "INTERNAL_ERROR", "message": "Error consultando estado del job."})
+                    yield _sse_event("error", {"code": "INTERNAL_ERROR", "message": "Error while querying the job status."})
                     break
                 public_data = _normalize_public_job(resp.json(), job_id)
                 serialized = json.dumps(public_data, ensure_ascii=False, sort_keys=True)
@@ -235,15 +235,15 @@ def create_app(
         try:
             resp = await worker_client.get(f"/internal/jobs/{job_id}/artifact")
         except httpx.HTTPError:
-            return _error("INTERNAL_ERROR", "No se pudo descargar el audio desde worker.", 500)
+            return _error("INTERNAL_ERROR", "Could not download the audio from the worker.", 500)
         if resp.status_code == 404:
-            return _error("JOB_NOT_FOUND", "No existe el job solicitado.", 404)
+            return _error("JOB_NOT_FOUND", "The requested job does not exist.", 404)
         if resp.status_code == 409:
-            return _error("JOB_NOT_READY", "El job todavía no terminó.", 409)
+            return _error("JOB_NOT_READY", "The job has not finished yet.", 409)
         if resp.status_code == 410:
-            return _error("ARTIFACT_EXPIRED", "El artefacto ya no está disponible.", 410)
+            return _error("ARTIFACT_EXPIRED", "The artifact is no longer available.", 410)
         if resp.status_code >= 400:
-            return _error("INTERNAL_ERROR", "Error descargando artefacto del worker.", 500)
+            return _error("INTERNAL_ERROR", "Error while downloading the artifact from the worker.", 500)
         store.add_audit(user_email=user_email, action="download_job", job_id=job_id, meta_json=None)
         return Response(content=resp.content, media_type=resp.headers.get("content-type", "audio/wav"), headers={"Content-Disposition": resp.headers.get("content-disposition", f'attachment; filename="{job_id}.wav"')})
 
@@ -255,7 +255,7 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(_: Request, exc: RequestValidationError):
-        return _error("INVALID_TEXT", "Texto inválido.", 422, {"errors": exc.errors()})
+        return _error("INVALID_TEXT", "Invalid text.", 422, {"errors": exc.errors()})
 
     return app
 

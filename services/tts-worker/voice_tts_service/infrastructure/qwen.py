@@ -17,12 +17,12 @@ class QwenCloneEngine:
             import torch
             from qwen_tts import Qwen3TTSModel
         except ImportError as exc:
-            raise RuntimeError("No se pudo importar qwen-tts. Instalá dependencias con: pip install -r requirements.txt") from exc
+            raise RuntimeError("Could not import qwen-tts. Install dependencies with: pip install -r requirements.txt") from exc
         if device is None:
             if torch.cuda.is_available():
                 device = "cuda:0"
             else:
-                raise RuntimeError("TTS requiere CUDA (GPU) pero no se detecto ninguna GPU disponible. Verifica que los drivers NVIDIA esten instalados y que la GPU no este ocupada.")
+                raise RuntimeError("TTS requires CUDA (GPU) but no GPU was detected. Check that the NVIDIA drivers are installed and that the GPU is not busy.")
         selected_device = str(device)
         cuda_available = bool(torch.cuda.is_available())
         cuda_device_count = int(torch.cuda.device_count()) if cuda_available else 0
@@ -34,7 +34,7 @@ class QwenCloneEngine:
                     raise RuntimeError("torch.cuda.device_count() devolvio 0")
                 torch.zeros(1).to(selected_device)
             except Exception as exc:
-                raise RuntimeError(f"CUDA es obligatoria para TTS pero no esta operativa. Dispositivo solicitado: {selected_device}. Error: {type(exc).__name__}: {exc}. Verifica drivers NVIDIA, CUDA toolkit y VRAM disponible.") from exc
+                raise RuntimeError(f"CUDA is required for TTS but is not available. Requested device: {selected_device}. Error: {type(exc).__name__}: {exc}. Check the NVIDIA driver, CUDA toolkit and available VRAM.") from exc
         print(f"[INFO] TTS device resuelto: device={device} requested={selected_device} cuda_available={cuda_available} cuda_device_count={cuda_device_count}")
         self.device = selected_device
         dtype_raw = str(generation_cfg.get("dtype", "bfloat16")).lower()
@@ -65,7 +65,7 @@ class QwenCloneEngine:
     def prepare_reference(self, reference_audio_path: Path, reference_text: str) -> None:
         reference_text = reference_text.strip()
         if not reference_text:
-            raise ValueError("ref_text está vacío. Debe ser la transcripción del audio de referencia.")
+            raise ValueError("ref_text is empty. It must be the transcript of the reference audio.")
         self._acquire_slot()
         try:
             self._voice_clone_prompt = self.model.create_voice_clone_prompt(ref_audio=str(reference_audio_path), ref_text=reference_text, x_vector_only_mode=False)
@@ -74,7 +74,7 @@ class QwenCloneEngine:
 
     def synthesize_to_file(self, segment: Segment, output_path: Path) -> int:
         if self._voice_clone_prompt is None:
-            raise RuntimeError("Llamá prepare_reference(...) antes de sintetizar segmentos.")
+            raise RuntimeError("Call prepare_reference(...) before synthesizing segments.")
         self._acquire_slot()
         try:
             wavs, sr = self.model.generate_voice_clone(text=segment.text, language=self.language, voice_clone_prompt=self._voice_clone_prompt, **{k: v for k, v in self._generation_kwargs.items() if v is not None})

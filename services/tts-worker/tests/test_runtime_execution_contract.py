@@ -109,7 +109,7 @@ def test_runner_maps_timeout_to_worker_timeout_without_real_process(tmp_path: Pa
     assert row is not None
     assert row["status"] == "error"
     assert row["error_code"] == "WORKER_TIMEOUT"
-    assert row["error_message"] == "El job superó el timeout máximo."
+    assert row["error_message"] == "The job exceeded its maximum timeout."
 
 
 def test_runner_maps_missing_and_invalid_reports_to_stable_errors(tmp_path: Path) -> None:

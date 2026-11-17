@@ -24,7 +24,7 @@ def create_app(*, cfg: WorkerConfig | None = None, db: JobsDB | None = None, run
         ensure_worker_runtime_dirs(cfg.runtime_dir, cfg.input_dir, cfg.output_dir, cfg.segments_dir)
         missing = [p for p in [cfg.ref_audio_path, cfg.ref_text_path, cfg.config_yaml_path, cfg.project_root / "src" / "main.py"] if not p.exists()]
         if missing:
-            raise RuntimeError("Faltan archivos obligatorios para worker:\n" + "\n".join(str(x) for x in missing))
+            raise RuntimeError("Missing required worker files:\n" + "\n".join(str(x) for x in missing))
         db.fail_incomplete_jobs_on_boot()
         runner.start()
         yield
@@ -33,9 +33,9 @@ def create_app(*, cfg: WorkerConfig | None = None, db: JobsDB | None = None, run
 
     def verify_internal_token(x_internal_token: str | None = Header(default=None)) -> None:
         if not cfg.internal_token:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="TTS_WORKER_INTERNAL_TOKEN no está configurado.")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="TTS_WORKER_INTERNAL_TOKEN is not configured.")
         if x_internal_token != cfg.internal_token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token interno inválido")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal token")
 
     @app.get("/internal/healthz")
     def healthz() -> dict:

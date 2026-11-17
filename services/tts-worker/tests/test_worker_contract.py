@@ -90,7 +90,7 @@ def test_worker_startup_lifespan_preserves_runtime_checks_and_runner_start(tmp_p
             with TestClient(missing_app):
                 pass
         except RuntimeError as exc:
-            assert str(exc).startswith("Faltan archivos obligatorios para worker:")
+            assert str(exc).startswith("Missing required worker files:")
             assert str(missing_cfg.ref_audio_path) in str(exc)
         else:
             raise AssertionError("startup accepted missing worker runtime files")

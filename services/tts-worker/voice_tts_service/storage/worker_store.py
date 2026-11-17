@@ -58,7 +58,7 @@ class JobsDB:
             con.execute("""
                 UPDATE jobs
                 SET status='error', error_code='WORKER_RESTART',
-                    error_message='El worker se reinició antes de terminar el job.', finished_at=?
+                    error_message='The worker restarted before finishing the job.', finished_at=?
                 WHERE status IN ('queued','running')
                 """, (utc_now(),))
             con.commit()

@@ -33,7 +33,7 @@ def test_legacy_fastapi_trees_are_gone_and_only_the_cli_wrapper_remains() -> Non
     assert callable(cli.main)
     assert cli.main is canonical_cli.main
     assert cli.parse_args is canonical_cli.parse_args
-    assert "compatibilidad deprecada" in (cli.__doc__ or "").lower()
+    assert "deprecated compatibility" in (cli.__doc__ or "").lower()
 
 
 def test_package_modules_do_not_import_legacy_wrapper_modules() -> None:

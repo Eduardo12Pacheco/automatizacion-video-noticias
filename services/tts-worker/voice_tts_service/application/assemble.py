@@ -45,7 +45,7 @@ def _apply_crossfade(left: np.ndarray, right: np.ndarray, sample_rate: int, cros
 
 def assemble_segments(segments: List[Segment], segment_audio_paths: List[Path], output_path: Path, crossfade_ms: int, output_gain_db: float = 0.0, peak_protection: bool = True, peak_target: float = 0.99, trim_cfg: dict | None = None) -> tuple[Path, int]:
     if len(segments) != len(segment_audio_paths):
-        raise ValueError("Cantidad de segmentos y archivos de audio no coincide.")
+        raise ValueError("Segment count and audio file count do not match.")
     final_audio = np.zeros(0, dtype=np.float32)
     sample_rate = None
     trim_cfg = trim_cfg or {}

@@ -193,7 +193,7 @@ def test_orchestrator_startup_lifespan_preserves_runtime_checks(tmp_path: Path) 
             with TestClient(missing_token_app):
                 pass
         except RuntimeError as exc:
-            assert str(exc) == "TTS_WORKER_INTERNAL_TOKEN es obligatorio"
+            assert str(exc) == "TTS_WORKER_INTERNAL_TOKEN is required"
         else:
             raise AssertionError("startup accepted an empty worker internal token")
 
@@ -230,17 +230,17 @@ def test_public_error_and_download_edge_cases_use_stable_envelopes(tmp_path: Pat
     )
     assert rate_limited.status_code == 429
     assert rate_limited.json() == {
-        "error": {"code": "QUEUE_FULL", "message": "La cola está llena. Intentá más tarde.", "details": None}
+        "error": {"code": "QUEUE_FULL", "message": "The queue is full. Try again later.", "details": None}
     }
 
     missing = client.get("/api/tts/jobs/job_missing", headers=_headers())
     assert missing.status_code == 404
-    assert missing.json() == {"error": {"code": "JOB_NOT_FOUND", "message": "No existe el job solicitado.", "details": None}}
+    assert missing.json() == {"error": {"code": "JOB_NOT_FOUND", "message": "The requested job does not exist.", "details": None}}
 
     expired = client.get("/api/tts/jobs/job_expired/download", headers=_headers())
     assert expired.status_code == 410
     assert expired.json() == {
-        "error": {"code": "ARTIFACT_EXPIRED", "message": "El artefacto ya no está disponible.", "details": None}
+        "error": {"code": "ARTIFACT_EXPIRED", "message": "The artifact is no longer available.", "details": None}
     }
 
 
@@ -251,7 +251,7 @@ def test_public_non_ready_and_worker_failure_download_envelopes(tmp_path: Path) 
 
     not_ready = client.get("/api/tts/jobs/job_waiting/download", headers=_headers())
     assert not_ready.status_code == 409
-    assert not_ready.json() == {"error": {"code": "JOB_NOT_READY", "message": "El job todavía no terminó.", "details": None}}
+    assert not_ready.json() == {"error": {"code": "JOB_NOT_READY", "message": "The job has not finished yet.", "details": None}}
 
     failing_worker = FakeWorkerClient(post_response=httpx.Response(500, json={"detail": "boom"}))
     failing_app = create_app(cfg=_config(tmp_path), store=OrchestratorStore(tmp_path / "orchestrator-fail.db"), worker_client=failing_worker)
@@ -262,7 +262,7 @@ def test_public_non_ready_and_worker_failure_download_envelopes(tmp_path: Path) 
     )
     assert worker_failure.status_code == 500
     assert worker_failure.json() == {
-        "error": {"code": "INTERNAL_ERROR", "message": "El worker devolvió un error al crear el job.", "details": None}
+        "error": {"code": "INTERNAL_ERROR", "message": "The worker returned an error while creating the job.", "details": None}
     }
 
 

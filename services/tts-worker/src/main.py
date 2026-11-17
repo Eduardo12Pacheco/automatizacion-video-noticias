@@ -1,7 +1,7 @@
-"""Wrapper CLI de compatibilidad deprecada para `voice_tts_service.cli.synthesize`.
+"""Deprecated compatibility CLI wrapper for `voice_tts_service.cli.synthesize`.
 
-No borrar sin aprobación manual de runtime: `JobRunner._build_command()` mantiene
-este entrypoint para preservar el camino de síntesis existente.
+Do not delete without runtime approval: `JobRunner._build_command()` keeps this
+entrypoint to preserve the existing synthesis path.
 """
 
 from __future__ import annotations

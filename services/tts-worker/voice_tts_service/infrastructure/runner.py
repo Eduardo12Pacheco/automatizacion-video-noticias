@@ -26,7 +26,7 @@ class JobRunner:
 
     def enqueue(self, job_id: str, text: str, requested_by: str | None, voice_profile: str) -> None:
         if self.db.count_active() >= self.cfg.queue_max:
-            raise QueueFullError("La cola está llena")
+            raise QueueFullError("The queue is full")
         existing = self.db.get_job(job_id)
         if existing is not None:
             return
@@ -56,7 +56,7 @@ class JobRunner:
         voice_profile = str(row.get("voice_profile") or "").strip()
         input_file = self.cfg.input_dir / f"{job_id}.txt"
         if not input_file.exists():
-            self.db.set_error(job_id, "INVALID_INPUT", "No se encontró archivo de texto del job.")
+            self.db.set_error(job_id, "INVALID_INPUT", "The job text file was not found.")
             return
         cmd = self._build_command(job_id=job_id, input_file=input_file, voice_profile=voice_profile)
         stdout_buffer: list[str] = []
@@ -69,7 +69,7 @@ class JobRunner:
             self.db.set_progress(job_id, "loading_model", 10)
             result = self._run_with_live_progress(cmd, stream_progress)
         except subprocess.TimeoutExpired:
-            self.db.set_error(job_id, "WORKER_TIMEOUT", "El job superó el timeout máximo.")
+            self.db.set_error(job_id, "WORKER_TIMEOUT", "The job exceeded its maximum timeout.")
             return
         except Exception as exc:
             self.db.set_error(job_id, "INTERNAL_ERROR", f"Error ejecutando TTS: {exc}")
@@ -82,22 +82,22 @@ class JobRunner:
         self._apply_progress_from_stdout(job_id, "\n".join(stdout_buffer) or result.stdout)
         report_path = self._find_report(job_id)
         if report_path is None:
-            self.db.set_error(job_id, "MISSING_REPORT", "No se encontró reporte generado.")
+            self.db.set_error(job_id, "MISSING_REPORT", "No generated report was found.")
             return
         try:
             report = json.loads(report_path.read_text(encoding="utf-8"))
         except Exception as exc:
-            self.db.set_error(job_id, "INVALID_REPORT", f"No se pudo leer reporte: {exc}")
+            self.db.set_error(job_id, "INVALID_REPORT", f"Could not read the report: {exc}")
             return
         output_value = str(report.get("output", "")).strip()
         if not output_value:
-            self.db.set_error(job_id, "MISSING_OUTPUT", "El reporte no contiene ruta de output.")
+            self.db.set_error(job_id, "MISSING_OUTPUT", "The report does not contain an output path.")
             return
         output_wav = Path(output_value)
         if not output_wav.is_absolute():
             output_wav = (self.cfg.project_root / output_wav).resolve()
         if not output_wav.exists():
-            self.db.set_error(job_id, "MISSING_ARTIFACT", "El archivo WAV no existe.")
+            self.db.set_error(job_id, "MISSING_ARTIFACT", "The WAV file does not exist.")
             return
         self.db.set_done(job_id, str(output_wav), str(report_path.resolve()))
 
