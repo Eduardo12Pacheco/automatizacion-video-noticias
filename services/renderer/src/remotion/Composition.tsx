@@ -11,7 +11,26 @@ import {
 import type { CSSProperties } from "react";
 import { resolveCoverPanLayer } from "./cover-pan-layer";
 import { NewspaperScene } from "./newspaper-scene";
-import { resolveMotionRange } from "./motion-range";
+import {
+  MEDIA_LAYER_AUDIO_POLICY,
+  VIDEO_SEGMENT_LAYER_STYLE,
+  VIEWPORT_HEIGHT,
+  VIEWPORT_WIDTH,
+  WHIP_RENDER_POLICY,
+  WHIP_TRANSITION_DURATION_SECONDS,
+  getFadedMusicVolume,
+  isGreenScreenLogoSource,
+  isLogoFrameSequenceSource,
+  isVideoSource,
+  logoFrameSequenceSrc,
+  resolveCompositionTimeline,
+  resolveLogoLayout,
+  resolvePanViewport,
+  resolveSegmentMotion,
+  resolveSegmentSequence,
+  resolveVideoSegmentTiming,
+  resolveWhipTransition,
+} from "./composition-timing";
 
 type OverlayVideoLayer = {
   src?: string | null;
@@ -106,41 +125,6 @@ export type AutomaticVideoProps = {
 };
 
 const Fps = 30;
-const VIEWPORT_WIDTH = 1920;
-const VIEWPORT_HEIGHT = 1080;
-const WHIP_TRANSITION_DURATION_SECONDS = 0.43;
-const WHIP_SMEAR_SAMPLE_COUNT = 7;
-
-const getFadedMusicVolume = ({
-  frame,
-  baseVolume,
-  fps,
-  totalFrames,
-  fadeInSeconds,
-  fadeOutSeconds,
-}: {
-  frame: number;
-  baseVolume: number;
-  fps: number;
-  totalFrames: number;
-  fadeInSeconds: number;
-  fadeOutSeconds: number;
-}) => {
-  const fadeInFrames = Math.max(0, Math.round(fadeInSeconds * fps));
-  const fadeOutFrames = Math.max(0, Math.round(fadeOutSeconds * fps));
-  const fadeInMultiplier = fadeInFrames > 0 ? Math.min(1, frame / fadeInFrames) : 1;
-  const remainingFrames = Math.max(0, totalFrames - frame);
-  const fadeOutMultiplier = fadeOutFrames > 0 ? Math.min(1, remainingFrames / fadeOutFrames) : 1;
-
-  return baseVolume * Math.min(fadeInMultiplier, fadeOutMultiplier);
-};
-
-const isVideoSource = (src?: string | null) => /\.(mp4|webm|mov|m4v)$/i.test(src || "");
-const isGreenScreenLogoSource = (src?: string | null) => /(?:logo-green|logo-secondary(?:-keyed)?)\.(?:mp4|webm)$/i.test(src || "");
-const isLogoFrameSequenceSource = (src?: string | null) => /logo-[a-z0-9-]+-alpha-frames$/i.test(src || "");
-const isFinalLogoSource = (src?: string | null) => /logo-final\.png$/i.test(src || "");
-const logoFrameSequenceSrc = (src: string, frame: number) => `${src}/frame-${String(frame % 900).padStart(4, "0")}.png`;
-
 
 const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFrom: number }) => {
   if (!layer?.src) {
@@ -175,39 +159,6 @@ const DustOverlay = ({ layer, startFrom }: { layer?: OverlayVideoLayer; startFro
   );
 };
 
-const easeInOutCubic = (value: number) => {
-  const clamped = Math.max(0, Math.min(1, value));
-  return clamped < 0.5 ? 4 * clamped * clamped * clamped : 1 - Math.pow(-2 * clamped + 2, 3) / 2;
-};
-
-const buildWhipSmearSamples = ({
-  src,
-  smear,
-  opacity,
-  blur,
-  scale,
-  contrast,
-}: {
-  src: string;
-  smear: number;
-  opacity: number;
-  blur: number;
-  scale: number;
-  contrast: number;
-}) => {
-  const center = (WHIP_SMEAR_SAMPLE_COUNT - 1) / 2;
-  return Array.from({ length: WHIP_SMEAR_SAMPLE_COUNT }, (_, index) => {
-    const ratio = (index - center) / center;
-    const offset = Number((ratio * smear).toFixed(3));
-    const sampleOpacity = Number((opacity * (0.18 + (1 - Math.abs(ratio)) * 0.22)).toFixed(3));
-    return {
-      src,
-      transform: `translate3d(${offset}%, 0, 0) scale(${scale})`,
-      filter: `blur(${blur}px) contrast(${contrast}) saturate(0.96)`,
-      opacity: sampleOpacity,
-    };
-  });
-};
 
 const WhipOverlay = ({ transition }: { transition: WhipTransitionEvent }) => {
   const frame = useCurrentFrame();
@@ -216,41 +167,20 @@ const WhipOverlay = ({ transition }: { transition: WhipTransitionEvent }) => {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const eased = easeInOutCubic(progress);
-  const intensity = Math.sin(progress * Math.PI);
-  const previousTranslate = Number((eased * 120).toFixed(3));
-  const nextTranslate = Number((-35 + eased * 35).toFixed(3));
-  const smear = Number((intensity * 16).toFixed(3));
-  const blur = Number((intensity * 10).toFixed(3));
-  const previousOpacity = Number((1 - progress * 0.22).toFixed(3));
-  const nextOpacity = Number((0.58 + progress * 0.42).toFixed(3));
-  const previousScale = Number((1.035 + intensity * 0.018).toFixed(4));
-  const nextScale = Number((1.015 + intensity * 0.012).toFixed(4));
-  const previousSamples = buildWhipSmearSamples({
-    src: transition.previousImage,
-    smear,
-    opacity: intensity,
-    blur,
-    scale: previousScale,
-    contrast: 1.08,
+  const whip = resolveWhipTransition({
+    progress,
+    previousImage: transition.previousImage,
+    nextImage: transition.nextImage,
+    durationInFrames,
   });
-  const nextBlur = Number((blur * 0.86).toFixed(3));
-  const nextSamples = buildWhipSmearSamples({
-    src: transition.nextImage,
-    smear: Number((smear * 0.82).toFixed(3)),
-    opacity: intensity,
-    blur: nextBlur,
-    scale: nextScale,
-    contrast: 1.05,
-  });
-
+  const { previousTranslate, nextTranslate, previousOpacity, nextOpacity, previousScale, nextScale, previousBlur, nextBlur, previousSamples, nextSamples } = whip;
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <AbsoluteFill
         data-layer="whip-previous"
         style={{
           transform: `translate3d(${previousTranslate}%, 0, 0) scale(${previousScale})`,
-          filter: `blur(${blur}px) contrast(1.08) saturate(0.95)`,
+          filter: `blur(${previousBlur}px) contrast(${WHIP_RENDER_POLICY.outerBlurContrast}) saturate(0.95)`,
           opacity: previousOpacity,
           transformOrigin: "center center",
         }}
@@ -279,7 +209,7 @@ const WhipOverlay = ({ transition }: { transition: WhipTransitionEvent }) => {
         data-layer="whip-next"
         style={{
           transform: `translate3d(${nextTranslate}%, 0, 0) scale(${nextScale})`,
-          filter: `blur(${nextBlur}px) contrast(1.05) saturate(0.96)`,
+          filter: `blur(${nextBlur}px) contrast(${WHIP_RENDER_POLICY.innerBlurContrast}) saturate(0.96)`,
           opacity: nextOpacity,
           transformOrigin: "center center",
         }}
@@ -323,13 +253,14 @@ const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number 
   const frame = useCurrentFrame();
   if (!logo || logo.enabled === false) return null;
 
+  const layout = resolveLogoLayout(logo.src);
   const style: CSSProperties = {
     position: "absolute",
-    left: isFinalLogoSource(logo.src) ? -42 : 52,
-    top: isFinalLogoSource(logo.src) ? -9 : 38,
-    width: isFinalLogoSource(logo.src) ? 412 : 220,
-    height: isFinalLogoSource(logo.src) ? 232 : 124,
-    opacity: 0.94,
+    left: layout.left,
+    top: layout.top,
+    width: layout.width,
+    height: layout.height,
+    opacity: layout.opacity,
     filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.55))",
     pointerEvents: "none",
   };
@@ -357,7 +288,7 @@ const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number 
         <OffthreadVideo
           data-layer="green-screen-logo-video"
           src={staticFile(logo.src)}
-          muted
+          muted={MEDIA_LAYER_AUDIO_POLICY.logoVideo.muted}
           startFrom={startFrom}
           style={{
             position: "absolute",
@@ -374,15 +305,15 @@ const LogoOverlay = ({ logo, startFrom }: { logo?: LogoLayer; startFrom: number 
     return (
       <OffthreadVideo
         src={staticFile(logo.src)}
-        muted
+        muted={MEDIA_LAYER_AUDIO_POLICY.logoVideo.muted}
         startFrom={startFrom}
-        style={{ ...style, objectFit: "contain" }}
+        style={{ ...style, objectFit: layout.objectFit }}
       />
     );
   }
 
   if (logo.src) {
-    return <Img src={staticFile(logo.src)} style={{ ...style, objectFit: "contain" }} />;
+    return <Img src={staticFile(logo.src)} style={{ ...style, objectFit: layout.objectFit }} />;
   }
 
   if (logo.placeholder === false) return null;
@@ -414,48 +345,45 @@ const VideoSegmentScene = ({
   media: VideoSegmentMedia;
   fps: number;
 }) => {
-  const durationInFrames = Math.max(1, Math.round(media.durationSeconds * fps));
-  const foregroundTransform = {
-    x: media.foregroundTransform?.x ?? 0,
-    y: media.foregroundTransform?.y ?? 0,
-    scale: Math.max(0.1, media.foregroundTransform?.scale ?? 1),
-  };
+  const { durationInFrames, startFromFrame, foregroundTransform } = resolveVideoSegmentTiming(media, fps);
+  const layers = VIDEO_SEGMENT_LAYER_STYLE;
 
   return (
     <AbsoluteFill>
-      <AbsoluteFill data-layer="background-video" style={{ transform: "scale(1.18)", filter: "blur(10px) saturate(1.05)" }}>
+      <AbsoluteFill data-layer="background-video" style={layers.background}>
         <OffthreadVideo
           src={staticFile(media.sourceVideoSrc)}
-          muted
-          startFrom={Math.round(media.sourceInSeconds * fps)}
+          muted={MEDIA_LAYER_AUDIO_POLICY.backgroundVideo.muted}
+          startFrom={startFromFrame}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </AbsoluteFill>
       <AbsoluteFill
         data-layer="color-overlay"
         style={{
-          backgroundColor: media.overlayColor ?? "#3835AF",
-          opacity: media.overlayOpacity ?? 0.3,
+          ...layers.colorOverlay,
+          backgroundColor: media.overlayColor ?? layers.colorOverlay.backgroundColor,
+          opacity: media.overlayOpacity ?? layers.colorOverlay.opacity,
           pointerEvents: "none",
         }}
       />
       <AbsoluteFill
         data-layer="overlay-layer-01"
-        style={{ mixBlendMode: media.effect1BlendMode ?? "screen", opacity: 1, pointerEvents: "none" }}
+        style={{ ...layers.effect1, mixBlendMode: media.effect1BlendMode ?? layers.effect1.mixBlendMode, pointerEvents: "none" }}
       >
         <OffthreadVideo
           src={staticFile(media.effect1Src)}
-          muted
+          muted={MEDIA_LAYER_AUDIO_POLICY.overlayLayer01.muted}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </AbsoluteFill>
       <AbsoluteFill
         data-layer="overlay-layer-02"
-        style={{ mixBlendMode: media.effect2BlendMode ?? "multiply", opacity: 1, pointerEvents: "none" }}
+        style={{ ...layers.effect2, mixBlendMode: media.effect2BlendMode ?? layers.effect2.mixBlendMode, pointerEvents: "none" }}
       >
         <OffthreadVideo
           src={staticFile(media.effect2Src)}
-          muted
+          muted={MEDIA_LAYER_AUDIO_POLICY.overlayLayer02.muted}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       </AbsoluteFill>
@@ -463,9 +391,9 @@ const VideoSegmentScene = ({
         <OffthreadVideo
           data-layer="foreground-video"
           src={staticFile(media.sourceVideoSrc)}
-          muted
-          startFrom={Math.round(media.sourceInSeconds * fps)}
-          style={{ width: "100%", height: "100%", objectFit: "contain", transform: `translate(${foregroundTransform.x}px, ${foregroundTransform.y}px) scale(${foregroundTransform.scale})`, transformOrigin: "center center" }}
+          muted={MEDIA_LAYER_AUDIO_POLICY.foregroundVideo.muted}
+          startFrom={startFromFrame}
+          style={{ width: "100%", height: "100%", ...layers.foreground, transform: `translate(${foregroundTransform.x}px, ${foregroundTransform.y}px) scale(${foregroundTransform.scale})` }}
         />
       </Sequence>
     </AbsoluteFill>
@@ -494,10 +422,7 @@ const SegmentScene = ({
     );
   }
 
-  const durationInFrames = Math.max(
-    1,
-    Math.round((segment.endTime - segment.startTime) * fps),
-  );
+  const { durationInFrames, scale, x, y } = resolveSegmentMotion(segment, frame, fps);
   if (segment.mediaMode === "newspaper") {
     return (
       <AbsoluteFill>
@@ -506,26 +431,12 @@ const SegmentScene = ({
       </AbsoluteFill>
     );
   }
-  const motionRange = resolveMotionRange(segment.motion);
-  const scale = interpolate(frame, [0, durationInFrames], [motionRange.fromScale, motionRange.toScale], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const x = interpolate(frame, [0, durationInFrames], [motionRange.fromX, motionRange.toX], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const y = interpolate(frame, [0, durationInFrames], [motionRange.fromY, motionRange.toY], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
   const layer = resolveCoverPanLayer({
     viewportWidth: VIEWPORT_WIDTH,
     viewportHeight: VIEWPORT_HEIGHT,
     imageWidth: segment.imageWidth,
     imageHeight: segment.imageHeight,
-    panViewportWidth: segment.panViewportWidth ?? segment.imageWidth,
-    panViewportHeight: segment.panViewportHeight ?? (segment.imageWidth ? segment.imageWidth * (VIEWPORT_HEIGHT / VIEWPORT_WIDTH) : undefined),
+    ...resolvePanViewport(segment),
     scale,
     x,
     y,
@@ -560,11 +471,12 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
 
   const voiceSrc = audio?.voiceSrc || audioSrc;
   const musicSrc = audio?.musicSrc;
-  const latestEnd = segments.reduce((max, segment) => Math.max(max, segment.endTime), 0);
-  const compositionEnd = Math.max(latestEnd, compositionDurationSeconds ?? 0);
-  const outroStartFrame = Math.max(0, Math.round(compositionEnd * fps));
-  const outroFrames = Math.max(1, Math.round((outro?.durationSeconds ?? 2) * fps));
-  const totalFrames = Math.max(Math.round(compositionEnd * fps), outroStartFrame + (outro?.enabled === false ? 0 : outroFrames));
+  const { outroStartFrame, outroFrames, totalFrames } = resolveCompositionTimeline({
+    segments,
+    fps,
+    outro,
+    compositionDurationSeconds,
+  });
 
   return (
     <AbsoluteFill>
@@ -586,11 +498,7 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
         />
       ) : null}
       {segments.map((segment) => {
-        const from = Math.max(0, Math.round(segment.startTime * fps));
-        const durationInFrames = Math.max(
-          1,
-          Math.round((segment.endTime - segment.startTime) * fps),
-        );
+        const { from, durationInFrames } = resolveSegmentSequence(segment, fps);
 
         return (
           <Sequence
@@ -635,6 +543,7 @@ export const MyComposition = ({ audioSrc, audio, segments, fps = Fps, logo, over
             <OffthreadVideo
               data-layer="channel-outro-video"
               src={staticFile(outro.src)}
+              muted={MEDIA_LAYER_AUDIO_POLICY.channelOutro.muted}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           ) : (

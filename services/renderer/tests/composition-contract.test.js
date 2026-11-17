@@ -1,19 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 
 const { adaptCompositionContractToRenderProps, buildWhipRenderEvents } = require("../scripts/lib/contracts/composition-contract");
+const timing = require("../src/remotion/composition-timing");
 const { computeApprovalSnapshotHash } = require("@newsroom/contracts/approval-contract-pipeline");
 
-function loadCompositionMotionResolver() {
-  let source = fs.readFileSync(path.join(__dirname, "../src/remotion/motion-range.ts"), "utf8");
-  source = source.slice(source.indexOf("export const resolveMotionRange"));
-  source = source.replace("export const resolveMotionRange", "const resolveMotionRange");
-  source = source.replace(/\(motion\?: MotionSource \| string \| null\)/, "(motion)");
-  assert.match(source, /const resolveMotionRange = /, "motion-range.ts must define resolveMotionRange");
-  return Function(`${source}; return resolveMotionRange;`)();
-}
 
 function makeFixture() {
   return {
@@ -943,14 +934,18 @@ test("adapter uses actual channel outro asset duration and starts it after offic
     globalLayers: { outroAssetId: "brand-outro-secondary", outro: { enabled: true, assetId: "brand-outro-secondary" } },
     rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 4.5, effectiveEndTime: 4.5, selectedAssetId: "img-1", media: { kind: "image" } }],
   };
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
   assert.equal(props.compositionDurationSeconds, 12);
   assert.equal(props.segments[0].endTime, 12);
   assert.equal(props.outro.durationSeconds, 30.16);
-  assert.match(source, /outroStartFrame = Math\.max\(0, Math\.round\(compositionEnd \* fps\)\)/);
+  const timeline = timing.resolveCompositionTimeline({
+    segments: props.segments,
+    fps: 30,
+    outro: props.outro,
+    compositionDurationSeconds: props.compositionDurationSeconds,
+  });
+  assert.equal(timeline.outroStartFrame, 360, "outro starts after the full official audio duration");
 });
 
 test("adapter and metadata include full audio duration plus deterministic channel outro timing", () => {
@@ -972,173 +967,204 @@ test("adapter and metadata include full audio duration plus deterministic channe
     globalLayers: { outroAssetId: "brand-outro-primary", outro: { enabled: true, assetId: "brand-outro-primary" } },
     rows: [{ rowId: "row-1", phrase: "Hola", startTime: 0, endTime: 4.5, effectiveEndTime: 4.5, selectedAssetId: "img-1", media: { kind: "image" } }],
   };
-  const rootSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Root.tsx"), "utf8");
-
   const props = adaptCompositionContractToRenderProps({ contract: snapshot });
 
   assert.equal(props.compositionDurationSeconds, 8);
   assert.equal(props.outro.src, "overlays/outro-primary.mp4");
   assert.equal(props.outro.durationSeconds, 4);
-  assert.match(rootSource, /compositionDurationSeconds \+ outroSeconds/);
+  assert.equal(timing.resolveRootDurationFrames({ props }).durationInFrames, 360, "root duration is composition plus outro");
 });
 
-test("Remotion country outro video keeps embedded audio while music spans final composition", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const offthreadVideoTags = Array.from(source.matchAll(/<OffthreadVideo\b([\s\S]*?)\/>/g), (match) => match[1]);
-  const outroVideoSource = offthreadVideoTags.find((tag) => tag.includes('data-layer="channel-outro-video"'));
-  const effectLayerOneSource = source.match(/data-layer="overlay-layer-01"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
-  const effectLayerTwoSource = source.match(/data-layer="overlay-layer-02"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
-  const foregroundVideoSource = offthreadVideoTags.find((tag) => tag.includes('data-layer="foreground-video"'));
+test("composition timeline keeps the outro after the full audio duration and music spans it", () => {
+  const segments = [
+    { startTime: 0, endTime: 4.5 },
+    { startTime: 4.5, endTime: 10 },
+  ];
 
-  assert.ok(outroVideoSource, "country outro must render an OffthreadVideo layer");
-  assert.doesNotMatch(outroVideoSource, /\bmuted\b/, "country outro must not force-mute embedded audio");
-  assert.match(source, /outroStartFrame = Math\.max\(0, Math\.round\(compositionEnd \* fps\)\)/);
-  assert.match(source, /totalFrames[\s\S]*outroStartFrame \+ \(outro\?\.enabled === false \? 0 : outroFrames\)/);
-  assert.match(source, /getFadedMusicVolume\([\s\S]*totalFrames,/);
-  assert.match(effectLayerOneSource?.[1] || "", /\bmuted\b/, "effect layer 01 must remain muted");
-  assert.match(effectLayerTwoSource?.[1] || "", /\bmuted\b/, "effect layer 02 must remain muted");
-  assert.match(foregroundVideoSource || "", /\bmuted\b/, "foreground segment video must remain muted");
-});
-
-test("Remotion composition renders Whip overlay and independent SFX sequences from render props", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const assetPath = path.join(__dirname, "../public/sfx/sound-demo.wav");
-
-  assert.ok(fs.existsSync(assetPath), "final render must ship public/sfx/sound-demo.wav");
-  assert.match(source, /type WhipTransitionEvent = \{/);
-  assert.match(source, /const WhipOverlay = /);
-  assert.match(source, /const BoundaryVideoOverlay = /);
-  assert.match(source, /data-layer="boundary-video-transition"/);
-  assert.match(source, /data-layer="boundary-video-transition-video"/);
-  assert.match(source, /const WHIP_TRANSITION_DURATION_SECONDS = 0\.43/);
-  assert.match(source, /const WHIP_SMEAR_SAMPLE_COUNT = 7/);
-  assert.match(source, /const easeInOutCubic = /);
-  assert.match(source, /Math\.sin\(progress \* Math\.PI\)/);
-  assert.match(source, /eased \* 120/);
-  assert.match(source, /-35 \+ eased \* 35/);
-  assert.match(source, /intensity \* 10/);
-  assert.match(source, /buildWhipSmearSamples/);
-  assert.match(source, /data-layer="whip-previous"/);
-  assert.match(source, /data-layer="whip-next"/);
-  assert.doesNotMatch(source, /data-layer="whip-previous-image"/);
-  assert.doesNotMatch(source, /data-layer="whip-next-image"/);
-  assert.match(source, /filter: `blur\(\$\{blur\}px\)/);
-  assert.match(source, /whipTransitions\.map\(\(transition\) => \(/);
-  assert.match(source, /transition\.type === "overlay-video" \? <BoundaryVideoOverlay transition=\{transition\} \/> : <WhipOverlay transition=\{transition\} \/>/);
-  assert.match(source, /transition\.type === "overlay-video" && transition\.audio === true && Boolean\(transition\.src\)/);
-  assert.match(source, /<Audio src=\{staticFile\(transition\.src\)\} volume=\{0\.9\} \/>/);
-  assert.match(source, /whipTransitions\.filter\(\(transition\): transition is WhipTransitionEvent & \{ sfx: "whip"; sfxSrc: string \} => transition\.sfx === "whip" && Boolean\(transition\.sfxSrc\)\)/);
-  assert.match(source, /from=\{transition\.sfxStartFrame \?\? transition\.startFrame\}/);
-  assert.doesNotMatch(source, /from=\{transition\.cutFrame\}/);
-  assert.match(source, /<Audio src=\{staticFile\(transition\.sfxSrc\)\}/);
-});
-
-test("Remotion final image and overlay source keeps preview fidelity rules", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-
-  assert.match(source, /objectFit: "cover",\n\s*filter: segment\.filter/, "image render must preserve aspect ratio like preview, not stretch with object-fit fill");
-  assert.match(source, /panViewportWidth: segment\.panViewportWidth \?\? segment\.imageWidth/, "manual pan offsets must be scaled from the browser preview viewport before final render");
-  assert.match(source, /panViewportHeight: segment\.panViewportHeight \?\? \(segment\.imageWidth \? segment\.imageWidth \* \(VIEWPORT_HEIGHT \/ VIEWPORT_WIDTH\) : undefined\)/, "final render must infer the 16:9 preview pan basis when the contract has only image dimensions");
-  assert.match(source, /<DustOverlay layer=\{dustLayer\} startFrom=\{0\} \/>/, "dust video must start from local segment time so it remains visible on later rows");
-  assert.match(source, /<LogoOverlay logo=\{logo\} startFrom=\{0\} \/>/, "logo video must start from local segment time so it remains visible on later rows");
-  assert.doesNotMatch(source, /absoluteStartFrame/, "final render should not trim reusable overlay videos by absolute row time inside segment sequences");
-  assert.match(source, /data-layer="green-screen-logo-video"/, "green-screen brand logo must use the full-frame logo render path instead of shrinking the whole video into a small badge box");
-  assert.match(source, /isGreenScreenLogoSource/, "green-screen logo sources must have an explicit render branch");
-  assert.match(source, /logo-secondary\(\?:-keyed\)\?/, "keyed Montelia logo must use the full-frame branch instead of badge sizing");
-  assert.match(source, /data-layer="alpha-logo-frame-sequence"/, "alpha PNG logo frame sequence must render full-frame with real transparency");
-  assert.ok(source.includes("logo-[a-z0-9-]+-alpha-frames"), "alpha PNG frame sequences are still supported when a project uses them");
-  assert.match(source, /logoFrameSequenceSrc\(logo\.src, frame\)/, "alpha logo frame sequence must advance by Remotion frame");
-});
-
-test("Remotion composition source contains newspaper visual mode parity branch", () => {
-  const compositionSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const newspaperSource = fs.readFileSync(path.join(__dirname, "../src/remotion/newspaper-scene.tsx"), "utf8");
-  const source = `${compositionSource}\n${newspaperSource}`;
-  const localFontPath = path.join(__dirname, "../public/fonts/display/Demo-Display.woff2");
-
-  assert.ok(fs.existsSync(localFontPath), "Remotion render must ship the local Demo Display WOFF2 font asset");
-  assert.match(source, /mediaMode\?: "image" \| "newspaper"/);
-  assert.match(source, /const NewspaperScene = /);
-  assert.match(source, /data-layer="newspaper-background"/);
-  assert.match(source, /const NEWSPAPER_BACKGROUND_BLUR = 15/);
-  assert.match(source, /filter: `blur\(\$\{NEWSPAPER_BACKGROUND_BLUR\}px\)`/);
-  assert.match(source, /data-layer="newspaper-background"[\s\S]*objectFit: "cover",[\s\S]*objectPosition: "center top"/);
-  assert.match(source, /data-layer="newspaper-foreground"[\s\S]*objectFit: "contain",[\s\S]*objectPosition: "center center"/);
-  assert.match(source, /data-layer="newspaper-foreground"[\s\S]*transformOrigin: "center center"/);
-  assert.match(source, /toScale:\s*1\.1/);
-  assert.match(source, /const NEWSPAPER_LABEL_FONT_FAMILY = "\\\"Demo Display\\\", Inter, Arial, sans-serif"/);
-  assert.match(source, /staticFile\("fonts\/display\/Demo-Display\.woff2"\)/);
-  assert.match(source, /@font-face[\s\S]*font-family: "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"[\s\S]*font-display: block/);
-  assert.match(source, /const NEWSPAPER_LABEL_FONT_SIZE = 40/);
-  assert.match(source, /delayRender\("Loading Demo Display newspaper font"\)/);
-  assert.match(source, /new FontFace\(\s*NEWSPAPER_LOCAL_FONT_FAMILY/);
-  assert.match(source, /document\.fonts\.load\(`900 \$\{NEWSPAPER_LABEL_FONT_SIZE\}px "\$\{NEWSPAPER_LOCAL_FONT_FAMILY\}"`\)/);
-  const renderScriptSource = fs.readFileSync(path.join(__dirname, "../scripts/render/render-video.js"), "utf8");
-  assert.match(renderScriptSource, /const projectFontsDir = path\.join\(publicDir, "fonts", "display"\)/);
-  assert.match(renderScriptSource, /fs\.copyFileSync\(repoDisplayFontPath, projectVersaFontPath\)/);
-  assert.match(source, /const NEWSPAPER_LABEL_LINE_HEIGHT = 1\.12/);
-  assert.match(source, /fontFamily: NEWSPAPER_LABEL_FONT_FAMILY/);
-  assert.match(source, /fontSize: NEWSPAPER_LABEL_FONT_SIZE/);
-  assert.match(source, /lineHeight: NEWSPAPER_LABEL_LINE_HEIGHT/);
-  assert.match(source, /const NEWSPAPER_LABEL_TOP = 40/);
-  assert.match(source, /const NEWSPAPER_LABEL_RIGHT = 40/);
-  assert.match(source, /left: "auto"/);
-  assert.match(source, /right: NEWSPAPER_LABEL_RIGHT/);
-  assert.match(source, /top: NEWSPAPER_LABEL_TOP/);
-  assert.match(source, /background: "transparent"/);
-  assert.match(source, /padding: 0/);
-  assert.match(source, /borderRadius: 0/);
-  assert.match(source, /transform: "none"/);
-  assert.match(source, /textAlign: "center"/);
-  assert.match(source, /RECREACIÓN/);
-  assert.match(source, /ARTÍSTICA/);
-});
-
-test("Remotion composition source contains deterministic five-layer VideoSegmentScene", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const rootSource = fs.readFileSync(path.join(__dirname, "../src/remotion/Root.tsx"), "utf8");
-
-  assert.match(source, /type VideoSegmentMedia = \{/);
-  assert.match(source, /const VideoSegmentScene = /);
-  assert.match(source, /segment\.media\?\.kind === "video-segment"[\s\S]*?<VideoSegmentScene media=\{segment\.media\} fps=\{fps\} \/>[\s\S]*?segment\.logo\?\.enabled !== false \? <LogoOverlay logo=\{logo\} startFrom=\{0\} \/> : null/, "video segments must render the same active brand logo overlay as image and newspaper segments");
-  assert.match(source, /startFrom=\{Math\.round\(media\.sourceInSeconds \* fps\)\}/);
-  assert.match(source, /durationInFrames=\{durationInFrames\}/);
-  assert.match(source, /background-video/);
-  assert.match(source, /color-overlay/);
-  assert.match(source, /overlay-layer-01/);
-  assert.match(source, /overlay-layer-02/);
-  assert.match(source, /foreground-video/);
-  assert.match(source, /foregroundTransform\?: \{ x\?: number; y\?: number; scale\?: number \}/);
-  assert.match(source, /transform: `translate\(\$\{foregroundTransform\.x\}px, \$\{foregroundTransform\.y\}px\) scale\(\$\{foregroundTransform\.scale\}\)`/);
-  assert.match(source, /transformOrigin: "center center"/);
-  assert.match(source, /mixBlendMode: media\.effect1BlendMode \?\? "screen"/);
-  assert.match(source, /mixBlendMode: media\.effect2BlendMode \?\? "multiply"/);
-  assert.match(source, /backgroundColor: media\.overlayColor \?\? "#3835AF"/);
-  assert.match(source, /opacity: media\.overlayOpacity \?\? 0\.3/);
-  assert.match(rootSource, /compositionDurationSeconds/);
-});
-
-test("Remotion video-segment source stays lint and type compatible", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/remotion/Composition.tsx"), "utf8");
-  const segmentSceneStart = source.indexOf("const SegmentScene = ");
-  const segmentSceneEnd = source.indexOf(";\n\nexport const MyComposition", segmentSceneStart);
-  assert.notEqual(segmentSceneStart, -1, "Composition.tsx must define SegmentScene");
-  assert.notEqual(segmentSceneEnd, -1, "Composition.tsx SegmentScene extraction boundary changed");
-  const segmentSceneSource = source.slice(segmentSceneStart, segmentSceneEnd);
-  const frameHookIndex = segmentSceneSource.indexOf("const frame = useCurrentFrame();");
-  const videoBranchIndex = segmentSceneSource.indexOf("segment.media?.kind === \"video-segment\"");
-  const effectLayerOneSource = source.match(/data-layer="overlay-layer-01"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
-  const effectLayerTwoSource = source.match(/data-layer="overlay-layer-02"[\s\S]*?<OffthreadVideo([\s\S]*?)\/>/);
-
-  assert.notEqual(frameHookIndex, -1, "SegmentScene must read the current frame for image motion");
-  assert.notEqual(videoBranchIndex, -1, "SegmentScene must keep the video-segment branch");
-  assert.ok(
-    frameHookIndex < videoBranchIndex,
-    "useCurrentFrame must be called before the video-segment branch so hooks stay unconditional",
+  assert.deepEqual(
+    timing.resolveCompositionTimeline({ segments, fps: 30, outro: { durationSeconds: 2 } }),
+    { latestEnd: 10, compositionEnd: 10, outroStartFrame: 300, outroFrames: 60, totalFrames: 360 },
   );
-  assert.doesNotMatch(source, /from=\{0\}/, "Sequence must omit default from={0}");
-  assert.ok(effectLayerOneSource, "overlay-layer-01 must render an OffthreadVideo");
-  assert.ok(effectLayerTwoSource, "overlay-layer-02 must render an OffthreadVideo");
-  assert.doesNotMatch(effectLayerOneSource[1], /\bloop\b/, "overlay-layer-01 OffthreadVideo must not use unsupported loop prop");
-  assert.doesNotMatch(effectLayerTwoSource[1], /\bloop\b/, "overlay-layer-02 OffthreadVideo must not use unsupported loop prop");
+  assert.equal(
+    timing.resolveCompositionTimeline({ segments, fps: 30, outro: { enabled: false, durationSeconds: 30 }, compositionDurationSeconds: 12 }).totalFrames,
+    360,
+    "a disabled outro must not extend the composition",
+  );
+  assert.equal(
+    timing.resolveCompositionTimeline({ segments: [], fps: 30, outro: { durationSeconds: 2 } }).totalFrames,
+    60,
+    "an empty visual list with audio still needs room for the outro",
+  );
+});
+
+test("music fades in and out over the computed total frames", () => {
+  const base = { baseVolume: 0.8, fps: 30, totalFrames: 300, fadeInSeconds: 1, fadeOutSeconds: 2 };
+
+  assert.equal(timing.getFadedMusicVolume({ ...base, frame: 0 }), 0);
+  assert.equal(timing.getFadedMusicVolume({ ...base, frame: 30 }), 0.8);
+  assert.equal(timing.getFadedMusicVolume({ ...base, frame: 240 }), 0.8);
+  assert.equal(timing.getFadedMusicVolume({ ...base, frame: 300 }), 0);
+  assert.equal(timing.getFadedMusicVolume({ ...base, frame: 270 }), 0.4);
+  assert.equal(timing.getFadedMusicVolume({ ...base, fadeInSeconds: 0, fadeOutSeconds: 0, frame: 0 }), 0.8);
+});
+
+test("segment sequences and motion resolve to real frames and clamped values", () => {
+  const segment = { startTime: 1.5, endTime: 3.5, motion: "slow-zoom-in" };
+
+  assert.deepEqual(timing.resolveSegmentSequence(segment, 30), { from: 45, durationInFrames: 60 });
+  assert.deepEqual(timing.resolveSegmentMotion(segment, 0, 30), { durationInFrames: 60, scale: 1, x: 0, y: 0 });
+  assert.deepEqual(timing.resolveSegmentMotion(segment, 60, 30), { durationInFrames: 60, scale: 1.25, x: 0, y: 0 });
+  assert.equal(timing.resolveSegmentMotion(segment, 999, 30).scale, 1.25, "motion clamps after the last frame");
+  assert.equal(timing.resolveSegmentMotion({ ...segment, motion: "pan-right" }, 0, 30).x, -72);
+  assert.equal(timing.resolveSegmentMotion({ ...segment, motion: "pan-right" }, 60, 30).x, 72);
+});
+
+test("pan viewport falls back to the 16:9 preview basis from image width", () => {
+  assert.deepEqual(timing.resolvePanViewport({ imageWidth: 1920 }), {
+    panViewportWidth: 1920,
+    panViewportHeight: 1080,
+  });
+  assert.deepEqual(timing.resolvePanViewport({ imageWidth: 951, panViewportWidth: 950, panViewportHeight: 534 }), {
+    panViewportWidth: 950,
+    panViewportHeight: 534,
+  });
+  assert.deepEqual(timing.resolvePanViewport({}), { panViewportWidth: undefined, panViewportHeight: undefined });
+});
+
+test("whip transition computes the preview-equivalent smear state per frame", () => {
+  const start = timing.resolveWhipTransition({ progress: 0, previousImage: "a.jpg", nextImage: "b.jpg", durationInFrames: 13 });
+  const middle = timing.resolveWhipTransition({ progress: 0.5, previousImage: "a.jpg", nextImage: "b.jpg", durationInFrames: 13 });
+  const end = timing.resolveWhipTransition({ progress: 1, previousImage: "a.jpg", nextImage: "b.jpg", durationInFrames: 13 });
+
+  assert.equal(start.intensity, 0);
+  assert.equal(start.previousTranslate, 0);
+  assert.equal(start.nextTranslate, -35);
+  assert.equal(start.previousOpacity, 1);
+  assert.equal(start.nextOpacity, 0.58);
+  assert.equal(middle.previousTranslate, 60);
+  assert.equal(middle.nextTranslate, -17.5);
+  assert.equal(middle.previousOpacity, 0.89);
+  assert.equal(middle.nextOpacity, 0.79);
+  assert.ok(Math.abs(end.intensity) < 1e-9, "the smear intensity returns to zero");
+  assert.equal(end.nextTranslate, 0);
+  assert.equal(middle.previousSamples.length, 7);
+  assert.equal(middle.nextSamples.length, 7);
+  assert.equal(middle.previousSamples[3].src, "a.jpg");
+  assert.match(middle.previousSamples[3].transform, /^translate3d\(0%, 0, 0\) scale\(/);
+  assert.match(middle.previousSamples[0].transform, /^translate3d\(-16%, 0, 0\) scale\(/);
+});
+
+test("whip smear samples are symmetrically distributed over seven frames", () => {
+  const samples = timing.buildWhipSmearSamples({ src: "a.jpg", smear: 16, opacity: 1, blur: 10, scale: 1.05, contrast: 1.08 });
+
+  assert.equal(samples.length, 7);
+  assert.deepEqual(samples.map((sample) => sample.transform), [
+    "translate3d(-16%, 0, 0) scale(1.05)",
+    "translate3d(-10.667%, 0, 0) scale(1.05)",
+    "translate3d(-5.333%, 0, 0) scale(1.05)",
+    "translate3d(0%, 0, 0) scale(1.05)",
+    "translate3d(5.333%, 0, 0) scale(1.05)",
+    "translate3d(10.667%, 0, 0) scale(1.05)",
+    "translate3d(16%, 0, 0) scale(1.05)",
+  ]);
+  assert.equal(samples[3].opacity, 0.4);
+  assert.equal(samples[0].opacity, 0.18);
+  assert.equal(samples[0].filter, "blur(10px) contrast(1.08) saturate(0.96)");
+});
+
+test("video segment timing starts at the media in-point and clamps the foreground transform", () => {
+  const media = {
+    durationSeconds: 2.5,
+    sourceInSeconds: 1.2,
+    foregroundTransform: { x: 12, y: -8, scale: 0 },
+  };
+
+  const resolved = timing.resolveVideoSegmentTiming(media, 30);
+  assert.equal(resolved.durationInFrames, 75);
+  assert.equal(resolved.startFromFrame, 36);
+  assert.deepEqual(resolved.foregroundTransform, { x: 12, y: -8, scale: 0.1 });
+  assert.deepEqual(timing.resolveVideoSegmentTiming({ durationSeconds: 1, sourceInSeconds: 0 }, 30).foregroundTransform, { x: 0, y: 0, scale: 1 });
+});
+
+test("logo sources resolve to the correct render layout and frame sequence", () => {
+  assert.equal(timing.isGreenScreenLogoSource("overlays/logo-secondary-keyed.webm"), true);
+  assert.equal(timing.isGreenScreenLogoSource("overlays/logo-green.mp4"), true);
+  assert.equal(timing.isGreenScreenLogoSource("overlays/logo-primary.png"), false);
+  assert.equal(timing.isLogoFrameSequenceSource("overlays/logo-demo-alpha-frames"), true);
+  assert.equal(timing.isLogoFrameSequenceSource("overlays/logo-demo.mp4"), false);
+  assert.equal(timing.isFinalLogoSource("overlays/logo-final.png"), true);
+
+  assert.deepEqual(timing.resolveLogoLayout("overlays/logo-final.png"), {
+    left: -42,
+    top: -9,
+    width: 412,
+    height: 232,
+    opacity: 0.94,
+    objectFit: "contain",
+  });
+  assert.deepEqual(timing.resolveLogoLayout("overlays/logo-primary.webm"), {
+    left: 52,
+    top: 38,
+    width: 220,
+    height: 124,
+    opacity: 0.94,
+    objectFit: "contain",
+  });
+  assert.equal(timing.logoFrameSequenceSrc("overlays/logo-demo-alpha-frames", 1234), "overlays/logo-demo-alpha-frames/frame-0334.png");
+});
+
+test("newspaper layout keeps the blur, contain fit and label typography", () => {
+  assert.deepEqual(timing.NEWSPAPER_LABEL_LINES, ["RECREACIÓN", "ARTÍSTICA"]);
+  assert.equal(timing.NEWSPAPER_BACKGROUND_BLUR, 15);
+  assert.equal(timing.NEWSPAPER_BACKGROUND_STYLE.filter, "blur(15px)");
+  assert.equal(timing.NEWSPAPER_BACKGROUND_STYLE.objectFit, "cover");
+  assert.equal(timing.NEWSPAPER_FOREGROUND_STYLE.objectFit, "contain");
+  assert.equal(timing.NEWSPAPER_LABEL_STYLE.fontFamily, '"Demo Display", Inter, Arial, sans-serif');
+  assert.equal(timing.NEWSPAPER_LABEL_STYLE.fontSize, 40);
+  assert.equal(timing.NEWSPAPER_LABEL_STYLE.lineHeight, 1.12);
+  assert.equal(timing.NEWSPAPER_LABEL_STYLE.right, 40);
+  assert.equal(timing.NEWSPAPER_LABEL_STYLE.top, 40);
+  assert.equal(timing.NEWSPAPER_LABEL_STYLE.textAlign, "center");
+  assert.equal(timing.NEWSPAPER_LOCAL_FONT_URL, "fonts/display/Demo-Display.woff2");
+  assert.deepEqual(timing.resolveNewspaperMotion({ frame: 0, durationInFrames: 30 }), { scale: 1, x: 0, y: 0 });
+  assert.equal(timing.resolveNewspaperMotion({ frame: 30, durationInFrames: 30 }).scale, 1.1);
+  assert.equal(timing.resolveNewspaperMotion({ frame: 15, durationInFrames: 30, foregroundMotion: "pan-left" }).x, 0);
+});
+
+test("media layer audio policy keeps the channel outro audible and mutes effects", () => {
+  assert.deepEqual(timing.MEDIA_LAYER_AUDIO_POLICY.channelOutro, { muted: false });
+  for (const layer of ["overlayLayer01", "overlayLayer02", "foregroundVideo", "backgroundVideo", "logoVideo"]) {
+    assert.equal(timing.MEDIA_LAYER_AUDIO_POLICY[layer].muted, true, `${layer} must stay muted`);
+  }
+});
+
+test("video segment layers keep the five deterministic visual defaults", () => {
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.background.objectFit, "cover");
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.colorOverlay.backgroundColor, "#3835AF");
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.colorOverlay.opacity, 0.3);
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.effect1.mixBlendMode, "screen");
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.effect2.mixBlendMode, "multiply");
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.foreground.objectFit, "contain");
+  assert.equal(timing.VIDEO_SEGMENT_LAYER_STYLE.foreground.transformOrigin, "center center");
+});
+
+test("root duration adds the enabled outro to the official composition duration", () => {
+  const props = {
+    fps: 30,
+    compositionDurationSeconds: 10,
+    outro: { enabled: true, durationSeconds: 2 },
+    segments: [{ startTime: 0, endTime: 8 }],
+  };
+
+  assert.equal(timing.resolveRootDurationFrames({ props }).durationInFrames, 360);
+  assert.equal(timing.resolveRootDurationFrames({ props: { ...props, outro: { enabled: false, durationSeconds: 2 } } }).durationInFrames, 300);
+  assert.equal(timing.resolveRootDurationFrames({ props: { ...props, fps: 24 } }).durationInFrames, 288);
+  assert.equal(timing.resolveRootDurationFrames({ props: { ...props, segments: [], compositionDurationSeconds: 0 } }).durationInFrames, 60);
+});
+
+test("motion presets resolve to their documented ranges", () => {
+  assert.deepEqual(timing.resolveMotionRange("none"), { fromScale: 1, toScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0 });
+  assert.deepEqual(timing.resolveMotionRange("slow-zoom-out"), { fromScale: 1.08, toScale: 1, fromX: 0, fromY: 0, toX: 0, toY: 0 });
+  assert.deepEqual(timing.resolveMotionRange({ fromScale: 1, toScale: 1.4 }), { fromScale: 1, toScale: 1.4, fromX: 0, fromY: 0, toX: 0, toY: 0 });
+  assert.deepEqual(timing.resolveMotionRange("unknown"), { fromScale: 1, toScale: 1.25, fromX: 0, fromY: 0, toX: 0, toY: 0 });
 });

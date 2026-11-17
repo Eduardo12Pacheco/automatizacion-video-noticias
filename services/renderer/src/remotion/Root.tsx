@@ -1,27 +1,14 @@
 import { Composition } from "remotion";
 import { type AutomaticVideoProps, MyComposition } from "./Composition";
+import { resolveRootDurationFrames } from "./composition-timing";
 
 const defaultProps: AutomaticVideoProps = {
   audioSrc: "generated/audio.wav",
   segments: [],
 };
 
-const calculateDurationInFrames = ({
-  props,
-}: {
-  props: AutomaticVideoProps;
-}) => {
-  const fps = props.fps ?? 30;
-  const latestEnd = props.segments.reduce((max, segment) => {
-    return Math.max(max, segment.endTime);
-  }, 0);
-  const compositionDurationSeconds = Math.max(latestEnd, props.compositionDurationSeconds ?? 0);
-  const outroSeconds = props.outro?.enabled === false ? 0 : props.outro?.durationSeconds ?? 0;
-
-  return {
-    durationInFrames: Math.max(1, Math.ceil((compositionDurationSeconds + outroSeconds) * fps)),
-  };
-};
+const calculateDurationInFrames = ({ props }: { props: AutomaticVideoProps }) =>
+  resolveRootDurationFrames({ props });
 
 export const RemotionRoot = () => {
   return (
