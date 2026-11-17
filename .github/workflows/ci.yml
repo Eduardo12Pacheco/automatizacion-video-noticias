@@ -50,7 +50,13 @@ jobs:
         run: node --test packages/data/test/*.test.js
       - name: Contracts
         run: node --test packages/contracts/test/*.test.js
+      - name: Python dependencies for the adapters
+        run: |
+          python3 -m venv .venv-adapters
+          .venv-adapters/bin/pip install --disable-pip-version-check "python-docx>=1.1"
       - name: Adapters
+        env:
+          PYTHON_BIN: .venv-adapters/bin/python
         run: node --test packages/adapters/test/*.test.js
       - name: API
         run: node --test apps/api/test/*.test.js
@@ -136,17 +142,25 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Start the keyless default stack
+        env:
+          NEWSROOM_ENV_FILE: e2e/.env.example
         run: |
-          cp e2e/.env.example .env
-          docker compose up -d --build postgres searxng mailpit demo-worker api panel
-          docker compose run --rm seed
+          docker compose --env-file e2e/.env.example up -d --build postgres searxng mailpit demo-worker api panel
+          docker compose --env-file e2e/.env.example run --rm seed
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Playwright functional flows
+        env:
+          E2E_ALLOW_RESET: "1"
+          E2E_COMPOSE_ENV: e2e/.env.example
         run: pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
       - name: Stack logs on failure
         if: failure()
-        run: docker compose logs --tail=300
+        env:
+          NEWSROOM_ENV_FILE: e2e/.env.example
+        run: docker compose --env-file e2e/.env.example logs --tail=300
       - name: Stop the stack
         if: always()
-        run: docker compose down -v --remove-orphans
+        env:
+          NEWSROOM_ENV_FILE: e2e/.env.example
+        run: docker compose --env-file e2e/.env.example down -v --remove-orphans

@@ -183,10 +183,11 @@ class ComposeStackTests(unittest.TestCase):
 
     def test_internal_secrets_have_no_weak_defaults(self) -> None:
         text = COMPOSE.read_text(encoding="utf-8")
-        self.assertIn("${POSTGRES_PASSWORD:?run ./install.sh first}", text)
-        self.assertIn("${SEARXNG_SECRET:?run ./install.sh first}", text)
-        self.assertIn("${N8N_ENCRYPTION_KEY:?run ./install.sh first}", text)
-        self.assertIn("${API_GATEWAY_RADAR_API_KEY:?run ./install.sh first}", text)
+        self.assertIn("${POSTGRES_PASSWORD:?run ./install.sh first", text)
+        self.assertIn("${SEARXNG_SECRET:?run ./install.sh first", text)
+        self.assertIn("${N8N_ENCRYPTION_KEY:?run ./install.sh first", text)
+        self.assertIn("${API_GATEWAY_RADAR_API_KEY:?run ./install.sh first", text)
+        self.assertIn("docker compose up alone cannot create the required secrets", text)
         self.assertNotIn("POSTGRES_PASSWORD:-", text)
         self.assertNotIn("local-change-me", text)
         self.assertNotIn("newsroom-local-search", text)
@@ -199,15 +200,25 @@ class ComposeStackTests(unittest.TestCase):
         self.assertNotIn("API_GATEWAY_PANEL_USER=", env)
         self.assertNotIn("API_GATEWAY_PANEL_PASS=", env)
 
+    def test_panel_network_is_installer_selected(self) -> None:
+        text = COMPOSE.read_text(encoding="utf-8")
+        self.assertNotIn("172.28.240.0/24", text)
+        self.assertNotIn("172.29.240.0/24", text)
+        self.assertNotIn("ipv4_address: 172.", text)
+        self.assertIn("${NEWSROOM_PANEL_SUBNET:?", text)
+        self.assertIn("${NEWSROOM_PANEL_IP:?", text)
+        self.assertIn("default: {}", text)
+
     def test_ci_runs_lint_suites_and_the_browser_happy_path(self) -> None:
         workflow = yaml.safe_load(CI.read_text(encoding="utf-8"))
         jobs = workflow["jobs"]
         for name in ("lint", "js-suites", "panel-suite", "python-suites", "compose", "e2e"):
             self.assertIn(name, jobs)
         e2e = str(jobs["e2e"])
-        self.assertIn("docker compose up", e2e)
+        self.assertIn("docker compose --env-file e2e/.env.example up", e2e)
         self.assertIn("playwright test", e2e)
-        self.assertIn("docker compose down -v", e2e)
+        self.assertIn("E2E_ALLOW_RESET", e2e)
+        self.assertIn("docker compose --env-file e2e/.env.example down -v", e2e)
 
 
 if __name__ == "__main__":

@@ -30,21 +30,23 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Prepare the local-mode environment
         run: |
-          cp e2e/.env.example .env
+          cp e2e/.env.example e2e/.env.local
           sed -i \
             -e 's/^NEWSROOM_MODE=demo$/NEWSROOM_MODE=local/' \
             -e 's/^LLM=demo$/LLM=ollama/' \
             -e 's/^ARTICLE_EXTRACTOR=demo$/ARTICLE_EXTRACTOR=trafilatura/' \
-            .env
-          printf '\nCOMPOSE_PROFILES=local\n' >> .env
+            e2e/.env.local
+          printf '\nCOMPOSE_PROFILES=local\n' >> e2e/.env.local
+          echo "NEWSROOM_ENV_FILE=e2e/.env.local" >> "$GITHUB_ENV"
+          echo "E2E_COMPOSE_ENV=e2e/.env.local" >> "$GITHUB_ENV"
       - name: Download the local models
         run: |
-          docker compose --profile local run --rm model-init
-          docker compose --profile local run --rm --no-deps --entrypoint /bin/ollama ollama pull qwen2.5:3b-instruct
+          docker compose --env-file e2e/.env.local --profile local run --rm model-init
+          docker compose --env-file e2e/.env.local --profile local run --rm --no-deps --entrypoint /bin/ollama ollama pull qwen2.5:3b-instruct
       - name: Start the local stack
         run: |
-          docker compose --profile local --profile e2e up -d --build postgres searxng mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles renderer e2e-fixtures api panel
-          docker compose run --rm seed
+          docker compose --env-file e2e/.env.local --profile local --profile e2e up -d --build postgres searxng mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles renderer e2e-fixtures api panel
+          docker compose --env-file e2e/.env.local run --rm seed
       - name: Wait for the API and panel
         run: |
           for attempt in $(seq 1 60); do
@@ -63,7 +65,7 @@ jobs:
         run: pnpm exec playwright test e2e/local-mode.spec.js
       - name: Stack logs on failure
         if: failure()
-        run: docker compose --profile local logs --tail=500
+        run: docker compose --env-file e2e/.env.local --profile local logs --tail=500
       - name: Stop the stack
         if: always()
-        run: docker compose --profile local down -v --remove-orphans
+        run: docker compose --env-file e2e/.env.local --profile local down -v --remove-orphans

@@ -314,6 +314,22 @@ Sessions are HTTP-only, SameSite=Lax cookies with a server-side store and
 expiry. Login attempts are rate-limited. Do not expose the stack to the public
 internet.
 
+## Running Compose without the installer
+
+`docker compose up` alone fails by design on a fresh clone: the stack needs
+generated secrets and a panel proxy network, and Compose stops with a
+`run ./install.sh first ...` message when `.env` is missing. Run the installer
+once (`./install.sh` / `.\install.ps1`), or start Compose with a complete
+environment file:
+
+```bash
+docker compose --env-file path/to/complete.env up -d
+```
+
+`compose.yaml` interpolates the required variables and the `:?` messages in the
+file carry the same hint. This is intentional: silently falling back to weak
+defaults would ship an insecure installation.
+
 ## Configuration
 
 Everything is read from `.env`, generated from [`.env.example`](../.env.example).
@@ -324,10 +340,11 @@ Useful values:
 | `NEWSROOM_PROFILE` | `cpu` | Written by the installer; `cpu` or `gpu` |
 | `PANEL_PORT` / `API_GATEWAY_PORT` | `8080` / `8099` | Host ports |
 | `NEWSROOM_BIND` | `127.0.0.1` | Host interface for the published panel/API ports |
-| `TRUSTED_PROXY_CIDRS` | `172.29.240.10/32` | Panel container address allowed to set `X-Forwarded-For` |
+| `NEWSROOM_PANEL_SUBNET` / `NEWSROOM_PANEL_IP` | installer-chosen free `/24` and `.10` | Dedicated panel proxy network and fixed panel address |
+| `TRUSTED_PROXY_CIDRS` | `<NEWSROOM_PANEL_IP>/32` | Panel container address allowed to set `X-Forwarded-For` |
 | `DATABASE_URL` | local Postgres | Repository connection string |
 | `LLM` | `ollama` | Local model adapter; `openai` is optional and off by default |
-| `OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Local Spanish-capable model |
+| `OLLAMA_MODEL` | `qwen2.5:3b-instruct` | Local Spanish-capable model |
 | `ARTICLE_EXTRACTOR` | `trafilatura` | Local article extraction |
 | `IMAGE_SEARCH` | `searxng` | Local image search, Wikimedia fallback |
 | `NOTIFY` | `console` | Local notifications; `smtp` uses Mailpit/Gmail |
@@ -378,13 +395,19 @@ because the hosted runner does not provide Linux containers.
 The default stack ships the Playwright happy path:
 
 ```bash
-cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker api panel
-docker compose run --rm seed
+export NEWSROOM_ENV_FILE=e2e/.env.example
+export E2E_COMPOSE_ENV=e2e/.env.example
+docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker api panel
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
-pnpm exec playwright test
+E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
+
+Do not copy `e2e/.env.example` over an installed `.env`: it replaces the
+installer-generated secrets. Pass the E2E file with `--env-file` as shown.
+`E2E_ALLOW_RESET=1` authorizes the destructive panel-flow reset and must only
+be used against a disposable demo stack created for the E2E suite.
 
 Use `docker compose down -v` between runs. The test logs in through the UI,
 approves a topic, waits for the drafted script, publishes it and checks voice,

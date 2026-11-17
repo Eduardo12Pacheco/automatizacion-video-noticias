@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 
+import { composeArgs, composeEnv, editorPassword, requireDisposableDemoStack } from './support/compose.js';
+
 /**
  * Behavioural coverage for the flows a visitor actually uses in demo mode.
  * These tests drive the panel UI (no direct API calls for the actions under
@@ -8,7 +10,7 @@ import { execFileSync } from 'node:child_process';
  */
 
 const EDITOR_EMAIL = process.env.E2E_EDITOR_EMAIL || 'editor@example.local';
-const EDITOR_PASSWORD = process.env.E2E_EDITOR_PASSWORD || 'e2e-demo-password';
+const EDITOR_PASSWORD = editorPassword();
 const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL || 'admin@example.local';
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD || 'e2e-admin-password';
 const ORIGIN = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';
@@ -52,21 +54,24 @@ async function openView(page, view) {
 
 test.describe.serial('demo panel flows', () => {
   test.beforeAll(async () => {
+    // Resetting the demo data and the administrator password is destructive,
+    // so only an explicitly disposable demo stack may run this suite.
+    requireDisposableDemoStack();
     // The suite must pass twice on the same stack: reset only the seeded story
     // and make sure the administrator account exists.
-    execFileSync('docker', ['compose', 'run', '--rm', 'seed', 'node', 'scripts/seed-demo.js', '--reset'], {
+    execFileSync('docker', composeArgs(['run', '--rm', 'seed', 'node', 'scripts/seed-demo.js', '--reset']), {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env },
+      env: composeEnv(),
     });
-    execFileSync('docker', [
-      'compose', 'run', '--rm', '-T', 'api', 'node', 'scripts/create-admin.js',
+    execFileSync('docker', composeArgs([
+      'run', '--rm', '-T', 'api', 'node', 'scripts/create-admin.js',
       '--email', ADMIN_EMAIL, '--display-name', 'Demo Admin', '--password-stdin', '--reset-password',
-    ], {
+    ]), {
       encoding: 'utf8',
       input: ADMIN_PASSWORD,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env },
+      env: composeEnv(),
     });
   });
 

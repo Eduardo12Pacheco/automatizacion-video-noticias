@@ -29,10 +29,15 @@ pnpm install --frozen-lockfile
 Install the installer/CLI on your machine, or use the demo stack directly:
 
 ```bash
-cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker api panel
-docker compose run --rm seed
+export NEWSROOM_ENV_FILE=e2e/.env.example
+export E2E_COMPOSE_ENV=e2e/.env.example
+docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker api panel
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 ```
+
+Do not copy `e2e/.env.example` over an installed `.env`: it replaces the
+installer-generated secrets. Pass it with `--env-file` and the API picks it up
+through `NEWSROOM_ENV_FILE`.
 
 The panel is at <http://127.0.0.1:8080>. The installer path
 (`./install.sh` / `.\install.ps1`) is documented in
@@ -51,8 +56,20 @@ scripts, every Python service, the tools tests, the installer tests and the
 Compose config. The demo Playwright happy path needs the running stack:
 
 ```bash
-pnpm exec playwright test
+E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
+
+`E2E_ALLOW_RESET=1` is required by the destructive panel-flow reset and must
+only be used against a disposable demo stack created for the E2E suite. Install
+the pinned browser once with `pnpm exec playwright install chromium`; the specs
+read `E2E_EDITOR_PASSWORD` when set and otherwise derive the seeded editor
+password from `NEWSROOM_DEMO_PASSWORD` in the environment file.
+
+The adapters suite shells out to `python-docx` through the system Python. If it
+is missing locally the document-export test skips with the allow-listed
+`missing-python-docx` reason; install it to run the real export check
+(`python3 -m venv .venv-adapters && .venv-adapters/bin/pip install "python-docx>=1.1"`
+and set `PYTHON_BIN`). CI installs it in the adapters job.
 
 The visual-QA suite needs no Docker:
 

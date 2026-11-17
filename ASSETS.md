@@ -108,10 +108,11 @@ only the fictional demo data.
 The recording is reproducible and app-viewport only:
 
 ```sh
-cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker approval-editor api panel
-docker compose run --rm migrate
-docker compose run --rm seed
+export NEWSROOM_ENV_FILE=e2e/.env.example
+export E2E_COMPOSE_ENV=e2e/.env.example
+docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker approval-editor api panel
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm migrate
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 NEWSROOM_DEMO_PASSWORD=e2e-demo-password node tools/record-demo.mjs
 ```
 

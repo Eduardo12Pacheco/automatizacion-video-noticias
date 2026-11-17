@@ -4,8 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { composeArgs, composeEnv, editorPassword } from './support/compose.js';
+
 const EDITOR_EMAIL = process.env.E2E_EDITOR_EMAIL || 'editor@example.local';
-const EDITOR_PASSWORD = process.env.E2E_EDITOR_PASSWORD || 'e2e-demo-password';
+const EDITOR_PASSWORD = editorPassword();
 const ORIGIN = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';
 
 async function json(response) {
@@ -37,10 +39,10 @@ function reseedDemoStory() {
   // The happy path must pass twice on the same stack. `--reset` removes only
   // the rows the seed owns, so the second run starts with the same pending
   // cluster and no draft from the previous run.
-  execFileSync('docker', ['compose', 'run', '--rm', 'seed', 'node', 'scripts/seed-demo.js', '--reset'], {
+  execFileSync('docker', composeArgs(['run', '--rm', 'seed', 'node', 'scripts/seed-demo.js', '--reset']), {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env },
+    env: composeEnv(),
   });
 }
 

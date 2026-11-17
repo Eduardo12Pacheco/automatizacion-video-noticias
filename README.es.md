@@ -254,19 +254,32 @@ newsroom test        # ejecutar las mismas suites que CI
 newsroom down
 ```
 
-El panel queda en **http://127.0.0.1:8080**. El flujo manual con
-`docker compose`, el perfil debug y cómo abrirlo a la LAN están en
+El panel queda en **http://127.0.0.1:8080**. `docker compose up` por sí solo
+falla a propósito hasta que el instalador genera `.env` con sus secretos y la
+red del panel; los mensajes `:?` de `compose.yaml` lo explican. El flujo manual
+con `docker compose`, el perfil debug y cómo abrirlo a la LAN están en
 [docs/INSTALL.md](docs/INSTALL.md).
 
-El stack demo es también el stack sin claves que usa el test de navegador:
+El stack demo es también el stack sin claves que usa el test de navegador.
+Nunca copies `e2e/.env.example` sobre un `.env` ya instalado; apunta Compose al
+entorno E2E versionado:
 
 ```bash
-cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker api panel
-docker compose run --rm seed
+export NEWSROOM_ENV_FILE=e2e/.env.example
+export E2E_COMPOSE_ENV=e2e/.env.example
+docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker api panel
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 pnpm install --frozen-lockfile
-pnpm exec playwright test
+pnpm exec playwright install chromium
+E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
+
+`E2E_ALLOW_RESET=1` es el opt-in explícito para el reset destructivo de los
+flujos del panel (historia sembrada y contraseña del administrador E2E);
+actívalo solo en un stack demo creado para las pruebas. `E2E_EDITOR_PASSWORD`
+sobrescribe la contraseña del editor sembrado; si no se define, los specs leen
+`NEWSROOM_DEMO_PASSWORD` del archivo de entorno E2E. Ver
+[e2e/README.md](e2e/README.md).
 
 ## Historia del proyecto
 
@@ -336,7 +349,7 @@ pnpm test:panel
 pnpm test:checks
 node --test apps/api/test
 uv run --project services/asr-worker --with pytest --with httpx pytest services/asr-worker/tests -q
-pnpm exec playwright test
+pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
 
 La matriz completa y las convenciones están en [CONTRIBUTING.md](CONTRIBUTING.md).

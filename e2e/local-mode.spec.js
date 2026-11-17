@@ -4,6 +4,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { editorPassword, resolveEnvFile } from './support/compose.js';
+
 /**
  * Local-mode data-flow acceptance.
  *
@@ -25,7 +27,7 @@ import { join } from 'node:path';
  */
 
 const EDITOR_EMAIL = process.env.E2E_EDITOR_EMAIL || 'editor@example.local';
-const EDITOR_PASSWORD = process.env.E2E_EDITOR_PASSWORD || 'e2e-demo-password';
+const EDITOR_PASSWORD = editorPassword();
 const ORIGIN = process.env.E2E_BASE_URL || 'http://127.0.0.1:8080';
 const COMPOSE_PROJECT = process.env.COMPOSE_PROJECT_NAME || 'newsroom';
 const FIXTURE_SERVICE = 'e2e-fixtures';
@@ -108,19 +110,26 @@ async function waitFor(check, { timeout = 10 * 60_000, interval = 1000, message 
 
 function composeEnv(overrides = {}) {
   // An exported NEWSROOM_MODE/LLM in the calling shell would silently
-  // override the project's .env for Compose interpolation. Remove the keys
-  // the project .env owns, then apply the explicit overrides for this run.
+  // override the project's env file for Compose interpolation. Remove the
+  // keys that file owns, then apply the explicit overrides for this run.
+  const envFile = resolveEnvFile();
   const env = { ...process.env };
+  if (envFile) env.NEWSROOM_ENV_FILE = envFile;
   try {
-    const dotenv = readFileSync('.env', 'utf8');
+    const dotenv = readFileSync(envFile || '.env', 'utf8');
     for (const line of dotenv.split(/\r?\n/)) {
       const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=/);
       if (match) delete env[match[1]];
     }
   } catch {
-    // No .env in a remote/CI checkout; the parent environment is the config.
+    // No env file in a remote/CI checkout; the parent environment is the config.
   }
   return { ...env, ...overrides };
+}
+
+function compose(args) {
+  const envFile = resolveEnvFile();
+  return ['compose', ...(envFile ? ['--env-file', envFile] : []), ...args];
 }
 
 function configureDiscoveryFeed() {
@@ -128,10 +137,10 @@ function configureDiscoveryFeed() {
   // fixture feed and one invented player. The values are interpolated by
   // Compose from this process environment, so the running stack keeps its
   // models and data while the API switches to the offline feed.
-  run('docker', ['compose', '--profile', 'e2e', 'up', '-d', '--no-deps', FIXTURE_SERVICE], {
+  run('docker', compose(['--profile', 'e2e', 'up', '-d', '--no-deps', FIXTURE_SERVICE]), {
     env: composeEnv(),
   });
-  run('docker', ['compose', 'up', '-d', '--no-deps', '--force-recreate', 'api'], {
+  run('docker', compose(['up', '-d', '--no-deps', '--force-recreate', 'api']), {
     env: composeEnv({
       NEWSROOM_MODE: 'local',
       NEWS_DISCOVERY_FEED_URL: FIXTURE_FEED_URL,

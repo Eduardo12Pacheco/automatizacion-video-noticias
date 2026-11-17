@@ -18,17 +18,27 @@ The same test also asserts the API and proxy boundaries (`/panel`, `/tts`,
 ## Run locally
 
 ```bash
-cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker api panel
-docker compose run --rm seed
+export NEWSROOM_ENV_FILE=e2e/.env.example
+export E2E_COMPOSE_ENV=e2e/.env.example
+docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker api panel
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium   # or set PLAYWRIGHT_CHROMIUM_EXECUTABLE
-pnpm exec playwright test
+E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
 
+Never copy `e2e/.env.example` over an installed `.env`: that would replace the
+installer-generated secrets. The committed E2E file is passed with
+`--env-file` and loaded by the API through `NEWSROOM_ENV_FILE`. If you run the
+specs against an installed demo stack, leave both variables unset so they read
+`.env`, and still set `E2E_ALLOW_RESET=1` only on a disposable stack.
+
 The spec reseeds the demo story before it starts (`seed --reset`), so it passes
-twice in a row against the same stack. `docker compose down -v` is still the
-clean way to start from an empty database.
+twice in a row against the same stack. The panel-flow spec additionally resets
+the E2E administrator password and therefore refuses to run without
+`E2E_ALLOW_RESET=1`. `E2E_EDITOR_PASSWORD` overrides the editor password; when
+unset the specs read `NEWSROOM_DEMO_PASSWORD` from the environment file.
+`docker compose down -v` is still the clean way to start from an empty database.
 
 All credentials in `e2e/.env.example` are fictional test values. Never reuse
 them in a real installation.
@@ -52,17 +62,19 @@ or a page exception.
 downloads the local models and renders real media on CPU:
 
 ```bash
-cp e2e/.env.example .env
-# set NEWSROOM_MODE=local, LLM=ollama, ARTICLE_EXTRACTOR=trafilatura and
-# TTS_WORKER_ENGINE=piper in .env; the template already points
-# NEWS_DISCOVERY_FEED_URL at the offline e2e-fixtures service.
-docker compose --profile local run --rm model-init
-docker compose --profile local run --rm --no-deps --entrypoint /bin/ollama \
+cp e2e/.env.example e2e/.env.local
+# In e2e/.env.local set NEWSROOM_MODE=local, LLM=ollama,
+# ARTICLE_EXTRACTOR=trafilatura and TTS_WORKER_ENGINE=piper; the template
+# already points NEWS_DISCOVERY_FEED_URL at the offline e2e-fixtures service.
+export NEWSROOM_ENV_FILE=e2e/.env.local
+export E2E_COMPOSE_ENV=e2e/.env.local
+docker compose --env-file "$E2E_COMPOSE_ENV" --profile local run --rm model-init
+docker compose --env-file "$E2E_COMPOSE_ENV" --profile local run --rm --no-deps --entrypoint /bin/ollama \
   ollama pull qwen2.5:3b-instruct
-docker compose --profile local --profile e2e up -d --build postgres searxng \
+docker compose --env-file "$E2E_COMPOSE_ENV" --profile local --profile e2e up -d --build postgres searxng \
   mailpit demo-worker approval-editor ollama asr-worker tts-worker subtitles \
   renderer e2e-fixtures api panel
-docker compose run --rm seed
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 NEWSROOM_E2E_LOCAL=1 pnpm exec playwright test e2e/local-mode.spec.js
 ```
 

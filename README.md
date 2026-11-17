@@ -255,19 +255,31 @@ newsroom test        # run the same suites as CI
 newsroom down
 ```
 
-The panel is served at **http://127.0.0.1:8080**. The manual `docker compose`
-flow, the debug profile and LAN access are documented in
+The panel is served at **http://127.0.0.1:8080**. `docker compose up` alone
+fails by design until the installer has generated `.env` with its secrets and
+panel network; the `:?` messages in `compose.yaml` say so. The manual
+`docker compose` flow, the debug profile and LAN access are documented in
 [docs/INSTALL.md](docs/INSTALL.md).
 
-The demo stack is also the keyless stack used by the browser test:
+The demo stack is also the keyless stack used by the browser test. Never copy
+`e2e/.env.example` over an installed `.env`; point Compose at the committed E2E
+environment instead:
 
 ```bash
-cp e2e/.env.example .env
-docker compose up -d --build postgres searxng mailpit demo-worker api panel
-docker compose run --rm seed
+export NEWSROOM_ENV_FILE=e2e/.env.example
+export E2E_COMPOSE_ENV=e2e/.env.example
+docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker api panel
+docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 pnpm install --frozen-lockfile
-pnpm exec playwright test
+pnpm exec playwright install chromium
+E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
+
+`E2E_ALLOW_RESET=1` is the explicit opt-in for the destructive panel-flow
+reset (seeded story and E2E administrator password); set it only on a demo
+stack created for the tests. `E2E_EDITOR_PASSWORD` overrides the seeded editor
+password; without it the specs read `NEWSROOM_DEMO_PASSWORD` from the E2E
+environment file. See [e2e/README.md](e2e/README.md).
 
 ## Project story
 
@@ -337,7 +349,7 @@ pnpm test:panel
 pnpm test:checks
 node --test apps/api/test
 uv run --project services/asr-worker --with pytest --with httpx pytest services/asr-worker/tests -q
-pnpm exec playwright test
+pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full test matrix and conventions.
