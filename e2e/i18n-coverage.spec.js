@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { PHRASES } from '../apps/panel/js/modules/core/i18n/phrases.js';
+import esCatalog from '../apps/panel/js/modules/core/i18n/es.json' with { type: 'json' };
+import enCatalog from '../apps/panel/js/modules/core/i18n/en.json' with { type: 'json' };
 
 const VIEWS = ['radar', 'approval', 'audio', 'subtitulos2', 'scripts', 'admin-users', 'connectors', 'errors-audit', 'active-users'];
 
@@ -12,10 +13,10 @@ function containsPhrase(text, phrase) {
 }
 
 function exactPhrases(side) {
-  return PHRASES
-    .filter(([es, en]) => es !== en && !es.includes('{') && !en.includes('{'))
-    .map(([, en, es]) => (side === 'en' ? es : en))
-    .filter(Boolean);
+  return Object.keys(esCatalog)
+    .filter((key) => esCatalog[key] !== enCatalog[key])
+    .map((key) => (side === 'en' ? esCatalog[key] : enCatalog[key]))
+    .filter((value) => value && !value.includes('{'));
 }
 
 test.describe.configure({ mode: 'serial' });

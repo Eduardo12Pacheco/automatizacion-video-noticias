@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { PHRASES } from '../apps/panel/js/modules/core/i18n/phrases.js';
+import esCatalog from '../apps/panel/js/modules/core/i18n/es.json' with { type: 'json' };
+import enCatalog from '../apps/panel/js/modules/core/i18n/en.json' with { type: 'json' };
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -43,10 +44,10 @@ function containsPhrase(text, phrase) {
 }
 
 function foreignPhrases(language) {
-  return PHRASES
-    .filter(([es, en]) => es !== en && !es.includes('{') && !en.includes('{'))
-    .map(([es, en]) => (language === 'en' ? es : en))
-    .filter(Boolean);
+  return Object.keys(esCatalog)
+    .filter((key) => esCatalog[key] !== enCatalog[key])
+    .map((key) => (language === 'en' ? esCatalog[key] : enCatalog[key]))
+    .filter((value) => value && !value.includes('{'));
 }
 
 // Leftover UI copy is not always in the catalog yet (the current
@@ -467,6 +468,98 @@ test('mono typography is reserved for ids, timecodes and counters', async ({ pag
     });
     expect(offenders, `${view} renders prose in a mono font`).toEqual([]);
   }
+});
+
+test('radar destructive action is labelled, danger-styled and comes last', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => localStorage.setItem('newsroom-panel-language-v1', 'es'));
+  await page.goto('/?showcase=1');
+  await expect(page.locator('#appShell')).toBeVisible();
+  await page.locator('.nav-item[data-view="radar"]').click({ force: true });
+  const card = page.locator('.radar-monitor-card').first();
+  await expect(card).toBeVisible();
+  const remove = card.locator('[data-radar-action="dismiss-monitor-card"]');
+  await expect(remove).toHaveText('Eliminar');
+  await expect(remove).toHaveClass(/danger/);
+  const placement = await card.evaluate((node) => {
+    const actions = node.querySelector('.radar-monitor-card__actions');
+    const buttons = [...(actions?.querySelectorAll('button') || [])];
+    const removeButton = node.querySelector('[data-radar-action="dismiss-monitor-card"]');
+    return {
+      isLast: buttons[buttons.length - 1] === removeButton,
+      isGlyphOnly: (removeButton?.textContent || '').trim() === '×',
+      position: getComputedStyle(removeButton).position,
+    };
+  });
+  expect(placement.isLast).toBe(true);
+  expect(placement.isGlyphOnly).toBe(false);
+  expect(placement.position).not.toBe('absolute');
+});
+
+test('radar mobile chips stay on one scrollable row and refresh never wraps', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('newsroom-panel-language-v1', 'es'));
+  await page.goto('/?showcase=1');
+  await expect(page.locator('#appShell')).toBeVisible();
+  await page.locator('#mobileNavToggle').click();
+  await page.locator('.nav-item[data-view="radar"]').click({ force: true });
+  await expect(page.locator('#viewRadar')).toBeVisible();
+  const geometry = await page.evaluate(() => {
+    const bar = document.querySelector('#radarCountryBar');
+    const cards = [...bar.querySelectorAll('.radar-country-card')];
+    const tops = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
+    const barRect = bar.getBoundingClientRect();
+    const refresh = document.querySelector('#radarMonitorRefreshBtn');
+    return {
+      rows: tops.size,
+      allFullWidth: cards.every((card) => card.getBoundingClientRect().width >= barRect.width - 2),
+      scrollable: bar.scrollWidth > bar.clientWidth,
+      refreshWhiteSpace: getComputedStyle(refresh).whiteSpace,
+      refreshLines: refresh.getBoundingClientRect().height,
+      refreshText: refresh.textContent.trim(),
+    };
+  });
+  expect(geometry.rows).toBe(1);
+  expect(geometry.allFullWidth).toBe(false);
+  expect(geometry.scrollable).toBe(true);
+  expect(geometry.refreshText).toBe('Refrescar');
+  expect(geometry.refreshWhiteSpace).toBe('nowrap');
+  expect(geometry.refreshLines).toBeLessThanOrEqual(44);
+});
+
+test('subtitles empty preview shows no cue stripes and no duplicated preview title', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => localStorage.setItem('newsroom-panel-language-v1', 'es'));
+  await page.goto('/?showcase=1');
+  await expect(page.locator('#appShell')).toBeVisible();
+  await page.locator('.nav-item[data-view="subtitulos2"]').click({ force: true });
+  await expect(page.locator('#subtitle2PreviewEmpty')).toBeVisible();
+  const state = await page.evaluate(() => {
+    const stage = document.querySelector('#subtitle2PreviewStage');
+    const cue = document.querySelector('#subtitle2PreviewCue');
+    const visibleStriped = [...stage.querySelectorAll('*')]
+      .filter((element) => element.offsetParent !== null)
+      .filter((element) => {
+        const style = getComputedStyle(element);
+        return parseFloat(style.borderTopWidth) > 0 || parseFloat(style.borderBottomWidth) > 0;
+      })
+      .map((element) => element.className);
+    const eyebrow = document.querySelector('.subtitle-preview-frame__header .subtitle2-section-label');
+    const heading = document.querySelector('.subtitle-preview-frame__header h3');
+    return {
+      cueVisible: cue.offsetParent !== null,
+      cueText: (cue.textContent || '').trim(),
+      visibleStriped,
+      eyebrow: eyebrow.textContent.trim(),
+      heading: heading.textContent.trim(),
+    };
+  });
+  expect(state.cueVisible).toBe(false);
+  expect(state.cueText).toBe('');
+  expect(state.visibleStriped).toEqual([]);
+  expect(state.eyebrow).not.toBe(state.heading);
+  expect(state.eyebrow).toBe('Reproductor');
+  expect(state.heading).toBe('Vista previa');
 });
 
 test('light theme keeps every view contained and accessible (wcag21aa)', async ({ page }) => {
