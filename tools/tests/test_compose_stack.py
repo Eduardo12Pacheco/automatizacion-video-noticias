@@ -48,7 +48,7 @@ class ComposeStackTests(unittest.TestCase):
         self.assertNotIn("API_GATEWAY_SUBTITLES_TARGET", env)
         self.assertNotIn("API_GATEWAY_REMOTION_TARGET", env)
         self.assertNotIn("API_GATEWAY_APPROVAL_TARGET", env)
-        self.assertEqual(env["API_GATEWAY_N8N_TARGET"], "http://n8n:5678")
+        self.assertNotIn("API_GATEWAY_N8N_TARGET", env)
         self.assertEqual(env["NEWSROOM_MODE"], "${NEWSROOM_MODE:-demo}")
         self.assertEqual(env["LLM"], "${LLM:-ollama}")
         self.assertIn("DATABASE_URL", env)

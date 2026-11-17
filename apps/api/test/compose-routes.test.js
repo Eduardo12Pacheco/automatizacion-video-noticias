@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DEFAULT_ROUTES, resolvePanelRequestOrigin, resolveRoutesFromEnv } from '../src/gateway.js';
+import { resolvePanelRequestOrigin, resolveRoutesFromEnv } from '../src/gateway.js';
 
 describe('compose route configuration', () => {
   it('uses the local-mode worker targets when no target env vars are present', () => {
@@ -9,7 +9,7 @@ describe('compose route configuration', () => {
     assert.equal(routes.tts.target, 'http://tts-worker:8766');
     assert.equal(routes.subtitles.target, 'http://subtitles:8092');
     assert.equal(routes.remotion.target, 'http://renderer:3042');
-    assert.equal(routes.n8n.target, DEFAULT_ROUTES.n8n.target);
+    assert.equal(routes.n8n, undefined, 'the gateway must not proxy panel paths to n8n');
   });
 
   it('lets Compose point each local service at its container target', () => {
@@ -21,7 +21,7 @@ describe('compose route configuration', () => {
     assert.equal(routes.tts.target, 'http://demo-worker:8088');
     assert.equal(routes.subtitles.target, 'http://demo-worker:8092');
     assert.equal(routes.remotion.target, 'http://demo-worker:3037');
-    assert.equal(routes.n8n.target, DEFAULT_ROUTES.n8n.target);
+    assert.equal(routes.n8n, undefined, 'the gateway must not proxy panel paths to n8n');
     assert.equal(routes.tts.prefix, '/tts');
   });
 

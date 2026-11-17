@@ -93,11 +93,6 @@ export function resolvePanelReadModelRoute(rawUrl, routes = DEFAULT_ROUTES) {
     return { service, target: configured.target, upstreamPath: `${upstreamPath}${query}` };
   };
 
-  if (path === '/approval/pending') return routeFor('n8n', '/webhook/approval/pending/v2');
-  if (path === '/approval/queue') return routeFor('n8n', '/webhook/approval/queue/v2');
-  if (path === '/approval/topic') return routeFor('n8n', '/webhook/approval/topic/v2');
-  if (path === '/approval/search-refresh/status') return routeFor('n8n', '/webhook/approval/search-refresh/status/v1');
-  if (path === '/scripts/drafts') return routeFor('n8n', '/webhook/mvp-script-drafts-pending/v2');
   if (path === '/audio/jobs') return routeFor('tts', '/api/tts/jobs');
   const audioJobMatch = path.match(/^\/audio\/jobs\/([^/]+)$/);
   if (audioJobMatch?.[1]) {
@@ -113,13 +108,6 @@ export function resolvePanelReadModelRoute(rawUrl, routes = DEFAULT_ROUTES) {
     if (!segment.ok) return null;
     const suffix = subtitleSessionMatch[2] ? `/${subtitleSessionMatch[2]}` : '';
     return routeFor('subtitles', `/api/subtitles/sessions/${segment.value}${suffix}`);
-  }
-  if (path === '/video-projects') return routeFor('n8n', '/webhook/video-projects/read-model/supabase/v1');
-  const videoProjectMatch = path.match(/^\/video-projects\/([^/]+)$/);
-  if (videoProjectMatch?.[1]) {
-    const segment = safePathSegment(videoProjectMatch[1]);
-    if (!segment.ok) return null;
-    return routeFor('n8n', `/webhook/video-projects/read-model/supabase/v1/${segment.value}`);
   }
   return null;
 }

@@ -128,8 +128,8 @@ test('gateway event normalization applies schema defaults and default-deny conte
     origin: 'https://panel.example',
     ip: '127.0.0.1',
     method: 'POST',
-    path: '/n8n/webhook/data',
-    route_service: 'n8n',
+    path: '/workflow/webhook/data',
+    route_service: 'workflow',
     action: 'proxy.request',
     outcome: 'failed',
     status_code: 502,
@@ -202,7 +202,7 @@ test('JsonlEventRecorder appends sanitized events and queries by kind, status, a
     kind: 'audit',
     correlation_id: 'corr-1',
     actor: { user_id: 'user-1', email: 'user@example.com' },
-    route_service: 'n8n',
+    route_service: 'workflow',
     action: 'login',
     outcome: 'success',
     status_code: 200,
@@ -221,7 +221,7 @@ test('JsonlEventRecorder appends sanitized events and queries by kind, status, a
     context: { token: 'raw-token', request_id: 'request-2' },
   });
 
-  const auditByActor = await recorder.query({ kind: 'audit', actor: 'user@example.com', service: 'n8n', status: 'success', from: '2026-01-09T00:00:00.000Z', to: '2026-01-09T23:59:59.999Z' });
+  const auditByActor = await recorder.query({ kind: 'audit', actor: 'user@example.com', service: 'workflow', status: 'success', from: '2026-01-09T00:00:00.000Z', to: '2026-01-09T23:59:59.999Z' });
   assert.equal(auditByActor.events.length, 1);
   assert.equal(auditByActor.events[0].event_id, 'audit-1');
   assert.equal(auditByActor.events[0].context.password, '<redacted>');
@@ -315,16 +315,16 @@ test('unauthenticated external GET/HEAD routes are rejected before upstream prox
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
     routes: {
-      n8n: { prefix: '/n8n', target: upstream.target },
+      workflow: { prefix: '/workflow', target: upstream.target },
       remotion: { prefix: '/remotion', target: upstream.target },
     },
     serviceCredentials: {
-      n8n: { 'x-api-key': 'n8n-secret' },
+      workflow: { 'x-api-key': 'workflow-secret' },
       remotion: { authorization: 'Bearer remotion-secret' },
     },
   });
 
-  for (const [method, path] of [['GET', '/n8n/webhook/data'], ['HEAD', '/remotion/renders/1']]) {
+  for (const [method, path] of [['GET', '/workflow/webhook/data'], ['HEAD', '/remotion/renders/1']]) {
     const response = await fetch(`${baseUrl}${path}`, { method });
     assert.equal(response.status, 401);
     if (method !== 'HEAD') {
@@ -337,35 +337,35 @@ test('unauthenticated external GET/HEAD routes are rejected before upstream prox
 test('malformed cookies cannot crash auth checks and valid session cookie still works', async () => {
   const upstream = await createUpstream({ body: 'authorized' });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
   });
 
-  const rejected = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const rejected = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: { cookie: 'broken=%E0%A4%A' },
   });
   assert.equal(rejected.status, 401);
   assert.equal((await readJson(rejected)).code, 'unauthenticated');
 
-  const allowed = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const allowed = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: { cookie: `broken=%E0%A4%A; ${sessionCookie()}` },
   });
   assert.equal(allowed.status, 200);
   assert.equal(await allowed.text(), 'authorized');
   assert.equal(upstream.requests.length, 1);
-  assert.equal(upstream.requests[0].headers['x-api-key'], 'n8n-secret');
+  assert.equal(upstream.requests[0].headers['x-api-key'], 'workflow-secret');
 });
 
 test('authenticated external reads proxy with sanitized response headers and session identity', async () => {
   const upstream = await createUpstream({ body: 'proxied' });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: {
       cookie: sessionCookie(),
       'x-user-email': 'attacker@example.com',
@@ -380,19 +380,19 @@ test('authenticated external reads proxy with sanitized response headers and ses
   assert.equal(upstream.requests.length, 1);
   assert.equal(upstream.requests[0].headers['x-panel-actor-email'], 'user@example.com');
   assert.equal(upstream.requests[0].headers['x-user-email'], undefined);
-  assert.equal(upstream.requests[0].headers['x-api-key'], 'n8n-secret');
+  assert.equal(upstream.requests[0].headers['x-api-key'], 'workflow-secret');
 });
 
 test('non-editor protected mutation is forbidden before proxying', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession({ roles: ['viewer'] }) },
     allowedOrigins: ['https://panel.example.local'],
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -422,13 +422,13 @@ test('wildcard CORS never grants credentialed browser access', async () => {
 test('disallowed preflight and untrusted mutation reject locally without credentialed CORS or proxying', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
   });
 
-  const preflight = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const preflight = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'OPTIONS',
     headers: {
       origin: 'https://evil.example',
@@ -438,7 +438,7 @@ test('disallowed preflight and untrusted mutation reject locally without credent
   assert.equal(preflight.status, 403);
   assert.equal(preflight.headers.get('access-control-allow-credentials'), null);
 
-  const mutation = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const mutation = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -454,13 +454,13 @@ test('disallowed preflight and untrusted mutation reject locally without credent
 test('wildcard allowedOrigins never satisfies mutation CSRF trust', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['*'],
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -478,14 +478,14 @@ test('wildcard allowedOrigins never satisfies mutation CSRF trust', async () => 
 test('explicit trustedMutationOrigins permits valid credentialed mutation', async () => {
   const upstream = await createUpstream({ body: 'mutated' });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -498,7 +498,7 @@ test('explicit trustedMutationOrigins permits valid credentialed mutation', asyn
   assert.equal(response.status, 200);
   assert.equal(await response.text(), 'mutated');
   assert.equal(upstream.requests.length, 1);
-  assert.equal(upstream.requests[0].headers['x-api-key'], 'n8n-secret');
+  assert.equal(upstream.requests[0].headers['x-api-key'], 'workflow-secret');
 });
 
 test('public liveness and local live exceptions remain available without a session', async () => {
@@ -523,22 +523,22 @@ test('expired panel session is ignored after its TTL and protected route returns
   const upstream = await createUpstream({ body: 'authorized' });
   let nowMs = Date.parse('2026-01-01T00:00:00.000Z');
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: {
       'valid-token': panelSession({ expires_at: new Date(nowMs + 1_000).toISOString() }),
     },
     now: () => nowMs,
   });
 
-  const allowed = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const allowed = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: { cookie: sessionCookie() },
   });
   assert.equal(allowed.status, 200);
   assert.equal(await allowed.text(), 'authorized');
 
   nowMs += 1_001;
-  const expired = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const expired = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: { cookie: sessionCookie() },
   });
   assert.equal(expired.status, 401);
@@ -627,20 +627,20 @@ test('public local live proxy route does not inject service credentials', async 
 test('resolveRoutePolicy makes protected proxy and read-model requirements explicit', () => {
   const options = {
     routes: {
-      n8n: { prefix: '/n8n', target: 'http://127.0.0.1:5678' },
+      workflow: { prefix: '/workflow', target: 'http://127.0.0.1:5678' },
       tts: { prefix: '/tts', target: 'http://127.0.0.1:8088' },
     },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
   };
 
-  const readProxy = resolveRoutePolicy({ method: 'GET', url: '/n8n/webhook/data' }, options);
+  const readProxy = resolveRoutePolicy({ method: 'GET', url: '/workflow/webhook/data' }, options);
   assert.equal(readProxy.kind, 'proxy');
   assert.equal(readProxy.requiresSession, true);
   assert.equal(readProxy.requiresEditor, false);
   assert.equal(readProxy.requiresCsrf, false);
   assert.equal(readProxy.allowsCredentialInjection, true);
 
-  const mutationProxy = resolveRoutePolicy({ method: 'POST', url: '/n8n/webhook/data' }, options);
+  const mutationProxy = resolveRoutePolicy({ method: 'POST', url: '/workflow/webhook/data' }, options);
   assert.equal(mutationProxy.kind, 'proxy');
   assert.equal(mutationProxy.requiresSession, true);
   assert.equal(mutationProxy.requiresEditor, true);
@@ -721,7 +721,7 @@ test('approval and remotion create-from-approval routes get an extended preparat
 test('unknown proxy route fails closed locally without upstream proxying', async () => {
   const upstream = await createUpstream({ body: 'should-not-proxy' });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
   });
 
   const response = await fetch(`${baseUrl}/unknown/resource`);
@@ -785,14 +785,14 @@ test('authenticated protocol-relative local service route does not reach upstrea
 test('explicit-origin CORS allows legitimate credentialed requests with echoed origin', async () => {
   const upstream = await createUpstream({ body: 'proxied' });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local', 'http://localhost:5500'],
   });
 
   // Legitimate credentialed request from explicit allowed origin
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: {
       origin: 'https://panel.example.local',
       cookie: sessionCookie(),
@@ -814,8 +814,8 @@ test('explicit-origin CORS allows legitimate credentialed requests with echoed o
 test('explicit-origin credentialed CORS does NOT grant credentials to non-allowed origins', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     allowedOrigins: ['https://panel.example.local'],
   });
 
@@ -837,8 +837,8 @@ test('explicit-origin credentialed CORS does NOT grant credentials to non-allowe
 test('wildcard CORS presence disables credentials even when explicit origins are also configured', async () => {
   const upstream = await createUpstream({ body: 'hi' });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['*', 'https://example.com'],
   });
@@ -861,12 +861,12 @@ test('wildcard CORS presence disables credentials even when explicit origins are
 test('disallowed OPTIONS preflight to gateway route returns 403 with no credential-granting CORS headers', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     allowedOrigins: ['https://panel.example.local'],
   });
 
-  const preflight = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const preflight = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'OPTIONS',
     headers: {
       origin: 'https://evil.example',
@@ -884,14 +884,14 @@ test('disallowed OPTIONS preflight to gateway route returns 403 with no credenti
 test('mutation from allowed origin without CSRF trust rejects before proxying and credential injection', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://trusted.example'],
   });
 
   // Mutation with session but no origin header → no CSRF trust
-  const mutation = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const mutation = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -975,15 +975,15 @@ async function createBodyRecordingUpstream() {
 test('declared Content-Length exceeding maxBodyBytes is rejected with 413 before proxying', async () => {
   const upstream = await createBodyRecordingUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
     maxBodyBytes: 64,
   });
 
   // Non-JSON POST through protected route — body check currently MISSING for non-JSON
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1029,15 +1029,15 @@ test('subtitle session upload can exceed the default proxy body limit', async ()
 test('streaming body exceeding maxBodyBytes is rejected with 413 and upstream receives no over-limit bytes', async () => {
   const upstream = await createBodyRecordingUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
     maxBodyBytes: 128,
   });
 
   // Non-JSON POST — currently pipes body to upstream WITHOUT byte counting
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1060,7 +1060,7 @@ test('dynamic read-model path traversal ".." returns 400 or 404 and zero upstrea
   const baseUrl = await createGateway({
     routes: {
       tts: { prefix: '/tts', target: upstream.target },
-      n8n: { prefix: '/n8n', target: upstream.target },
+      workflow: { prefix: '/workflow', target: upstream.target },
     },
     panelSessions: { 'valid-token': panelSession() },
   });
@@ -1068,7 +1068,7 @@ test('dynamic read-model path traversal ".." returns 400 or 404 and zero upstrea
   // ../ traversal in dynamic segments — both bare and with extra segments
   for (const path of [
     // Long traversal chains that don't match regex
-    '/panel/read-models/video-projects/../../n8n/webhook/secret',
+    '/panel/read-models/video-projects/../../workflow/webhook/secret',
     '/panel/read-models/audio/jobs/../sessions',
     '/panel/read-models/subtitles/sessions/../../../admin',
     // Bare ".." that matches regex but must be rejected
@@ -1093,7 +1093,7 @@ test('encoded traversal segments are blocked and never reach upstream', async ()
     routes: {
       tts: { prefix: '/tts', target: upstream.target },
       subtitles: { prefix: '/subtitles', target: upstream.target },
-      n8n: { prefix: '/n8n', target: upstream.target },
+      workflow: { prefix: '/workflow', target: upstream.target },
     },
     panelSessions: { 'valid-token': panelSession() },
   });
@@ -1126,15 +1126,15 @@ test('body exactly at maxBodyBytes proxies normally', async () => {
   const upstream = await createBodyRecordingUpstream();
   const maxBytes = 128;
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
     maxBodyBytes: maxBytes,
   });
 
   const exactBody = 'x'.repeat(maxBytes);
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1153,16 +1153,13 @@ test('safe encoded IDs proxy normally through read-model routes', async () => {
     routes: {
       tts: { prefix: '/tts', target: upstream.target },
       subtitles: { prefix: '/subtitles', target: upstream.target },
-      n8n: { prefix: '/n8n', target: upstream.target },
+      workflow: { prefix: '/workflow', target: upstream.target },
     },
     panelSessions: { 'valid-token': panelSession() },
   });
 
   // Valid encoded IDs that should be safe
   const validIds = [
-    '/panel/read-models/video-projects/job%40123',     // @ encoded
-    '/panel/read-models/video-projects/my%20project',   // space encoded
-    '/panel/read-models/video-projects/a1b2c3',
     '/panel/read-models/audio/jobs/job-001',
     '/panel/read-models/subtitles/sessions/session_42/segments',
   ];
@@ -1245,14 +1242,14 @@ test('/ready defaults to ready when no readiness checks are configured', async (
 test('authorized JSON proxy body includes session-derived audit_actor and excludes client-forged identity', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
   });
 
   // Session-derived audit_actor
-  const res1 = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const res1 = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1271,7 +1268,7 @@ test('authorized JSON proxy body includes session-derived audit_actor and exclud
 
   // Client-forged audit_actor is overwritten by session-derived
   upstream.requests.length = 0;
-  const res2 = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const res2 = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1291,7 +1288,7 @@ test('authorized JSON proxy body includes session-derived audit_actor and exclud
 
   // Base-version audit metadata is preserved
   upstream.requests.length = 0;
-  const res3 = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const res3 = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1314,12 +1311,12 @@ test('authorized JSON proxy body includes session-derived audit_actor and exclud
 test('unauthenticated JSON POST produces no upstream request or audit body', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     allowedOrigins: ['https://panel.example.local'],
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       origin: 'https://panel.example.local',
@@ -1399,14 +1396,14 @@ test('unsupported injected credential headers throw GatewayConfigError', () => {
   assert.throws(
     () => createGatewayServer({
       ...baseOpts,
-      serviceCredentials: { n8n: { 'x-custom-header': 'value' } },
+      serviceCredentials: { workflow: { 'x-custom-header': 'value' } },
     }),
     (err) => err.name === 'GatewayConfigError' && err.code === 'gateway_config_error',
   );
   // Supported headers must still work
   const server = createGatewayServer({
     ...baseOpts,
-    serviceCredentials: { n8n: { 'x-api-key': 'valid', authorization: 'Basic xyz' } },
+    serviceCredentials: { workflow: { 'x-api-key': 'valid', authorization: 'Basic xyz' } },
   });
   assert.ok(server);
   server.close();
@@ -1521,13 +1518,13 @@ test('/ready with mixed ok and error checks returns not_ready', async () => {
 test('existing audit metadata fields are preserved alongside session-derived audit_actor', async () => {
   const upstream = await createUpstream();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: sessionCookie(),
@@ -1554,8 +1551,8 @@ test('gateway returns one correlation ID per request and forwards it to proxied 
   const upstream = await createUpstream({ body: 'correlated' });
   const recorder = createRecordingEventRecorder();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
     createCorrelationId: () => 'generated-correlation-1',
@@ -1564,7 +1561,7 @@ test('gateway returns one correlation ID per request and forwards it to proxied 
   const generated = await fetch(`${baseUrl}/health`);
   assert.equal(generated.headers.get('x-correlation-id'), 'generated-correlation-1');
 
-  const proxied = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const proxied = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: {
       cookie: sessionCookie(),
       'x-correlation-id': 'client-corr-123',
@@ -1583,8 +1580,8 @@ test('gateway emits sanitized audit and error events for auth and rejection path
   const upstream = await createUpstream();
   const recorder = createRecordingEventRecorder();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession({ roles: ['viewer'] }) },
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
@@ -1603,6 +1600,7 @@ test('gateway emits sanitized audit and error events for auth and rejection path
   });
   const successBaseUrl = await createGateway({
     authService: successAuth,
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
     eventRecorder: successRecorder,
@@ -1613,20 +1611,20 @@ test('gateway emits sanitized audit and error events for auth and rejection path
     body: JSON.stringify({ user: 'admin@example.local', pass: 'admin-secret' }),
   });
   const cookie = login.headers.get('set-cookie')?.split(';')[0];
-  await fetch(`${successBaseUrl}/n8n/webhook/data`, { method: 'POST', headers: { cookie, 'content-type': 'application/json', 'x-correlation-id': 'csrf-corr' }, body: '{}' });
+  await fetch(`${successBaseUrl}/workflow/webhook/data`, { method: 'POST', headers: { cookie, 'content-type': 'application/json', 'x-correlation-id': 'csrf-corr' }, body: '{}' });
   await fetch(`${successBaseUrl}/panel/logout`, { method: 'POST', headers: { origin: 'https://panel.example.local', cookie, 'x-correlation-id': 'logout-ok' } });
-  await fetch(`${baseUrl}/n8n/webhook/data`, { method: 'POST', headers: { cookie: sessionCookie(), origin: 'https://panel.example.local', 'content-type': 'application/json', 'x-correlation-id': 'forbidden-corr' }, body: '{}' });
+  await fetch(`${baseUrl}/workflow/webhook/data`, { method: 'POST', headers: { cookie: sessionCookie(), origin: 'https://panel.example.local', 'content-type': 'application/json', 'x-correlation-id': 'forbidden-corr' }, body: '{}' });
   const payloadRecorder = createRecordingEventRecorder();
   const payloadBaseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession() },
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
     maxBodyBytes: 16,
     eventRecorder: payloadRecorder,
   });
-  await fetch(`${payloadBaseUrl}/n8n/webhook/data`, { method: 'POST', headers: { cookie: sessionCookie(), origin: 'https://panel.example.local', 'content-type': 'text/plain', 'x-correlation-id': 'payload-corr' }, body: 'x'.repeat(64) });
+  await fetch(`${payloadBaseUrl}/workflow/webhook/data`, { method: 'POST', headers: { cookie: sessionCookie(), origin: 'https://panel.example.local', 'content-type': 'text/plain', 'x-correlation-id': 'payload-corr' }, body: 'x'.repeat(64) });
 
   const allEvents = [...recorder.events, ...successRecorder.events, ...payloadRecorder.events];
   const actions = allEvents.map((event) => `${event.action}:${event.outcome}:${event.reason_code || ''}`);
@@ -1643,13 +1641,13 @@ test('gateway emits sanitized audit and error events for auth and rejection path
 test('gateway emits proxy failure events with safe context without changing upstream failure response', async () => {
   const recorder = createRecordingEventRecorder();
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: 'http://127.0.0.1:1' } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: 'http://127.0.0.1:1' } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     panelSessions: { 'valid-token': panelSession({ roles: ['admin'] }) },
     eventRecorder: recorder,
   });
 
-  const response = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const response = await fetch(`${baseUrl}/workflow/webhook/data`, {
     headers: { cookie: sessionCookie(), authorization: 'Bearer raw-secret', 'x-correlation-id': 'proxy-fail-corr' },
   });
 
@@ -1657,7 +1655,7 @@ test('gateway emits proxy failure events with safe context without changing upst
   assert.equal((await readJson(response)).code, 'upstream_unavailable');
   const event = recorder.events.find((entry) => entry.kind === 'error' && entry.action === 'proxy.request' && entry.reason_code === 'upstream_unavailable');
   assert.equal(event.correlation_id, 'proxy-fail-corr');
-  assert.equal(event.route_service, 'n8n');
+  assert.equal(event.route_service, 'workflow');
   assert.equal(JSON.stringify(event).includes('raw-secret'), false);
 });
 
@@ -1678,7 +1676,7 @@ test('authenticated gateway events read model filters events and rejects unauthe
   assert.equal(rejected.status, 401);
   assert.equal((await readJson(rejected)).code, 'unauthenticated');
 
-  const response = await fetch(`${baseUrl}/panel/read-models/gateway/events?kind=error&status=502&service=n8n&actor=user-1&correlation_id=corr-1&limit=25`, {
+  const response = await fetch(`${baseUrl}/panel/read-models/gateway/events?kind=error&status=502&service=workflow&actor=user-1&correlation_id=corr-1&limit=25`, {
     headers: { cookie: sessionCookie(), 'x-user-email': 'attacker@example.com', 'x-correlation-id': 'read-corr' },
   });
 
@@ -1689,7 +1687,7 @@ test('authenticated gateway events read model filters events and rejects unauthe
     next_cursor: null,
     retention: { max_events: 50, max_age_days: 7 },
   });
-  assert.deepEqual(recorder.queries[0], { kind: 'error', status: '502', service: 'n8n', actor: 'user-1', correlation_id: 'corr-1', limit: '25' });
+  assert.deepEqual(recorder.queries[0], { kind: 'error', status: '502', service: 'workflow', actor: 'user-1', correlation_id: 'corr-1', limit: '25' });
 });
 
 test('gateway events read-model failure returns safe error and records sanitized failure event', async () => {
@@ -1818,8 +1816,8 @@ test('configured user proxy and audit events keep per-person session attribution
     bob: { email: 'bob@example.com', display_name: 'Bob Editor', password: 'bob-secret', roles: ['editor'] },
   });
   const baseUrl = await createGateway({
-    routes: { n8n: { prefix: '/n8n', target: upstream.target } },
-    serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
+    routes: { workflow: { prefix: '/workflow', target: upstream.target } },
+    serviceCredentials: { workflow: { 'x-api-key': 'workflow-secret' } },
     authService,
     eventRecorder: recorder,
     allowedOrigins: ['https://panel.example.local'],
@@ -1840,7 +1838,7 @@ test('configured user proxy and audit events keep per-person session attribution
   const bobCookie = await login('bob@example.com', 'bob-secret');
   const bobSession = await readJson(await fetch(`${baseUrl}/panel/session`, { headers: { cookie: bobCookie } }));
 
-  const proxied = await fetch(`${baseUrl}/n8n/webhook/data`, {
+  const proxied = await fetch(`${baseUrl}/workflow/webhook/data`, {
     method: 'POST',
     headers: {
       cookie: bobCookie,

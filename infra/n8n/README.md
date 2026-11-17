@@ -13,7 +13,7 @@ http://127.0.0.1:5678
 ```
 
 The API gateway can also proxy `/n8n/*` to this local service when
-`API_GATEWAY_N8N_TARGET` points at it.
+The optional trigger adapter is configured through `WORKFLOW=n8n` and `N8N_WEBHOOK_BASE_URL`; the panel-facing gateway never proxies to n8n.
 
 ## Files
 

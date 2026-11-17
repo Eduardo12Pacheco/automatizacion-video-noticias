@@ -4,7 +4,6 @@ export const DEFAULT_HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8099;
 
 export const DEFAULT_ROUTES = Object.freeze({
-  n8n: { prefix: '/n8n', target: 'http://127.0.0.1:5678' },
   tts: { prefix: '/tts', target: 'http://127.0.0.1:8088' },
   subtitles: { prefix: '/subtitles', target: 'http://127.0.0.1:8092' },
   radar: { prefix: '/radar', target: 'http://127.0.0.1:8765' },
@@ -99,7 +98,6 @@ export const DEFAULT_LOGIN_IP_LOCK_MS = 60_000;
 export const DEFAULT_TRUSTED_PROXY_CIDRS = Object.freeze([]);
 
 export const SERVICE_CREDENTIAL_ENV = Object.freeze({
-  n8n: Object.freeze({ apiKey: 'API_GATEWAY_N8N_API_KEY' }),
   tts: Object.freeze({ apiKey: 'API_GATEWAY_TTS_API_KEY', basicUser: 'API_GATEWAY_TTS_BASIC_USER', basicPass: 'API_GATEWAY_TTS_BASIC_PASS' }),
   subtitles: Object.freeze({ apiKey: 'API_GATEWAY_SUBTITLES_API_KEY', basicUser: 'API_GATEWAY_SUBTITLES_BASIC_USER', basicPass: 'API_GATEWAY_SUBTITLES_BASIC_PASS' }),
   radar: Object.freeze({ apiKey: 'API_GATEWAY_RADAR_API_KEY' }),
