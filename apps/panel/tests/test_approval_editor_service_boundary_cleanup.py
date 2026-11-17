@@ -97,11 +97,11 @@ const { createApprovalEditorService } = require('@newsroom/approval-editor/serve
     updatedAt: new Date().toISOString(),
   }], null, 2));
 
-  const server = createApprovalEditorService({ projectsRoot });
+  const server = createApprovalEditorService({ projectsRoot, env: { APPROVAL_EDITOR_API_TOKEN: 'panel-boundary-token' } });
   try {
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     const { port } = server.address();
-    const response = await fetch(`http://127.0.0.1:${port}/api/projects/${projectId}/files/audio/voice-preview.mp3`);
+    const response = await fetch(`http://127.0.0.1:${port}/api/projects/${projectId}/files/audio/voice-preview.mp3`, { headers: { 'x-api-key': 'panel-boundary-token' } });
     const body = await response.text();
     if (!response.ok) throw new Error(`expected 200, got ${response.status}: ${body}`);
     if (body !== 'preview-audio') throw new Error(`body drift: ${body}`);
@@ -138,6 +138,7 @@ const { createApprovalEditorService } = require('@newsroom/approval-editor/serve
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-boundary-defaults-'));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: 'panel-boundary-token' },
     alignVoiceAudio: async ({ segments }) => ({
       segments: segments.map((segment, index) => ({ ...segment, startTime: index, endTime: index + 1 })),
       alignedTimings: { phrases: segments.map((_segment, index) => ({ startTime: index, endTime: index + 1 })) },
@@ -151,7 +152,7 @@ const { createApprovalEditorService } = require('@newsroom/approval-editor/serve
     const { port } = server.address();
     const response = await fetch(`http://127.0.0.1:${port}/api/projects/create-from-approval`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'x-api-key': 'panel-boundary-token', 'content-type': 'application/json' },
       body: JSON.stringify({
         project_id: 'boundary-defaults-project',
         title: 'Boundary Defaults Project',

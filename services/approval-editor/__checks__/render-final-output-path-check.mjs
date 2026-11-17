@@ -9,6 +9,8 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { createApprovalEditorService } = require('../server.js');
 
+const TOKEN = 'approval-check-token';
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -28,7 +30,7 @@ function close(server) {
 async function requestJson(baseUrl, pathname, { method = 'GET', body } = {}) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method,
-    headers: body ? { 'content-type': 'application/json' } : undefined,
+    headers: { 'x-api-key': TOKEN, ...(body ? { 'content-type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   return { status: response.status, body: await response.json() };
@@ -42,6 +44,7 @@ async function withService(renderAdapter, run) {
   const projectsRoot = await mkdtemp(path.join(tmpdir(), 'approval-render-output-'));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN },
     renderAdapter,
     alignVoiceAudio: async ({ segments }) => ({
       segments: segments.map((segment, index) => ({ ...segment, startTime: index, endTime: index + 1, timingSource: 'test' })),

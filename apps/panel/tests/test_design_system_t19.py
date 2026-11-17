@@ -154,7 +154,9 @@ if (memory.get(THEME_STORAGE_KEY) !== 'light') throw new Error('theme not persis
     assert result.returncode == 0, result.stderr
 
     index = _read(INDEX)
-    assert "prefers-color-scheme: light" in index
+    theme_bootstrap = _read(ROOT / "js" / "theme-init.js")
+    assert "prefers-color-scheme: light" in theme_bootstrap
+    assert '<script src="./js/theme-init.js"></script>' in index
     assert 'id="themeSelect"' in index
     runtime = _read(ROOT / "js" / "modules" / "app-shell" / "runtime.js")
     assert "createThemeController" in runtime

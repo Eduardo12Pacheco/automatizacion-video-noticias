@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url);
 const {
   createApprovalEditorService,
 } = require('../server.js');
+
+const TOKEN = 'approval-check-token';
 const {
   extractVoiceAudioFromMp4,
   resolveVoiceExtractionErrorStatus,
@@ -24,7 +26,10 @@ async function withTempDir(run) {
 }
 
 async function withService(options, run) {
-  const service = createApprovalEditorService(options);
+  const service = createApprovalEditorService({
+    ...options,
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN, ...(options.env || {}) },
+  });
   await new Promise((resolve) => service.listen(0, '127.0.0.1', resolve));
   const address = service.address();
   try {
@@ -133,7 +138,7 @@ test('extract voice route accepts storage source metadata, downloads MP4 server-
     }, async (baseUrl) => {
       const response = await fetch(`${baseUrl}/api/audio/extract-voice`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'x-api-key': TOKEN, 'content-type': 'application/json' },
         body: JSON.stringify({
           source: {
             publicUrl: 'https://storage.example.com/projects/draft/videos/camera.mp4',
@@ -170,7 +175,7 @@ test('extract voice route retains binary MP4 backwards compatibility', async () 
     }, async (baseUrl) => {
       const response = await fetch(`${baseUrl}/api/audio/extract-voice`, {
         method: 'POST',
-        headers: { 'content-type': 'video/mp4' },
+        headers: { 'x-api-key': TOKEN, 'content-type': 'video/mp4' },
         body: Buffer.from('browser-binary-mp4'),
       });
 

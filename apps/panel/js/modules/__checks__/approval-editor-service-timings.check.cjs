@@ -5,6 +5,8 @@ const path = require('node:path');
 const { createApprovalEditorService, normalizeSegments } = require('@newsroom/approval-editor/server');
 const { alignSegmentsToTranscript, resolvePythonBin } = require('@newsroom/approval-editor/lib/real-alignment');
 
+const TOKEN = 'approval-timings-check-token';
+
 function listen(server) {
   return new Promise((resolve) => {
     server.listen(0, '127.0.0.1', () => resolve(server.address().port));
@@ -18,7 +20,7 @@ function close(server) {
 async function postJson(baseUrl, payload) {
   const response = await fetch(`${baseUrl}/api/projects/create-from-approval`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'x-api-key': TOKEN, 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
   return { status: response.status, body: await response.json() };
@@ -180,6 +182,7 @@ async function testServiceUsesInjectedRealAlignmentTimings() {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-service-timings-'));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN },
     alignVoiceAudio: async ({ segments }) => createAlignedResult(segments),
     prepareAudioPreview: async () => null,
   });
@@ -202,9 +205,10 @@ async function testServiceDoesNotMarkFailedAlignmentReadyByDefault() {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-service-timings-'));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN },
     alignVoiceAudio: async () => { throw new Error('fake whisper failure'); },
     prepareAudioPreview: async () => null,
-    env: {},
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN },
   });
   const port = await listen(server);
   try {
@@ -222,6 +226,7 @@ async function testServiceUsesPreviewAudioDerivativesButKeepsRenderOriginals() {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-service-audio-preview-'));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN },
     alignVoiceAudio: async ({ segments }) => createAlignedResult(segments),
     prepareAudioPreview: async ({ projectDir, role, outputName }) => {
       const relativePath = path.join('audio', outputName).replace(/\\/g, '/');
@@ -250,7 +255,7 @@ async function testServiceUsesPreviewAudioDerivativesButKeepsRenderOriginals() {
     assert.equal(voiceAsset.previewUrl, snapshot.audio.voice.previewUrl);
     assert.equal(musicAsset.previewUrl, snapshot.audio.music.previewUrl);
 
-    const derivativeResponse = await fetch(`http://127.0.0.1:${port}${snapshot.audio.voice.previewUrl}`);
+    const derivativeResponse = await fetch(`http://127.0.0.1:${port}${snapshot.audio.voice.previewUrl}`, { headers: { 'x-api-key': TOKEN } });
     assert.equal(derivativeResponse.status, 200);
     assert.equal(derivativeResponse.headers.get('content-type'), 'audio/mpeg');
     assert.equal(await derivativeResponse.text(), 'voice-preview');
@@ -264,6 +269,7 @@ async function testServiceFinalDownloadReturnsFinalUrlContract() {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-editor-service-final-url-'));
   const server = createApprovalEditorService({
     projectsRoot,
+    env: { APPROVAL_EDITOR_API_TOKEN: TOKEN },
     alignVoiceAudio: async ({ segments }) => createAlignedResult(segments),
     prepareAudioPreview: async () => null,
     renderAdapter: async () => ({ finalPath: 'file:///tmp/final.mp4' }),
@@ -277,12 +283,12 @@ async function testServiceFinalDownloadReturnsFinalUrlContract() {
 
     const renderResponse = await fetch(`http://127.0.0.1:${port}/api/projects/${encodeURIComponent(projectId)}/render-final`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'x-api-key': TOKEN, 'content-type': 'application/json' },
       body: JSON.stringify({ snapshotHash }),
     });
     assert.equal(renderResponse.status, 202);
 
-    const downloadResponse = await fetch(`http://127.0.0.1:${port}/api/projects/${encodeURIComponent(projectId)}/download/final`);
+    const downloadResponse = await fetch(`http://127.0.0.1:${port}/api/projects/${encodeURIComponent(projectId)}/download/final`, { headers: { 'x-api-key': TOKEN } });
     assert.equal(downloadResponse.status, 200);
     const downloadBody = await downloadResponse.json();
     assert.equal(downloadBody.data.finalUrl, 'file:///tmp/final.mp4');
