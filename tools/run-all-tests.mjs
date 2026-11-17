@@ -278,8 +278,15 @@ for (const step of steps) {
   const tapDir = step.skipParser === 'node' ? mkdtempSync(join(tmpdir(), 'newsroom-test-tap-')) : null;
   const tapFile = tapDir ? join(tapDir, 'report.tap') : null;
   const args = [...step.args];
-  if (tapFile) {
-    args.push('--test-reporter=spec', '--test-reporter-destination=stdout', '--test-reporter=tap', `--test-reporter-destination=${tapFile}`);
+  if (tapFile && args[0] === '--test') {
+    args.splice(
+      1,
+      0,
+      '--test-reporter=spec',
+      '--test-reporter-destination=stdout',
+      '--test-reporter=tap',
+      `--test-reporter-destination=${tapFile}`,
+    );
   } else if (step.skipParser === 'pytest') {
     args.push('-rs');
   }
