@@ -40,7 +40,7 @@ and `/panel/video-projects/:draftId/*`. Uploads use
 were removed. The gateway still enforces the panel session, editor role and
 CSRF origin on mutations.
 
-`POST /panel/uploads/...` accepts up to `MAX_UPLOAD_BYTES` (default 500 MiB).
+`POST /panel/uploads/...` accepts up to `MAX_UPLOAD_BYTES` (default 64 MiB). Uploads are buffered in memory, so larger source videos must use the subtitles worker endpoint; a declared size over the limit returns 413 before the body is read.
 
 ## Core use cases and local workflow endpoints
 

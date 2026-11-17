@@ -75,6 +75,24 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("newsroom installer", result.stdout)
 
+    def test_env_acl_hardening_failure_is_fatal(self):
+        module = REPO_ROOT / "infra" / "install" / "lib" / "Newsroom.Core.psm1"
+        script = (
+            f"Import-Module '{module}' -Force; "
+            f"Set-NrPrivateAcl -Path '{self.project / '.env'}' -Windows -AclWriter {{ throw 'access denied' }}"
+        )
+        result = subprocess.run(
+            powershell_command() + ["-Command", script],
+            cwd=str(REPO_ROOT),
+            env=self.base_env(),
+            text=True,
+            capture_output=True,
+            timeout=60,
+        )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("could not restrict .env permissions", result.stdout + result.stderr)
+        self.assertIn("access denied", result.stdout + result.stderr)
+
     def test_check_reports_prerequisites(self):
         result = self.run_ps("-Check", "-ProjectDir", str(self.project))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

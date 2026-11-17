@@ -51,7 +51,10 @@ export const DATA_MUTATION_ROUTES = Object.freeze([
   },
 ]);
 
-const DEFAULT_MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+// Uploads are buffered in process memory. 64 MiB is enough for voice tracks,
+// candidate images and short clips; subtitles source videos use the subtitles
+// worker's streaming endpoint instead of the panel blob store.
+const DEFAULT_MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
 
 const INLINE_CONTENT_TYPE_PATTERNS = Object.freeze([
   /^audio\/[a-z0-9.+-]+$/,
@@ -286,6 +289,10 @@ export function createDataRouter({
     }
     if (!isSafeUploadKey(key)) {
       return jsonResponse(400, { ok: false, error: 'invalid_storage_path' });
+    }
+    const declaredLength = Number.parseInt(String(headers['content-length'] || ''), 10);
+    if (Number.isFinite(declaredLength) && declaredLength > maxUploadBytes) {
+      return jsonResponse(413, { ok: false, error: 'payload_too_large' });
     }
     const bytes = await readBody({ maxBodyBytes: maxUploadBytes });
     const contentType = headers['content-type'] || 'application/octet-stream';

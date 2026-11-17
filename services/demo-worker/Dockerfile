@@ -15,6 +15,7 @@ ENV NODE_ENV=production \
     DEMO_VIDEO_PATH=/app/examples/brand/final-demo.mp4
 
 WORKDIR /app/services/demo-worker
+USER node
 EXPOSE 8088
 HEALTHCHECK --interval=10s --timeout=3s --retries=12 \
   CMD node -e "fetch('http://127.0.0.1:8088/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

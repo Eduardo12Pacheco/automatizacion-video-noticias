@@ -17,7 +17,12 @@ COPY services/renderer/assets ./services/renderer/assets
 COPY services/approval-editor ./services/approval-editor
 RUN mkdir -p /app/node_modules/@newsroom \
     && ln -s ../../packages/contracts /app/node_modules/@newsroom/contracts \
-    && mkdir -p /app/services/approval-editor/projects
+    && mkdir -p /app/services/approval-editor/projects /app/runtime/media/renderer \
+    && chown -R node:node /app/services/approval-editor/projects /app/runtime/media
+
+ENV HOME=/home/node
+
+USER node
 
 EXPOSE 3042
 HEALTHCHECK --interval=10s --timeout=3s --retries=12 \

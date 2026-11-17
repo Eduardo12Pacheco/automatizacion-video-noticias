@@ -265,6 +265,29 @@ describe('panel data router', () => {
     assert.equal(wrong.status, 405);
   });
 
+  it('rejects a declared upload over the in-memory limit before reading the body', async () => {
+    const limitedRoot = await mkdtemp(join(tmpdir(), 'newsroom-api-upload-limit-'));
+    try {
+      const limited = createDataRouter({
+        repository,
+        blobStorage: new FsBlobStorage({ root: limitedRoot }),
+        maxUploadBytes: 16,
+      });
+      let bodyRead = false;
+      const response = await limited.handle({
+        method: 'POST',
+        pathname: '/panel/uploads/video-project-audio/projects/abc/voice/voice.wav',
+        headers: { 'content-type': 'audio/wav', 'content-length': '1024' },
+        readBody: async () => { bodyRead = true; return Buffer.alloc(0); },
+      });
+      assert.equal(response.status, 413);
+      assert.equal(response.body.error, 'payload_too_large');
+      assert.equal(bodyRead, false);
+    } finally {
+      await rm(limitedRoot, { recursive: true, force: true });
+    }
+  });
+
   it('soft-disables a project so it disappears from reads', async () => {
     const disabled = await router.handle({
       method: 'POST',

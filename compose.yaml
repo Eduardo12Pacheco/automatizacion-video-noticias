@@ -196,7 +196,7 @@ services:
       context: .
       dockerfile: apps/panel/Dockerfile
     ports:
-      - "${NEWSROOM_BIND:-127.0.0.1}:${PANEL_PORT:-8080}:80"
+      - "${NEWSROOM_BIND:-127.0.0.1}:${PANEL_PORT:-8080}:8080"
     networks:
       panelnet:
         ipv4_address: ${NEWSROOM_PANEL_IP:?run ./install.sh first to generate .env; docker compose up alone cannot create the required secrets}

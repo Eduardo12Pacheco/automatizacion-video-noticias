@@ -45,7 +45,29 @@ dependency:
   `POST /panel/presence/heartbeat`, which writes only ephemeral presence state.
   Login throttling keys on user plus client IP, reads the client address from
   the right-most untrusted forwarding hop, and trusts `X-Forwarded-For` only
-  from the panel container's own address.
+  from the panel container's own address. Live locks are never evicted by a
+  username flood, a per-IP bucket backs the per-user lock, and a password
+  reset revokes every existing session for that user.
+- **Internal workers are token-gated.** The approval editor, renderer and
+  demo worker reject API calls without the installer-generated `x-api-key`;
+  development runs bind to `127.0.0.1`. The gateway injects the token over the
+  Compose network.
+- **Anti-framing and a strict CSP.** The panel sends `X-Frame-Options: DENY`,
+  `frame-ancestors 'none'`, `script-src 'self'` (no inline scripts), nosniff,
+  a same-origin referrer policy and a minimal permissions policy. Inline style
+  attributes are allowed because the progress/timeline renderers set them.
+- **SSRF guard on discovered URLs.** Article extraction and preview fetches
+  reject loopback, private, link-local, CGNAT, multicast, reserved and IPv6
+  equivalents, single-label hosts (Compose service names) and redirects to
+  those destinations, after DNS resolution. Media downloads additionally
+  allow-list YouTube hosts.
+- **Non-root containers.** The API, panel (unprivileged nginx), approval
+  editor, renderer, demo worker and CPU/GPU workers run as non-root users.
+  The one-shot `model-init` image stays root because it writes into the model
+  volumes Docker creates as root; it exits before the stack starts.
+- **Checksum-verified models.** Model files are pinned to Hugging Face
+  revisions and verified against SHA-256 entries in
+  `infra/models/model-manifest.json`; a mismatch aborts the install.
 - **Uploaded blobs are inert by default.** Only audio, video and raster images
   are served inline after magic-byte validation; every other type (including
   HTML, SVG and XML) is served as an `application/octet-stream` attachment with

@@ -398,30 +398,47 @@ function Update-NrEnvFile {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
     }
     Write-NrLinesFile -Path $target -Lines $output
-    # Restrict the generated secrets to the current user.
-    if ($env:OS -eq 'Windows_NT') {
-        try {
-            $acl = Get-Acl -LiteralPath $target
-            $acl.SetAccessRuleProtection($true, $false)
-            $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-            if ($null -ne $identity -and $identity.Name) {
-                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule `
-                    -ArgumentList @($identity.Name, 'FullControl', 'Allow')
-                $acl.SetAccessRule($rule)
-            }
-            Set-Acl -LiteralPath $target -AclObject $acl
-        } catch {
-            Write-NrWarn 'could not restrict .env permissions; verify the ACL manually'
-        }
-    } else {
-        # Development smoke tests on Linux/macOS. FileInfo handles dotfiles,
-        # unlike Get-Item in some PowerShell builds.
-        try {
-            $file = [System.IO.FileInfo]::new($target)
-            $file.UnixFileMode = [System.IO.UnixFileMode]::UserRead -bor [System.IO.UnixFileMode]::UserWrite
-        } catch { }
-    }
+    Set-NrPrivateAcl -Path $target -Windows:($env:OS -eq 'Windows_NT')
     Write-NrOk "environment file ready: $target"
+}
+
+# Restricts the generated secrets file to the current user. A failure is an
+# install error, never a warning: an .env readable by other accounts leaks every
+# secret the installer generated. `AclWriter` exists so the behaviour is
+# testable with a failing writer.
+function Set-NrPrivateAcl {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [switch]$Windows,
+        [scriptblock]$AclWriter
+    )
+    if ($Windows) {
+        $writer = $AclWriter
+        if ($null -eq $writer) {
+            $writer = {
+                param([string]$Target)
+                $acl = Get-Acl -LiteralPath $Target
+                $acl.SetAccessRuleProtection($true, $false)
+                $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+                if ($null -ne $identity -and $identity.Name) {
+                    $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule `
+                        -ArgumentList @($identity.Name, 'FullControl', 'Allow')
+                    $acl.SetAccessRule($rule)
+                }
+                Set-Acl -LiteralPath $Target -AclObject $acl
+            }
+        }
+        try {
+            & $writer $Path
+        } catch {
+            Stop-NrInstall ("could not restrict .env permissions: {0}" -f $_.Exception.Message)
+        }
+        return
+    }
+    # Development smoke tests on Linux/macOS. FileInfo handles dotfiles, unlike
+    # Get-Item in some PowerShell builds.
+    $file = [System.IO.FileInfo]::new($Path)
+    $file.UnixFileMode = [System.IO.UnixFileMode]::UserRead -bor [System.IO.UnixFileMode]::UserWrite
 }
 
 function Get-NrEnvValue {

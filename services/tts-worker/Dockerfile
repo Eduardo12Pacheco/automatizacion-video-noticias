@@ -27,8 +27,12 @@ WORKDIR /app/services/tts-worker
 
 ARG TTS_EXTRAS=piper
 RUN pip install ".[${TTS_EXTRAS}]" \
-    && mkdir -p runtime refs \
-    && touch refs/voz.wav refs/voz.txt
+    && mkdir -p runtime refs /app/gpu-lock \
+    && touch refs/voz.wav refs/voz.txt \
+    && useradd --create-home --uid 10001 newsroom \
+    && chown -R newsroom:newsroom /app/services/tts-worker /app/gpu-lock /tmp
+
+USER newsroom
 
 EXPOSE 8766
 CMD ["/app/services/tts-worker/scripts/run-local.sh"]

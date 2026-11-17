@@ -26,7 +26,12 @@ RUN python3 -m venv /opt/venv \
 
 WORKDIR /app/services/subtitles
 RUN npm ci --no-audit --no-fund \
-    && npx remotion browser ensure
+    && useradd --create-home --uid 10001 newsroom \
+    && mkdir -p /app/runtime/media \
+    && chown -R newsroom:newsroom /app/runtime /home/newsroom
+USER newsroom
+ENV HOME=/home/newsroom
+RUN npx remotion browser ensure
 
 EXPOSE 8092
 HEALTHCHECK --interval=10s --timeout=5s --retries=12 \

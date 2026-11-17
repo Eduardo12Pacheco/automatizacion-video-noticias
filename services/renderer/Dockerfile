@@ -31,6 +31,11 @@ COPY packages/contracts packages/contracts
 COPY services/renderer services/renderer
 
 WORKDIR /app/services/renderer
+ENV HOME=/home/node
+RUN mkdir -p /app/runtime/media/renderer /app/node_modules/@newsroom /home/node \
+    && ln -sfn /app/packages/contracts /app/node_modules/@newsroom/contracts \
+    && chown -R node:node /app/runtime /app/services/renderer /app/node_modules/@newsroom /home/node
+USER node
 RUN npx remotion browser ensure
 
 # Render-only worker: the approval editor calls it over HTTP through the
@@ -41,9 +46,6 @@ ENV RENDER_SERVER_HOST=0.0.0.0 \
     RENDERER_PROFILE=local \
     REMOTION_HARDWARE_ACCELERATION=disable \
     REMOTION_GL=swangle
-
-RUN mkdir -p /app/node_modules/@newsroom /app/runtime/media/renderer \
-    && ln -sfn /app/packages/contracts /app/node_modules/@newsroom/contracts
 
 EXPOSE 3042
 HEALTHCHECK --interval=15s --timeout=5s --retries=20 \

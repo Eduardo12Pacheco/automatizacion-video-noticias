@@ -72,6 +72,42 @@ class ComposeStackTests(unittest.TestCase):
         self.assertEqual(self.services["seed"]["command"], ["node", "scripts/seed-demo.js"])
         self.assertEqual(self.services["migrate"]["command"], ["node", "packages/data/scripts/migrate.js"])
 
+    def test_service_images_drop_root_except_the_one_shot_model_initializer(self) -> None:
+        non_root = (
+            "apps/api/Dockerfile",
+            "services/demo-worker/Dockerfile",
+            "services/approval-editor/Dockerfile",
+            "services/renderer/Dockerfile",
+            "services/asr-worker/Dockerfile",
+            "services/tts-worker/Dockerfile",
+            "services/subtitles/Dockerfile",
+            "services/channel-monitor/Dockerfile",
+        )
+        for relative in non_root:
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertRegex(text, r"(?m)^USER\s+(node|newsroom)\s*$", f"{relative} must drop root")
+        panel = (ROOT / "apps/panel/Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("nginx-unprivileged", panel)
+        self.assertIn("EXPOSE 8080", panel)
+        model_init = (ROOT / "infra/models/Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("stays root", model_init)
+        panel_ports = self.services["panel"]["ports"]
+        self.assertEqual(panel_ports, ["${NEWSROOM_BIND:-127.0.0.1}:${PANEL_PORT:-8080}:8080"])
+
+    def test_model_downloads_are_pinned_and_checksummed(self) -> None:
+        manifest = yaml.safe_load((ROOT / "infra" / "models" / "model-manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(manifest), {"piper", "whisper", "qwenTts"})
+        entries = [*manifest["whisper"].values(), manifest["qwenTts"], *manifest["piper"]["voices"].values()]
+        for entry in entries:
+            self.assertTrue(entry["files"])
+            for file in entry["files"]:
+                self.assertRegex(file["sha256"], r"^[0-9a-f]{64}$")
+        for entry in [*manifest["whisper"].values(), manifest["qwenTts"]]:
+            self.assertRegex(entry["revision"], r"^[0-9a-f]{40}$")
+        self.assertRegex(manifest["piper"]["revision"], r"^[0-9a-f]{40}$")
+        dockerfile = (ROOT / "infra" / "models" / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn("model-manifest.json", dockerfile)
+
     def test_images_exist_and_the_duplicate_compose_alias_is_gone(self) -> None:
         for path in (
             ROOT / "apps/api/Dockerfile",

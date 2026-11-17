@@ -17,7 +17,11 @@ RUN pip install /app/packages/python/newsroom_media
 COPY services/channel-monitor/pyproject.toml ./
 COPY services/channel-monitor/app ./app
 COPY services/channel-monitor/config ./config
-RUN pip install . && mkdir -p runtime
+RUN pip install . && mkdir -p runtime \
+    && useradd --create-home --uid 10001 newsroom \
+    && chown -R newsroom:newsroom /app/runtime /app/config
+
+USER newsroom
 
 EXPOSE 8790
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8790"]

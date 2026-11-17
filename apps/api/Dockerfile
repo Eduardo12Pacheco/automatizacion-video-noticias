@@ -32,6 +32,11 @@ COPY examples examples
 # The trafilatura CLI imports the shared URL guard from newsroom_media.
 RUN /opt/newsroom-python/bin/pip install --no-cache-dir /app/packages/python/newsroom_media
 
+RUN mkdir -p /app/data/blobs /app/data/documents /app/runtime-logs /app/runtime/media \
+    && chown -R node:node /app/data /app/runtime-logs /app/runtime/media
+
+USER node
+
 WORKDIR /app/apps/api
 EXPOSE 8099
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=12 \
