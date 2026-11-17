@@ -1,8 +1,9 @@
-# API gateway migration baseline
+# API
 
-The existing HTTP entrypoint is `src/gateway.js`; security regression tests are
-in `test/gateway-security.test.js`. This service will move into `apps/api`
-during the local-first migration.
+The HTTP entrypoint is `src/gateway.js`; security regression tests are in
+`test/gateway-security.test.js`. The API is the only backend the panel talks
+to and owns authentication, sessions, CSRF, roles, read models and the job
+queue.
 
 ## Verify the existing boundary
 
@@ -15,14 +16,10 @@ uses `/panel/bootstrap` and `/panel/session` for configuration and session state
 Do not introduce direct browser access to protected worker services while
 reorganizing files.
 
-Cloudflare deployment instructions are historical, not a requirement for the
-local product: do not guess deployed settings or use them as proof of local
-health. No tunnel or cloud account is needed for the intended default stack.
-
-Keep Voice TTS presets, refs, segmentation, sample rate, artifacts and runtime
-behavior unchanged during this structural migration. See the panel's
-`docs/collaboration-boundary-rollout-checklist.md` for the existing boundary
-checks; optional public deployment is outside this task.
+The local product needs no tunnel or cloud account. Optional deployment is
+outside this repository; see the panel's
+[`docs/parity/contract-matrix.md`](../panel/docs/parity/contract-matrix.md) for
+the browser-facing boundary.
 
 ## Local data layer
 

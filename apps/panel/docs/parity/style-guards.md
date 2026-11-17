@@ -1,42 +1,41 @@
-# Approval Panel Web — Style Guards (Baseline)
+# Panel style guards
 
-## Protected Views
+The panel keeps its look stable across refactors through computed-style parity,
+not through frozen CSS snapshots.
 
-- `#authGate`
-- `#appShell`
-- `#viewApproval`
-- `#viewScripts`
-- `#viewAudio`
-- `#viewSubtitulos2`
+## Protected views
 
-## Guarded Selectors
+`#authGate`, `#appShell`, `#viewApproval`, `#viewScripts`, `#viewAudio`,
+`#viewSubtitulos2`.
 
-- `.sidebar`
-- `.topbar`
-- `.card`
-- `.audio-queue-card`
-- `.subtitle-phase-bar`
-- `.video-projects-layout`
-- `.video-project-card`
-- `.composition-stage`
+## Guarded selectors
 
-## Import/Cascade Guard Rule
+`.sidebar`, `.topbar`, `.card`, `.audio-queue-card`,
+`.subtitle-phase-bar`, `.video-projects-layout`, `.video-project-card`,
+`.composition-stage`.
 
-`styles.css` MUST remain import-only with locked order matching the design split layers. Any selector rename, order drift, or specificity drift is a parity failure.
+## Rules
 
-Video Projects CSS MUST enter through `styles/features/video-projects/index.css` in the same cascade slot previously held by `styles/features/video-projects.css`. That facade MUST stay import-only and preserve chunk order: layout → project-list → setup-images → setup-audio → editor-shell → editor-controls → preview-composition → video-selector → responsive.
+- `styles.css` stays import-only and keeps its cascade order.
+- Video Projects CSS enters through
+  `styles/features/video-projects/index.css` in the same cascade slot it has
+  always used, with this chunk order: layout → project-list → setup-images →
+  setup-audio → editor-shell → editor-controls → preview-composition →
+  video-selector → responsive.
+- A selector rename, import-order change or specificity change is a parity
+  failure until the computed-style snapshot in
+  `js/modules/__checks__/global/css-computed-style-parity.js` is updated with
+  the intended change.
 
-## Video Projects CSS Rollback
+## Rollback
 
-If a Video Projects style guard fails, rollback only the CSS slice: restore the previous `styles.css` import target and remove the extracted `styles/features/video-projects/` chunk files. Do not bundle Radar, render, controller, app-shell, or CompositionRenderer behavior changes into this rollback.
+If a Video Projects style guard fails, revert only that CSS slice: restore the
+previous `styles.css` import target and remove the extracted
+`styles/features/video-projects/` chunk files. Do not mix in Radar, render,
+controller, app-shell or composition changes.
 
-## Executable Computed-Style Guard
+## Evidence
 
-- Runtime checker: `js/modules/__checks__/css-computed-style-parity.js`
-- Contract test entry: `tests/test_phase5_css_split_parity.py::test_executable_computed_style_parity_evidence_exists_for_guarded_selectors`
-- Guarded computed-style snapshot: `tests/test_phase5_css_split_parity.py::test_computed_style_parity_snapshot_covers_multiple_guarded_selectors`
-
-## Legacy Archive Guard (non-runtime)
-
-- The legacy archive (`js/legacy/app.js`) was removed during the repository cleanup; no tracked legacy entrypoint remains.
-- Runtime must never import/include a legacy app entrypoint; any reference is a parity failure.
+- Runtime checker: `js/modules/__checks__/global/css-computed-style-parity.js`
+- Panel tests: `apps/panel/tests/test_phase5_css_split_parity.py` and the
+  `__checks__` runner (`pnpm test:checks`).
