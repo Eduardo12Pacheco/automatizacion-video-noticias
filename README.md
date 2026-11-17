@@ -335,7 +335,7 @@ pnpm test:all
 
 It covers every Node package, the panel pytest suite and its 42 `__checks__`
 scripts, each Python service, the tools tests, installer tests and the Compose
-config: **27 of 29 suites pass, 0 failures, 2 allow-listed skips** on the current
+config: **28 of 30 suites pass, 0 failures, 2 allow-listed skips** on the current
 revision (the demo E2E and the local-mode E2E need a running stack; CI runs both
 in their own jobs, and `e2e/local-mode.spec.js` downloads the real models and
 asserts the rendered audio, subtitles and MP4 with `ffprobe`). The visual-QA

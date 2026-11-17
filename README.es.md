@@ -335,7 +335,7 @@ pnpm test:all
 
 Cubre todos los paquetes Node, la suite pytest del panel y sus 42 scripts
 `__checks__`, cada servicio Python, las pruebas de tools, las de instaladores y
-la configuración de Compose: **27 de 29 suites pasan, 0 fallos y 2 omisiones
+la configuración de Compose: **28 de 30 suites pasan, 0 fallos y 2 omisiones
 permitidas** en la revisión actual (el E2E demo y el E2E local necesitan el stack
 levantado; CI ejecuta ambos en sus propios jobs, y `e2e/local-mode.spec.js`
 descarga los modelos reales y valida con `ffprobe` el audio, los subtítulos y el
