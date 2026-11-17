@@ -128,8 +128,11 @@ behaviour tests, not by a physical Windows host in this repository's CI.
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `build:`, `ci:`.
-Keep each commit a coherent work unit and include the tests that prove it. Do
-not add `Co-Authored-By` or any AI attribution line.
+Keep each commit a coherent work unit and include the tests that prove it.
+Commit messages must not carry co-author or tool-attribution trailers such as
+`Co-Authored-By` or `Generated-by`; the author line belongs to the person who
+commits. The AI-assistance note in the README describes how the project was
+built, not a commit convention.
 
 ## Pull requests
 

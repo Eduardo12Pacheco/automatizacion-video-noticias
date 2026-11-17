@@ -76,6 +76,8 @@ copyright notice plus the full license text:
 | `services/subtitles/assets/fonts/subtitles/` | Anton, Bebas Neue, Khand, League Gothic, Oswald | `OFL.txt` |
 | `examples/brand/fonts/` | `Demo-Display.woff2` (derived from Anton) | `OFL.txt` |
 | `apps/panel/assets/fonts/display/` | `Demo-Display.woff2` | `OFL.txt` |
+| `apps/panel/assets/fonts/inter/` | Inter | `OFL.txt` |
+| `apps/panel/assets/fonts/jetbrains-mono/` | JetBrains Mono | `OFL.txt` |
 | `services/renderer/public/fonts/display/` | `Demo-Display.woff2` | `OFL.txt` |
 
 `Demo-Display.woff2` is a renamed, subsetted repackaging of the OFL-licensed
@@ -102,7 +104,7 @@ clones a reference voice instead of shipping a fixed speaker.
 
 ## Recorded Demo
 
-`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (41-second
+`docs/images/demo.gif` (short loop) and `docs/images/demo.mp4` (67-second
 walkthrough, 1440x900) are screen recordings of the panel in **demo mode** on
 the keyless stack, in Spanish with the seeded fictional story: login, Guiones,
 Voz (a real voice job reaching "Completado" 100 %), Subtítulos, the script

@@ -4,6 +4,10 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Local-first](https://img.shields.io/badge/local--first-no%20API%20keys-2ea043.svg)](#local-first-by-default)
 
+*This project was built with AI assistance: an autonomous coding agent
+implemented the rebuild from a reviewed feature document, with tests, local
+verification and human review at the decision points.*
+
 **A local-first newsroom pipeline that takes a story from discovery to a
 rendered video without an API key or a cloud account.**
 
@@ -12,17 +16,26 @@ rendered video without an API key or a cloud account.**
 ![Recorded demo walkthrough](docs/images/demo.gif)
 
 The clip above is a short loop of a real demo-mode run; the
-[MP4](docs/images/demo.mp4) is the full 41-second walkthrough, including a real
-demo voice job finishing at 100 %. Both were recorded from the running stack
-with the seeded fictional story, not from a design mock.
+[MP4](docs/images/demo.mp4) is the full 67-second walkthrough through
+discovery, approval, voice, subtitles and projects, including a real demo voice
+job finishing at 100 %. Both were recorded from the running stack with the
+seeded fictional story, not from a design mock.
 
-| Guiones · ES · desktop | Guiones · ES · mobile |
+| Guiones · ES · desktop | Guiones · EN · desktop |
 |---|---|
-| ![Script approval on desktop](docs/images/screens/approval-es-desktop.png) | ![Script approval on mobile](docs/images/screens/approval-es-mobile.png) |
+| ![Script approval in Spanish on desktop](docs/images/screens/approval-es-desktop.png) | ![Script approval in English on desktop](docs/images/screens/approval-en-desktop.png) |
 
-| Prensa · EN · desktop | Prensa · EN · mobile |
+| Guiones · ES · mobile | Guiones · EN · mobile |
 |---|---|
-| ![News discovery on desktop](docs/images/screens/radar-en-desktop.png) | ![News discovery on mobile](docs/images/screens/radar-en-mobile.png) |
+| ![Script approval in Spanish on mobile](docs/images/screens/approval-es-mobile.png) | ![Script approval in English on mobile](docs/images/screens/approval-en-mobile.png) |
+
+| Prensa · ES · desktop | Prensa · EN · desktop |
+|---|---|
+| ![News discovery in Spanish on desktop](docs/images/screens/radar-es-desktop.png) | ![News discovery in English on desktop](docs/images/screens/radar-en-desktop.png) |
+
+| Prensa · ES · mobile | Prensa · EN · mobile |
+|---|---|
+| ![News discovery in Spanish on mobile](docs/images/screens/radar-es-mobile.png) | ![News discovery in English on mobile](docs/images/screens/radar-en-mobile.png) |
 
 | Prensa · ES · light theme |
 |---|
@@ -130,7 +143,7 @@ nightly/manual CI job that asserts the real media.
 |---|---|---|---|
 | `demo` (default) | Deterministic stub adapters, seeded fictional story, no downloads | None | A first look, screenshots, the browser happy path |
 | `local` | Ollama script writing (`qwen2.5:3b-instruct`), trafilatura extraction, Piper Spanish voice, faster-whisper `small` int8 subtitles and a real Remotion 720p MP4 on CPU | Ollama, Whisper and Piper | A real offline run |
-| `local --gpu` | The same pipeline with Ollama, Whisper and Qwen3-TTS on an NVIDIA GPU | The same plus the Qwen3-TTS 1.7B checkpoint (~4.5 GB) | An NVIDIA machine (tested on an 8 GB RTX 4060) |
+| `local --gpu` | The same pipeline with Ollama, Whisper and Qwen3-TTS on an NVIDIA GPU | The same plus the Qwen3-TTS 1.7B checkpoint (~4.5 GB) | An NVIDIA machine (tested on an 8 GB RTX 4060); better voice and LLM, not less total time |
 
 The panel always shows a **Modo demo / Demo mode** badge when the demo adapter
 set is active, so a screenshot cannot be mistaken for a real AI run. Whisper and
@@ -378,9 +391,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full test matrix and conventions.
 - The UI chrome, navigation, admin area and every screen in the visual-QA suite
   are translated in ES/EN. Generated editorial content (news titles, scripts,
   player names) intentionally stays in its source language.
-- This project was built with AI assistance: an autonomous coding agent
-  implemented the rebuild from a reviewed feature document, with tests, local
-  verification and human review at the decision points.
 
 ## Remotion license
 

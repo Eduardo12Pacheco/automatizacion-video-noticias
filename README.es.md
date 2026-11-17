@@ -4,6 +4,11 @@
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-green.svg)](LICENSE)
 [![Local-first](https://img.shields.io/badge/local--first-sin%20claves%20de%20API-2ea043.svg)](#local-first-por-defecto)
 
+*Este proyecto se construyó con asistencia de IA: un agente autónomo
+implementó la reconstrucción a partir de un documento de especificación
+revisado, con tests, verificación local y revisión humana en los puntos de
+decisión.*
+
 **Un pipeline de noticias local-first que lleva una historia desde el
 descubrimiento hasta un video renderizado sin claves de API ni cuentas en la
 nube.**
@@ -13,17 +18,26 @@ nube.**
 ![Recorrido grabado en modo demo](docs/images/demo.gif)
 
 El GIF es un loop corto de una ejecución real en modo demo; el
-[MP4](docs/images/demo.mp4) es el recorrido completo de 41 segundos, incluido un job
-de voz demo terminando al 100 %. Ambos se grabaron desde el stack en ejecución
-con la historia ficticia sembrada, no desde un mockup.
+[MP4](docs/images/demo.mp4) es el recorrido completo de 67 segundos por
+descubrimiento, aprobación, voz, subtítulos y proyectos, incluido un job de voz
+demo terminando al 100 %. Ambos se grabaron desde el stack en ejecución con la
+historia ficticia sembrada, no desde un mockup.
 
-| Guiones · ES · escritorio | Guiones · ES · móvil |
+| Guiones · ES · escritorio | Guiones · EN · escritorio |
 |---|---|
-| ![Aprobación de guiones en escritorio](docs/images/screens/approval-es-desktop.png) | ![Aprobación de guiones en móvil](docs/images/screens/approval-es-mobile.png) |
+| ![Aprobación de guiones en español en escritorio](docs/images/screens/approval-es-desktop.png) | ![Aprobación de guiones en inglés en escritorio](docs/images/screens/approval-en-desktop.png) |
 
-| Prensa · EN · escritorio | Prensa · EN · móvil |
+| Guiones · ES · móvil | Guiones · EN · móvil |
 |---|---|
-| ![Descubrimiento de noticias en escritorio](docs/images/screens/radar-en-desktop.png) | ![Descubrimiento de noticias en móvil](docs/images/screens/radar-en-mobile.png) |
+| ![Aprobación de guiones en español en móvil](docs/images/screens/approval-es-mobile.png) | ![Aprobación de guiones en inglés en móvil](docs/images/screens/approval-en-mobile.png) |
+
+| Prensa · ES · escritorio | Prensa · EN · escritorio |
+|---|---|
+| ![Descubrimiento de noticias en español en escritorio](docs/images/screens/radar-es-desktop.png) | ![Descubrimiento de noticias en inglés en escritorio](docs/images/screens/radar-en-desktop.png) |
+
+| Prensa · ES · móvil | Prensa · EN · móvil |
+|---|---|
+| ![Descubrimiento de noticias en español en móvil](docs/images/screens/radar-es-mobile.png) | ![Descubrimiento de noticias en inglés en móvil](docs/images/screens/radar-en-mobile.png) |
 
 | Prensa · ES · tema claro |
 |---|
@@ -371,7 +385,7 @@ La matriz completa y las convenciones están en [CONTRIBUTING.md](CONTRIBUTING.m
   620.70, `nvidia-container-toolkit`): `docker run --rm --gpus all
   nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` funciona y el E2E local pasó
   con Ollama CUDA, faster-whisper y Qwen3-TTS reales. El pico de memoria de la
-  tarjeta fue 6,646 MB de 8,188 MB (incluido el escritorio); la variante de voz
+  tarjeta fue 6,646 MB de 8,188 MB; la variante de voz
   1.7B cabe porque el LLM se descarga enseguida y los jobs GPU se serializan.
   GPU no es más rápido de punta a punta que CPU (la síntesis de Qwen pesa más y
   el render de Remotion sigue en CPU): la ejecución medida tardó 6.1 min frente
@@ -380,9 +394,6 @@ La matriz completa y las convenciones están en [CONTRIBUTING.md](CONTRIBUTING.m
   de la suite de QA visual están traducidos en ES/EN. El contenido editorial
   generado (titulares, guiones, nombres de jugadores) queda en su idioma de
   origen a propósito.
-- **Construido con asistencia de IA.** Un agente autónomo implementó esta
-  reconstrucción a partir de un documento de especificación revisado, con tests,
-  verificación local y revisión humana en los puntos de decisión.
 
 ## Licencia de Remotion
 
