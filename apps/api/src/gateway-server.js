@@ -5,6 +5,8 @@ import {
   DEFAULT_ALLOWED_HEADERS,
   DEFAULT_ALLOWED_METHODS,
   DEFAULT_EXPOSED_HEADERS,
+  DEFAULT_LOGIN_IP_FAILURE_LIMIT,
+  DEFAULT_LOGIN_IP_LOCK_MS,
   DEFAULT_MAX_BODY_BYTES,
   DEFAULT_PANEL_BOOTSTRAP,
   DEFAULT_PANEL_SESSION_MAX_AGE_SECONDS,
@@ -198,6 +200,8 @@ export function createGatewayServer({
   maxPanelSessions = 1_000,
   maxLoginAttempts = 1_000,
   loginAttemptTtlMs = 15 * 60 * 1000,
+  loginIpFailureLimit = DEFAULT_LOGIN_IP_FAILURE_LIMIT,
+  loginIpLockMs = DEFAULT_LOGIN_IP_LOCK_MS,
   trustedProxyCidrs = DEFAULT_TRUSTED_PROXY_CIDRS,
   maxPresenceSessions = 1_000,
   presenceTtlMs = DEFAULT_PRESENCE_TTL_MS,
@@ -254,6 +258,12 @@ export function createGatewayServer({
   }
   if (!Number.isSafeInteger(loginAttemptTtlMs) || loginAttemptTtlMs <= 0) {
     throw new GatewayConfigError('loginAttemptTtlMs must be a positive safe integer');
+  }
+  if (!Number.isSafeInteger(loginIpFailureLimit) || loginIpFailureLimit <= 0) {
+    throw new GatewayConfigError('loginIpFailureLimit must be a positive safe integer');
+  }
+  if (!Number.isSafeInteger(loginIpLockMs) || loginIpLockMs <= 0) {
+    throw new GatewayConfigError('loginIpLockMs must be a positive safe integer');
   }
   if (!Number.isSafeInteger(maxPresenceSessions) || maxPresenceSessions <= 0) {
     throw new GatewayConfigError('maxPresenceSessions must be a positive safe integer');
@@ -329,6 +339,9 @@ export function createGatewayServer({
     authService,
     logger,
     loginAttempts: new BoundedTtlStore({ maxEntries: maxLoginAttempts }),
+    loginIpAttempts: new BoundedTtlStore({ maxEntries: maxLoginAttempts }),
+    loginIpFailureLimit,
+    loginIpLockMs,
     presenceStore: new BoundedTtlStore({ maxEntries: maxPresenceSessions }),
     presenceTtlMs,
   };

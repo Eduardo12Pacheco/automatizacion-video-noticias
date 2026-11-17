@@ -91,6 +91,8 @@ export const DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS = 120_000;
 export const DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS = 15 * 60 * 1000;
 export const DEFAULT_PANEL_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 export const DEFAULT_PRESENCE_TTL_MS = 60_000;
+export const DEFAULT_LOGIN_IP_FAILURE_LIMIT = 20;
+export const DEFAULT_LOGIN_IP_LOCK_MS = 60_000;
 // No proxy is trusted by default: a direct connection to the published API
 // must never be able to spoof X-Forwarded-For. Compose sets the panel
 // container's own address explicitly.
@@ -365,15 +367,33 @@ export class BoundedTtlStore {
     return entry.value;
   }
 
-  set(key, value, { ttlMs, nowMs = Date.now() } = {}) {
+  /**
+   * Store a value and evict the oldest evictable entry when over capacity.
+   *
+   * Live locks (login throttles) are marked `evictable: false` so a flood of
+   * other keys can never clear them. When every entry is a live lock the new
+   * value is NOT stored and `false` is returned: callers fail closed instead
+   * of silently dropping protection.
+   */
+  set(key, value, { ttlMs, nowMs = Date.now(), evictable = true } = {}) {
     const ttl = Number.isFinite(ttlMs) ? Math.max(0, ttlMs) : Number.POSITIVE_INFINITY;
     this.cleanup(nowMs);
     if (this.entries.has(key)) this.entries.delete(key);
-    this.entries.set(key, { value, expiresAtMs: nowMs + ttl });
+    this.entries.set(key, { value, expiresAtMs: nowMs + ttl, evictable });
     while (this.entries.size > this.maxEntries) {
-      const oldestKey = this.entries.keys().next().value;
-      this.entries.delete(oldestKey);
+      let evicted = false;
+      for (const [candidateKey, entry] of this.entries) {
+        if (candidateKey === key || !entry.evictable) continue;
+        this.entries.delete(candidateKey);
+        evicted = true;
+        break;
+      }
+      if (!evicted) {
+        this.entries.delete(key);
+        return false;
+      }
     }
+    return true;
   }
 
   delete(key) {

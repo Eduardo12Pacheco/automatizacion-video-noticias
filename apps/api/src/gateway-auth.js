@@ -196,6 +196,12 @@ export async function handlePanelLogin(req, res, options) {
     writeJson(res, 429, { error: 'too_many_attempts', code: 'too_many_attempts', retry_after_seconds: waitSeconds });
     return;
   }
+  const ipAttempt = options.loginIpAttempts.get(clientIp, nowMs) || { count: 0, lockedUntil: 0 };
+  if (ipAttempt.lockedUntil > nowMs) {
+    const waitSeconds = Math.ceil((ipAttempt.lockedUntil - nowMs) / 1000);
+    writeJson(res, 429, { error: 'too_many_attempts', code: 'too_many_attempts', retry_after_seconds: waitSeconds });
+    return;
+  }
 
   let authenticated = null;
   if (options.authService) {
@@ -212,7 +218,42 @@ export async function handlePanelLogin(req, res, options) {
   }
   if (!authenticated) {
     const next = { count: attempt.count + 1, lockedUntil: nowMs + Math.min(1000 * 2 ** attempt.count, 60000) };
-    options.loginAttempts.set(clientKey, next, { ttlMs: options.loginAttemptTtlMs, nowMs });
+    const stored = options.loginAttempts.set(clientKey, next, {
+      ttlMs: options.loginAttemptTtlMs,
+      nowMs,
+      // A currently locked key must never be evicted by unrelated usernames.
+      evictable: next.lockedUntil <= nowMs,
+    });
+    const ipCount = ipAttempt.count + 1;
+    const ipNext = {
+      count: ipCount,
+      lockedUntil: ipCount >= options.loginIpFailureLimit ? nowMs + options.loginIpLockMs : 0,
+    };
+    const ipStored = options.loginIpAttempts.set(clientIp, ipNext, {
+      ttlMs: options.loginAttemptTtlMs,
+      nowMs,
+      evictable: ipNext.lockedUntil <= nowMs,
+    });
+    if (!stored || !ipStored) {
+      // The throttle store is full of live locks: fail closed instead of
+      // dropping an existing lock to make room for this attempt.
+      emitGatewayEvent(req, options, {
+        kind: 'audit',
+        severity: 'warning',
+        action: 'panel.login',
+        outcome: 'rejected',
+        status_code: 429,
+        reason_code: 'throttle_capacity',
+        safe_message: 'Login throttle capacity exhausted',
+        context: requestBaseContext(req, { attempted_user: user }),
+      });
+      writeJson(res, 429, {
+        error: 'too_many_attempts',
+        code: 'too_many_attempts',
+        retry_after_seconds: Math.ceil(options.loginAttemptTtlMs / 1000),
+      });
+      return;
+    }
     emitGatewayEvent(req, options, {
       kind: 'audit',
       severity: 'warning',
