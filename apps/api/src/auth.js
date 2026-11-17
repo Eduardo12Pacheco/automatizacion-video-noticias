@@ -3,6 +3,10 @@ import bcrypt from 'bcryptjs';
 import { DomainError, NotFoundError, ValidationError } from '@newsroom/core';
 
 const DEFAULT_ROUNDS = 12;
+const MAX_PASSWORD_BYTES = 72;
+// A valid bcrypt hash used only to keep unknown-user logins as expensive as a
+// real comparison, so response timing does not reveal whether an account exists.
+const DUMMY_PASSWORD_HASH = '$2b$12$xqCUTbQd.wBdCstPvGLQpuCwlNurJvOLclxiR64kElFgYSx9dEnPO';
 const VALID_ROLES = new Set(['admin', 'editor', 'viewer']);
 
 export class AuthError extends DomainError {
@@ -18,6 +22,9 @@ export function normalizeEmail(value) {
 export function hashPassword(password, { rounds = DEFAULT_ROUNDS } = {}) {
   const value = String(password || '');
   if (value.length < 8) throw new ValidationError('password must be at least 8 characters');
+  if (Buffer.byteLength(value, 'utf8') > MAX_PASSWORD_BYTES) {
+    throw new ValidationError('password must be at most 72 bytes (UTF-8)');
+  }
   return bcrypt.hash(value, rounds);
 }
 
@@ -76,27 +83,30 @@ export function createAuthService({
   now = () => Date.now(),
   sessionMaxAgeSeconds = 60 * 60 * 24 * 7,
   rounds = DEFAULT_ROUNDS,
+  verify = verifyPassword,
 } = {}) {
   if (!repository) throw new Error('repository is required');
 
   async function authenticate({ user = '', password = '' } = {}) {
     const email = normalizeEmail(user);
-    if (repository && email) {
-      const record = await repository.getUserByEmail(email);
-      if (record && record.status === 'active' && verifyPassword(password, record.password_hash)) {
-        await repository.updateUser(record.user_id, { last_login_at: new Date(now()).toISOString() });
-        return {
-          user: {
-            user_id: record.user_id,
-            email: record.email,
-            display_name: record.display_name,
-          },
-          roles: [...record.roles],
-          source: 'repository',
-        };
-      }
+    const record = email ? await repository.getUserByEmail(email) : null;
+    if (!record || record.status !== 'active') {
+      // Run a full bcrypt comparison against a dummy hash so an unknown or
+      // disabled user is indistinguishable from a wrong password by timing.
+      verify(password, DUMMY_PASSWORD_HASH);
+      throw new AuthError('Invalid credentials');
     }
-    throw new AuthError('Invalid credentials');
+    if (!verify(password, record.password_hash)) throw new AuthError('Invalid credentials');
+    await repository.updateUser(record.user_id, { last_login_at: new Date(now()).toISOString() });
+    return {
+      user: {
+        user_id: record.user_id,
+        email: record.email,
+        display_name: record.display_name,
+      },
+      roles: [...record.roles],
+      source: 'repository',
+    };
   }
 
   async function createSession({ user, roles = [], ipAddress = '', userAgent = '' } = {}) {
@@ -167,6 +177,10 @@ export function createAuthService({
     if (password !== undefined) patch.passwordHash = await hashPassword(password, { rounds });
     let updated = Object.keys(patch).length ? await repository.updateUser(userId, patch) : existing;
     if (roles !== undefined) updated = await repository.setUserRoles(userId, normalizeRoles(roles));
+    if (password !== undefined) {
+      // A password reset invalidates every session of that user.
+      await repository.revokeSessionsForUser(userId);
+    }
     return publicUser(updated);
   }
 

@@ -303,6 +303,30 @@ people on your LAN use the panel:
 3. Allow the panel port through the host firewall.
 4. Open `http://<your-lan-ip>:8080`.
 
+> **Plain HTTP on a LAN is for trusted networks only.** The session cookie is
+> HTTP-only and SameSite=Lax, and becomes `Secure` automatically only when the
+> API sees HTTPS (directly, or through the trusted panel proxy's
+> `X-Forwarded-Proto`). Anyone who can observe the LAN traffic can read the
+> session token over plain HTTP.
+
+### Optional HTTPS (recommended for shared networks)
+
+Keep the stack loopback-bound and put a TLS terminator you control in front of
+the panel. For example, with Caddy on the same host:
+
+```caddyfile
+newsroom.example.lan {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
+Caddy obtains or uses a local certificate and proxies HTTPS to the panel. The
+panel forwards the HTTPS scheme to the API, which marks the session cookie
+`Secure`; regenerate the browser session by logging in again after switching
+from HTTP to HTTPS. An nginx terminator works the same way as long as it sends
+`X-Forwarded-Proto: https`. Do not accept that header from untrusted clients:
+only place the panel behind a reverse proxy you operate.
+
 Postgres, Ollama, SearXNG, Mailpit and n8n are not published. For debugging,
 add the optional override:
 

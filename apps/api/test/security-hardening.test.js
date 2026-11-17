@@ -9,7 +9,7 @@ import { InMemoryRepository, FsBlobStorage } from '@newsroom/data';
 import { createAdminRouter } from '../src/admin-router.js';
 import { createAuthService } from '../src/auth.js';
 import { createDataRouter } from '../src/data-router.js';
-import { createGatewayServer, readPanelUsersFromEnv, startGateway } from '../src/gateway.js';
+import { createGatewayServer, startGateway } from '../src/gateway.js';
 import { resolveClientIp } from '../src/gateway-auth.js';
 import { createLocalRouter } from '../src/local-router.js';
 import { PANEL_MUTATION_ROUTES } from '../src/route-table.js';
@@ -257,7 +257,6 @@ describe('login throttling behind the bundled proxy', () => {
 
   before(async () => {
     server = createGatewayServer({
-      panelAuth: { user: 'admin', pass: 'admin-secret' },
       allowedOrigins: [TRUSTED_ORIGIN],
       trustedMutationOrigins: [TRUSTED_ORIGIN],
       trustedProxyCidrs: ['127.0.0.1/32'],
@@ -328,7 +327,6 @@ describe('login throttling without a trusted proxy', () => {
 
   before(async () => {
     server = createGatewayServer({
-      panelAuth: { user: 'admin', pass: 'admin-secret' },
       allowedOrigins: [TRUSTED_ORIGIN],
       trustedMutationOrigins: [TRUSTED_ORIGIN],
       trustedProxyCidrs: ['10.0.0.0/8'],
@@ -354,11 +352,34 @@ describe('login throttling without a trusted proxy', () => {
 });
 
 describe('legacy env credentials', () => {
-  it('are never read as panel users', () => {
-    assert.deepEqual(readPanelUsersFromEnv({
-      API_GATEWAY_PANEL_USER: 'legacy',
-      API_GATEWAY_PANEL_PASS: 'legacy-secret',
-    }), []);
+  it('cannot authenticate even when the old env names are set', async () => {
+    const saved = { ...process.env };
+    let server;
+    try {
+      Object.assign(process.env, {
+        API_GATEWAY_PANEL_USER: 'legacy',
+        API_GATEWAY_PANEL_PASS: 'legacy-secret',
+      });
+      server = createGatewayServer({
+        allowedOrigins: [TRUSTED_ORIGIN],
+        trustedMutationOrigins: [TRUSTED_ORIGIN],
+        logger: { error() {}, warn() {}, info() {} },
+      });
+      const base = `http://127.0.0.1:${await listen(server)}`;
+      const response = await fetch(`${base}/panel/login`, {
+        method: 'POST',
+        headers: jsonHeaders({ origin: TRUSTED_ORIGIN }),
+        body: JSON.stringify({ user: 'legacy', pass: 'legacy-secret' }),
+      });
+      assert.equal(response.status, 401);
+      assert.equal(response.headers.get('set-cookie'), null);
+    } finally {
+      if (server) await new Promise((resolve) => server.close(resolve));
+      for (const key of Object.keys(process.env)) {
+        if (!(key in saved)) delete process.env[key];
+      }
+      Object.assign(process.env, saved);
+    }
   });
 
   it('cannot authenticate a disabled database user through startGateway', async () => {

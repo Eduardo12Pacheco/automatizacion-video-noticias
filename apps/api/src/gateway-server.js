@@ -30,7 +30,7 @@ import {
 } from './gateway-config.js';
 import { selectCorrelationId } from './gateway-events.js';
 import { emitGatewayEvent, readRawBody, requestBaseContext, writeJson } from './gateway-http.js';
-import { getVerifiedSession, handlePanelLogin, handlePanelLogout, handlePanelSession, normalizePanelUsers, requireRole } from './gateway-auth.js';
+import { getVerifiedSession, handlePanelLogin, handlePanelLogout, handlePanelSession, requireRole } from './gateway-auth.js';
 import {
   enforceBodySizeLimit,
   handlePreflight,
@@ -39,6 +39,7 @@ import {
   isTrustedMutationRequest,
   rejectCsrf,
   rejectPayloadTooLarge,
+  rejectUnknownMutation,
   rejectStaleShell,
   rejectUnauthenticated,
   resolvePanelReadModelRoute,
@@ -62,8 +63,22 @@ export async function handlePanelDataRequest(req, res, options) {
   const pathname = parsed.pathname;
   const method = String(req.method || 'GET').toUpperCase();
   const mutation = matchPanelMutation(method, pathname);
+  const mutating = !isSafeReadMethod(method);
 
   const session = await getVerifiedSession(req, options);
+  if (mutating && !mutation) {
+    // Fail closed: a mutating method the route table does not know must never
+    // skip the editor role or CSRF checks.
+    if (!requireRole(req, res, options, {
+      session,
+      role: PROTECTED_MUTATION_ROLE,
+      action: 'panel.data.authorization',
+    })) {
+      return;
+    }
+    rejectUnknownMutation(req, res, options, { session, action: 'panel.data.csrf' });
+    return;
+  }
   if (!requireRole(req, res, options, {
     session,
     role: mutation?.role || null,
@@ -122,9 +137,21 @@ export async function handleLocalRouterRequest(req, res, options, router, { admi
   const method = String(req.method || 'GET').toUpperCase();
   const safeRead = method === 'GET' || method === 'HEAD';
   const mutation = admin ? null : matchPanelMutation(method, pathname);
-  const mutating = admin ? !safeRead : Boolean(mutation);
+  const mutating = !safeRead;
+  const uncoveredMutation = !admin && mutating && !mutation;
 
   const session = await getVerifiedSession(req, options);
+  if (uncoveredMutation) {
+    if (!requireRole(req, res, options, {
+      session,
+      role: PROTECTED_MUTATION_ROLE,
+      action: 'panel.local.authorization',
+    })) {
+      return;
+    }
+    rejectUnknownMutation(req, res, options, { session, action: 'panel.local.csrf' });
+    return;
+  }
   if (!requireRole(req, res, options, {
     session,
     role: admin ? 'admin' : mutation?.role || null,
@@ -191,8 +218,6 @@ export function createGatewayServer({
   trustedMutationOrigins = null,
   panelBootstrap = DEFAULT_PANEL_BOOTSTRAP,
   panelSessions = {},
-  panelAuth = null,
-  panelUsers = [],
   serviceCredentials = {},
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
   upstreamTimeoutMs = DEFAULT_UPSTREAM_TIMEOUT_MS,
@@ -218,10 +243,8 @@ export function createGatewayServer({
   authService = null,
   logger = console,
 } = {}) {
-  const normalizedPanelUsers = normalizePanelUsers(panelUsers, panelAuth);
-  if (!normalizedPanelUsers.size && !authService) {
-    throw new GatewayConfigError('API Gateway panel auth requires an auth service or configured panel users');
-  }
+  // Login always fails without the repository-backed auth service; there is
+  // no plaintext environment fallback. Tests may still seed panel sessions.
   if (!Array.isArray(allowedOrigins)) {
     throw new GatewayConfigError('allowedOrigins must be an array of non-empty origin strings');
   }
@@ -318,8 +341,6 @@ export function createGatewayServer({
     exposedHeaders,
     panelBootstrap,
     panelSessions: panelSessionStore,
-    panelAuth,
-    panelUsers: normalizedPanelUsers,
     serviceCredentials,
     maxBodyBytes,
     upstreamTimeoutMs,

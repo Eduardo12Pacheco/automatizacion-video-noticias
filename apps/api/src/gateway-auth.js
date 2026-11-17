@@ -16,9 +16,7 @@ import {
   toExpirationTime,
 } from './sessions.js';
 import { normalizeEmail } from './auth.js';
-import { randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 import { isIP } from 'node:net';
-import { readFileSync } from 'node:fs';
 
 export function buildBasicAuthorization(user, pass) {
   const username = String(user || '').trim();
@@ -56,85 +54,11 @@ export function cleanupExpiredSessions(options) {
   options.panelSessions.cleanup(options.now());
 }
 
-export function normalizePanelUser(rawUser = {}) {
-  const username = String(rawUser.user || rawUser.username || '').trim();
-  const pass = rawUser.pass ?? rawUser.password;
-  const passwordHash = rawUser.password_hash ?? rawUser.passwordHash;
-  if (!username || (!pass && !passwordHash)) return null;
-  const email = String(rawUser.email || `${username}@control-panel.local`).trim();
-  const displayName = String(rawUser.display_name || rawUser.displayName || email || username).trim();
-  const roles = Array.isArray(rawUser.roles) && rawUser.roles.length
-    ? rawUser.roles.map((role) => String(role))
-    : ['editor'];
-  return {
-    user: username,
-    pass: pass == null ? null : String(pass),
-    password_hash: passwordHash == null ? null : String(passwordHash),
-    profile: {
-      user: {
-        user_id: String(rawUser.user_id || rawUser.userId || username),
-        email,
-        display_name: displayName,
-      },
-      roles,
-    },
-  };
-}
-
-export function verifyScryptPassword(password, passwordHash) {
-  const parts = String(passwordHash || '').split(':');
-  if (parts.length !== 4 || parts[0] !== 'scrypt' || parts[1] !== 'v1') return false;
-  const [, , salt, expectedValue] = parts;
-  const expected = Buffer.from(expectedValue, 'base64url');
-  if (!salt || expected.length === 0) return false;
-  const actual = scryptSync(String(password || ''), salt, expected.length);
-  return expected.length === actual.length && timingSafeEqual(actual, expected);
-}
-
-export function verifyPanelUserPassword(panelUser, password) {
-  if (!panelUser) return false;
-  if (panelUser.password_hash) return verifyScryptPassword(password, panelUser.password_hash);
-  return panelUser.pass != null && String(password) === panelUser.pass;
-}
-
-export function normalizePanelUsers(panelUsers, panelAuth) {
-  const configured = Array.isArray(panelUsers) ? panelUsers : [];
-  const users = configured.map(normalizePanelUser).filter(Boolean);
-  if (!users.length && panelAuth?.user && panelAuth?.pass) {
-    const fallback = normalizePanelUser({
-      user: panelAuth.user,
-      pass: panelAuth.pass,
-      ...(panelAuth.profile?.user || {}),
-      roles: panelAuth.profile?.roles || ['editor'],
-    });
-    if (fallback) users.push(fallback);
-  }
-  return new Map(users.map((user) => [user.user, user]));
-}
-
-export function readPanelUsersFromEnv(env = process.env) {
-  const filePath = String(env.API_GATEWAY_PANEL_USERS_FILE || '').trim();
-  if (filePath) {
-    const parsed = JSON.parse(readFileSync(filePath, 'utf8'));
-    if (Array.isArray(parsed)) return parsed;
-    if (Array.isArray(parsed?.users)) return parsed.users;
-    throw new GatewayConfigError('API_GATEWAY_PANEL_USERS_FILE must contain an array or { users: [] }');
-  }
-  const inline = String(env.API_GATEWAY_PANEL_USERS || '').trim();
-  if (inline) {
-    const parsed = JSON.parse(inline);
-    if (Array.isArray(parsed)) return parsed;
-    if (Array.isArray(parsed?.users)) return parsed.users;
-    throw new GatewayConfigError('API_GATEWAY_PANEL_USERS must contain an array or { users: [] }');
-  }
-  return [];
-}
-
 export async function getVerifiedSession(req, options) {
   cleanupExpiredSessions(options);
   const token = readPanelSessionToken(req);
   if (!token) return null;
-  if (options.authService) {
+  if (options.authService?.getSession) {
     const stored = await options.authService.getSession(token);
     if (stored) return { token, ...normalizePanelSession(stored) };
   }
@@ -204,16 +128,11 @@ export async function handlePanelLogin(req, res, options) {
   }
 
   let authenticated = null;
-  if (options.authService) {
+  if (options.authService?.authenticate) {
     try {
       authenticated = await options.authService.authenticate({ user, password: pass });
     } catch {
       authenticated = null;
-    }
-  } else {
-    const legacy = options.panelUsers.get(user);
-    if (verifyPanelUserPassword(legacy, pass)) {
-      authenticated = { user: legacy.profile.user, roles: legacy.profile.roles, source: 'legacy' };
     }
   }
   if (!authenticated) {
@@ -302,6 +221,7 @@ export async function handlePanelLogin(req, res, options) {
     'set-cookie': serializePanelSessionCookie(token, {
       maxAgeSeconds: options.panelSessionMaxAgeSeconds,
       crossSite: isCrossSitePanelRequest(req),
+      secure: requestUsesHttps(req, options),
     }),
     'cache-control': 'no-store, no-cache, max-age=0, must-revalidate',
   });
@@ -317,7 +237,7 @@ export async function handlePanelLogout(req, res, options) {
   const session = token ? options.panelSessions.get(token, options.now()) : null;
   if (token) {
     options.panelSessions.delete(token);
-    if (options.authService) await options.authService.revokeSession(token);
+    if (options.authService?.revokeSession) await options.authService.revokeSession(token);
   }
   emitGatewayEvent(req, options, {
     kind: 'audit',
@@ -331,6 +251,7 @@ export async function handlePanelLogout(req, res, options) {
     'set-cookie': serializePanelSessionCookie('', {
       maxAgeSeconds: 0,
       crossSite: isCrossSitePanelRequest(req),
+      secure: requestUsesHttps(req, options),
     }),
     'cache-control': 'no-store, no-cache, max-age=0, must-revalidate',
   });
@@ -404,6 +325,20 @@ export function resolveClientIp(req = {}, { trustedProxyCidrs = DEFAULT_TRUSTED_
     if (!isIpInCidrs(forwarded[index], trustedProxyCidrs)) return forwarded[index];
   }
   return peer;
+}
+
+/**
+ * True when the request reached the API over HTTPS, either directly or through
+ * the trusted panel proxy (`X-Forwarded-Proto: https`). A direct client that
+ * sets the header is ignored, so the Secure cookie flag cannot be forced by an
+ * untrusted peer.
+ */
+export function requestUsesHttps(req = {}, { trustedProxyCidrs = DEFAULT_TRUSTED_PROXY_CIDRS } = {}) {
+  if (req.socket?.encrypted === true) return true;
+  const peer = normalizeIp(req.socket?.remoteAddress || req.connection?.remoteAddress);
+  if (!peer || !isIpInCidrs(peer, trustedProxyCidrs)) return false;
+  const forwardedProto = String(req.headers?.['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  return forwardedProto === 'https';
 }
 
 export function loginThrottleKey(user, clientIp) {

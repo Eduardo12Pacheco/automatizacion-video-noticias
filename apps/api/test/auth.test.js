@@ -87,6 +87,82 @@ describe('local auth service', () => {
     assert.equal(await auth.getSession(rawToken), null);
   });
 
+  it('rejects passwords longer than 72 UTF-8 bytes on create and reset', async () => {
+    const user = await auth.createUser({
+      email: 'long@example.local',
+      display_name: 'Long Password',
+      password: 'a'.repeat(72),
+      roles: ['editor'],
+    });
+    await assert.rejects(
+      () => auth.createUser({ email: 'toolong@example.local', password: 'a'.repeat(73), roles: ['editor'] }),
+      /at most 72 bytes/,
+    );
+    await assert.rejects(
+      () => auth.createUser({ email: 'bytes@example.local', password: 'ñ'.repeat(37), roles: ['editor'] }),
+      /at most 72 bytes/,
+    );
+    await assert.rejects(
+      () => auth.updateUser(user.user_id, { password: 'a'.repeat(73) }),
+      /at most 72 bytes/,
+    );
+    const reset = await auth.updateUser(user.user_id, { password: 'a'.repeat(72) });
+    assert.equal(reset.user_id, user.user_id);
+  });
+
+  it('revokes every session of a user when the password is reset', async () => {
+    const user = await auth.createUser({
+      email: 'reset@example.local',
+      display_name: 'Reset User',
+      password: 'first-secret',
+      roles: ['editor'],
+    });
+    const other = await auth.createUser({
+      email: 'other@example.local',
+      display_name: 'Other User',
+      password: 'other-secret',
+      roles: ['editor'],
+    });
+    const expiresAt = '2099-01-01T00:00:00.000Z';
+    for (const token of ['first-token', 'second-token']) {
+      await repository.createSession({ userId: user.user_id, tokenHash: hashSessionToken(token), expiresAt });
+    }
+    await repository.createSession({ userId: other.user_id, tokenHash: hashSessionToken('other-token'), expiresAt });
+
+    await auth.updateUser(user.user_id, { password: 'second-secret' });
+
+    assert.equal(await auth.getSession('first-token'), null);
+    assert.equal(await auth.getSession('second-token'), null);
+    assert.ok(await auth.getSession('other-token'));
+  });
+
+  it('runs a dummy bcrypt comparison for unknown and disabled users', async () => {
+    const comparisons = [];
+    const service = createAuthService({
+      repository,
+      rounds: 4,
+      verify: (password, hash) => {
+        comparisons.push(hash);
+        return false;
+      },
+    });
+    await assert.rejects(() => service.authenticate({ user: 'missing@example.local', password: 'whatever' }), /Invalid credentials/);
+    await assert.rejects(() => service.authenticate({ user: '', password: 'whatever' }), /Invalid credentials/);
+    assert.equal(comparisons.length, 2);
+    for (const hash of comparisons) assert.match(hash, /^\$2[aby]\$/);
+
+    const user = await auth.createUser({
+      email: 'disabled@example.local',
+      display_name: 'Disabled',
+      password: 'disabled-secret',
+      roles: ['editor'],
+    });
+    await auth.updateUser(user.user_id, { status: 'disabled' });
+    comparisons.length = 0;
+    await assert.rejects(() => service.authenticate({ user: 'disabled@example.local', password: 'disabled-secret' }), /Invalid credentials/);
+    assert.equal(comparisons.length, 1);
+  });
+
   it('rejects disabled users and supports admin updates', async () => {
     const user = await auth.createUser({
       email: 'viewer@example.local',

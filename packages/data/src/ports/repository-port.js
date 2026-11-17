@@ -76,5 +76,6 @@ export class RepositoryPort {
   async getSessionByTokenHash() { throw new Error('not_implemented: getSessionByTokenHash'); }
   async touchSession() { throw new Error('not_implemented: touchSession'); }
   async revokeSession() { throw new Error('not_implemented: revokeSession'); }
+  async revokeSessionsForUser() { throw new Error('not_implemented: revokeSessionsForUser'); }
   async deleteExpiredSessions() { throw new Error('not_implemented: deleteExpiredSessions'); }
 }

@@ -483,6 +483,36 @@ export function runRepositoryContract({ label, createHarness }) {
       assert.ok(deleted >= 1);
     });
 
+    it('revokes every session of one user without touching other users', async () => {
+      const first = await repo.createUser({
+        email: 'first@example.local',
+        displayName: 'First',
+        passwordHash: 'hash',
+        roles: ['editor'],
+      });
+      const second = await repo.createUser({
+        email: 'second@example.local',
+        displayName: 'Second',
+        passwordHash: 'hash',
+        roles: ['editor'],
+      });
+      const expiresAt = '2099-01-01T00:00:00.000Z';
+      for (const [tokenHash, userId] of [
+        ['first-token-1', first.user_id],
+        ['first-token-2', first.user_id],
+        ['second-token-1', second.user_id],
+      ]) {
+        await repo.createSession({ userId, tokenHash, expiresAt });
+      }
+
+      const revoked = await repo.revokeSessionsForUser(first.user_id);
+      assert.equal(revoked, 2);
+      assert.equal(await repo.getSessionByTokenHash('first-token-1'), null);
+      assert.equal(await repo.getSessionByTokenHash('first-token-2'), null);
+      assert.ok(await repo.getSessionByTokenHash('second-token-1'));
+      assert.equal(await repo.revokeSessionsForUser(first.user_id), 0);
+    });
+
     it('resets the discovery universe without deleting drafts or projects', async () => {
       await seedApprovalUniverse(repo);
       const run = await repo.createNewsSearchRun({ requestedWindow: '24h' });

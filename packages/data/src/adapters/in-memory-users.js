@@ -127,6 +127,17 @@ export const inMemoryUserMethods = {
       session.revoked_at = this._nowIso();
       return true;
     },
+    async revokeSessionsForUser(userId) {
+      const id = String(userId);
+      let revoked = 0;
+      for (const session of this._sessions.values()) {
+        if (session.user_id === id && !session.revoked_at) {
+          session.revoked_at = this._nowIso();
+          revoked += 1;
+        }
+      }
+      return revoked;
+    },
     async deleteExpiredSessions({ now = null } = {}) {
       const cutoff = toIso(now) || this._nowIso();
       let deleted = 0;

@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { scryptSync } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 
+import { InMemoryRepository } from '@newsroom/data';
+import { createAuthService } from '../src/auth.js';
 import { BoundedTtlStore, createGatewayServer, readServiceCredentialsFromEnv, DEFAULT_PREPARE_UPSTREAM_TIMEOUT_MS, DEFAULT_RENDER_UPSTREAM_TIMEOUT_MS, DEFAULT_SUBTITLES_UPLOAD_MAX_BODY_BYTES, resolveRoute, resolveRoutePolicy } from '../src/gateway.js';
 import {
   DEFAULT_EVENT_RETENTION,
@@ -54,17 +55,11 @@ async function createUpstream({ status = 200, body = 'ok' } = {}) {
 
 async function createGateway(options = {}) {
   const server = createGatewayServer({
-    panelAuth: { user: 'admin', pass: 'secret' },
     logger: { error() {}, warn() {}, info() {} },
     ...options,
   });
   const port = await listen(server);
   return `http://127.0.0.1:${port}`;
-}
-
-function scryptPasswordHash(password, salt = 'test-salt') {
-  const derived = scryptSync(password, salt, 64).toString('base64url');
-  return `scrypt:v1:${salt}:${derived}`;
 }
 
 function sessionCookie(token = 'valid-token') {
@@ -84,23 +79,15 @@ function panelSession({ roles = ['editor'], expires_at = Date.now() + 60_000 } =
   };
 }
 
-function configuredPanelUsers() {
-  return [
-    {
-      user: 'alice',
-      password_hash: scryptPasswordHash('alice-secret', 'alice-salt'),
-      email: 'alice@example.com',
-      display_name: 'Alice Editor',
-      roles: ['editor'],
-    },
-    {
-      user: 'bob',
-      password_hash: scryptPasswordHash('bob-secret', 'bob-salt'),
-      email: 'bob@example.com',
-      display_name: 'Bob Editor',
-      roles: ['editor'],
-    },
-  ];
+async function createRepositoryAuth(users) {
+  const repository = new InMemoryRepository();
+  await repository.migrate();
+  const authService = createAuthService({ repository, rounds: 4 });
+  const created = {};
+  for (const [key, spec] of Object.entries(users)) {
+    created[key] = await authService.createUser(spec);
+  }
+  return { authService, users: created };
 }
 
 function createRecordingEventRecorder({ queryResult = null, queryError = null } = {}) {
@@ -1611,7 +1598,11 @@ test('gateway emits sanitized audit and error events for auth and rejection path
   });
 
   const successRecorder = createRecordingEventRecorder();
+  const { authService: successAuth } = await createRepositoryAuth({
+    admin: { email: 'admin@example.local', display_name: 'Admin', password: 'admin-secret', roles: ['admin'] },
+  });
   const successBaseUrl = await createGateway({
+    authService: successAuth,
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
     eventRecorder: successRecorder,
@@ -1619,7 +1610,7 @@ test('gateway emits sanitized audit and error events for auth and rejection path
   const login = await fetch(`${successBaseUrl}/panel/login`, {
     method: 'POST',
     headers: { origin: 'https://panel.example.local', 'content-type': 'application/json', 'x-correlation-id': 'login-ok' },
-    body: JSON.stringify({ user: 'admin', pass: 'secret' }),
+    body: JSON.stringify({ user: 'admin@example.local', pass: 'admin-secret' }),
   });
   const cookie = login.headers.get('set-cookie')?.split(';')[0];
   await fetch(`${successBaseUrl}/n8n/webhook/data`, { method: 'POST', headers: { cookie, 'content-type': 'application/json', 'x-correlation-id': 'csrf-corr' }, body: '{}' });
@@ -1724,18 +1715,14 @@ test('gateway events read-model failure returns safe error and records sanitized
 // === API Gateway real multi-user presence PR1 RED tests — same-access configured users ===
 
 test('configured panel users authenticate into distinct equivalent editor sessions', async () => {
+  const { authService, users } = await createRepositoryAuth({
+    alice: { email: 'alice@example.com', display_name: 'Alice Editor', password: 'alice-secret', roles: ['editor'] },
+    bob: { email: 'bob@example.com', display_name: 'Bob Editor', password: 'bob-secret', roles: ['editor'] },
+  });
   const baseUrl = await createGateway({
-    panelUsers: configuredPanelUsers(),
+    authService,
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
-    createSessionToken: (() => {
-      const tokens = ['alice-token', 'bob-token'];
-      return () => tokens.shift() || 'extra-token';
-    })(),
-    createSessionId: (() => {
-      const ids = ['alice-session', 'bob-session'];
-      return () => ids.shift() || 'extra-session';
-    })(),
   });
 
   const login = (user, pass) => fetch(`${baseUrl}/panel/login`, {
@@ -1744,21 +1731,19 @@ test('configured panel users authenticate into distinct equivalent editor sessio
     body: JSON.stringify({ user, pass }),
   });
 
-  const aliceLogin = await login('alice', 'alice-secret');
-  const bobLogin = await login('bob', 'bob-secret');
+  const aliceLogin = await login('alice@example.com', 'alice-secret');
+  const bobLogin = await login('bob@example.com', 'bob-secret');
 
   assert.equal(aliceLogin.status, 200);
   assert.equal(bobLogin.status, 200);
-  assert.deepEqual(await readJson(aliceLogin), {
-    user: { user_id: 'alice', email: 'alice@example.com', display_name: 'Alice Editor' },
-    roles: ['editor'],
-    session_id: 'alice-session',
-  });
-  assert.deepEqual(await readJson(bobLogin), {
-    user: { user_id: 'bob', email: 'bob@example.com', display_name: 'Bob Editor' },
-    roles: ['editor'],
-    session_id: 'bob-session',
-  });
+  const aliceBody = await readJson(aliceLogin);
+  const bobBody = await readJson(bobLogin);
+  assert.deepEqual(aliceBody.user, { user_id: users.alice.user_id, email: 'alice@example.com', display_name: 'Alice Editor' });
+  assert.deepEqual(aliceBody.roles, ['editor']);
+  assert.ok(aliceBody.session_id);
+  assert.deepEqual(bobBody.user, { user_id: users.bob.user_id, email: 'bob@example.com', display_name: 'Bob Editor' });
+  assert.deepEqual(bobBody.roles, ['editor']);
+  assert.notEqual(aliceBody.session_id, bobBody.session_id);
 
   for (const response of [aliceLogin, bobLogin]) {
     const cookie = response.headers.get('set-cookie')?.split(';')[0];
@@ -1769,8 +1754,11 @@ test('configured panel users authenticate into distinct equivalent editor sessio
 });
 
 test('unknown configured panel user is rejected without creating a session actor', async () => {
+  const { authService } = await createRepositoryAuth({
+    alice: { email: 'alice@example.com', display_name: 'Alice Editor', password: 'alice-secret', roles: ['editor'] },
+  });
   const baseUrl = await createGateway({
-    panelUsers: configuredPanelUsers(),
+    authService,
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
   });
@@ -1778,7 +1766,7 @@ test('unknown configured panel user is rejected without creating a session actor
   const rejected = await fetch(`${baseUrl}/panel/login`, {
     method: 'POST',
     headers: { origin: 'https://panel.example.local', 'content-type': 'application/json' },
-    body: JSON.stringify({ user: 'mallory', pass: 'alice-secret' }),
+    body: JSON.stringify({ user: 'mallory@example.com', pass: 'alice-secret' }),
   });
 
   assert.equal(rejected.status, 401);
@@ -1825,21 +1813,17 @@ test('browser-forged internal actor and session headers are stripped before any 
 test('configured user proxy and audit events keep per-person session attribution despite forged headers', async () => {
   const upstream = await createUpstream();
   const recorder = createRecordingEventRecorder();
+  const { authService, users } = await createRepositoryAuth({
+    alice: { email: 'alice@example.com', display_name: 'Alice Editor', password: 'alice-secret', roles: ['editor'] },
+    bob: { email: 'bob@example.com', display_name: 'Bob Editor', password: 'bob-secret', roles: ['editor'] },
+  });
   const baseUrl = await createGateway({
     routes: { n8n: { prefix: '/n8n', target: upstream.target } },
     serviceCredentials: { n8n: { 'x-api-key': 'n8n-secret' } },
-    panelUsers: configuredPanelUsers(),
+    authService,
     eventRecorder: recorder,
     allowedOrigins: ['https://panel.example.local'],
     trustedMutationOrigins: ['https://panel.example.local'],
-    createSessionToken: (() => {
-      const tokens = ['alice-token', 'bob-token'];
-      return () => tokens.shift() || 'extra-token';
-    })(),
-    createSessionId: (() => {
-      const ids = ['alice-session', 'bob-session'];
-      return () => ids.shift() || 'extra-session';
-    })(),
   });
 
   const login = async (user, pass) => {
@@ -1852,8 +1836,9 @@ test('configured user proxy and audit events keep per-person session attribution
     return response.headers.get('set-cookie')?.split(';')[0];
   };
 
-  const aliceCookie = await login('alice', 'alice-secret');
-  const bobCookie = await login('bob', 'bob-secret');
+  const aliceCookie = await login('alice@example.com', 'alice-secret');
+  const bobCookie = await login('bob@example.com', 'bob-secret');
+  const bobSession = await readJson(await fetch(`${baseUrl}/panel/session`, { headers: { cookie: bobCookie } }));
 
   const proxied = await fetch(`${baseUrl}/n8n/webhook/data`, {
     method: 'POST',
@@ -1869,17 +1854,17 @@ test('configured user proxy and audit events keep per-person session attribution
 
   assert.equal(proxied.status, 200);
   assert.equal(upstream.requests.at(-1).headers['x-panel-actor-email'], 'bob@example.com');
-  assert.equal(upstream.requests.at(-1).headers['x-panel-session-id'], 'bob-session');
+  assert.equal(upstream.requests.at(-1).headers['x-panel-session-id'], bobSession.session_id);
   const upstreamBody = JSON.parse(upstream.requests.at(-1).body);
-  assert.equal(upstreamBody.audit_actor.actor, 'bob');
-  assert.equal(upstreamBody.audit_actor.session_id, 'bob-session');
+  assert.equal(upstreamBody.audit_actor.actor, users.bob.user_id);
+  assert.equal(upstreamBody.audit_actor.session_id, bobSession.session_id);
   assert.equal(upstreamBody.audit.base_version, 'v7');
 
   const loginEvents = recorder.events.filter((event) => event.action === 'panel.login' && event.outcome === 'success');
   assert.deepEqual(loginEvents.map((event) => event.actor.email), ['alice@example.com', 'bob@example.com']);
   const proxyEvent = recorder.events.find((event) => event.action === 'proxy.request' && event.outcome === 'success');
   assert.equal(proxyEvent.actor.email, 'bob@example.com');
-  assert.equal(proxyEvent.session_id, 'bob-session');
+  assert.equal(proxyEvent.session_id, bobSession.session_id);
 });
 
 // === API Gateway real multi-user presence PR2 RED tests — presence API/read model ===

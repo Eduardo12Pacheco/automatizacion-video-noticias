@@ -167,6 +167,14 @@ export class PostgresUserRepository extends PostgresVideoRepository {
     return result.rowCount > 0;
   }
 
+  async revokeSessionsForUser(userId) {
+    const result = await this._pool.query(
+      'update sessions set revoked_at = now() where user_id = $1 and revoked_at is null',
+      [String(userId)],
+    );
+    return result.rowCount;
+  }
+
   async deleteExpiredSessions({ now = null } = {}) {
     const result = await this._pool.query(
       `delete from sessions where revoked_at is not null or expires_at <= coalesce($1::timestamptz, now())`,

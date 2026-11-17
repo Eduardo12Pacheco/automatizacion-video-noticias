@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createAdaptersFromEnv, createConnectorRegistry, resolveRunMode } from '@newsroom/adapters';
 import { DEFAULT_EVENT_RETENTION, JsonlEventRecorder } from './gateway-events.js';
 import { DEFAULT_HOST, DEFAULT_PANEL_BOOTSTRAP, DEFAULT_PORT, DEFAULT_TRUSTED_PROXY_CIDRS, resolveRoutesFromEnv } from './gateway-config.js';
-import { readPanelUsersFromEnv, readServiceCredentialsFromEnv } from './gateway-auth.js';
+import { readServiceCredentialsFromEnv } from './gateway-auth.js';
 import { createGatewayServer } from './gateway-server.js';
 import { createAdminRouter } from './admin-router.js';
 import { createAuthService } from './auth.js';
@@ -75,8 +75,6 @@ export function startGateway({
     },
     logger: console,
   });
-  const panelUsers = readPanelUsersFromEnv();
-
   if (repository && !authService) {
     authService = createAuthService({ repository });
   }
@@ -142,7 +140,6 @@ export function startGateway({
     allowedOrigins: allowedOrigins.length ? allowedOrigins : undefined,
     trustedMutationOrigins: trustedMutationOrigins.length ? trustedMutationOrigins : undefined,
     trustedProxyCidrs,
-    panelUsers,
     authService,
     localRouter,
     adminRouter,

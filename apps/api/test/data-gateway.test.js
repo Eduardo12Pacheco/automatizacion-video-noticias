@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { createGatewayServer } from '../src/gateway.js';
+import { createAuthService } from '../src/auth.js';
 import { createDataRouter } from '../src/data-router.js';
 import { InMemoryRepository, FsBlobStorage } from '@newsroom/data';
 
@@ -26,6 +27,13 @@ describe('gateway data routes', () => {
   before(async () => {
     root = await mkdtemp(join(tmpdir(), 'newsroom-gateway-data-'));
     repository = new InMemoryRepository();
+    const authService = createAuthService({ repository, rounds: 4 });
+    await authService.createUser({
+      email: 'admin@example.local',
+      display_name: 'Admin',
+      password: 'admin-secret',
+      roles: ['admin'],
+    });
     await repository.upsertVideoProject({
       draft_id: 'draft-1',
       id_noticia: 'news-1',
@@ -38,7 +46,7 @@ describe('gateway data routes', () => {
       blobStorage: new FsBlobStorage({ root }),
     });
     server = createGatewayServer({
-      panelAuth: { user: 'admin', pass: 'secret' },
+      authService,
       trustedMutationOrigins: ['http://gateway.test'],
       dataRouter,
       logger: { error() {}, warn() {}, info() {} },
@@ -55,7 +63,7 @@ describe('gateway data routes', () => {
     const response = await fetch(`${base}/panel/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', origin: 'http://gateway.test' },
-      body: JSON.stringify({ user: 'admin', pass: 'secret' }),
+      body: JSON.stringify({ user: 'admin@example.local', pass: 'admin-secret' }),
     });
     assert.equal(response.status, 200);
     const cookie = response.headers.get('set-cookie');

@@ -36,9 +36,10 @@ export function isCrossSitePanelRequest(req) {
   }
 }
 
-export function serializePanelSessionCookie(value, { maxAgeSeconds, crossSite = false } = {}) {
-  const sameSite = crossSite ? 'SameSite=None; Secure' : 'SameSite=Lax';
-  return `${encodeURIComponent(PANEL_SESSION_COOKIE)}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; ${sameSite}`;
+export function serializePanelSessionCookie(value, { maxAgeSeconds, crossSite = false, secure = false } = {}) {
+  const sameSite = crossSite ? 'SameSite=None' : 'SameSite=Lax';
+  const secureFlag = crossSite || secure ? '; Secure' : '';
+  return `${encodeURIComponent(PANEL_SESSION_COOKIE)}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; ${sameSite}${secureFlag}`;
 }
 
 export function normalizePanelSession(rawSession = {}) {

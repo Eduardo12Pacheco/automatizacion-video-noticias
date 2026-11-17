@@ -278,6 +278,22 @@ export function rejectCsrf(req, res, options, { action = 'proxy.csrf', route = n
   writeJson(res, 403, { error: 'csrf_rejected', code: 'csrf_rejected' });
 }
 
+export function rejectUnknownMutation(req, res, options, { route = null, session = null, action = 'panel.mutation' } = {}) {
+  applyCorsHeaders(res, req.headers.origin, options);
+  emitGatewayEvent(req, options, {
+    kind: 'audit',
+    severity: 'warning',
+    route_service: route?.service,
+    action,
+    outcome: 'rejected',
+    status_code: 403,
+    reason_code: 'mutation_not_covered',
+    safe_message: 'Mutating route is not covered by the role and CSRF policy',
+    context: requestBaseContext(req),
+  }, session);
+  writeJson(res, 403, { error: 'forbidden', code: 'mutation_not_covered' });
+}
+
 export function rejectPayloadTooLarge(req, res, options, { route = null, session = null, action = 'proxy.payload' } = {}) {
   applyCorsHeaders(res, req.headers.origin, options);
   emitGatewayEvent(req, options, {
