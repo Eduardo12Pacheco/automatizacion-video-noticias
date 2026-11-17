@@ -16,7 +16,7 @@ class TestEagerCssBootSize:
         imports = [line.strip() for line in source.splitlines() if line.strip().startswith("@import")]
         # Expected: fonts, tokens, base, layout, buttons, dialogs, cards, forms,
         #   toast, screen-state, auth, responsive, scrollbars = 13. A single
-        #   stylesheet link keeps the boot contract simple (S5.1/S5.3/S10).
+        #   stylesheet link keeps the boot contract simple.
         assert len(imports) == 13, (
             f"eager.css should have exactly 13 @import statements, found {len(imports)}: {imports}"
         )

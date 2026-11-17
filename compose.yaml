@@ -9,7 +9,7 @@ name: newsroom
 # /radar, /monitor and /approval to the API, so the browser always talks to one
 # origin and the gateway keeps the only session/CSRF boundary.
 #
-# Security defaults (S12): only the API and panel publish ports, and they bind
+# Security defaults: only the API and panel publish ports, and they bind
 # to NEWSROOM_BIND (127.0.0.1 by default) instead of every interface. Postgres,
 # Ollama, SearXNG, Mailpit and n8n stay on the internal network; when you really
 # need their ports for debugging, add infra/compose/compose.debug.yaml and run
@@ -241,7 +241,7 @@ services:
     image: ollama/ollama:0.40.16
     profiles: ["local", "gpu"]
     # Models are downloaded by the installer / `newsroom models pull`, never
-    # by the container command (S11/T17). keep_alive unloads the model shortly
+    # by the container command. keep_alive unloads the model shortly
     # after the last request so it shares the 8 GB GPU with the other workers.
     command: ["serve"]
     environment:
@@ -417,7 +417,7 @@ services:
       - ./infra/n8n/workflows:/workflows:ro
     restart: unless-stopped
 
-  # Optional S3-compatible storage (D11). Enable with:
+  # Optional S3-compatible storage. Enable with:
   #   STORAGE=s3 docker compose --profile s3 up -d minio api panel
   # The bucket is created by `docker compose run --rm minio-init`; the API keeps
   # serving blobs through /panel/blobs, so the browser contract does not change.

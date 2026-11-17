@@ -1,12 +1,12 @@
 -- 0001_core_schema.sql
--- Local Postgres schema reconstructed during T3 (see docs/data-model.md).
+-- Local Postgres schema reconstructed from the legacy workflow payloads (see docs/data-model.md).
 -- RPCs from the former Supabase project are repository methods, not functions.
 
 create extension if not exists pgcrypto;
 create extension if not exists citext;
 
 -- ---------------------------------------------------------------------------
--- Users, roles, sessions (S9)
+-- Users, roles, sessions
 -- ---------------------------------------------------------------------------
 
 create table if not exists roles (

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /**
- * Local-mode data-flow acceptance (T27, D10).
+ * Local-mode data-flow acceptance.
  *
  * Opt-in because it needs the real CPU worker stack: Ollama + Piper +
  * faster-whisper + Remotion. The spec is self-contained on purpose:

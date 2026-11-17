@@ -4,7 +4,7 @@
  *
  * Implementations MUST reject path traversal and absolute paths. The default
  * adapter is the local filesystem (`FS_ROOT`, usually `./data/blobs`); an S3
- * adapter is an optional T5 adapter.
+ * adapter is an optional local-first adapter.
  */
 export class BlobStoragePort {
   async put() { throw new Error('not_implemented: put'); }

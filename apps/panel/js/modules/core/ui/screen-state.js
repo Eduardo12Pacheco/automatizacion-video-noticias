@@ -1,5 +1,5 @@
 /**
- * Shared screen states (S10): designed empty, loading and error blocks.
+ * Shared screen states: designed empty, loading and error blocks.
  *
  * Every view uses the same vocabulary so a failed request never dumps a raw
  * HTTP body or stack trace into the DOM. Error details (status/code only) are

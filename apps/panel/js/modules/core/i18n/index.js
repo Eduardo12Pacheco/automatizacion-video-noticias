@@ -164,7 +164,7 @@ function interpolate(template, vars = {}) {
 }
 
 /**
- * Dependency-free ES/EN i18n (S5.5). Spanish is the source catalog and the
+ * Dependency-free ES/EN i18n. Spanish is the source catalog and the
  * default language. State is persisted in localStorage and `<html lang>` is
  * kept in sync so screen readers and the document outline stay correct.
  */

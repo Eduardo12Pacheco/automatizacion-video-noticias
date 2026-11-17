@@ -1,4 +1,4 @@
-# Content policy deny-list (T13, S7).
+# Content policy deny-list.
 # One case-insensitive, word-boundary term per line. The scanner in
 # tools/tests/test_content_policy.py fails when any tracked text file outside
 # odd/ contains one of these terms. Generic competition words ("liga", "copa")

@@ -1,4 +1,4 @@
-# Optional GPU override (D10/T30). The base compose file keeps every worker on
+# Optional GPU override. The base compose file keeps every worker on
 # CPU so the default install never needs an NVIDIA runtime; add this file on a
 # host with nvidia-container-toolkit to give Ollama, ASR and TTS the GPU and to
 # let the TTS worker use Qwen instead of the Piper CPU voice.

@@ -41,7 +41,7 @@ function foreignPhrases(language) {
     .filter(Boolean);
 }
 
-// Leftover UI copy is not always in the catalog yet (T29 fixes the current
+// Leftover UI copy is not always in the catalog yet (the current
 // set), so the spec also scans every visible chrome text node for words that
 // only belong to the other language. Data containers are excluded because
 // news titles, scripts and player names stay in their source language.
@@ -150,7 +150,7 @@ function foreignWordHits(text, language) {
 }
 
 async function parkPointerAndBlur(page, viewport) {
-  // Capture hygiene (T29): never leave the pointer over the rail (it would
+  // Capture hygiene: never leave the pointer over the rail (it would
   // expand on hover) or a focus ring on the last clicked control.
   await page.mouse.move(Math.max(8, viewport.width - 8), Math.max(8, viewport.height - 8));
   await page.evaluate(() => document.activeElement?.blur?.());

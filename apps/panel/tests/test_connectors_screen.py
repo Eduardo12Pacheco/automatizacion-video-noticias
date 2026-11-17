@@ -1,4 +1,4 @@
-"""Contract for the admin connectors screen added in T18."""
+"""Contract for the admin connectors screen."""
 
 import json
 from pathlib import Path

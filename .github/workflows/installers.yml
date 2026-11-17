@@ -1,7 +1,7 @@
 name: installers
 
 # Installer/CLI checks owned by T8b. The full product CI (all suites, compose
-# profiles and Playwright) is added by T8 in ci.yml.
+# profiles and Playwright) lives in ci.yml.
 
 on:
   push:

@@ -27,7 +27,7 @@ function boolEnv(env, name, fallback = false) {
 }
 
 /**
- * One composition root for every T5 adapter. Each port has a local default;
+ * One composition root for every local-first adapter. Each port has a local default;
  * `*_ADAPTER=none` (or the documented equivalents) leaves it unset so the API
  * can keep serving the read/save surfaces without that capability.
  */
@@ -39,7 +39,7 @@ export function createAdaptersFromEnv({
   authService = null,
 } = {}) {
   // NEWSROOM_MODE supplies the adapter defaults; explicit variables win in
-  // local mode, while demo mode forces the deterministic set (D10).
+  // local mode, while demo mode forces the deterministic set.
   env = applyRunModeDefaults(env);
   const pythonBin = String(env.PYTHON_BIN || 'python3').trim() || 'python3';
   const adapters = {};
@@ -142,7 +142,7 @@ export function createAdaptersFromEnv({
     });
   }
 
-  // `yt-dlp` is the pre-T15 name for the same worker-backed adapter; keep it
+  // `yt-dlp` is the legacy name for the same worker-backed adapter; keep it
   // working for existing .env files while no code spawns yt-dlp in Node.
   const mediaDownload = choice(env.MEDIA_DOWNLOAD, 'worker');
   if (mediaDownload === 'worker' || mediaDownload === 'yt-dlp') {

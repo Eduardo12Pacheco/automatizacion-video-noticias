@@ -233,6 +233,6 @@ class TestIndexHtmlHiddenViewContainers:
         ]
         for did in dialog_ids:
             assert f'id="{did}"' in html, f"Dialog {did} must stay in index.html"
-        # S5.5 removes the dead queue and script-editor fallback dialogs.
+        # The dead queue and script-editor fallback dialogs stay removed.
         for removed in ["queueDialog", "scriptEditorDialog"]:
             assert f'id="{removed}"' not in html, f"Dead dialog {removed} must be gone"

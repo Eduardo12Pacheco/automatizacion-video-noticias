@@ -176,7 +176,7 @@ class InstallTests(InstallerTestCase):
         self.assertEqual(stat.S_IMODE((self.project / ".env").stat().st_mode), 0o600)
 
         log = self.read_log()
-        # The default demo mode is instant and never downloads models (D10).
+        # The default demo mode is instant and never downloads models.
         for expected in ("--profile cpu", "BUILD", "MIGRATE", "ADMIN_CREATED", "STACK_UP"):
             self.assertIn(expected, log)
         self.assertNotIn("MODEL_INIT", log)

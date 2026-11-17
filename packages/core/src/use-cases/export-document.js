@@ -3,7 +3,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors.js';
 
 /**
  * Port of "MVP - Script Download Doc API v1 - Supabase" using the local
- * DocumentExportPort (python-docx/Markdown in T5) instead of Google Drive.
+ * DocumentExportPort (python-docx/Markdown) instead of Google Drive.
  */
 export function createExportDocument({ repository, documentExport } = {}) {
   if (!repository) throw new Error('repository is required');

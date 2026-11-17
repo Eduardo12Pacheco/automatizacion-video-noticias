@@ -69,7 +69,7 @@ function jsonHeaders({ cookie, origin } = {}) {
   return headers;
 }
 
-describe('security hardening (S12)', () => {
+describe('security hardening', () => {
   let server;
   let base;
   let root;
@@ -251,7 +251,7 @@ describe('security hardening (S12)', () => {
   });
 });
 
-describe('login throttling behind the bundled proxy (S12)', () => {
+describe('login throttling behind the bundled proxy', () => {
   let server;
   let base;
 
@@ -322,7 +322,7 @@ describe('login throttling behind the bundled proxy (S12)', () => {
   });
 });
 
-describe('login throttling without a trusted proxy (S12)', () => {
+describe('login throttling without a trusted proxy', () => {
   let server;
   let base;
 
@@ -353,7 +353,7 @@ describe('login throttling without a trusted proxy (S12)', () => {
   });
 });
 
-describe('legacy env credentials (S12)', () => {
+describe('legacy env credentials', () => {
   it('are never read as panel users', () => {
     assert.deepEqual(readPanelUsersFromEnv({
       API_GATEWAY_PANEL_USER: 'legacy',

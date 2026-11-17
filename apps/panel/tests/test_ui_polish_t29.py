@@ -1,4 +1,4 @@
-"""T29 UI polish round 2 contracts.
+"""UI polish round 2 contracts.
 
 These checks guard the systemic rules from the task detail so a later redesign
 cannot silently regress them. Behavioural coverage (layout, i18n, axe, light

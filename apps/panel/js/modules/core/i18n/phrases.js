@@ -514,7 +514,7 @@ export const PHRASES = [
   ['Otra sesión está editando este recurso', 'Another session is editing this resource'],
   ['Otra sesión está viendo este recurso', 'Another session is viewing this resource'],
 
-  // T29 — remaining radar, subtitles, connectors and copy leftovers.
+  // Remaining radar, subtitles, connectors and copy leftovers.
   ['Estado', 'Status'],
   ['Tipo', 'Type'],
   ['Servicio', 'Service'],

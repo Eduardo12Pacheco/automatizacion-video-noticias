@@ -68,7 +68,7 @@ nr_print_banner() {
   printf '\n'
 }
 
-# Prints one progress line per install phase (S11: progress per step).
+# Prints one progress line per install phase (progress per step).
 nr_step() {
   local index="$1" total="$2" title="$3"
   NR_STEP_INDEX="$index"
@@ -139,7 +139,7 @@ nr_reinit_paths() {
 nr_require_compose() {
   if [ ! -f "$NR_COMPOSE_FILE" ]; then
     if [ "$NR_COMPOSE_MISSING_WARN" = "1" ]; then
-      nr_warn "compose file not found: $NR_COMPOSE_FILE (the T8 stack provides it)"
+      nr_warn "compose file not found: $NR_COMPOSE_FILE (the installer stack provides it)"
       return 1
     fi
     nr_die "compose file not found: $NR_COMPOSE_FILE (install the full stack or set NEWSROOM_COMPOSE_FILE)"
@@ -163,7 +163,7 @@ nr_compose_cli_ok() {
 }
 
 # The GPU device reservation and the Qwen/faster-whisper settings live in a
-# separate override file (T30). Every compose call adds it when the gpu profile
+# separate override file. Every compose call adds it when the gpu profile
 # is active, so the installer, `newsroom up` and the one-shot tools all agree.
 nr_gpu_overlay_is_required() { [ "${NR_PROFILE:-cpu}" = "gpu" ]; }
 

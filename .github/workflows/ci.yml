@@ -99,7 +99,7 @@ jobs:
         run: docker compose --env-file e2e/.env.example -f compose.yaml config -q
       - name: Config with the gpu and n8n profiles
         run: docker compose --env-file e2e/.env.example --profile gpu --profile n8n -f compose.yaml config -q
-      # T26 removed the duplicate compose alias; keep it removed.
+      # The duplicate compose alias was removed; keep it removed.
       - name: No duplicate compose alias
         run: test ! -e docker-compose.yml
       - name: Installer/CLI behaviour under the fake docker stand-in

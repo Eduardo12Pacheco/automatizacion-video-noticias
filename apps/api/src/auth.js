@@ -65,7 +65,7 @@ function sessionView(record) {
 }
 
 /**
- * Local auth service (S9): users, roles and sessions live in the repository
+ * Local auth service: users, roles and sessions live in the repository
  * (Postgres or in-memory). Passwords are bcrypt hashes; session tokens are
  * random, only their SHA-256 hash is stored. There is deliberately no
  * plaintext environment fallback: the installer seeds the first admin through

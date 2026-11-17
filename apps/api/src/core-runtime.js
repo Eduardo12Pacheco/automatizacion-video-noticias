@@ -39,7 +39,7 @@ function withDefaults(adapter, methods) {
 }
 
 /**
- * Composition root for the core use cases. T5 injects the local adapters
+ * Composition root for the core use cases. It injects the local adapters
  * (Ollama, trafilatura, SearXNG, python-docx, …); without them the API still
  * serves read models and fails write endpoints with a clear 503.
  */

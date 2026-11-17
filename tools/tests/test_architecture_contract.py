@@ -1,4 +1,4 @@
-"""Architecture gates for the T14 ports, contracts and runtime services."""
+"""Architecture gates for the ports, contracts and runtime services."""
 
 from __future__ import annotations
 

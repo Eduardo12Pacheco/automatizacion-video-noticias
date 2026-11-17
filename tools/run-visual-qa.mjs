@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Runs the T20 visual-QA + axe Playwright spec against a local static panel.
+ * Runs the visual-QA + axe Playwright spec against a local static panel.
  * Shared by `pnpm test:all` locally and the CI `visual-qa` job.
  */
 import { spawn } from 'node:child_process';

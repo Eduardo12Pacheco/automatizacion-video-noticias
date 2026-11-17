@@ -264,7 +264,7 @@ def test_subtitles_whisper_client_reports_worker_failures_as_pipeline_errors(tmp
 
 
 # ---------------------------------------------------------------------------
-# Subtitles render audio contract (T27): the black subtitle render must keep
+# Subtitles render audio contract: the black subtitle render must keep
 # the narration from the uploaded source instead of shipping a silent MP4.
 # ---------------------------------------------------------------------------
 

@@ -10,7 +10,7 @@ function normalizeTheme(value) {
 /**
  * Resolves the theme for the first paint: an explicit stored choice wins,
  * otherwise the operating-system preference decides. Dark stays the default
- * when the browser exposes no preference (S5/S10).
+ * when the browser exposes no preference.
  */
 export function resolveInitialTheme({
   storage = globalThis.localStorage,

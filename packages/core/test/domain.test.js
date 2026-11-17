@@ -50,7 +50,7 @@ describe('news domain', () => {
       { id_noticia: 'b', jugador: 'P', titular: 'T', link: 'l1', fecha_publicacion: NOW.toISOString() },
       { id_noticia: 'c', jugador: 'P', titular: '', link: 'l2', fecha_publicacion: NOW.toISOString() },
       { id_noticia: 'd', jugador: 'P', titular: 'T', link: 'l3', fecha_publicacion: '2020-01-01T00:00:00.000Z' },
-      { id_noticia: 'e', jugador: 'P', titular: 'T2', link: 'l4', fecha_publicacion: 'not-a-date' },
+      { id_noticia: 'e', jugador: 'P', titular: 'Titular 2', link: 'l4', fecha_publicacion: 'not-a-date' },
     ];
     const filtered = filterRecentUnique(rows, { windowMs: 60 * 60 * 1000, now: NOW });
     assert.deepEqual(filtered.map((row) => row.id_noticia), ['a', 'e']);

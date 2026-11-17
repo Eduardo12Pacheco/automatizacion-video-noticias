@@ -1,4 +1,4 @@
-"""T19 design-system contract (S5/S10).
+"""Design-system contract.
 
 The checks here are deliberately mechanical: a generated-name or a raw colour
 sneaking back into a feature stylesheet, a font-size outside the scale or a

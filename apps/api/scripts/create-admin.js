@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * First-admin bootstrap for the local install (S9).
+ * First-admin bootstrap for the local install.
  *
  * Runs inside the API container after the migrations:
  *   node scripts/create-admin.js --email admin@example.local --password-stdin

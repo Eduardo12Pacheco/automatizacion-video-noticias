@@ -50,7 +50,7 @@ const consoleErrors = [];
 const pageErrors = [];
 
 async function parkPointerAndBlur(page, width, height) {
-  // Capture hygiene (T29): the rail expands on hover and focus rings would
+  // Capture hygiene: the rail expands on hover and focus rings would
   // otherwise stay visible for the rest of the recording.
   await page.mouse.move(Math.max(8, width - 8), Math.max(8, height - 8));
   await page.evaluate(() => document.activeElement?.blur?.());

@@ -48,7 +48,7 @@ export function bindCoreEvents({
           openAuthenticatedShell();
           return;
         } catch {
-          // S9: local users live in the API/database; the panel never ships a
+          // Local users live in the API/database; the panel never ships a
           // hardcoded fallback password.
         }
       }

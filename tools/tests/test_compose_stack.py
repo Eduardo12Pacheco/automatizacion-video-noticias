@@ -42,7 +42,7 @@ class ComposeStackTests(unittest.TestCase):
 
     def test_api_lets_the_run_mode_own_the_worker_targets(self) -> None:
         env = self.services["api"]["environment"]
-        # T17: the gateway resolves demo/local worker targets from
+        # The gateway resolves demo/local worker targets from
         # NEWSROOM_MODE; a hard-coded Compose target would defeat the mode.
         self.assertNotIn("API_GATEWAY_TTS_TARGET", env)
         self.assertNotIn("API_GATEWAY_SUBTITLES_TARGET", env)

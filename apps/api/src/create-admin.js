@@ -3,7 +3,7 @@ import { normalizeEmail, createAuthService, hashPassword } from './auth.js';
 const MIN_PASSWORD_LENGTH = 8;
 
 /**
- * Validates the inputs needed to bootstrap the first administrator (S9).
+ * Validates the inputs needed to bootstrap the first administrator.
  * The installer generates the password when it runs non-interactively, so this
  * is the single place that enforces the minimum policy for every entrypoint.
  */

@@ -143,7 +143,7 @@ nr_create_admin() {
   unset password
 }
 
-# S11: one summary box with the panel URL, the administrator and the lifecycle
+# One summary box with the panel URL, the administrator and the lifecycle
 # commands. The generated password is printed here once and never written.
 nr_print_summary() {
   local port mode profile status
@@ -220,7 +220,7 @@ nr_open_panel() {
 
 # --- Uninstall -------------------------------------------------------------
 
-# S11: --purge always asks for the literal word "delete", even with --yes.
+# --purge always asks for the literal word "delete", even with --yes.
 # --force-purge is the explicit opt-out for unattended automation.
 nr_purge_confirmed() {
   if [ "$NR_FORCE_PURGE" = "1" ]; then

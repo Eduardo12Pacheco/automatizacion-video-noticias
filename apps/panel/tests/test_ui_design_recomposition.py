@@ -1,7 +1,7 @@
-"""S5 UI refresh contract (T7).
+"""UI refresh contract.
 
 These checks replace the older grep-only web.pen snapshots: they guard the
-S5 acceptance items (typography, buttons, tokens, dialogs, i18n, navigation,
+Acceptance items (typography, buttons, tokens, dialogs, i18n, navigation,
 accessibility, responsive breakpoints and showcase mode) without freezing a
 single visual composition.
 """

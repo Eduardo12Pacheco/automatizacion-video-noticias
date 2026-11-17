@@ -219,7 +219,7 @@ class PortfolioDocsTests(unittest.TestCase):
         source = _read(ASSETS)
         self.assertIn("OFL.txt", source)
         self.assertIn("docs/images/demo.gif", source)
-        self.assertNotIn("T9 deliverable", source)
+        self.assertNotIn("deliverable", source.lower())
         self.assertNotIn("must be kept next to the font", source)
 
     def test_recorded_demo_assets_exist_and_stay_under_the_blob_limit(self) -> None:

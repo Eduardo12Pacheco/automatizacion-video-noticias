@@ -1,5 +1,5 @@
 /**
- * Showcase mode (S5.9, S10).
+ * Showcase mode.
  *
  * A visitor can open `/?showcase=1` (or `?demo=1`) and click through the panel
  * without Docker, a GPU, seeded Postgres or API keys. The panel keeps using its

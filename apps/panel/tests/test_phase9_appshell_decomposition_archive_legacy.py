@@ -190,7 +190,7 @@ def test_phase9_structure_guardrails_expect_runtime_pure_helper_locations_after_
 
 def test_legacy_app_js_is_removed_after_archive_retirement():
     assert not ROOT_APP_JS_PATH.exists(), "Root apps/panel/app.js must stay removed"
-    assert not LEGACY_APP_JS_PATH.exists(), "Archived js/legacy/app.js must be deleted in T2"
+    assert not LEGACY_APP_JS_PATH.exists(), "Archived js/legacy/app.js must stay deleted"
 
 
 def test_docs_include_archive_acceptance_and_runtime_reference_guard():

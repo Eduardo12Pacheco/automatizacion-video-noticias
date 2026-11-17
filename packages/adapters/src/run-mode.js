@@ -1,5 +1,5 @@
 /**
- * Two real run modes (D10).
+ * Two real run modes.
  *
  * `demo` is instant and deterministic: every AI/media capability uses the
  * stub adapters and no model download is required. `local` is the real local

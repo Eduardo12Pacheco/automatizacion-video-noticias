@@ -40,7 +40,7 @@ async function readJson(readBody) {
 }
 
 /**
- * Admin user management (S9). Mounted behind the gateway's admin-role check.
+ * Admin user management. Mounted behind the gateway's admin-role check.
  */
 export function createAdminRouter({ authService, connectors = null } = {}) {
   if (!authService) throw new Error('authService is required');

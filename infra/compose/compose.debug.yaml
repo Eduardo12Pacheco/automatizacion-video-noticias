@@ -1,4 +1,4 @@
-# Debug-only port publishing (S12).
+# Debug-only port publishing.
 #
 # The default stack never publishes Postgres, SearXNG, Mailpit, Ollama or n8n.
 # Adding this file *is* the debug opt-in; every port still binds to

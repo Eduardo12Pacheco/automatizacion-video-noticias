@@ -1,4 +1,4 @@
-/* Design tokens (S5/S10).
+/* Design tokens.
    Component styles use one semantic layer: surfaces, text, borders, status
    colours, overlays and spacing. The palette is defined once here. */
 
@@ -250,7 +250,7 @@
   --shadow: var(--shadow-panel);
 }
 
-/* Subtitle 2 aliases (S5.3: one token source, no local palette). */
+/* Subtitle 2 aliases (one token source, no local palette). */
 :root {
   --subtitle2-base: var(--surface-0);
   --subtitle2-base-deep: var(--surface-inset);

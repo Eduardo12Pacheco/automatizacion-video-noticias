@@ -59,7 +59,7 @@ nr_gpu_container_ready() {
 
 # Proves that the NVIDIA runtime can actually hand the device to a container,
 # not merely that the toolkit is installed. Uses the same documented CUDA probe
-# image as the T30 acceptance check; override the image in air-gapped setups.
+# image as the GPU passthrough check; override the image in air-gapped setups.
 nr_gpu_passthrough() {
   nr_gpu_overlay_is_required || return 1
   local image="${NEWSROOM_GPU_PROBE_IMAGE:-nvidia/cuda:12.4.1-base-ubuntu22.04}"
@@ -124,7 +124,7 @@ nr_resolve_profile() {
   esac
 }
 
-# S11: guided install. Both prompts are skipped with --yes, a non-interactive
+# Guided install. Both prompts are skipped with --yes, a non-interactive
 # terminal or CI, and when the matching explicit flag/environment is present.
 nr_prompt_mode() {
   local answer=""

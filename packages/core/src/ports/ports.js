@@ -1,6 +1,6 @@
 /**
  * Ports consumed by the core use cases. Adapters live outside this package
- * (T5 provides the local-first implementations); tests use in-file mocks.
+ * (the adapters package provides the local-first implementations); tests use in-file mocks.
  */
 
 export class LLMPort {

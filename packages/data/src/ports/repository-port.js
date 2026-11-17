@@ -64,7 +64,7 @@ export class RepositoryPort {
   async addVideoProjectCustomImages() { throw new Error('not_implemented: addVideoProjectCustomImages'); }
   async disableVideoEditProject() { throw new Error('not_implemented: disableVideoEditProject'); }
 
-  // Users, roles and sessions (S9) -----------------------------------------
+  // Users, roles and sessions -----------------------------------------
   async listRoles() { throw new Error('not_implemented: listRoles'); }
   async createUser() { throw new Error('not_implemented: createUser'); }
   async getUserById() { throw new Error('not_implemented: getUserById'); }

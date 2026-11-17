@@ -1,4 +1,4 @@
-"""T20 screens & states contract (S10).
+"""Screens & states contract.
 
 Mechanical checks for the pieces that are easy to regress: the login screen,
 the shared screen-state vocabulary, the three-column editorial layout, the

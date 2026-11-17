@@ -1,4 +1,4 @@
-"""D10 run-mode chrome: the demo run must be visible in the panel (T17)."""
+"""Run-mode chrome: the demo run must be visible in the panel."""
 from pathlib import Path
 import json
 import subprocess
@@ -17,7 +17,7 @@ def test_demo_mode_has_exactly_one_indicator_wired_to_the_bootstrap():
 
     assert 'id="runModeBadge"' in index
     assert 'data-i18n="mode.demoBadge"' in index
-    # T29: the header badge is the only demo indicator on screen.
+    # The header badge is the only demo indicator on screen.
     assert 'id="runModeBanner"' not in index
     assert "showcase-badge" not in showcase
     assert "bootstrap.run_mode === 'demo'" in runtime

@@ -186,7 +186,7 @@
   min-width: 0;
 }
 
-/* Wide desktops get the expanded rail by default (T29): labels are always
+/* Wide desktops get the expanded rail by default: labels are always
    readable there, while narrower desktops keep the hover/focus expansion. */
 @media (min-width: 1440px) {
   .sidebar--rail {

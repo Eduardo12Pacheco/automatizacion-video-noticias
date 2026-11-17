@@ -167,7 +167,7 @@ if [ "$NR_DRY_RUN" = "1" ]; then
   nr_info "dry-run: no files, containers, volumes or models will be changed"
 fi
 
-# S11: guided choices. Explicit flags, --yes, CI and non-interactive shells
+# Guided choices. Explicit flags, --yes, CI and non-interactive shells
 # skip the prompts and keep the documented defaults.
 if [ "$ACTION" = "install" ] && [ "$MODE_EXPLICIT" = "0" ] && [ "$NR_DRY_RUN" = "0" ] && nr_is_interactive; then
   nr_prompt_mode
@@ -264,7 +264,7 @@ if [ "$NR_DRY_RUN" = "0" ]; then
     nr_env_set OLLAMA_KEEP_ALIVE "0s"
   fi
 else
-  # A dry run is allowed before the T8 stack exists; it only prints the plan.
+  # A dry run is allowed before the stack exists; it only prints the plan.
   NR_COMPOSE_MISSING_WARN=1
   nr_require_compose || true
   nr_info "would create or repair $NR_ENV_FILE from $NR_ENV_TEMPLATE"

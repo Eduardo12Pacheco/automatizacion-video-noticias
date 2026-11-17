@@ -76,7 +76,7 @@
   color: var(--muted);
 }
 
-/* Buttons (S5.2): neutral default, one primary per area. */
+/* Buttons: neutral default, one primary per area. */
 button {
   cursor: pointer;
   display: inline-flex;

@@ -1,4 +1,4 @@
-/* Shared screen states (S10): designed empty, loading and error blocks. */
+/* Shared screen states: designed empty, loading and error blocks. */
 
 .screen-state {
   display: grid;
