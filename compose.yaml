@@ -134,6 +134,7 @@ services:
       dockerfile: services/demo-worker/Dockerfile
     environment:
       DEMO_WORKER_PORT: "8088"
+      DEMO_WORKER_HOST: 0.0.0.0
       DEMO_VIDEO_PATH: /app/examples/brand/final-demo.mp4
       DEMO_WORKER_API_TOKENS: ${API_GATEWAY_TTS_API_KEY:?run ./install.sh first to generate .env; docker compose up alone cannot create the required secrets},${API_GATEWAY_SUBTITLES_API_KEY:?run ./install.sh first to generate .env; docker compose up alone cannot create the required secrets},${API_GATEWAY_RENDERER_API_KEY:?run ./install.sh first to generate .env; docker compose up alone cannot create the required secrets}
     expose:
