@@ -19,6 +19,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from newsroom_media.url_guard import BlockedUrlError, assert_public_url, build_guarded_opener
+except ModuleNotFoundError:  # pragma: no cover - plain `python3` without the package install
+    # The CLI can be executed directly from a checkout; resolve the shared
+    # package next to this project so the guard is never skipped.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "newsroom_media"))
+    from newsroom_media.url_guard import BlockedUrlError, assert_public_url, build_guarded_opener
+
 
 def _slug(value: str, *, limit: int = 80) -> str:
     text = str(value or "").strip().lower()
@@ -41,19 +49,21 @@ def _document_id(payload: dict[str, Any]) -> str:
 def _download_html(url: str, *, timeout_seconds: float = 30.0) -> str:
     """Fetch a public article page with the standard library.
 
-    trafilatura's own downloader returns None for some local/LAN hosts and for
-    servers that only understand simple requests. Fetching here keeps the
-    extractor working against the local panel fixtures and against ordinary
-    public pages alike; the extraction step stays in trafilatura.
+    The URL comes from a discovered news row, so it is checked against the
+    shared SSRF guard before the first socket is opened. urllib's redirect
+    handler re-checks every hop, which blocks a public URL that redirects to a
+    private or single-label destination.
     """
     from urllib.parse import urlparse
-    from urllib.request import Request, urlopen
+    from urllib.request import Request
 
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise RuntimeError("trafilatura_invalid_url")
+    assert_public_url(url)
     request = Request(url, headers={"user-agent": "newsroom-local-extractor/1.0", "accept": "text/html,*/*"})
-    with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - explicit http(s) guard above
+    opener = build_guarded_opener()
+    with opener.open(request, timeout=timeout_seconds) as response:  # noqa: S310 - guarded above
         return response.read().decode("utf-8", errors="replace")
 
 
@@ -65,6 +75,8 @@ def extract_article(url: str) -> dict[str, Any]:
 
     try:
         downloaded = _download_html(url)
+    except BlockedUrlError as exc:
+        raise RuntimeError("trafilatura_blocked_url") from exc
     except Exception:
         downloaded = trafilatura.fetch_url(url)
     if not downloaded:

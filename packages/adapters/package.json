@@ -15,5 +15,8 @@
   },
   "devDependencies": {
     "@newsroom/data": "workspace:*"
+  },
+  "dependencies": {
+    "@newsroom/contracts": "workspace:*"
   }
 }

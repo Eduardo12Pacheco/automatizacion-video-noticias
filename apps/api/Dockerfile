@@ -29,6 +29,9 @@ COPY packages packages
 COPY infra/db infra/db
 COPY examples examples
 
+# The trafilatura CLI imports the shared URL guard from newsroom_media.
+RUN /opt/newsroom-python/bin/pip install --no-cache-dir /app/packages/python/newsroom_media
+
 WORKDIR /app/apps/api
 EXPOSE 8099
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=12 \

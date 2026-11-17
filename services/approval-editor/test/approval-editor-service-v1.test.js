@@ -26,6 +26,7 @@ async function withService(fn) {
   const renderCalls = [];
   const server = createApprovalEditorService({
     projectsRoot,
+    urlResolver: async () => ["127.0.0.1"],
     alignVoiceAudio: async ({ segments }) => ({
       segments,
       alignedTimings: { phrases: segments.map((segment) => ({ startTime: segment.startTime, endTime: segment.endTime })) },
@@ -360,6 +361,7 @@ test("approval editor service fails loudly when final render adapter is not conf
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "approval-editor-v1-no-render-"));
   const server = createApprovalEditorService({
     projectsRoot,
+    urlResolver: async () => ["127.0.0.1"],
     alignVoiceAudio: async ({ segments }) => ({
       segments,
       alignedTimings: { phrases: segments.map((segment) => ({ startTime: segment.startTime, endTime: segment.endTime })) },

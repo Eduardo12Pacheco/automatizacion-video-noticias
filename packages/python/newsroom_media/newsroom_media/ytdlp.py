@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Callable, Protocol
 from urllib.parse import urlparse
 
+from .url_guard import is_blocked_address
+
 ALLOWED_YOUTUBE_HOSTS = frozenset({"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"})
 
 AddressResolver = Callable[[str], list[str]]
@@ -42,13 +44,7 @@ def _default_resolver(host: str) -> list[str]:
 
 def _is_blocked_address(value: str) -> bool:
     address = ipaddress.ip_address(value)
-    return (
-        address.is_private
-        or address.is_loopback
-        or address.is_link_local
-        or address.is_unspecified
-        or address.is_multicast
-    )
+    return is_blocked_address(str(address))
 
 
 def validate_media_url(

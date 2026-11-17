@@ -40,6 +40,10 @@ importers:
         version: link:../../services/renderer
 
   packages/adapters:
+    dependencies:
+      '@newsroom/contracts':
+        specifier: workspace:*
+        version: link:../contracts
     devDependencies:
       '@newsroom/data':
         specifier: workspace:*

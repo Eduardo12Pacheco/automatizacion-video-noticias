@@ -11,6 +11,7 @@ const { prepareRealVoiceAlignment } = require("./lib/real-alignment");
 const { prepareAudioPreviewDerivative, audioContentType } = require("./lib/audio-preview");
 const { extractVoiceAudioFromMp4, resolveVoiceExtractionErrorStatus } = require("./lib/voice-video-audio-extraction");
 const { createRendererClient } = require("./lib/renderer-client");
+const { BlockedUrlError, assertPublicUrl } = require("@newsroom/contracts/security/url-guard");
 const { applyAlternatingBoundaryTransitionDefaults, addBoundaryTransitionAssets } = require("./lib/boundary-transitions");
 
 function sendJson(response, status, payload) {
@@ -303,12 +304,18 @@ function parseWavDurationSeconds(buffer) {
   return byteRate > 0 && dataSize > 0 ? dataSize / byteRate : 0;
 }
 
-async function resolveRemoteWavDurationSeconds(url) {
+async function resolveRemoteWavDurationSeconds(url, resolver = null) {
   if (!/^https?:\/\//i.test(url || "") || !/\.wav(?:$|[?#])/i.test(url)) return 0;
+  try {
+    await assertPublicUrl(url, resolver ? { resolver } : undefined);
+  } catch (error) {
+    if (error instanceof BlockedUrlError) return 0;
+    throw error;
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), WAV_DURATION_FETCH_TIMEOUT_MS);
   try {
-    const response = await fetch(url, { headers: { range: "bytes=0-4095" }, signal: controller.signal });
+    const response = await fetch(url, { headers: { range: "bytes=0-4095" }, signal: controller.signal, redirect: "manual" });
     if (!response.ok && response.status !== 206) return 0;
     const buffer = Buffer.from(await response.arrayBuffer());
     return toFinitePositiveNumber(parseWavDurationSeconds(buffer));
@@ -576,7 +583,7 @@ function resolveRenderedOutputPath(rendered) {
   return error;
 }
 
-function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "projects"), renderAdapter, renderCommandRunner, alignVoiceAudio = prepareRealVoiceAlignment, prepareAudioPreview = prepareAudioPreviewDerivative, extractVoiceAudio = extractVoiceAudioFromMp4, env = process.env, fetchImpl = globalThis.fetch } = {}) {
+function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "projects"), renderAdapter, renderCommandRunner, alignVoiceAudio = prepareRealVoiceAlignment, prepareAudioPreview = prepareAudioPreviewDerivative, extractVoiceAudio = extractVoiceAudioFromMp4, env = process.env, fetchImpl = globalThis.fetch, urlResolver = null } = {}) {
   const store = createContractStore({ projectsRoot });
   const finalRenderAdapter = renderAdapter || createRenderAdapterFromEnv(env, renderCommandRunner, fetchImpl);
   const renderJobs = new Map();
@@ -667,7 +674,7 @@ function createApprovalEditorService({ projectsRoot = path.resolve(__dirname, "p
             generatedAt: new Date().toISOString(),
           };
           if (allowEstimatedTimings) {
-            const wavDurationSeconds = pickAudioDurationSeconds(body.voice_audio) || await resolveRemoteWavDurationSeconds(pickAudioUrl(body.voice_audio));
+            const wavDurationSeconds = pickAudioDurationSeconds(body.voice_audio) || await resolveRemoteWavDurationSeconds(pickAudioUrl(body.voice_audio), urlResolver);
             segments = normalizeSegments({ ...body, allowEstimatedTimings: true, voice_audio: { ...(body.voice_audio || {}), durationSeconds: wavDurationSeconds || body.voice_audio?.durationSeconds } });
             alignedTimings = { phrases: segments.map((segment) => ({ startTime: segment.startTime, endTime: segment.endTime })) };
           }

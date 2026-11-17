@@ -65,3 +65,9 @@ def test_download_html_rejects_non_http_urls():
 
     with pytest.raises(RuntimeError, match="trafilatura_invalid_url"):
         _download_html("file:///etc/passwd")
+
+
+def test_extract_article_rejects_private_and_single_label_urls():
+    for url in ("http://127.0.0.1:1/nota", "http://10.0.0.7/nota", "http://approval-editor:3042/nota"):
+        with pytest.raises(RuntimeError, match="trafilatura_blocked_url"):
+            extract_article(url)
