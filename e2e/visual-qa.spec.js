@@ -405,6 +405,70 @@ for (const width of [1280, 1440]) {
   });
 }
 
+for (const width of [1280, 1440, 1920]) {
+  test(`the rail never covers the content column at ${width}px`, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('newsroom-panel-language-v1', 'es');
+      localStorage.setItem('newsroom-panel-theme-v1', 'dark');
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/?showcase=1');
+    await expect(page.locator('#appShell')).toBeVisible();
+    await expect(page.locator('#viewApproval')).toBeVisible();
+    // Park the pointer away from the rail so a hover expansion does not masquerade
+    // as the layout's default state.
+    await page.mouse.move(width - 8, 8);
+    await page.waitForTimeout(260);
+    const geometry = await page.evaluate(() => {
+      const rail = document.querySelector('.sidebar--rail')?.getBoundingClientRect();
+      const content = document.querySelector('.app-content')?.getBoundingClientRect();
+      const children = [...document.querySelectorAll('.app-content > *')]
+        .filter((node) => node.offsetParent !== null)
+        .map((node) => ({ className: node.className || node.tagName, left: node.getBoundingClientRect().left }));
+      return { railRight: rail?.right ?? 0, contentLeft: content?.left ?? 0, children };
+    });
+    expect(geometry.contentLeft, 'content column starts under the rail').toBeGreaterThanOrEqual(geometry.railRight - 1);
+    for (const child of geometry.children) {
+      expect(child.left, `${child.className} starts under the rail`).toBeGreaterThanOrEqual(geometry.railRight - 1);
+    }
+  });
+}
+
+test('mono typography is reserved for ids, timecodes and counters', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    localStorage.setItem('newsroom-panel-language-v1', 'es');
+    localStorage.setItem('newsroom-panel-theme-v1', 'dark');
+  });
+  await page.goto('/?showcase=1');
+  await expect(page.locator('#appShell')).toBeVisible();
+  const views = ['radar', 'approval', 'audio', 'subtitulos2', 'scripts', 'admin-users', 'connectors', 'errors-audit', 'active-users'];
+  for (const view of views) {
+    await page.locator(`.nav-item[data-view="${view}"]`).click({ force: true });
+    await page.waitForTimeout(300);
+    const offenders = await page.evaluate(() => {
+      const allowed = (text) => {
+        if (!/\p{L}/u.test(text)) return true;
+        if (/\d{1,2}:\d{2}([.,]\d+)?/.test(text)) return true;
+        if (/^[A-Za-z0-9_.-]{1,32}$/.test(text)) return true;
+        return false;
+      };
+      const result = [];
+      for (const element of document.querySelectorAll('.app-content *')) {
+        if (element.offsetParent === null) continue;
+        if (element.closest('#cards, #radarBasuraList, #radarSummaryBody, #scriptCards, #queueList, #videoProjectsList, #videoProjectDetail, #audioQueueList, #subtitle2RowsBody, #subtitle2SessionHistory, #subtitle2PreviewCue, #adminUsersList, #connectorsList, #errorsAuditList, #errorsAuditDetail, #activeUsersList')) continue;
+        const style = getComputedStyle(element);
+        if (!/JetBrains Mono|monospace/.test(style.fontFamily)) continue;
+        const text = (element.textContent || '').trim().replace(/\s+/g, ' ');
+        if (!text || allowed(text)) continue;
+        result.push({ tag: element.tagName, className: String(element.className).slice(0, 80), text: text.slice(0, 80) });
+      }
+      return result;
+    });
+    expect(offenders, `${view} renders prose in a mono font`).toEqual([]);
+  }
+});
+
 test('light theme keeps every view contained and accessible (wcag21aa)', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {

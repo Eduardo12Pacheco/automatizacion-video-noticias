@@ -97,7 +97,7 @@
   border: 0;
   background: transparent !important;
   color: var(--danger);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-20);
   font-weight: 700;
   line-height: 1;

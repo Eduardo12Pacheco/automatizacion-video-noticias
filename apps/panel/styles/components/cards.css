@@ -169,9 +169,9 @@
   align-items: center;
   justify-content: flex-start;
   color: var(--muted-2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-13);
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-transform: none;
   overflow: hidden;
 }

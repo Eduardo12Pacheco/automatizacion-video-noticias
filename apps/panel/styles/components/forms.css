@@ -133,7 +133,7 @@
   border: 1px solid var(--surface-a45);
   border-radius: var(--radius-pill);
   color: var(--text-3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-ui);
   font-size: var(--fs-12);
   font-weight: 800;
   font-style: italic;
@@ -146,9 +146,9 @@
   min-width: 0;
   min-height: 16px;
   color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  letter-spacing: 0;
   line-height: 1.35;
   text-align: left;
 }
@@ -422,10 +422,10 @@
 
 .word-count {
   margin: 0 auto 0 0;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-11);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   color: var(--muted-2);
 }
 

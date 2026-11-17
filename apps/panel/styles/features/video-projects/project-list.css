@@ -167,9 +167,9 @@
   flex-wrap: wrap;
   gap: 8px 14px;
   color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-11);
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  letter-spacing: 0;
 }
 
 .video-project-card__meta strong {
@@ -194,10 +194,10 @@
   border: 1px solid var(--accent-a45);
   background: var(--accent);
   color: var(--accent-contrast);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--fs-12);
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  letter-spacing: 0;
   line-height: 1;
   cursor: pointer;
 }

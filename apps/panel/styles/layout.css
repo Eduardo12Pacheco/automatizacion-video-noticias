@@ -224,10 +224,6 @@
     gap: 10px;
   }
 
-  .app-content {
-    width: calc(100vw - var(--sidebar-expanded));
-    margin-left: var(--sidebar-expanded);
-  }
 }
 
 .sidebar-quick-label {
@@ -244,6 +240,15 @@
   padding: 28px 32px 32px;
   min-height: 600px;
   contain: layout style;
+}
+
+/* The expanded rail is reserved for the content column at wide desktops.
+   This rule must follow the collapsed default so the cascade keeps it. */
+@media (min-width: 1440px) {
+  .app-content {
+    width: calc(100vw - var(--sidebar-expanded));
+    margin-left: var(--sidebar-expanded);
+  }
 }
 
 .content {
