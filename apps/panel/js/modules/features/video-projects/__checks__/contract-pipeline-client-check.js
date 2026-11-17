@@ -7,11 +7,9 @@ import { prepareVideoCompositionContract } from '../contract-pipeline-client.js'
 import { createVideoProjectsApiClient } from '../api.js';
 import { createVideoProjectsFeature } from '../index.js';
 import { renderSelectedVideoProjectView } from '../render.js';
+const http = await import('node:http');
 const cjsRequire = createRequire(import.meta.url);
-const approvalService = cjsRequire('@newsroom/renderer/approval-pipeline-local-service');
 const { applyContractOperations } = cjsRequire('@newsroom/contracts/editor/contract-updates');
-
-const { createApprovalPipelineLocalService } = approvalService;
 
 function baseProject() {
   return {
@@ -254,27 +252,33 @@ function assertApprovalServicePersistsNewspaperMediaMode() {
   }
 }
 
-function makeApprovalFetchFixture() {
-  const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Zz5QAAAAASUVORK5CYII=', 'base64');
-  const voice = Buffer.from('voice-bytes');
-  const music = Buffer.from('music-bytes');
-  const byUrl = new Map([
-    ['https://cdn.example.com/image-1.jpg', { bytes: image, contentType: 'image/jpeg' }],
-    ['https://cdn.example.com/image-2.jpg', { bytes: image, contentType: 'image/jpeg' }],
-    ['https://cdn.example.com/voice.mp3', { bytes: voice, contentType: 'audio/mpeg' }],
-    ['https://cdn.example.com/music.mp3', { bytes: music, contentType: 'audio/mpeg' }],
-  ]);
+function approvalFixtureRows() {
+  return [
+    { rowId: 'row-1', id: 'row-1', index: 0, phrase: 'Hola mundo', startTime: 0, endTime: 1, selectedAssetId: 'asset-1' },
+    { rowId: 'row-2', id: 'row-2', index: 1, phrase: 'Segunda línea', startTime: 1, endTime: 2, selectedAssetId: 'asset-2' },
+  ];
+}
 
-  return async (url) => {
-    const found = byUrl.get(String(url));
-    if (!found) return new Response('not found', { status: 404 });
-    return new Response(found.bytes, { status: 200, headers: { 'content-type': found.contentType } });
-  };
+function writeJson(response, status, payload) {
+  const body = JSON.stringify(payload);
+  response.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(body) });
+  response.end(body);
 }
 
 async function withApprovalService(fn) {
-  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'approval-pipeline-check-'));
-  const server = createApprovalPipelineLocalService({ projectsRoot, env: {}, fetchImpl: makeApprovalFetchFixture() });
+  // The production approval editor is covered by its own service suite. This
+  // check only needs the HTTP contract shape the panel client consumes.
+  const server = http.createServer((request, response) => {
+    const url = new URL(request.url, 'http://approval.local');
+    if (request.method === 'GET' && url.pathname === '/health') return writeJson(response, 200, { ok: true, status: 'ready' });
+    if (request.method === 'POST' && url.pathname === '/api/projects/create-from-approval') {
+      return writeJson(response, 201, { projectId: 'draft-1', alignmentStatus: { status: 'ready' }, snapshot: { contractVersion: 'approval-editor-service-v1', projectId: 'draft-1', rows: approvalFixtureRows() } });
+    }
+    if (request.method === 'GET' && url.pathname === '/api/projects/draft-1/status') {
+      return writeJson(response, 200, { projectId: 'draft-1', alignmentStatus: { status: 'ready' }, snapshot: { contractVersion: 'approval-editor-service-v1', projectId: 'draft-1', rows: approvalFixtureRows() } });
+    }
+    return writeJson(response, 404, { error: 'not_found' });
+  });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address();
   try {

@@ -101,9 +101,9 @@ test("approval editor service preserves paragraph eligibility from raw guion_pip
     assert.equal(created.body.data.snapshot.rows[1].nextRowId, "row-3");
     assert.equal(created.body.data.snapshot.rows[1].transition, "transition-3");
     assert.equal(created.body.data.snapshot.rows[1].transitionSource, "auto");
-    assert.deepEqual(created.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/efecto-transition-3.mp4", renderPath: "overlays/efecto-transition-3.mp4", previewUrl: "./assets/boundary-transitions/efecto-transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true });
+    assert.deepEqual(created.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/transition-3.mp4", renderPath: "overlays/transition-3.mp4", previewUrl: "./assets/boundary-transitions/transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true });
     assert.equal(created.body.data.snapshot.rows[1].sfx, null);
-    assert.equal(created.body.data.snapshot.assets["transition-3"].renderPath, "overlays/efecto-transition-3.mp4");
+    assert.equal(created.body.data.snapshot.assets["transition-3"].renderPath, "overlays/transition-3.mp4");
     assert.equal(created.body.data.snapshot.rows[2].paragraphBoundaryAfter, undefined);
   });
 });
@@ -130,9 +130,9 @@ test("approval editor service merges raw guion paragraph metadata onto supplied 
     assert.equal(created.body.data.snapshot.rows[1].nextRowId, "custom-3");
     assert.equal(created.body.data.snapshot.rows[1].transition, "transition-3");
     assert.equal(created.body.data.snapshot.rows[1].transitionSource, "auto");
-    assert.deepEqual(created.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/efecto-transition-3.mp4", renderPath: "overlays/efecto-transition-3.mp4", previewUrl: "./assets/boundary-transitions/efecto-transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true });
+    assert.deepEqual(created.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-3", src: "./assets/boundary-transitions/transition-3.mp4", renderPath: "overlays/transition-3.mp4", previewUrl: "./assets/boundary-transitions/transition-3.mp4", blendMode: "screen", durationSeconds: 1, audio: true });
     assert.equal(created.body.data.snapshot.rows[1].sfx, null);
-    assert.equal(created.body.data.snapshot.assets["transition-3"].renderPath, "overlays/efecto-transition-3.mp4");
+    assert.equal(created.body.data.snapshot.assets["transition-3"].renderPath, "overlays/transition-3.mp4");
   });
 });
 
@@ -164,9 +164,9 @@ test("approval editor service enables and disables Transition only for eligible 
     assert.equal(enabled.body.data.snapshot.rows[1].paragraphBoundaryAfter, true);
     assert.equal(enabled.body.data.snapshot.rows[1].nextRowId, "row-3");
     assert.equal(enabled.body.data.snapshot.rows[1].transition, "transition-1");
-    assert.deepEqual(enabled.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-1", src: "./assets/boundary-transitions/TRANSITION 1 NUEVO.mp4", renderPath: "overlays/TRANSITION 1 NUEVO.mp4", previewUrl: "./assets/boundary-transitions/TRANSITION 1 NUEVO.mp4", blendMode: "screen", durationSeconds: 0.833333, audio: true });
+    assert.deepEqual(enabled.body.data.snapshot.rows[1].transitionConfig, { type: "overlay-video", assetId: "transition-1", src: "./assets/boundary-transitions/transition-1.mp4", renderPath: "overlays/transition-1.mp4", previewUrl: "./assets/boundary-transitions/transition-1.mp4", blendMode: "screen", durationSeconds: 0.833333, audio: true });
     assert.deepEqual(enabled.body.data.snapshot.rows[1].sfx, null);
-    assert.equal(enabled.body.data.snapshot.assets["transition-1"].renderPath, "overlays/TRANSITION 1 NUEVO.mp4");
+    assert.equal(enabled.body.data.snapshot.assets["transition-1"].renderPath, "overlays/transition-1.mp4");
     assert.equal(enabled.body.data.snapshot.rows[1].mediaMode, created.body.data.snapshot.rows[1].mediaMode);
     assert.equal(enabled.body.data.snapshot.rows[1].selectedAssetId, created.body.data.snapshot.rows[1].selectedAssetId);
     assert.equal(enabled.body.data.snapshot.rows[0].transition, "none");

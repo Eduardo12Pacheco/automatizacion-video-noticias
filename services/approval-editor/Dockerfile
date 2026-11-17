@@ -13,8 +13,11 @@ WORKDIR /app
 # The service is CommonJS and depends on the workspace contracts package.
 # Mirror the pnpm workspace layout without installing the whole monorepo.
 COPY packages/contracts ./packages/contracts
+COPY examples/brand ./examples/brand
 COPY services/renderer/assets ./services/renderer/assets
+COPY tools/assets/sync-runtime-assets.mjs ./tools/assets/sync-runtime-assets.mjs
 COPY services/approval-editor ./services/approval-editor
+RUN node tools/assets/sync-runtime-assets.mjs --target=approval-editor
 RUN mkdir -p /app/node_modules/@newsroom \
     && ln -s ../../packages/contracts /app/node_modules/@newsroom/contracts \
     && mkdir -p /app/services/approval-editor/projects /app/runtime/media/renderer \

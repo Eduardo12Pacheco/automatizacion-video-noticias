@@ -205,12 +205,12 @@ export function createPreviewExportCommands({
         const started = await client.renderFinal(projectId, { snapshotHash, async: true });
         const result = await waitForApprovalFinalRender(client, projectId, started, { pollDelayMs: renderFinalPollDelayMs, maxPolls: renderFinalMaxPolls });
         let downloadableOutput = pickDownloadableRenderPath(result);
-        if (!downloadableOutput && isRenderedWithoutDownloadablePath(result)) throw new Error('Approval Editor no devolvió una URL final descargable. Revisá que el render adapter de services/renderer esté configurado y haya generado outputPath.');
+        if (!downloadableOutput && isRenderedWithoutDownloadablePath(result)) throw new Error('Approval Editor no devolvió una URL final descargable. Revisá que el renderer esté configurado y haya generado outputPath.');
         if (!downloadableOutput && typeof client.finalDownload === 'function') {
           const download = await client.finalDownload(projectId);
           downloadableOutput = typeof download?.finalUrl === 'string' ? download.finalUrl.trim() : '';
         }
-        if (!downloadableOutput) throw new Error('Approval Editor no devolvió una URL final descargable. Revisá que el render adapter de services/renderer esté configurado y haya generado outputPath.');
+        if (!downloadableOutput) throw new Error('Approval Editor no devolvió una URL final descargable. Revisá que el renderer esté configurado y haya generado outputPath.');
         const finalUrl = resolveBrowserFinalDownloadUrl(client, projectId, downloadableOutput);
         await persistEditorState(project, { phase: 'final_ready', final_url: finalUrl, export_status: 'ready', last_rendered_hash: result?.lastRenderedSnapshotHash || snapshotHash, dirty: false, error: '', diagnostics: result?.diagnostics || null });
         ui.toast('Exportación lista. Descargá el video final.');

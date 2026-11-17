@@ -10,6 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEEP_RELATIVE_IMPORT = re.compile(r"""(?:require\(|from\s+)["'](?:\.\./){4,}""")
+STRING_LITERAL = re.compile(r"""["'`]([^"'`\n]*)["'`]""")
+PATH_JOIN_CALL = re.compile(r"""path\.(?:join|resolve)\(([^)]*)\)""")
+TOP_LEVEL_REFERENCE = re.compile(r"""(?<![\w.-])(apps|packages|services)/([A-Za-z0-9._-]+)""")
+FOREIGN_PATH_SEGMENT = re.compile(r"""^(\.\.|apps|packages|services)$""")
 
 
 def tracked_files(suffixes: tuple[str, ...]) -> list[Path]:
@@ -51,7 +55,7 @@ class PortsAndAdaptersTest(unittest.TestCase):
 
 
     def test_runtime_code_has_no_unfinished_markers(self) -> None:
-        marker = re.compile(r"\b(?:TODO|FIXME)\b|not implemented|NotImplemented")
+        marker = re.compile(r"\b(?:TODO|FIXME)\b|not[ _-]?implemented|NotImplemented")
         violations = []
         for path in tracked_files((".js", ".mjs", ".cjs", ".py", ".ts", ".tsx")):
             relative = path.relative_to(ROOT).as_posix()
@@ -59,15 +63,56 @@ class PortsAndAdaptersTest(unittest.TestCase):
                 continue
             if "/tests/" in relative or "/test/" in relative or "/__checks__/" in relative:
                 continue
+            if not path.is_file():
+                continue
             source = path.read_text(encoding="utf-8", errors="ignore")
             for line_number, line in enumerate(source.splitlines(), 1):
                 if marker.search(line):
                     violations.append(f"{path.relative_to(ROOT)}:{line_number}")
         self.assertEqual(violations, [], f"unfinished runtime markers: {violations}")
 
+    def test_services_do_not_reach_into_foreign_workspace_directories(self) -> None:
+        """A service may only point at paths inside its own workspace package.
+
+        Imports were already guarded; this gate also catches string literals and
+        `path.join`/`path.resolve` calls that build a path into another
+        `apps/*`, `packages/*` or `services/*` directory, which is how the
+        approval editor used to execute the renderer's transcription script and
+        read its overlay tree.
+        """
+        violations = []
+        for path in tracked_files((".js", ".mjs", ".cjs", ".py")):
+            relative = path.relative_to(ROOT)
+            parts = relative.parts
+            if parts[0] not in ("apps", "packages", "services"):
+                continue
+            if any(part in {"tests", "test", "__checks__", "node_modules"} for part in parts):
+                continue
+            if not path.is_file():
+                continue
+            owner = parts[:2]
+            source = path.read_text(encoding="utf-8", errors="ignore")
+            for line_number, line in enumerate(source.splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith(("#", "//", "*", "/*", "<!--")):
+                    continue
+                references = []
+                for literal in STRING_LITERAL.findall(line):
+                    references.extend(TOP_LEVEL_REFERENCE.findall(literal))
+                for call in PATH_JOIN_CALL.findall(line):
+                    segments = [literal.strip() for literal in STRING_LITERAL.findall(call)]
+                    joined = "/".join(segments)
+                    references.extend(TOP_LEVEL_REFERENCE.findall(joined))
+                for directory, name in references:
+                    if (directory, name) != tuple(owner):
+                        violations.append(f"{relative}:{line_number}: {directory}/{name}")
+        self.assertEqual(sorted(set(violations)), [], f"foreign workspace paths: {violations}")
+
     def test_no_cross_package_relative_imports_remain(self) -> None:
         violations = []
         for path in tracked_files((".js", ".mjs", ".cjs")):
+            if not path.is_file():
+                continue
             source = path.read_text(encoding="utf-8", errors="ignore")
             if DEEP_RELATIVE_IMPORT.search(source):
                 violations.append(str(path.relative_to(ROOT)))

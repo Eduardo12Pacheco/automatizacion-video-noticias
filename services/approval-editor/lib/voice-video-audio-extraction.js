@@ -65,7 +65,7 @@ async function extractVoiceAudioFromMp4({
 
   const ffmpegPath = (runFfmpeg && env.FFMPEG_PATH) || (Object.keys(env || {}).length ? resolveFfmpegPath({ env }) : '');
   if (!ffmpegPath) {
-    throw createExtractionError('ffmpeg_unavailable', 'FFmpeg unavailable. Set FFMPEG_PATH or install ffmpeg-static in services/renderer/node_modules.');
+    throw createExtractionError('ffmpeg_unavailable', 'FFmpeg unavailable. Set FFMPEG_PATH or install ffmpeg or set FFMPEG_PATH.');
   }
 
   const safeBaseName = sanitizeBaseName(sourceName);

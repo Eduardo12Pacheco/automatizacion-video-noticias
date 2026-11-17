@@ -58,7 +58,7 @@ def resolve_backend(requested_backend: str) -> tuple[str, list[str]]:
   notes = []
   if requested_backend in {"auto", "whisper"}:
     notes.append(
-      f"Backend Whisper delegado al servicio asr-worker en {asr_worker_url()} (modelo y GPU compartidos)."
+      f"Backend Whisper delegado al worker ASR en {asr_worker_url()} (modelo y GPU compartidos)."
     )
     return "whisper", notes
 
@@ -87,9 +87,9 @@ def diagnose_backends() -> int:
     "asrWorkerUrl": asr_worker_url(),
     "asrWorkerReachable": worker_reachable,
     "voskModuleAvailable": module_available("vosk"),
-    "recommendation": "whisper (asr-worker)" if worker_reachable else "start services/asr-worker",
+    "recommendation": "whisper (asr-worker)" if worker_reachable else "start asr-worker",
     "notes": [
-      "Whisper (faster-whisper) vive en services/asr-worker; este script solo envia el audio por HTTP.",
+      "Whisper (faster-whisper) vive en el worker ASR; este script solo envia el audio por HTTP.",
       "El worker aplica el slot GPU compartido y el fallback CPU/small automaticamente.",
     ],
   }

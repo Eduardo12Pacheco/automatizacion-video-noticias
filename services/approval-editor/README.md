@@ -2,26 +2,22 @@
 
 Local service for Approval-owned editor snapshots. The active service boundary is `services/approval-editor/` and it keeps the runtime contract `approval-editor-service-v1`, default port `3042`, `/health`, `/api/*`, and `/api/overlays/*` unchanged.
 
-The service talks to `services/renderer` over HTTP through `APPROVAL_EDITOR_RENDERER_URL`; it never imports renderer files or spawns its CLI.
+The service talks to the render-only worker over HTTP through `APPROVAL_EDITOR_RENDERER_URL`; it never imports renderer files or spawns its CLI.
 
-It requires real Whisper alignment by default; estimated timings only run when `ALLOW_ESTIMATED_TIMINGS=true` is explicitly set.
+It requires real Whisper alignment by default; estimated timings only run when `ALLOW_ESTIMATED_TIMINGS=true` is explicitly set. The service downloads the voice audio, writes a 16 kHz mono derivative and calls the ASR worker over HTTP (`ASR_WORKER_URL`, `TRANSCRIPT_SERVICE_API_KEY`); it never spawns Whisper or a Python script. In Compose both services mount the same media volume and `APPROVAL_EDITOR_ALIGNMENT_ROOT` points at it.
 
-## RTX 4060 / faster-whisper large-v3
+## ASR worker and ffmpeg
 
 ```powershell
 $env:APPROVAL_EDITOR_SERVICE_PORT = "3042"
-$env:STT_WHISPER_MODEL = "<MODEL_PATH>"
-$env:STT_WHISPER_DEVICE = "cuda"
-$env:STT_WHISPER_COMPUTE_TYPE = "float16"
-$env:REMOTION_EDITOR_PYTHON_BIN = "<PYTHON_EXE>"
-# Optional only if ffmpeg-static is not available from services/renderer/node_modules:
+$env:ASR_WORKER_URL = "http://127.0.0.1:8765"
+$env:TRANSCRIPT_SERVICE_API_KEY = "<ASR_TOKEN>"
+# Optional when ffmpeg is not on PATH:
 # $env:FFMPEG_PATH = "C:\path\to\ffmpeg.exe"
 node .\services\approval-editor\server.js
 ```
 
-For NSSM/service usage, do not rely on the Windows `py` launcher. Services can run as `LocalSystem` or another non-interactive account that cannot see the current user's Python launcher registry. Configure `REMOTION_EDITOR_PYTHON_BIN` or `APPROVAL_EDITOR_PYTHON_BIN` with the full Python 3.11 `python.exe` path, then restart the Approval Editor service so the environment is reloaded.
-
-If CUDA transcription fails, the service retries `cpu/int8` once. If real alignment still fails, `/api/projects/create-from-approval` returns `alignmentStatus.status = "failed"` and the browser client refuses to enter the editor with fake ready timings.
+For NSSM/service usage, run the render-only worker wrapper and the approval editor wrapper from `infra/windows/`. The editor points at the renderer on `http://127.0.0.1:3041` by default; the ASR worker owns the Whisper model, GPU slot and CPU fallback. If real alignment fails, `/api/projects/create-from-approval` returns `alignmentStatus.status = "failed"` and the browser client refuses to enter the editor with fake ready timings.
 
 ## Focused checks
 

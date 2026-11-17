@@ -21,7 +21,7 @@ export const COMPOSITION_DUST_PREVIEW_URLS = {
   'particle-4': './assets/particle-4.webm',
 };
 export const COMPOSITION_LOCAL_LOGO_URL = './assets/logo-primary.webm';
-export const COMPOSITION_LOCAL_GREEN_LOGO_URL = '../../services/renderer/assets/overlays/logo-green.mp4';
+export const COMPOSITION_LOCAL_GREEN_LOGO_URL = './assets/logo-green.mp4';
 const LOCAL_LOGO_SOURCE_ALIASES = new Set(['logo-primary.webm', './assets/logo-primary.webm', 'assets/logo-primary.webm', 'logo-green.mp4', './assets/logo-green.mp4', 'assets/logo-green.mp4']);
 
 export function buildCompositionAssetSignature({ dustWebmUrl, logoUrl, outroUrl, voiceUrl, musicUrl } = {}) {

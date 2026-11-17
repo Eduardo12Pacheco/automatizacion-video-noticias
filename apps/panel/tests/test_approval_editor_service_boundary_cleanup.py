@@ -38,9 +38,6 @@ def test_active_import_consumers_resolve_approval_editor_from_new_boundary():
         "apps/panel/js/modules/features/video-projects/__checks__/video-segment-picker-ux.check.mjs": [
             "@newsroom/contracts/editor/contract-updates",
         ],
-        "services/renderer/scripts/services/approval-pipeline-local-service.js": [
-            "@newsroom/contracts/editor/contract-updates",
-        ],
     }
 
     for relative_path, expected_imports in consumers.items():
@@ -68,13 +65,13 @@ def test_active_docs_show_new_service_path_and_manual_snapshot_migration():
     assert "services/approval-editor/projects/" in combined
 
 
-def test_approval_editor_docs_require_explicit_python_bin_for_services():
+def test_approval_editor_docs_use_the_asr_worker_boundary():
     service_readme = read("services/approval-editor/README.md")
 
-    assert '$env:REMOTION_EDITOR_PYTHON_BIN = "py"' not in service_readme
-    assert '$env:REMOTION_EDITOR_PYTHON_BIN = "<PYTHON_EXE>"' in service_readme
+    assert "ASR_WORKER_URL" in service_readme
+    assert "services/renderer" not in service_readme
+    assert "REMOTION_EDITOR_PYTHON_BIN" not in service_readme
     assert "NSSM" in service_readme
-    assert "LocalSystem" in service_readme
 
 
 def test_approval_editor_project_audio_previews_are_cacheable_for_editor_reopen():
@@ -213,7 +210,7 @@ const scaffold = buildMinimalRenderScaffold({
   title: 'Render Boundary Project',
   snapshot: {
     rows: [
-      { id: 'row-1', phrase: 'Intro', paragraphBoundaryAfter: true, nextRowId: 'row-2', transition: 'transition-1', transitionSource: 'manual', transitionConfig: { type: 'overlay-video', assetId: 'transition-1', renderPath: 'overlays/TRANSITION 1 NUEVO.mp4' }, sfx: null },
+      { id: 'row-1', phrase: 'Intro', paragraphBoundaryAfter: true, nextRowId: 'row-2', transition: 'transition-1', transitionSource: 'manual', transitionConfig: { type: 'overlay-video', assetId: 'transition-1', renderPath: 'overlays/transition-1.mp4' }, sfx: null },
       { id: 'row-2', phrase: 'Close' },
     ],
   },

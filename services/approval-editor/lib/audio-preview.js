@@ -58,8 +58,8 @@ async function resolveInputAudioPath({ projectDir, audio, role, existingInputPat
   return inputPath;
 }
 
-async function prepareAudioPreviewDerivative({ projectDir, audio, role, outputName = `${role}-preview.mp3`, existingInputPath, env = process.env, fetchImpl = globalThis.fetch, remotionEditorRoot } = {}) {
-  const ffmpegPath = resolveFfmpegPath({ env, remotionEditorRoot });
+async function prepareAudioPreviewDerivative({ projectDir, audio, role, outputName = `${role}-preview.mp3`, existingInputPath, env = process.env, fetchImpl = globalThis.fetch, moduleRoot } = {}) {
+  const ffmpegPath = resolveFfmpegPath({ env, moduleRoot });
   if (!ffmpegPath) return null;
   const inputPath = await resolveInputAudioPath({ projectDir, audio, role, existingInputPath, fetchImpl });
   if (!inputPath) return null;

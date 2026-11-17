@@ -161,7 +161,10 @@ function sendAudio(response, status, bytes, { fileName = "voice-from-video.m4a",
 const ESTIMATED_SECONDS_PER_WORD = 0.55;
 const MIN_ESTIMATED_SEGMENT_SECONDS = 1.2;
 const WAV_DURATION_FETCH_TIMEOUT_MS = 2500;
-const REMOTION_OVERLAYS_DIR = path.resolve(__dirname, "..", "..", "services/renderer", "assets", "overlays");
+// Overlays are served from the approval editor's own asset directory. The
+// build step copies the canonical demo assets here; the service never reads
+// another workspace service's tree.
+const REMOTION_OVERLAYS_DIR = path.resolve(String(process.env.APPROVAL_EDITOR_OVERLAY_DIR || path.join(__dirname, "assets", "overlays")));
 const PUBLIC_OVERLAY_FILES = new Set([
   "overlay-layer-01.webm", "overlay-layer-02.webm",
   "particle-1.webm", "particle-2.webm", "particle-3.webm", "particle-4.webm",
@@ -555,7 +558,7 @@ function assertLeaseAvailable(store, projectId, leaseId, actor) {
 }
 
 function createMissingRenderAdapterError() {
-  const error = new Error("Remotion render adapter is not configured for Approval Editor final export. Configure APPROVAL_EDITOR_RENDER_ADAPTER with the services/renderer render adapter, or inject renderAdapter when creating the service.");
+  const error = new Error("Remotion render adapter is not configured for Approval Editor final export. Configure APPROVAL_EDITOR_RENDERER_URL or inject renderAdapter when creating the service.");
   error.code = "render_adapter_not_configured";
   return error;
 }
@@ -581,7 +584,7 @@ function resolveRenderedOutputPath(rendered) {
   const candidates = [rendered?.finalPath, rendered?.outputPath, rendered?.finalUrl];
   const outputPath = candidates.find((candidate) => typeof candidate === "string" && candidate.trim());
   if (outputPath) return outputPath.trim();
-  const error = new Error("Final render adapter completed without a downloadable output path. Check the services/renderer render adapter configuration and logs.");
+  const error = new Error("Final render adapter completed without a downloadable output path. Check the renderer service configuration and logs.");
   error.code = "render_output_missing";
   return error;
 }
