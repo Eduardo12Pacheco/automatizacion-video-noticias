@@ -10,6 +10,7 @@ import {
   getScriptPublishStageMeta,
   resolveScriptPublishCardState,
 } from './publish-status.js';
+import { t } from '../../core/i18n/index.js';
 import { escapeHtmlCore } from '../../core/ui/escape-html.js';
 import { renderEmptyState } from '../../core/ui/screen-state.js';
 
@@ -24,9 +25,9 @@ export function renderScriptStatsView({ scriptDrafts, el }) {
   const processed = scriptDrafts.filter((i) => isScriptProcessed(i)).length;
 
   el.scriptStats.innerHTML = `
-    <div class="stat"><small>Pendientes</small><strong>${total}</strong></div>
-    <div class="stat"><small>En revisión</small><strong>${inReview}</strong></div>
-    <div class="stat"><small>Procesados</small><strong>${processed}</strong></div>
+    <div class="stat"><small>${t('scripts.statsPending')}</small><strong>${total}</strong></div>
+    <div class="stat"><small>${t('scripts.statsReview')}</small><strong>${inReview}</strong></div>
+    <div class="stat"><small>${t('scripts.statsProcessed')}</small><strong>${processed}</strong></div>
   `;
 }
 
@@ -88,12 +89,12 @@ export function renderSelectedScriptEditorView({ selected, el, updateWordCounter
   const hasSelected = Boolean(selected);
 
   el.scriptEditorTitle.textContent = hasSelected
-    ? `${selected.jugador || 'Sin jugador'} · ${resolveScriptTitle(selected)}`
-    : 'Editor de guion';
+    ? `${selected.jugador || t('scripts.noPlayer')} · ${resolveScriptTitle(selected)}`
+    : t('approval.scriptEditor');
 
   el.scriptEditorMeta.textContent = hasSelected
     ? ''
-    : 'Seleccioná un borrador desde la columna derecha para editarlo acá.';
+    : t('scripts.editorEmpty');
 
   if (!hasSelected) {
     el.scriptEditedArea.value = '';
@@ -115,8 +116,8 @@ export function renderSelectedScriptEditorView({ selected, el, updateWordCounter
   el.viewOriginalBtn.disabled = false;
   el.voiceAiBtn.disabled = !isProcessed;
   el.voiceAiBtn.title = isProcessed
-    ? 'Generar voz desde la versión procesada con pronunciación'
-    : 'Primero procesá el guion para habilitar Voz con IA';
+    ? t('scripts.generateVoiceTitle')
+    : t('scripts.processFirst');
   el.downloadDraftBtn.disabled = !selected.doc_id;
   el.publishDraftBtn.disabled = false;
   setProcessButtonStyle(el.publishDraftBtn, { processed: isProcessed });
@@ -157,14 +158,14 @@ export function renderScriptPublishMonitorView({ state, el }) {
   el.scriptPublishMonitor.classList.remove('hidden');
   el.scriptPublishMonitor.innerHTML = `
     <header class="script-publish-monitor__header">
-      <strong>Procesamiento en segundo plano</strong>
+      <strong>${t('scripts.backgroundProcessing')}</strong>
       <span class="script-publish-monitor__pill ${isFailed ? 'is-failed' : (isDone ? 'is-done' : 'is-running')}">${statusLabel}</span>
     </header>
-    <p class="meta script-publish-monitor__job">Job: ${jobId}</p>
+    <p class="meta script-publish-monitor__job">${t('scripts.jobLabel', { id: jobId })}</p>
     <div class="script-publish-monitor__track">
       <div class="script-publish-monitor__fill ${isFailed ? 'is-failed' : (isDone ? 'is-done' : 'is-running')}" style="width:${Math.max(0, Math.min(100, percent))}%"></div>
     </div>
-    <p class="meta script-publish-monitor__meta">${message || (isFailed ? 'Falló el procesamiento' : 'Actualizando estado...')}</p>
+    <p class="meta script-publish-monitor__meta">${message || (isFailed ? t('scripts.processingFailed') : t('scripts.updatingStatus'))}</p>
     ${error ? `<p class="meta script-publish-monitor__error">${error}</p>` : ''}
   `;
 }

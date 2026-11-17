@@ -1,12 +1,14 @@
+import { t } from '../../../core/i18n/index.js';
+
 export function formatCount(value, singular, plural = `${singular}s`) {
   const count = Number(value || 0);
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
 export function formatDateLabel(value) {
-  if (!value) return 'Sin fecha';
+  if (!value) return t('projects.noDate');
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Sin fecha';
+  if (Number.isNaN(date.getTime())) return t('projects.noDate');
   return date.toLocaleString('es-AR', {
     day: '2-digit',
     month: '2-digit',

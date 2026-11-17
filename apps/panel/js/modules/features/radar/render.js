@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n/index.js';
 import { RADAR_COUNTRIES, getVisibleMonitorCards, mapMonitorCard, normalizeMonitorCardStatus } from './state.js';
 import { formatDemoDateTimeWithZone } from '../../shared/time/demo-time.js';
 import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
@@ -16,41 +17,41 @@ const COUNTRY_LABELS = new Map([
   ['ury', 'Rivamar'],
   ['mx', 'Terramar'],
   ['mex', 'Terramar'],
-  ['important', 'IMPORTANTES'],
+  ['important', t('radar.importantPlural')],
 ]);
 
-const LIFECYCLE_LABELS = {
-  aprobado: 'APROBADO',
-  transcribiendo: 'TRANSCRIBIENDO',
-  transcrito: 'TRANSCRITO',
-  enqueue_pending: 'Esperando análisis Radar',
-  enqueued: 'En cola para analizar',
-  queued: 'En cola para analizar',
-  processing: 'Analizando menciones',
-  processed: 'Análisis listo',
-  completed: 'Análisis listo',
-  ignored_seen: 'Ya visto · descartado',
-  ignored: 'Descartado por monitor',
-  skipped: 'Omitido',
-  failed: 'Revisar error',
-  monitor: 'Monitoreado',
+const LIFECYCLE_LABEL_KEYS = {
+  aprobado: 'radar.status.approved',
+  transcribiendo: 'radar.status.transcribing',
+  transcrito: 'radar.status.transcribed',
+  enqueue_pending: 'radar.status.waiting',
+  enqueued: 'radar.status.queued',
+  queued: 'radar.status.queued',
+  processing: 'radar.status.analyzing',
+  processed: 'radar.status.analysisReady',
+  completed: 'radar.status.analysisReady',
+  ignored_seen: 'radar.status.seenDiscarded',
+  ignored: 'radar.status.discarded',
+  skipped: 'radar.status.skipped',
+  failed: 'radar.status.failed',
+  monitor: 'radar.status.monitored',
 };
 
-const IMPORTANT_LIFECYCLE_LABELS = {
-  aprobado: 'Aprobado para transcripción prioritaria',
-  transcribiendo: 'Transcribiendo ahora · prioridad IMPORTANTES',
-  transcrito: 'Transcrito · prioridad IMPORTANTES',
-  enqueue_pending: 'Esperando entrar a la cola prioritaria',
-  enqueued: 'En cola prioritaria de transcripción',
-  queued: 'En cola prioritaria de transcripción',
-  processing: 'Analizando menciones · prioridad IMPORTANTES',
-  processed: 'Análisis listo · prioridad IMPORTANTES',
-  completed: 'Análisis listo · prioridad IMPORTANTES',
-  ignored_seen: 'Ya visto · descartado por monitor',
-  ignored: 'Descartado por monitor',
-  skipped: 'Omitido por monitor',
-  failed: 'Revisar error de cola prioritaria',
-  monitor: 'Monitoreado como IMPORTANTE',
+const IMPORTANT_LIFECYCLE_LABEL_KEYS = {
+  aprobado: 'radar.priorityApproved',
+  transcribiendo: 'radar.priorityTranscribing',
+  transcrito: 'radar.priorityTranscribed',
+  enqueue_pending: 'radar.priorityWaitingQueue',
+  enqueued: 'radar.priorityQueued',
+  queued: 'radar.priorityQueued',
+  processing: 'radar.priorityAnalyzing',
+  processed: 'radar.priorityAnalysisReady',
+  completed: 'radar.priorityAnalysisReady',
+  ignored_seen: 'radar.status.seenDiscarded',
+  ignored: 'radar.status.discarded',
+  skipped: 'radar.prioritySkipped',
+  failed: 'radar.priorityFailed',
+  monitor: 'radar.status.importantMonitored',
 };
 
 function escapeHtml(value) {
@@ -92,9 +93,9 @@ export function renderRadarStatus({ el, state }) {
   if (el.radarHealthStatus) {
     const status = state.health?.status || 'unknown';
     const isReachable = status === 'ok' || status === 'degraded';
-    el.radarHealthStatus.textContent = isReachable ? 'Servicio activo' : 'Servicio inactivo';
+    el.radarHealthStatus.textContent = isReachable ? t('radar.serviceActive') : t('radar.serviceInactive');
     el.radarHealthStatus.title = status === 'degraded'
-      ? 'El servicio responde, pero hay dependencias runtime pendientes de validar.'
+      ? t('radar.serviceDegradedTitle')
       : (state.health?.message || '');
     el.radarHealthStatus.classList?.toggle?.('is-online', isReachable);
     el.radarHealthStatus.classList?.toggle?.('is-offline', !isReachable);
@@ -107,7 +108,7 @@ export function renderRadarStatus({ el, state }) {
       ? `${humanJobStatus(state.currentJob.status)}${suffix}${errorMessage ? ` · ${errorMessage}` : ''}`
       : state.health?.status === 'error' && state.health?.message
         ? state.health.message
-      : 'Listo para investigar.';
+      : t('radar.readyToResearch');
   }
   if (el.radarSubmitBtn) el.radarSubmitBtn.disabled = ['queued', 'running'].includes(state.currentJob?.status);
 }
@@ -117,7 +118,7 @@ export function renderRadarResults({ el, state }) {
   const job = state.currentJob;
   if (!job || job.status === 'succeeded' || job.status === 'cancelled') {
     el.radarQueueList.classList?.add?.('is-empty');
-    el.radarQueueList.innerHTML = 'Sin trabajos en cola.';
+    el.radarQueueList.innerHTML = t('radar.noQueuedJobs');
     return;
   }
   const countries = (job.selected_countries || job.countries || []).join(', ');
@@ -128,13 +129,13 @@ export function renderRadarResults({ el, state }) {
   el.radarQueueList.innerHTML = `
     <article class="audio-queue-item radar-job-card ${isFailed ? 'is-failed' : 'is-active'}" data-radar-job-id="${escapeHtml(job.job_id)}">
       <div class="radar-job-card__main">
-        <span class="radar-kicker">${isFailed ? 'Job fallido' : 'Procesando'}</span>
+        <span class="radar-kicker">${isFailed ? t('radar.jobFailed') : t('radar.processingJob')}</span>
         <strong>${escapeHtml(title)}</strong>
-        <small>${escapeHtml(countries || 'Sin país')}</small>
+        <small>${escapeHtml(countries || t('radar.noCountry'))}</small>
         ${error ? `<p class="radar-error-text">${escapeHtml(error)}</p>` : ''}
       </div>
       <span class="radar-status-chip ${isFailed ? 'is-failed' : 'is-processing'}">${escapeHtml(humanJobStatus(job.status || 'queued'))}</span>
-      <button type="button" data-radar-action="${isFailed ? 'delete' : 'cancel'}" data-radar-job-id="${escapeHtml(job.job_id)}">${isFailed ? 'Eliminar' : 'Cancelar'}</button>
+      <button type="button" data-radar-action="${isFailed ? 'delete' : 'cancel'}" data-radar-job-id="${escapeHtml(job.job_id)}">${isFailed ? t('common.delete') : t('common.cancel')}</button>
     </article>
   `;
 }
@@ -144,26 +145,26 @@ export function renderRadarHistory({ el, history = [] }) {
   const completed = history.filter((job) => job.status === 'succeeded');
   if (!completed.length) {
     el.radarHistoryList.classList?.add?.('is-empty');
-    el.radarHistoryList.innerHTML = 'Sin transcripciones todavía.';
+    el.radarHistoryList.innerHTML = t('radar.noTranscriptsYet');
     return;
   }
   el.radarHistoryList.classList?.remove?.('is-empty');
   el.radarHistoryList.innerHTML = completed.map((job) => {
-    const target = job.title || job.target?.name || (job.selected_countries || []).join(', ') || 'Sin título';
+    const target = job.title || job.target?.name || (job.selected_countries || []).join(', ') || t('radar.untitled');
     const count = Number(job.mention_count || job.matches_count || 0);
-    const language = job.detected_language || 'idioma pendiente';
+    const language = job.detected_language || t('radar.pendingLanguage');
     const canDownload = job.artifacts?.export_txt;
     return `
       <article class="audio-queue-item radar-transcript-card" data-radar-job-id="${escapeHtml(job.job_id)}">
         <div class="radar-job-card__main">
-          <span class="radar-kicker">Transcripción lista</span>
+          <span class="radar-kicker">${t('radar.transcriptReady')}</span>
           <strong>${escapeHtml(target)}</strong>
-          <small>${escapeHtml(language)} · ${count} ${count === 1 ? 'mención' : 'menciones'}</small>
+          <small>${escapeHtml(language)} · ${count === 1 ? t('radar.mentionOne', { count }) : t('radar.mentionMany', { count })}</small>
         </div>
         <div class="radar-card-actions">
-          <button type="button" data-radar-action="summary" data-radar-job-id="${escapeHtml(job.job_id)}">Resumen</button>
-          <button type="button" data-radar-action="download" data-radar-job-id="${escapeHtml(job.job_id)}" ${canDownload ? '' : 'disabled'}>Descargar TXT</button>
-          <button type="button" data-radar-action="delete" data-radar-job-id="${escapeHtml(job.job_id)}">Eliminar</button>
+          <button type="button" data-radar-action="summary" data-radar-job-id="${escapeHtml(job.job_id)}">${t('radar.summary')}</button>
+          <button type="button" data-radar-action="download" data-radar-job-id="${escapeHtml(job.job_id)}" ${canDownload ? '' : 'disabled'}>${t('radar.downloadTxt')}</button>
+          <button type="button" data-radar-action="delete" data-radar-job-id="${escapeHtml(job.job_id)}">${t('common.delete')}</button>
         </div>
       </article>
     `;
@@ -212,10 +213,10 @@ export function renderRadarMonitor({ el, state }) {
 }
 
 function monitorStatusText({ status, total, visible, error }) {
-  if (status === 'loading') return 'Cargando videos monitoreados.';
-  if (status === 'error') return error || 'Channel Monitor no disponible.';
-  if (status === 'degraded') return `${visible}/${total} videos · monitor degradado`;
-  return `${visible}/${total} videos monitoreados`;
+  if (status === 'loading') return t('radar.loadingVideos');
+  if (status === 'error') return error || t('radar.monitorUnavailable');
+  if (status === 'degraded') return t('radar.monitorDegraded', { visible, total });
+  return t('radar.monitorCount', { visible, total });
 }
 
 function updateCountryBar(countryBar, selectedCountry = '') {
@@ -228,36 +229,36 @@ function updateCountryBar(countryBar, selectedCountry = '') {
 
 function renderMonitorCard(card = {}) {
   const dashboardCard = mapMonitorCard(card, Array.isArray(card.mentionCounts) ? card.mentionCounts : []);
-  const title = card.title || card.video_id || 'Video sin título';
+  const title = card.title || card.video_id || t('radar.videoUntitled');
   const meta = formatMonitorMetadata(card);
   const importantAudit = formatImportantAudit(card);
   const status = normalizeMonitorCardStatus(card);
   const statusLabel = formatMonitorDisplayStatus(card, status);
   const url = resolveMonitorVideoUrl(card);
   const canDownloadTranscript = status === 'transcrito' && Boolean(card.radar_job_id);
-  const linkDisabled = url ? '' : 'disabled aria-disabled="true" title="Link no disponible"';
-  const transcriptDisabled = canDownloadTranscript ? '' : 'disabled aria-disabled="true" title="Disponible cuando la transcripción esté lista"';
+  const linkDisabled = url ? '' : `disabled aria-disabled="true" title="${t('radar.linkUnavailable')}"`;
+  const transcriptDisabled = canDownloadTranscript ? '' : `disabled aria-disabled="true" title="${t('radar.transcriptUnavailable')}"`;
   const mentions = Array.isArray(dashboardCard.mentionCounts) ? dashboardCard.mentionCounts : [];
   const dismissContext = resolveDismissContext(card);
-  const dismissLabel = formatCountryLabel(dismissContext) || 'este contexto';
+  const dismissLabel = formatCountryLabel(dismissContext) || t('radar.noCountry');
   const emptyMentions = status === 'transcrito'
-    ? '<span class="radar-mention-row is-ready"><small>Sin menciones:</small><strong>0</strong></span>'
-    : '<span class="radar-mention-row is-pending"><small>Pendiente:</small><strong>—</strong></span>';
+    ? `<span class="radar-mention-row is-ready"><small>${t('radar.noMentionsLabel')}</small><strong>0</strong></span>`
+    : `<span class="radar-mention-row is-pending"><small>${t('radar.pendingLabel')}</small><strong>—</strong></span>`;
   return `
     <article class="radar-monitor-card" data-video-id="${escapeHtml(card.video_id || '')}" data-radar-job-id="${escapeHtml(card.radar_job_id || '')}">
-      <button class="radar-monitor-card__dismiss" type="button" data-radar-action="dismiss-monitor-card" data-radar-dismiss-surface="monitor-card" data-radar-dismiss-target-context="${escapeHtml(dismissContext)}" data-radar-dismiss-target-label="${escapeHtml(dismissLabel)}" data-radar-dismiss-video-id="${escapeHtml(card.video_id || '')}" aria-label="Ocultar card solo en ${escapeHtml(dismissLabel)}">×</button>
       <div class="radar-monitor-card__main">
         <span class="radar-status-chip ${escapeHtml(monitorStatusChipClass(status))}">${escapeHtml(statusLabel)}</span>
         <strong>${escapeHtml(title)}</strong>
-        <small class="radar-monitor-card__meta">${escapeHtml(meta || 'Metadata pendiente')}</small>
+        <small class="radar-monitor-card__meta">${escapeHtml(meta || t('radar.metadataPending'))}</small>
         ${importantAudit ? `<small class="radar-monitor-card__meta">${escapeHtml(importantAudit)}</small>` : ''}
       </div>
-      <div class="radar-monitor-card__actions" aria-label="Acciones del video monitoreado">
-        <button type="button" data-radar-action="open-link" data-radar-url="${escapeHtml(url)}" aria-label="Abrir video en YouTube" ${linkDisabled}>Abrir video</button>
-        <button type="button" data-radar-action="download-monitor-transcript" data-radar-job-id="${escapeHtml(card.radar_job_id || '')}" aria-label="Descargar transcripción TXT" ${transcriptDisabled}>Transcripción</button>
+      <div class="radar-monitor-card__actions" aria-label="${t('radar.actionsAria')}">
+        <button type="button" data-radar-action="open-link" data-radar-url="${escapeHtml(url)}" aria-label="${t('radar.openVideoAria')}" ${linkDisabled}>${t('radar.openVideo')}</button>
+        <button type="button" data-radar-action="download-monitor-transcript" data-radar-job-id="${escapeHtml(card.radar_job_id || '')}" aria-label="${t('radar.downloadTranscriptAria')}" ${transcriptDisabled}>${t('radar.transcript')}</button>
+        <button class="danger radar-monitor-card__dismiss" type="button" data-radar-action="dismiss-monitor-card" data-radar-dismiss-surface="monitor-card" data-radar-dismiss-target-context="${escapeHtml(dismissContext)}" data-radar-dismiss-target-label="${escapeHtml(dismissLabel)}" data-radar-dismiss-video-id="${escapeHtml(card.video_id || '')}" aria-label="${t('radar.dismissAria', { context: escapeHtml(dismissLabel) })}">${t('common.delete')}</button>
       </div>
-      <div class="radar-monitor-card__mentions" aria-label="Menciones detectadas">
-        <span class="radar-monitor-card__mentions-title" data-i18n="radar.mentions">Menciones:</span>
+      <div class="radar-monitor-card__mentions" aria-label="${t('radar.mentionsDetectedAria')}">
+        <span class="radar-monitor-card__mentions-title" data-i18n="radar.mentions">${t('radar.mentions')}</span>
         <div class="radar-monitor-card__mentions-grid">
           ${mentions.length ? mentions.map(renderMentionColumn).join('') : emptyMentions}
         </div>
@@ -307,26 +308,26 @@ function formatMonitorMetadata(card = {}) {
   const source = card.source_country_label || formatCountryLabel(card.source_country);
   const channel = card.channel_label || card.channel_name || card.channel;
   const uploaded = formatUploadedAt(card.published_at || card.uploaded_at || card.created_at);
-  return [target ? `Destino: ${target}` : '', source ? `Fuente: ${source}` : '', channel ? `Canal: ${channel}` : '', uploaded].filter(Boolean).join(' · ');
+  return [target ? t('radar.destination', { value: target }) : '', source ? t('radar.sourceLabel', { value: source }) : '', channel ? t('radar.channelLabel', { value: channel }) : '', uploaded].filter(Boolean).join(' · ');
 }
 
 function formatImportantAudit(card = {}) {
   if (!card.important && normalizeKey(card.target_country || card.country) !== 'important') return '';
   const reason = formatImportantReason(card.important_reason || card.importantReason || card.classification_reason || card.classificationReason || '');
   const rule = formatImportantRule(card.important_rule || card.importantRule);
-  return [reason ? `IMPORTANTE: ${reason}` : 'IMPORTANTE', rule].filter(Boolean).join(' · ');
+  return [reason ? t('radar.importantReason', { value: reason }) : t('radar.important'), rule].filter(Boolean).join(' · ');
 }
 
 function formatImportantReason(value = '') {
   const normalized = normalizeKey(value).replace(/-/g, '_');
-  const labels = {
-    important_program_match: 'coincidencia de programa',
-    important_full_channel: 'canal completo',
-    full_channel: 'canal completo',
-    program_rules: 'coincidencia de programa',
-    important_channel: 'canal importante',
+  const labelKeys = {
+    important_program_match: 'radar.reason.programMatch',
+    important_full_channel: 'radar.reason.fullChannel',
+    full_channel: 'radar.reason.fullChannel',
+    program_rules: 'radar.reason.programMatch',
+    important_channel: 'radar.reason.importantChannel',
   };
-  return labels[normalized] || humanizeToken(value);
+  return labelKeys[normalized] ? t(labelKeys[normalized]) : humanizeToken(value);
 }
 
 function formatImportantRule(rule = null) {
@@ -345,14 +346,14 @@ function formatCountryLabel(value = '') {
 
 function formatLifecycleLabel(value = '') {
   const normalized = normalizeKey(value).replace(/-/g, '_');
-  if (!normalized) return 'Monitoreado';
-  return LIFECYCLE_LABELS[normalized] || humanizeToken(value);
+  if (!normalized) return t('radar.status.monitored');
+  return LIFECYCLE_LABEL_KEYS[normalized] ? t(LIFECYCLE_LABEL_KEYS[normalized]) : humanizeToken(value);
 }
 
 function formatMonitorDisplayStatus(card = {}, normalizedStatus = '') {
   const displayStatus = (card.display_status || card.displayStatus || '').toString().trim();
   if (displayStatus) return displayStatus;
-  if (isGeoBlockedStatus(normalizedStatus) || isGeoBlockedStatus(card.last_error || card.lastError)) return 'GEO-BLOQUEADO';
+  if (isGeoBlockedStatus(normalizedStatus) || isGeoBlockedStatus(card.last_error || card.lastError)) return t('radar.status.geoBlocked');
   if (isImportantMonitorCard(card)) {
     return formatImportantLifecycleLabel(normalizedStatus);
   }
@@ -361,8 +362,8 @@ function formatMonitorDisplayStatus(card = {}, normalizedStatus = '') {
 
 function formatImportantLifecycleLabel(value = '') {
   const normalized = normalizeKey(value).replace(/-/g, '_');
-  if (!normalized) return 'Monitoreado como IMPORTANTE';
-  return IMPORTANT_LIFECYCLE_LABELS[normalized] || humanizeToken(value);
+  if (!normalized) return t('radar.status.importantMonitored');
+  return IMPORTANT_LIFECYCLE_LABEL_KEYS[normalized] ? t(IMPORTANT_LIFECYCLE_LABEL_KEYS[normalized]) : humanizeToken(value);
 }
 
 function isImportantMonitorCard(card = {}) {
@@ -378,7 +379,7 @@ function isGeoBlockedStatus(value = '') {
 
 function formatUploadedAt(value = '') {
   const formatted = formatDemoDateTimeWithZone(value);
-  return formatted ? `Subido ${formatted}` : '';
+  return formatted ? t('radar.uploaded', { value: formatted }) : '';
 }
 
 function normalizeKey(value = '') {
@@ -387,36 +388,36 @@ function normalizeKey(value = '') {
 
 function humanizeToken(value = '') {
   const text = (value || '').toString().trim().replace(/[_-]+/g, ' ').toLowerCase();
-  return text ? text.charAt(0).toUpperCase() + text.slice(1) : 'Monitoreado';
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : t('radar.status.monitored');
 }
 
 function renderMentionColumn(item = {}) {
   const isPending = item.status && item.status !== 'ready';
   return `
     <span class="radar-mention-row ${isPending ? 'is-pending' : ''}">
-      <small>${escapeHtml(item.label || 'Pendiente')}:</small>
+      <small>${escapeHtml(item.label || t('radar.pendingLabel'))}:</small>
       <strong>${escapeHtml(item.count ?? '—')}</strong>
     </span>
   `;
 }
 
 function humanJobStatus(status = '') {
-  const map = {
-    aprobado: 'Aprobado',
-    transcribiendo: 'Transcribiendo',
-    transcrito: 'Transcrito',
-    geo_blocked: 'GEO-BLOQUEADO',
-    yt_dlp_geo_blocked: 'GEO-BLOQUEADO',
-    error: 'Error',
-    queued: 'En cola',
-    running: 'Procesando',
-    succeeded: 'Completado',
-    failed: 'Falló',
-    cancelled: 'Cancelado',
-    cancel_requested: 'Cancelando',
-    delete_requested: 'Eliminando',
+  const keyMap = {
+    aprobado: 'radar.status.approved',
+    transcribiendo: 'radar.status.transcribing',
+    transcrito: 'radar.status.transcribed',
+    geo_blocked: 'radar.status.geoBlocked',
+    yt_dlp_geo_blocked: 'radar.status.geoBlocked',
+    error: 'radar.status.error',
+    queued: 'radar.status.enqueued',
+    running: 'radar.status.running',
+    succeeded: 'radar.status.completed',
+    failed: 'radar.status.failed',
+    cancelled: 'radar.status.cancelled',
+    cancel_requested: 'radar.status.cancelling',
+    delete_requested: 'radar.status.deleting',
   };
-  return map[status] || status || 'Sin estado';
+  return keyMap[status] ? t(keyMap[status]) : (status || t('radar.status.noStatus'));
 }
 
 function renderBasuraList({ el, state }) {
@@ -425,17 +426,17 @@ function renderBasuraList({ el, state }) {
   el.radarBasuraList.innerHTML = items.length
     ? items.map((item) => `
       <article class="radar-basura-item" data-video-id="${escapeHtml(item.video_id || '')}">
-        <strong>${escapeHtml(item.title || item.video_id || 'Video rechazado')}</strong>
+        <strong>${escapeHtml(item.title || item.video_id || t('radar.videoUntitled'))}</strong>
         <small>${escapeHtml([item.source_country_label || formatCountryLabel(item.source_country), item.channel_label, item.reason].filter(Boolean).join(' · '))}</small>
       </article>
     `).join('')
-    : '<article class="radar-monitor-empty">Sin videos en Descartadas.</article>';
+    : `<article class="radar-monitor-empty">${t('radar.noDiscardedVideos')}</article>`;
 }
 
 export function renderRadarSummary({ el, summary }) {
   if (!el.radarSummaryBody) return;
   const items = summary?.items || [];
   el.radarSummaryBody.innerHTML = items.length
-    ? items.map((item) => `<p><strong>${escapeHtml(item.label)}</strong>: ${escapeHtml(item.count)} menciones · ${escapeHtml((item.timestamps || []).join(', '))}</p>`).join('')
-    : '<p>Sin menciones detectadas.</p>';
+    ? items.map((item) => `<p><strong>${escapeHtml(item.label)}</strong>: ${t('radar.mentionMany', { count: escapeHtml(item.count) })} · ${escapeHtml((item.timestamps || []).join(', '))}</p>`).join('')
+    : `<p>${t('radar.noMentionsDetected')}</p>`;
 }

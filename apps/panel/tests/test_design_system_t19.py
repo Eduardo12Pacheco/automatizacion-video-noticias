@@ -215,65 +215,67 @@ def test_index_has_no_spanish_copy_outside_the_catalogs():
         assert f"data-i18n-{attribute}" in tag, f"{attribute}={value!r} is not translated"
 
 
-def test_phrase_catalog_translates_and_reverses():
-    script = r"""
-import { translateText } from './js/modules/core/i18n/index.js';
-const cases = [
-  ['Actualizar cola', 'en', 'Refresh queue'],
-  ['Actualizar cola', 'es', null],
-  ['Refresh queue', 'es', 'Actualizar cola'],
-  ['Última actualización del panel: 12/11 09:00', 'en', 'Last panel update: 12/11 09:00'],
-  ['3 resultados', 'en', '3 results'],
-  ['3 results', 'es', '3 resultados'],
-  ['Cola de jobs', 'en', 'Job queue'],
-  ['LIVE PREVIEW', 'es', 'VISTA PREVIA'],
-];
-for (const [source, language, expected] of cases) {
-  const actual = translateText(source, language);
-  if (actual !== expected) throw new Error(`${source} -> ${actual} (expected ${expected})`);
-}
-if (translateText('Aurenia', 'en') !== null) throw new Error('data must pass through untouched');
-"""
-    import subprocess
-    result = subprocess.run(
-        ["node", "--input-type=module", "-e", script],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
+def test_catalogs_cover_both_languages_with_matching_keys():
+    es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
+    en = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "en.json"))
+    assert set(es) == set(en)
+    assert all(str(value).strip() for value in es.values())
+    assert all(str(value).strip() for value in en.values())
+    for key in (
+        "radar.destination",
+        "radar.channelLabel",
+        "radar.uploaded",
+        "radar.status.geoBlocked",
+        "subtitles.serverOnline",
+        "subtitles.previewEyebrow",
+        "nav.activeUsers",
+    ):
+        assert key in es, key
+        assert key in en, key
 
 
 def test_named_t19_strings_are_translated():
     es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
     en = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "en.json"))
-    phrases = _read(ROOT / "js" / "modules" / "core" / "i18n" / "phrases.js")
-    corpus = " ".join(list(es.values()) + list(en.values()) + [phrases])
+    corpus = " ".join(list(es.values()) + list(en.values()))
     for literal in [
-        "Editorial system",
-        "WORKSTATION SUBTITLE PIPELINE",
-        "LIVE PREVIEW",
         "Roles",
-        "API Origin / Endpoint",
-        "Errors/Audit",
+        "Errors",
         "Nuevo",
         "Servidor desconectado",
         "Todavía no hay sesiones remotas.",
         "Detecta automáticamente",
-        "Preset",
         "Cola de jobs",
-        "render",
+        "Usuarios activos",
     ]:
         assert literal.lower() in corpus.lower(), f"missing translation coverage for {literal!r}"
+    for internal in ("API Gateway", "Basic Auth", "M2M100", "Marian"):
+        assert internal.lower() not in corpus.lower(), f"internal jargon leaked into the catalog: {internal!r}"
 
 
-def test_dynamic_feature_copy_goes_through_the_phrase_catalog():
-    runtime = _read(ROOT / "js" / "modules" / "app-shell" / "runtime.js")
+def test_feature_renderers_translate_at_render_time_instead_of_rewriting_the_dom():
+    assert not (ROOT / "js" / "modules" / "core" / "i18n" / "phrases.js").exists()
     i18n = _read(ROOT / "js" / "modules" / "core" / "i18n" / "index.js")
-    assert "installDomLocalizer" in runtime
-    assert "installDomLocalizer" in i18n
-    assert "MutationObserver" in i18n
-    assert "translateText" in i18n
+    runtime = _read(ROOT / "js" / "modules" / "app-shell" / "runtime.js")
+    assert "installDomLocalizer" not in i18n
+    assert "installDomLocalizer" not in runtime
+    assert "MutationObserver" not in i18n
+    assert "translateText" not in i18n
+    renderers = [
+        ROOT / "js" / "modules" / "features" / "radar" / "render.js",
+        ROOT / "js" / "modules" / "features" / "active-users" / "render.js",
+        ROOT / "js" / "modules" / "features" / "admin-users" / "render.js",
+        ROOT / "js" / "modules" / "features" / "errors-audit" / "render.js",
+        ROOT / "js" / "modules" / "features" / "scripts" / "render.js",
+    ]
+    for path in renderers:
+        source = _read(path)
+        assert "from '../../core/i18n/index.js'" in source, path
+        assert "t(" in source, path
+    radar = _read(ROOT / "js" / "modules" / "features" / "radar" / "render.js")
+    assert "Destino:" not in radar
+    assert "Canal:" not in radar
+    assert "Subido " not in radar
 
 
 def test_focus_rings_are_never_removed_without_a_visible_replacement():

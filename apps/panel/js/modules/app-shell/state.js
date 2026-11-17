@@ -7,7 +7,7 @@ export function createShellState({ settings, lastNewsSearchAt = null, subtitles2
     queue: [],
     dismissedQueueJobs: new Set(),
     searchRefreshRunning: false,
-    searchRefreshStatus: 'Puede tardar aproximadamente 3 minutos.',
+    searchRefreshStatus: '',
     searchRefreshStatusKind: 'idle',
     searchRefreshRunId: null,
     searchRefreshPollingToken: null,

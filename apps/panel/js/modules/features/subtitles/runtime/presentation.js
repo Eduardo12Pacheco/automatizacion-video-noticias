@@ -1,6 +1,8 @@
+import { t } from '../../../core/i18n/index.js';
 import {
   buildSubtitleCueMarkersRuntime,
   buildSubtitlePreviewPresentationRuntime,
+  formatSubtitleStatusRuntime,
   parseSubtitleTimeToMsRuntime,
 } from './services.js';
 
@@ -24,7 +26,7 @@ export function resolveSubtitleHistoryToneRuntime({ sessionId = '', status = '',
 export function buildSubtitleSessionHistoryMarkupRuntime({ items = [], activeSessionId = '', escapeHtml } = {}) {
   const escape = typeof escapeHtml === 'function' ? escapeHtml : (value) => (value ?? '').toString();
   const sessions = Array.isArray(items) ? items : [];
-  if (!sessions.length) return '<p class="meta">Todavía no hay sesiones remotas.</p>';
+  if (!sessions.length) return `<p class="meta">${t('subtitles.historyEmpty')}</p>`;
   return sessions.map((item) => {
     const sessionId = (item?.id || '').toString();
     const displayName = (item?.display_name || item?.displayName || sessionId).toString();
@@ -35,10 +37,10 @@ export function buildSubtitleSessionHistoryMarkupRuntime({ items = [], activeSes
       <button type="button" class="secondary subtitle-history-item__resume" data-action="resume-subtitle-session" data-session-id="${escape(sessionId)}">
         <span class="subtitle-history-item__name">${escape(displayName)}</span>
         <span class="subtitle-history-item__id">${escape(sessionId)}</span>
-        <span class="subtitle-history-item__status">${escape(status)}</span>
+        <span class="subtitle-history-item__status">${escape(formatSubtitleStatusRuntime(status))}</span>
       </button>
-      <button type="button" class="subtitle-history-item__rename" aria-label="Renombrar proyecto" data-action="rename-subtitle-session" data-session-id="${escape(sessionId)}" data-session-name="${escape(displayName)}">✎</button>
-      <button type="button" class="subtitle-history-item__delete" aria-label="Eliminar proyecto" data-action="delete-subtitle-session" data-session-id="${escape(sessionId)}">×</button>
+      <button type="button" class="subtitle-history-item__rename" aria-label="${t('subtitles.rename')}" data-action="rename-subtitle-session" data-session-id="${escape(sessionId)}" data-session-name="${escape(displayName)}">✎</button>
+      <button type="button" class="subtitle-history-item__delete" aria-label="${t('subtitles.delete')}" data-action="delete-subtitle-session" data-session-id="${escape(sessionId)}">×</button>
     </article>
   `;
   }).join('');

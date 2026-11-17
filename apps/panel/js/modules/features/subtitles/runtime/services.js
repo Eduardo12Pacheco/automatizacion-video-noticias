@@ -1,3 +1,5 @@
+import { t } from '../../../core/i18n/index.js';
+
 export function clampSubtitleProgressPercentRuntime(value) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -51,24 +53,21 @@ export function buildSubtitleProcessingMessageRuntime(status, fallback) {
   const normalized = (status || '').toString().trim();
   if (!normalized) return fallback;
   const prettyStatus = normalized.replace(/[_-]+/g, ' ');
-  return `${fallback} Estado: ${prettyStatus}.`;
+  return t('subtitles.progressState', { message: fallback, status: prettyStatus });
 }
 
 export function describeSubtitleTranslationEngineRuntime(language, marianLangs, fallbackLangs) {
   const normalized = (language || 'auto').toString().trim().toLowerCase();
   if (normalized === 'auto') {
-    return 'Detecta automáticamente. Si el idioma detectado tiene Marian, usa Marian; si no, usa fallback Facebook M2M100.';
+    return t('subtitles.engineAuto');
   }
   if (normalized === 'es') {
-    return 'Este idioma no requiere traducción: se usa bypass (audio ya en español).';
+    return t('subtitles.engineNoTranslation');
   }
-  if (marianLangs?.has(normalized)) {
-    return 'Este idioma usa Marian (Helsinki OPUS-MT).';
+  if (marianLangs?.has(normalized) || fallbackLangs?.has(normalized)) {
+    return t('subtitles.engineTranslated');
   }
-  if (fallbackLangs?.has(normalized)) {
-    return 'Este idioma usa fallback Facebook M2M100.';
-  }
-  return 'Este idioma usa fallback Facebook M2M100.';
+  return t('subtitles.engineTranslated');
 }
 
 export function parseSubtitleTimeToMsRuntime(rawValue) {
@@ -124,6 +123,13 @@ export function resolveSubtitlesModeRuntime(rawMode) {
   return normalized === 'legacy' ? 'remote-core' : normalized;
 }
 
+export function formatSubtitleStatusRuntime(status) {
+  const normalized = (status || 'unknown').toString().trim().toLowerCase();
+  const key = `subtitles.status.${normalized}`;
+  const translated = t(key);
+  return translated === key ? (status || t('subtitles.status.unknown')) : translated;
+}
+
 export function buildSubtitleHealthRuntime(rawHealth, mode) {
   const status = (rawHealth?.status || 'pending').toString().trim().toLowerCase() || 'pending';
   const message = (rawHealth?.message || 'Estado remoto pendiente.').toString().trim();
@@ -132,7 +138,7 @@ export function buildSubtitleHealthRuntime(rawHealth, mode) {
     status,
     tone,
     message,
-    banner: tone === 'online' ? 'Servidor conectado' : 'Servidor desconectado',
+    banner: tone === 'online' ? t('subtitles.serverOnline') : t('subtitles.serverOffline'),
   };
 }
 

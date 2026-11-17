@@ -1022,7 +1022,7 @@ renderSelectedScriptEditorView({
   updateWordCounter(value, target) { target.textContent = value; },
 });
 if (unprocessed.voiceAiBtn.disabled !== true) throw new Error('voice should be disabled before processing');
-if (!unprocessed.voiceAiBtn.title.includes('Primero procesá')) throw new Error(`missing disabled hint ${unprocessed.voiceAiBtn.title}`);
+if (!unprocessed.voiceAiBtn.title.includes('Primero procesa')) throw new Error(`missing disabled hint ${unprocessed.voiceAiBtn.title}`);
 
 const processed = makeSelectors();
 renderSelectedScriptEditorView({

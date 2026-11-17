@@ -122,7 +122,7 @@ function runStateAndRenderCheck() {
 
   const detailEl = makeElement();
   renderErrorsAuditDetail({ el: { errorsAuditDetail: detailEl }, event: sampleEvent });
-  assertIncludes(detailEl.innerHTML, 'Correlation ID', 'detail should label correlation id');
+  assertIncludes(detailEl.innerHTML, 'ID de correlación', 'detail should label correlation id');
   assertIncludes(detailEl.innerHTML, 'operator@example.test', 'detail should show actor label');
   assertIncludes(detailEl.innerHTML, 'event_read_failed', 'detail should show reason/action');
   assertNotIncludes(detailEl.innerHTML, 'super-secret', 'detail must not invent or leak secrets');

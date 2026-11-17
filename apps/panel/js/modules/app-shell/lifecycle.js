@@ -1,3 +1,4 @@
+import { t } from '../core/i18n/index.js';
 export function createAppShellLifecycle({
   bindEvents,
   customDropdowns,
@@ -22,7 +23,7 @@ export function createAppShellLifecycle({
     customDropdowns.mountAll();
     hydrateSettingsForm();
     if (el.runQueueBtn) {
-      el.runQueueBtn.textContent = 'Actualizar cola';
+      el.runQueueBtn.textContent = t('approval.queueRefresh');
     }
     renderSearchRefreshState();
     renderSelectedScriptEditor();

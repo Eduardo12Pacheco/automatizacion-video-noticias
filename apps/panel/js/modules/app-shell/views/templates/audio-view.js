@@ -16,19 +16,19 @@ export const audioViewHTML = `\
                 <label class="editor-label audio-field">
                   <span data-i18n="audio.preset">Ajuste de generación</span>
                   <select id="audioPresetSelect" data-custom-dropdown data-dropdown-label="Ajuste de generación" data-dropdown-placeholder="Ajuste de generación" data-i18n-placeholder="audio.preset">
-                    <option value="balanced_default">Voz Balanceada</option>
-                    <option value="golazo_emotivo">Voz Emotivo</option>
-                    <option value="golazo_informativo">Voz Informativa</option>
+                    <option value="balanced_default" data-i18n="audio.presetBalanced">Voz Balanceada</option>
+                    <option value="golazo_emotivo" data-i18n="audio.presetEmotive">Voz Emotivo</option>
+                    <option value="golazo_informativo" data-i18n="audio.presetInformative">Voz Informativa</option>
                   </select>
                 </label>
 
                 <label class="editor-label audio-field audio-field--grow">
                   <span data-i18n="audio.text">Texto para narraci\u00f3n</span>
-                  <textarea id="audioTextArea" class="script-area script-area--audio" placeholder="Peg\u00e1 aqu\u00ed el guion que quer\u00e9s convertir a audio..."></textarea>
+                  <textarea id="audioTextArea" class="script-area script-area--audio" placeholder="Peg\u00e1 aqu\u00ed el guion que quer\u00e9s convertir a audio..." data-i18n-placeholder="audio.textPlaceholder"></textarea>
                 </label>
 
                 <div class="audio-actions">
-                  <p id="audioWordCount" class="meta word-count">Palabras: 0</p>
+                  <p id="audioWordCount" class="meta word-count" data-i18n="approval.words">Palabras: 0</p>
                   <button id="audioClearBtn" class="ghost" data-i18n="audio.clear">Limpiar</button>
                   <button id="audioRunBtn" class="primary" data-i18n="audio.run">Ejecutar</button>
                 </div>

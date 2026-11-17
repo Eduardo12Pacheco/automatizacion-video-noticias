@@ -1,3 +1,4 @@
+import { t } from '../../../core/i18n/index.js';
 import { escapeHtmlCore } from '../../../core/ui/escape-html.js';
 import { formatCount, formatDateLabel } from '../domain/formatters.js';
 import {
@@ -12,13 +13,13 @@ function getProjectCardPhaseLabel(project = {}) {
   const exportStatus = (project.editor_state?.export_status || '').toString().trim().toLowerCase();
   const currentStep = (project._videoProjectStep || '').toString().trim().toLowerCase();
 
-  if (editorPhase === 'final_rendering' || exportStatus === 'rendering') return 'Renderizado';
-  if (editorPhase === 'final_ready' || exportStatus === 'ready') return 'Renderizado';
-  if (['preparing', 'preview_rendering', 'preview_ready', 'editing_dirty', 'error'].includes(editorPhase)) return 'Edición';
-  if (currentStep === 'audio' || project.voice_audio?.public_url || project.background_audio?.public_url) return 'Audio';
-  if (status === 'image_search_error') return 'Imágenes · error';
-  if (status === 'no_candidates') return 'Imágenes · sin resultados';
-  return 'Imágenes';
+  if (editorPhase === 'final_rendering' || exportStatus === 'rendering') return t('scripts.phaseRendered');
+  if (editorPhase === 'final_ready' || exportStatus === 'ready') return t('scripts.phaseRendered');
+  if (['preparing', 'preview_rendering', 'preview_ready', 'editing_dirty', 'error'].includes(editorPhase)) return t('scripts.phaseEditing');
+  if (currentStep === 'audio' || project.voice_audio?.public_url || project.background_audio?.public_url) return t('scripts.phaseAudio');
+  if (status === 'image_search_error') return t('scripts.phaseImagesError');
+  if (status === 'no_candidates') return t('scripts.phaseImagesEmpty');
+  return t('scripts.phaseImages');
 }
 
 function resolveProjectThumbnailUrl(project = {}) {
@@ -37,8 +38,8 @@ export function buildProjectCard(project = {}) {
   const id = resolveVideoProjectKey(project);
   const encodedId = encodeURIComponent(id);
   const title = escapeHtmlCore(resolveVideoProjectTitle(project));
-  const player = escapeHtmlCore((project.jugador || 'Sin jugador').toString());
-  const country = escapeHtmlCore((project.seleccion || 'Sin selección').toString());
+  const player = escapeHtmlCore((project.jugador || t('scripts.noPlayer')).toString());
+  const country = escapeHtmlCore((project.seleccion || t('scripts.noSelection')).toString());
   const imageUrl = resolveProjectThumbnailUrl(project);
   const phase = escapeHtmlCore(getProjectCardPhaseLabel(project));
   const statusName = escapeHtmlCore((project.status || 'unknown').toString());
@@ -51,7 +52,7 @@ export function buildProjectCard(project = {}) {
           <h3>${title}</h3>
         </div>
         <div class="video-project-card__actions">
-          <button class="video-project-card__delete" type="button" data-action="delete-video-project" data-project-id="${encodedId}" aria-label="Eliminar proyecto ${title}"><span aria-hidden="true">✕</span></button>
+          <button class="video-project-card__delete" type="button" data-action="delete-video-project" data-project-id="${encodedId}" aria-label="${t('scripts.deleteProjectAria', { title })}"><span aria-hidden="true">✕</span></button>
         </div>
       </header>
 
@@ -63,9 +64,9 @@ export function buildProjectCard(project = {}) {
         </div>
         <div class="video-project-card__copy">
           <div class="video-project-card__meta">
-            <span>Jugador: <strong>${player}</strong></span>
-            <span>País: <strong>${country}</strong></span>
-            <span>${formatCount(project.image_count, 'imagen', 'imágenes')}</span>
+            <span>${t('scripts.player')}: <strong>${player}</strong></span>
+            <span>${t('scripts.country')}: <strong>${country}</strong></span>
+            <span>${formatCount(project.image_count, t('scripts.imageUnitOne'), t('scripts.imageUnitMany'))}</span>
             <span>${formatDateLabel(createdAt)}</span>
             <span class="video-project-status video-project-card__phase" data-status="${statusName}">${phase}</span>
           </div>
@@ -73,7 +74,7 @@ export function buildProjectCard(project = {}) {
       </div>
 
       <button class="video-project-card__open" type="button" data-action="open-video-project" data-project-id="${encodedId}">
-        Abrir proyecto
+        ${t('scripts.openProject')}
       </button>
     </article>
   `;
@@ -81,9 +82,9 @@ export function buildProjectCard(project = {}) {
 
 export function buildFutureProjectCard() {
   return `
-    <article class="video-project-card video-project-card--placeholder" aria-label="Próximo proyecto">
-      <h3>Nuevo proyecto aparecerá acá</h3>
-      <p>Cuando proceses otro guion, se crea automáticamente un proyecto con ese mismo título.</p>
+    <article class="video-project-card video-project-card--placeholder" aria-label="${t('scripts.futureProjectAria')}">
+      <h3>${t('scripts.futureProjectTitle')}</h3>
+      <p>${t('scripts.futureProjectBody')}</p>
       <span class="video-project-card__plus" aria-hidden="true">＋</span>
     </article>
   `;

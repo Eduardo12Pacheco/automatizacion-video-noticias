@@ -404,7 +404,7 @@ function runStateAndRenderCheck() {
       selectedCountry: '',
     },
   });
-  if (!monitorEl.innerHTML.includes('APROBADO') || !monitorEl.innerHTML.includes('is-info')) throw new Error(`approved status chip drift: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('Aprobado') || !monitorEl.innerHTML.includes('is-info')) throw new Error(`approved status chip drift: ${monitorEl.innerHTML}`);
 
   renderRadarMonitor({
     el: { radarMonitorList: monitorEl, radarMonitorStatus: monitorStatusEl },
@@ -425,7 +425,7 @@ function runStateAndRenderCheck() {
       selectedCountry: '',
     },
   });
-  if (!monitorEl.innerHTML.includes('TRANSCRIBIENDO') || !monitorEl.innerHTML.includes('is-warning')) throw new Error(`transcribing status chip drift: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('Transcribiendo') || !monitorEl.innerHTML.includes('is-warning')) throw new Error(`transcribing status chip drift: ${monitorEl.innerHTML}`);
 
   renderRadarMonitor({
     el: { radarMonitorList: monitorEl, radarMonitorStatus: monitorStatusEl },
@@ -486,7 +486,7 @@ function runStateAndRenderCheck() {
       selectedCountry: '',
     },
   });
-  if (!monitorEl.innerHTML.includes('TRANSCRITO') || !monitorEl.innerHTML.includes('is-success')) throw new Error(`transcribed status chip drift: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('Transcrito') || !monitorEl.innerHTML.includes('is-success')) throw new Error(`transcribed status chip drift: ${monitorEl.innerHTML}`);
   if (monitorEl.innerHTML.includes('disabled') || monitorEl.innerHTML.includes('Santiago Gil:') || monitorEl.innerHTML.includes('—')) throw new Error(`transcribed card should enable transcript and show real counts only: ${monitorEl.innerHTML}`);
 
   renderRadarMonitor({
@@ -504,7 +504,7 @@ function runStateAndRenderCheck() {
       selectedCountry: '',
     },
   });
-  if (!monitorEl.innerHTML.includes('TRANSCRITO') || !monitorEl.innerHTML.includes('Transcripción')) throw new Error(`transcribed empty card should still expose transcript action: ${monitorEl.innerHTML}`);
+  if (!monitorEl.innerHTML.includes('Transcrito') || !monitorEl.innerHTML.includes('Transcripción')) throw new Error(`transcribed empty card should still expose transcript action: ${monitorEl.innerHTML}`);
   if (monitorEl.innerHTML.includes('Santiago Gil:') || monitorEl.innerHTML.includes('—')) throw new Error(`transcribed empty card should not render fake pending mention rows: ${monitorEl.innerHTML}`);
 
   renderRadarMonitor({

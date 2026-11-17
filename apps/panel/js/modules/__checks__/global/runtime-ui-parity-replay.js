@@ -852,7 +852,7 @@ export async function runAppShellLifecycleReplay() {
     [
       'customDropdowns.mountAll();',
       'hydrateSettingsForm();',
-      "el.runQueueBtn.textContent = 'Actualizar cola';",
+      "el.runQueueBtn.textContent = t('approval.queueRefresh');",
       'renderSearchRefreshState();',
       'renderSelectedScriptEditor();',
       'renderSelectedVideoProject();',

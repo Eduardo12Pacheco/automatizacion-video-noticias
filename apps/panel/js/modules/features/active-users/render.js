@@ -1,4 +1,5 @@
 import { emptyPresenceSnapshot, normalizePresenceSnapshot } from './state.js';
+import { t } from '../../core/i18n/index.js';
 import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
 function escapeHtml(value) {
@@ -11,7 +12,7 @@ function escapeHtml(value) {
 }
 
 function formatDate(value = '') {
-  if (!value) return 'Sin actividad reciente';
+  if (!value) return t('activeUsers.noRecentActivity');
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value.toString();
   return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(date).replace(/\./g, '') + ' UTC';
@@ -24,10 +25,10 @@ export function renderActiveUsersView({ el, state }) {
 
   if (el.activeUsersStatus) {
     el.activeUsersStatus.textContent = state.status === 'loading'
-      ? 'Cargando usuarios activos.'
+      ? t('activeUsers.loading')
       : state.status === 'error'
-        ? 'No pude cargar usuarios activos.'
-        : `${snapshot.sessions.length} sesiones activas`;
+        ? t('activeUsers.loadFailed')
+        : t(snapshot.sessions.length === 1 ? 'activeUsers.sessionCountOne' : 'activeUsers.sessionCount', { count: snapshot.sessions.length });
   }
   if (!el.activeUsersList) return;
   if (state.status === 'loading') {
@@ -59,6 +60,6 @@ function renderPresenceCard(session) {
         <span>${escapeHtml(session.mode)}</span>
       </header>
       <p>${escapeHtml(session.area)} · ${escapeHtml(session.resourceLabel)}</p>
-      <small>Última actividad: ${escapeHtml(formatDate(session.lastActivityAt))}</small>
+      <small>${t('activeUsers.lastActivity', { value: escapeHtml(formatDate(session.lastActivityAt)) })}</small>
     </article>`;
 }

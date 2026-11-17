@@ -16,6 +16,7 @@ import { renderScriptCardsView, renderScriptStatsView, renderSelectedScriptEdito
 import { approvalItemMatchesSearch, tokenizeApprovalSearchQuery } from './search-filter.js';
 import { formatNewsSearchTimestamp, resolveLatestSharedPanelTimestamp } from './views/approval-search.js';
 import { renderEmptyState, renderErrorState, renderLoadingState } from '../core/ui/screen-state.js';
+import { t } from '../core/i18n/index.js';
 
 const APPROVAL_AUTO_REFRESH_INTERVAL_MS = 30000;
 const MIN_REFRESH_INTERVAL_MS = 5000;
@@ -133,7 +134,7 @@ function getSearchRefreshWindowValue() {
 }
 
 function getSearchRefreshWindowLabel(value) {
-  return value === '1h' ? 'Última hora' : 'Últimas 24 horas';
+  return value === '1h' ? t('approval.range1h') : t('approval.range24h');
 }
 
 function assertSearchRefreshSucceeded(result) {
@@ -142,7 +143,7 @@ function assertSearchRefreshSucceeded(result) {
   const errorMessage = (result?.error || result?.message || result?.promote?.error || '').toString().trim();
 
   if (status !== 'ok' || promoteStatus !== 'succeeded') {
-    throw new Error(errorMessage || 'La búsqueda no terminó correctamente. El panel actual se mantiene sin cambios.');
+    throw new Error(errorMessage || t('approval.searchFailed'));
   }
 }
 
@@ -153,25 +154,25 @@ function resolveSearchRefreshCompletionMessage(result, windowLabel) {
 
   if (promoted === false) {
     const reasonCopy = noPromoteReason === 'no_staged_clusters'
-      ? 'No hubo clusters nuevos para publicar.'
-      : 'No se publicaron cambios nuevos.';
-    return `Última elección: ${windowLabel}. ${reasonCopy}`;
+      ? t('approval.noNewClusters')
+      : t('approval.noNewChanges');
+    return t('approval.lastChoice', { window: windowLabel, reason: reasonCopy });
   }
 
-  return `Última elección: ${windowLabel}. Panel actualizado.`;
+  return t('approval.panelUpdated', { window: windowLabel });
 }
 
 function renderSearchRefreshState() {
   if (!el.searchRefreshBtn || !el.searchRefreshStatus) return;
 
   el.searchRefreshBtn.disabled = state.searchRefreshRunning;
-  el.searchRefreshBtn.textContent = state.searchRefreshRunning ? 'Actualizando...' : 'Actualizar noticias de hoy';
+  el.searchRefreshBtn.textContent = state.searchRefreshRunning ? t('approval.refreshing') : t('approval.refresh');
   if (el.searchRefreshWindow) {
     el.searchRefreshWindow.disabled = state.searchRefreshRunning;
     customDropdowns.refreshAll();
   }
 
-  el.searchRefreshStatus.textContent = state.searchRefreshStatus;
+  el.searchRefreshStatus.textContent = state.searchRefreshStatus || t('approval.refreshStatus');
   el.searchRefreshStatus.classList.toggle('is-running', state.searchRefreshStatusKind === 'running');
   el.searchRefreshStatus.classList.toggle('is-success', state.searchRefreshStatusKind === 'success');
   el.searchRefreshStatus.classList.toggle('is-error', state.searchRefreshStatusKind === 'error');
@@ -191,16 +192,16 @@ function renderStats() {
   const avgSources = total ? (state.items.reduce((a, b) => a + Number(b.cantidad_fuentes || 0), 0) / total).toFixed(1) : 0;
 
   el.stats.innerHTML = `
-    <div class="stat"><small>Pendientes</small><strong>${total}</strong></div>
-    <div class="stat"><small>Países</small><strong>${countries}</strong></div>
-    <div class="stat"><small>Promedio fuentes</small><strong>${avgSources}</strong></div>
+    <div class="stat"><small>${t('approval.pendingStat')}</small><strong>${total}</strong></div>
+    <div class="stat"><small>${t('approval.countries')}</small><strong>${countries}</strong></div>
+    <div class="stat"><small>${t('approval.avgSources')}</small><strong>${avgSources}</strong></div>
   `;
 }
 
 function renderCountryFilter() {
   const current = el.countryFilter.value;
   const countries = [...new Set(state.items.map((i) => i.seleccion).filter(Boolean))].sort();
-  el.countryFilter.innerHTML = '<option value="">Todos los países</option>'
+  el.countryFilter.innerHTML = `<option value="">${t('approval.allCountries')}</option>`
     + countries.map((country) => `<option value="${escapeHtml(country)}">${escapeHtml(country)}</option>`).join('');
   el.countryFilter.value = current;
   customDropdowns.refreshAll();
@@ -283,8 +284,8 @@ function renderLastNewsSearchMeta() {
   const formatted = formatNewsSearchTimestamp(resolveLatestSharedPanelTimestamp(state.items));
   el.lastNewsSearchMeta.hidden = false;
   el.lastNewsSearchMeta.textContent = formatted
-    ? `Última actualización del panel: ${formatted}`
-    : 'Última actualización del panel: pendiente';
+    ? t('approval.lastUpdate', { value: formatted })
+    : t('approval.lastUpdatePending');
 }
 
 function renderScriptStats() {

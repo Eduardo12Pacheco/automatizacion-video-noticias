@@ -28,7 +28,7 @@ export function normalizePresenceSession(session = {}) {
   const resourceId = clean(session.resource_id || session.resourceId);
   return {
     sessionId: clean(session.session_id || session.sessionId),
-    actorLabel: clean(actor.display_name || actor.displayName || actor.email || actor.user_id || actor.userId) || 'Usuario activo',
+    actorLabel: clean(session.actorLabel) || clean(actor.display_name || actor.displayName || actor.email || actor.user_id || actor.userId) || '',
     actorEmail: clean(actor.email),
     area,
     resourceType,

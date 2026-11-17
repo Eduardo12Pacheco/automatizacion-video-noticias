@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export function calculateWordCount(text) {
   const words = (text || '').trim().match(/\S+/g);
   return words ? words.length : 0;
@@ -6,5 +8,5 @@ export function calculateWordCount(text) {
 export function updateWordCounterCore(text, targetEl) {
   if (!targetEl) return;
   const count = calculateWordCount(text);
-  targetEl.textContent = `Palabras: ${count}`;
+  targetEl.textContent = t('common.words', { count });
 }

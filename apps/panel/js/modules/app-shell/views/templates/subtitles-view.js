@@ -136,7 +136,7 @@ export const subtitlesViewHTML = `\
               <div class="subtitle-preview-frame">
                 <div class="subtitle-preview-frame__header">
                   <div>
-                    <span class="subtitle2-section-label" data-i18n="subtitles.livePreview">Vista previa</span>
+                    <span class="subtitle2-section-label" data-i18n="subtitles.previewEyebrow">Vista previa</span>
                     <h3 data-i18n="subtitles.preview">Vista previa</h3>
                   </div>
                 </div>

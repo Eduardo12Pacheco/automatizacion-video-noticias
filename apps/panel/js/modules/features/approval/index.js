@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n/index.js';
 const normalizeText = (value) => (value == null ? '' : String(value).trim());
 const toFiniteNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -441,7 +442,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
     try {
       if (runButton) {
         runButton.disabled = true;
-        runButton.textContent = 'Actualizando...';
+        runButton.textContent = t('approval.refreshing');
       }
       await refreshAll();
       ui.toast('La cola ahora se procesa automáticamente. Monitor actualizado.');
@@ -451,7 +452,7 @@ export function createApprovalFeature({ api, store, ui, selectors, callbacks, he
     } finally {
       if (runButton) {
         runButton.disabled = false;
-        runButton.textContent = 'Actualizar cola';
+        runButton.textContent = t('approval.queueRefresh');
       }
     }
   }

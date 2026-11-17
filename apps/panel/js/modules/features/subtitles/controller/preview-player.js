@@ -78,7 +78,7 @@ export function createSubtitlePreviewPlayer(ctx, collaborators = {}) {
       el.subtitle2PreviewOverlay.style.justifyContent = presentation.justifyContent;
       el.subtitle2PreviewOverlay.style.alignItems = presentation.alignItems || 'center';
     }
-    if (!activeCue) {
+    if (!activeCue || !presentation.text) {
       el.subtitle2PreviewCue.classList.add('hidden');
       el.subtitle2PreviewCue.textContent = '';
       el.subtitle2PreviewCue.removeAttribute('style');

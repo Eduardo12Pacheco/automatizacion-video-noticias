@@ -54,20 +54,18 @@ def test_labels_and_buttons_use_the_ui_font_not_mono():
         assert "JetBrains Mono" not in block, selector
 
 
-def test_remaining_copy_exists_in_both_languages_and_connector_descriptors_translate():
+def test_remaining_copy_exists_in_both_languages():
     es = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "es.json"))
     en = json.loads(_read(ROOT / "js" / "modules" / "core" / "i18n" / "en.json"))
     assert set(es) == set(en)
-    phrases = _read(ROOT / "js" / "modules" / "core" / "i18n" / "phrases.js")
-    for source, translated in (
-        ("Deterministic demo model", "Modelo demo determinista"),
-        ("Public RSS feeds", "Feeds RSS públicos"),
-        ("Local extraction", "Extracción local"),
-        ("Descartadas", "Discarded"),
-        ("Menciones:", "Mentions:"),
-        ("Subtitles · Subtítulos", "Subtitles"),
+    for key, source, translated in (
+        ("radar.trash", "Descartadas", "Discarded"),
+        ("radar.mentions", "Menciones:", "Mentions:"),
+        ("subtitles.title", "Subtítulos", "Subtitles"),
+        ("radar.destination", "Destino: {value}", "Destination: {value}"),
     ):
-        assert f"'{source}', '{translated}'" in phrases
+        assert es[key] == source, key
+        assert en[key] == translated, key
 
 
 def test_admin_users_expose_an_actions_header_and_readable_input_borders():

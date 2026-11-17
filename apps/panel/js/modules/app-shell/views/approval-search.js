@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n/index.js';
 const SHARED_PANEL_TIMESTAMP_FIELDS = ['fecha_creacion_cluster'];
 
 export function formatNewsSearchTimestamp(value) {
@@ -53,7 +54,7 @@ export function createApprovalSearchController({
   }
 
   function getSearchRefreshWindowLabel(value) {
-    return value === '1h' ? 'Última hora' : 'Últimas 24 horas';
+    return value === '1h' ? t('approval.range1h') : t('approval.range24h');
   }
 
   function assertSearchRefreshSucceeded(result) {
@@ -62,7 +63,7 @@ export function createApprovalSearchController({
     const errorMessage = (result?.error || result?.message || result?.promote?.error || '').toString().trim();
 
     if (status !== 'ok' || promoteStatus !== 'succeeded') {
-      throw new Error(errorMessage || 'La búsqueda no terminó correctamente. El panel actual se mantiene sin cambios.');
+      throw new Error(errorMessage || t('approval.searchFailed'));
     }
   }
 
@@ -73,25 +74,25 @@ export function createApprovalSearchController({
 
     if (promoted === false) {
       const reasonCopy = noPromoteReason === 'no_staged_clusters'
-        ? 'No hubo clusters nuevos para publicar.'
-        : 'No se publicaron cambios nuevos.';
-      return `Última elección: ${windowLabel}. ${reasonCopy}`;
+        ? t('approval.noNewClusters')
+        : t('approval.noNewChanges');
+      return t('approval.lastChoice', { window: windowLabel, reason: reasonCopy });
     }
 
-    return `Última elección: ${windowLabel}. Panel actualizado.`;
+    return t('approval.panelUpdated', { window: windowLabel });
   }
 
   function renderSearchRefreshState() {
     if (!el.searchRefreshBtn || !el.searchRefreshStatus) return;
 
     el.searchRefreshBtn.disabled = state.searchRefreshRunning;
-    el.searchRefreshBtn.textContent = state.searchRefreshRunning ? 'Actualizando...' : 'Actualizar noticias de hoy';
+    el.searchRefreshBtn.textContent = state.searchRefreshRunning ? t('approval.refreshing') : t('approval.refresh');
     if (el.searchRefreshWindow) {
       el.searchRefreshWindow.disabled = state.searchRefreshRunning;
       customDropdowns.refreshAll();
     }
 
-    el.searchRefreshStatus.textContent = state.searchRefreshStatus;
+    el.searchRefreshStatus.textContent = state.searchRefreshStatus || t('approval.refreshStatus');
     el.searchRefreshStatus.classList.toggle('is-running', state.searchRefreshStatusKind === 'running');
     el.searchRefreshStatus.classList.toggle('is-success', state.searchRefreshStatusKind === 'success');
     el.searchRefreshStatus.classList.toggle('is-error', state.searchRefreshStatusKind === 'error');
@@ -102,8 +103,8 @@ export function createApprovalSearchController({
     const formatted = formatNewsSearchTimestamp(resolveLatestSharedPanelTimestamp(state.items));
     el.lastNewsSearchMeta.hidden = false;
     el.lastNewsSearchMeta.textContent = formatted
-      ? `Última actualización del panel: ${formatted}`
-      : 'Última actualización del panel: pendiente';
+      ? t('approval.lastUpdate', { value: formatted })
+      : t('approval.lastUpdatePending');
   }
 
   function getSearchRefreshRunId(result) {
@@ -127,21 +128,21 @@ export function createApprovalSearchController({
     const staged = Number(stats.staged_news || stats.valid || stats.received || 0);
     const clusters = Number(stats.staged_clusters || 0);
 
-    if (status === 'queued') return `Búsqueda en cola: ${windowLabel}. Esperando turno...`;
-    if (status === 'running' || status === 'discovery_running') return `Buscando noticias: ${windowLabel}. Proceso iniciado...`;
+    if (status === 'queued') return t('approval.status.queued', { window: windowLabel });
+    if (status === 'running' || status === 'discovery_running') return t('approval.status.searching', { window: windowLabel });
     if (status === 'discovery_succeeded') return staged > 0
-      ? `Noticias encontradas: ${staged}. Agrupando con IA...`
-      : 'Búsqueda terminada sin noticias nuevas. Cerrando proceso...';
+      ? t('approval.status.found', { count: staged })
+      : t('approval.status.noNews');
     if (status === 'cluster_running') return staged > 0
-      ? `Agrupando ${staged} noticias con IA. Esto puede tardar varios minutos...`
-      : 'Agrupando noticias con IA. Esto puede tardar varios minutos...';
+      ? t('approval.status.clustering', { count: staged })
+      : t('approval.status.clusteringGeneric');
     if (status === 'cluster_succeeded') return clusters > 0
-      ? `Clusters listos: ${clusters}. Publicando panel...`
-      : 'Clusters listos. Publicando panel...';
-    if (status === 'promoting') return 'Publicando noticias nuevas en el panel...';
-    if (SEARCH_REFRESH_SUCCESS_STATUSES.has(status)) return 'Búsqueda completada. Actualizando panel...';
-    if (SEARCH_REFRESH_FAILURE_STATUSES.has(status)) return 'La búsqueda falló. El panel actual se mantiene sin cambios.';
-    return `Proceso en curso: ${windowLabel}. Seguimos esperando respuesta segura...`;
+      ? t('approval.status.clustersReady', { count: clusters })
+      : t('approval.status.clustersReadyGeneric');
+    if (status === 'promoting') return t('approval.status.promoting');
+    if (SEARCH_REFRESH_SUCCESS_STATUSES.has(status)) return t('approval.status.completed');
+    if (SEARCH_REFRESH_FAILURE_STATUSES.has(status)) return t('approval.status.failed');
+    return t('approval.status.inProgress', { window: windowLabel });
   }
 
   async function pollSearchRefreshRun({ runId, windowLabel, token }) {
@@ -153,7 +154,7 @@ export function createApprovalSearchController({
       firstPoll = false;
 
       if (Date.now() - startedAt > SEARCH_REFRESH_MAX_POLL_MS) {
-        throw new Error('La búsqueda sigue en proceso desde hace demasiado tiempo. Revisá n8n antes de lanzar otra búsqueda.');
+        throw new Error(t('approval.status.timeout'));
       }
 
       let run;
@@ -164,7 +165,7 @@ export function createApprovalSearchController({
         state.searchRefreshPollingErrorStreak += 1;
         if (state.searchRefreshPollingErrorStreak >= SEARCH_REFRESH_MAX_STATUS_ERRORS) throw err;
         state.searchRefreshStatusKind = 'running';
-        state.searchRefreshStatus = `La búsqueda sigue corriendo, pero hubo un problema consultando estado (${state.searchRefreshPollingErrorStreak}/${SEARCH_REFRESH_MAX_STATUS_ERRORS}). Reintentando...`;
+        state.searchRefreshStatus = t('approval.status.pollingProblem', { streak: state.searchRefreshPollingErrorStreak, max: SEARCH_REFRESH_MAX_STATUS_ERRORS });
         renderSearchRefreshState();
         continue;
       }
@@ -176,13 +177,13 @@ export function createApprovalSearchController({
       renderSearchRefreshState();
 
       if (SEARCH_REFRESH_FAILURE_STATUSES.has(status)) {
-        throw new Error(getSearchRefreshErrorMessage(run) || 'La búsqueda falló en n8n. El panel actual se mantiene sin cambios.');
+        throw new Error(getSearchRefreshErrorMessage(run) || t('approval.status.failedService'));
       }
 
       if (SEARCH_REFRESH_SUCCESS_STATUSES.has(status)) return run;
     }
 
-    throw new Error('La búsqueda fue reemplazada por otro proceso.');
+    throw new Error(t('approval.status.replaced'));
   }
 
   async function runSearchRefresh() {
@@ -192,7 +193,7 @@ export function createApprovalSearchController({
     const windowLabel = getSearchRefreshWindowLabel(windowValue);
     state.searchRefreshRunning = true;
     state.searchRefreshStatusKind = 'running';
-    state.searchRefreshStatus = `Buscando noticias: ${windowLabel}. Esto puede tardar varios minutos...`;
+    state.searchRefreshStatus = t('approval.status.running', { window: windowLabel });
     state.lastSearchRefresh = null;
     renderSearchRefreshState();
 
@@ -207,7 +208,7 @@ export function createApprovalSearchController({
         state.searchRefreshRunId = runId;
         state.searchRefreshPollingToken = token;
         state.searchRefreshPollingErrorStreak = 0;
-        state.searchRefreshStatus = `Búsqueda iniciada (${runId}). Podés dejarla corriendo; voy actualizando el estado...`;
+        state.searchRefreshStatus = t('approval.status.started', { id: runId });
         renderSearchRefreshState();
         finalResult = await pollSearchRefreshRun({ runId, windowLabel, token });
       } else {
@@ -216,9 +217,9 @@ export function createApprovalSearchController({
 
       state.lastSearchRefresh = finalResult;
       state.searchRefreshStatusKind = 'success';
-      state.searchRefreshStatus = 'Búsqueda completada. Actualizando panel...';
+      state.searchRefreshStatus = t('approval.status.completed');
       renderSearchRefreshState();
-      toast('Búsqueda completada. Actualizando noticias...');
+      toast(t('approval.status.completedToast'));
       await refreshAll();
       renderLastNewsSearchMeta();
       renderCards();
@@ -227,9 +228,9 @@ export function createApprovalSearchController({
         : resolveSearchRefreshCompletionMessage(result, windowLabel);
     } catch (err) {
       console.error(err);
-      const message = getErrorMessage(err, 'Error ejecutando búsqueda');
+      const message = getErrorMessage(err, t('approval.status.refreshFailed'));
       state.searchRefreshStatusKind = 'error';
-      state.searchRefreshStatus = `Error: ${message}`;
+      state.searchRefreshStatus = t('approval.status.error', { message });
       toast(message);
     } finally {
       state.searchRefreshPollingToken = null;

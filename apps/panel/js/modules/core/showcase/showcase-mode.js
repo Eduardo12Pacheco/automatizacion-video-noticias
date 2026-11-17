@@ -14,7 +14,7 @@
 const SHOWCASE_USERS = Object.freeze([
   { user_id: 'u-admin', email: 'admin@example.local', display_name: 'Demo Admin', roles: ['admin'], status: 'active', last_login_at: '2026-11-12T09:00:00.000Z' },
   { user_id: 'u-editor', email: 'editor@example.local', display_name: 'Demo Editor', roles: ['editor'], status: 'active', last_login_at: '2026-11-12T08:45:00.000Z' },
-  { user_id: 'u-viewer', email: 'viewer@example.local', display_name: 'Demo Viewer', roles: ['viewer'], status: 'disabled', last_login_at: null },
+  { user_id: 'u-viewer', email: 'viewer@example.local', display_name: 'Demo Observer', roles: ['viewer'], status: 'disabled', last_login_at: null },
 ]);
 
 const PENDING_ITEMS = Object.freeze([
@@ -184,8 +184,8 @@ const GATEWAY_EVENTS = Object.freeze([
 
 const PRESENCE = Object.freeze({
   sessions: [
-    { actorLabel: 'Demo Admin', mode: 'admin', area: 'Approval', resourceLabel: 'demo-cluster-1', lastActivityAt: '2026-11-12T09:05:00.000Z' },
-    { actorLabel: 'Demo Editor', mode: 'editor', area: 'Subtítulos', resourceLabel: 'demo-subtitle-1', lastActivityAt: '2026-11-12T09:02:00.000Z' },
+    { actorLabel: 'Demo Admin', mode: 'admin', area: 'demo', resourceLabel: 'demo-cluster-1', lastActivityAt: '2026-11-12T09:05:00.000Z' },
+    { actorLabel: 'Demo Editor', mode: 'editor', area: 'demo', resourceLabel: 'demo-subtitle-1', lastActivityAt: '2026-11-12T09:02:00.000Z' },
   ],
 });
 

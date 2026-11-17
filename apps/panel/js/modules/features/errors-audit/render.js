@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n/index.js';
 import { normalizeGatewayEvent } from './state.js';
 import { renderEmptyState, renderErrorState, renderLoadingState } from '../../core/ui/screen-state.js';
 
@@ -20,10 +21,10 @@ function formatDate(value = '') {
 export function renderErrorsAuditEvents({ el, state }) {
   if (el.errorsAuditStatus) {
     el.errorsAuditStatus.textContent = state.status === 'loading'
-      ? 'Cargando eventos Gateway.'
+      ? t('errors.loading')
       : state.status === 'error'
-        ? 'No pude cargar eventos Gateway.'
-        : `${state.events?.length || 0} eventos`;
+        ? t('errors.loadFailed')
+        : t('errors.count', { count: state.events?.length || 0 });
   }
   if (!el.errorsAuditList) return;
   if (state.status === 'loading') {
@@ -51,7 +52,7 @@ export function renderErrorsAuditEvents({ el, state }) {
 export function renderErrorsAuditDetail({ el, event }) {
   if (!el.errorsAuditDetail) return;
   if (!event) {
-    el.errorsAuditDetail.innerHTML = '<p class="meta">Seleccioná un evento para ver el detalle.</p>';
+    el.errorsAuditDetail.innerHTML = `<p class="meta">${t('errors.select')}</p>`;
     return;
   }
   const item = normalizeGatewayEvent(event);
@@ -59,13 +60,13 @@ export function renderErrorsAuditDetail({ el, event }) {
     <section class="errors-audit-detail" aria-live="polite">
       <header>
         <span class="errors-audit-chip">${escapeHtml(item.kind)}</span>
-        <div><h3>${escapeHtml(item.safeMessage || item.reasonCode || 'Evento Gateway')}</h3><p class="meta">${escapeHtml(formatDate(item.timestamp))}</p></div>
+        <div><h3>${escapeHtml(item.safeMessage || item.reasonCode || t('errors.systemEvent'))}</h3><p class="meta">${escapeHtml(formatDate(item.timestamp))}</p></div>
       </header>
-      ${detailRow('Correlation ID', item.correlationId)}
-      ${detailRow('Estado', item.status)}
-      ${detailRow('Ruta / servicio', [item.method, item.path, item.routeService].filter(Boolean).join(' · '))}
-      ${detailRow('Usuario / sesión', [item.actorLabel, item.sessionId].filter(Boolean).join(' · '))}
-      ${detailRow('Acción / motivo', [item.action, item.reasonCode].filter(Boolean).join(' · '))}
+      ${detailRow(t('errors.correlation'), item.correlationId)}
+      ${detailRow(t('errors.status'), item.status)}
+      ${detailRow(t('errors.routeService'), [item.method, item.path, item.routeService].filter(Boolean).join(' · '))}
+      ${detailRow(t('errors.actorSession'), [item.actorLabel, item.sessionId].filter(Boolean).join(' · '))}
+      ${detailRow(t('errors.actionReason'), [item.action, item.reasonCode].filter(Boolean).join(' · '))}
       <pre class="errors-audit-context">${escapeHtml(JSON.stringify(item.context || {}, null, 2))}</pre>
     </section>`;
 }
@@ -77,9 +78,9 @@ function renderEventCard(rawEvent) {
     <article class="errors-audit-card" data-errors-audit-event-id="${escapeHtml(item.id)}">
       <button type="button" data-errors-audit-action="detail" data-errors-audit-event-id="${escapeHtml(item.id)}">
         <span class="errors-audit-card__status">${escapeHtml(item.kind)}</span>
-        <strong>${escapeHtml(item.safeMessage || item.reasonCode || item.action || 'Evento Gateway')}</strong>
+        <strong>${escapeHtml(item.safeMessage || item.reasonCode || item.action || t('errors.systemEvent'))}</strong>
         <small>${escapeHtml(meta)}</small>
-        <code>${escapeHtml(item.correlationId || 'sin correlación')}</code>
+        <code>${escapeHtml(item.correlationId || t('errors.noCorrelation'))}</code>
       </button>
     </article>`;
 }

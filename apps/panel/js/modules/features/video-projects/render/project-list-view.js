@@ -1,5 +1,6 @@
 import { buildFutureProjectCard, buildProjectCard } from './project-list-markup.js';
 import { hydrateProjectListCards } from '../events/project-list-events.js';
+import { t } from '../../../core/i18n/index.js';
 import { renderEmptyState, renderErrorState, renderLoadingState } from '../../../core/ui/screen-state.js';
 
 export function renderVideoProjectsListView({ state, el, openVideoProject, prefetchProjectDetail, disableVideoProject, confirmDelete }) {
@@ -10,8 +11,8 @@ export function renderVideoProjectsListView({ state, el, openVideoProject, prefe
 
   if (el.videoProjectsMeta) {
     el.videoProjectsMeta.textContent = loading
-      ? 'Actualizando proyectos…'
-      : `${projects.length} proyecto${projects.length === 1 ? '' : 's'}`;
+      ? t('scripts.updatingProjects')
+      : t(projects.length === 1 ? 'scripts.projectCountOne' : 'scripts.projectCountMany', { count: projects.length });
   }
   if (loading && !projects.length) {
     el.videoProjectsList.innerHTML = renderLoadingState({ rows: 3, variant: 'cards' });
