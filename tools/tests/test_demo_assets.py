@@ -36,6 +36,12 @@ MIRRORS = [
     PANEL / "assets" / "logo-primary.webm",
     PANEL / "assets" / "particle-1.webm",
     PANEL / "assets" / "fonts" / "display" / "Demo-Display.woff2",
+    PANEL / "assets" / "boundary-transitions" / "transition-1.mp4",
+    PANEL / "assets" / "boundary-transitions" / "transition-2.mp4",
+    PANEL / "assets" / "boundary-transitions" / "transition-3.mp4",
+    RENDERER / "assets" / "overlays" / "transition-1.mp4",
+    RENDERER / "assets" / "overlays" / "transition-2.mp4",
+    RENDERER / "assets" / "overlays" / "transition-3.mp4",
 ]
 
 
@@ -66,6 +72,8 @@ class DemoAssetTests(unittest.TestCase):
         for path in MIRRORS:
             relative = path.relative_to(ROOT).as_posix()
             self.assertIn(relative, source, f"{relative} must be materialized by the sync script")
+        for download_name in ("TRANSITION 1 NUEVO", "TRANSITION 2 NUEVO", "efecto-transition"):
+            self.assertNotIn(download_name, source, f"{download_name} is not a neutral asset name")
 
 
 if __name__ == "__main__":
