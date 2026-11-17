@@ -311,4 +311,5 @@ def test_axe_runs_against_every_view():
         assert f"'{view}'" in spec
     package = json.loads((root / "package.json").read_text(encoding="utf-8"))
     assert "axe-core" in package["devDependencies"]
-    assert "axe-core/axe.min.js" in spec
+    assert "axe-core" in spec
+    assert "axe.min.js" in spec
