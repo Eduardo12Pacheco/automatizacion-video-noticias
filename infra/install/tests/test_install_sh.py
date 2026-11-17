@@ -196,6 +196,41 @@ class InstallTests(InstallerTestCase):
         self.assertEqual(values["NEWSROOM_MODE"], "demo")
         self.assertEqual(values["COMPOSE_PROFILES"], "")
 
+    def test_panel_proxy_network_uses_a_free_subnet(self):
+        result = self.run_installer(
+            *self.install_args("--profile", "cpu"),
+            env_extra={"FAKE_DOCKER_TAKEN_SUBNETS": "172.28.240.0/24,172.29.240.0/24"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_PANEL_SUBNET"], "172.30.240.0/24")
+        self.assertEqual(values["NEWSROOM_PANEL_IP"], "172.30.240.10")
+        self.assertEqual(values["TRUSTED_PROXY_CIDRS"], "172.30.240.10/32")
+        self.assertIn("panel proxy network: 172.30.240.0/24", result.stdout)
+
+    def test_panel_proxy_network_defaults_to_the_first_free_range(self):
+        result = self.run_installer(*self.install_args("--profile", "cpu"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_PANEL_SUBNET"], "172.28.240.0/24")
+        self.assertEqual(values["NEWSROOM_PANEL_IP"], "172.28.240.10")
+        self.assertEqual(values["TRUSTED_PROXY_CIDRS"], "172.28.240.10/32")
+
+    def test_panel_proxy_network_is_stable_across_reinstalls(self):
+        first = self.run_installer(*self.install_args("--profile", "cpu"))
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        first_network = {
+            key: self.env_values()[key]
+            for key in ("NEWSROOM_PANEL_SUBNET", "NEWSROOM_PANEL_IP", "TRUSTED_PROXY_CIDRS")
+        }
+        second = self.run_installer(
+            *self.install_args("--profile", "cpu"),
+            env_extra={"FAKE_DOCKER_TAKEN_SUBNETS": ""},
+        )
+        self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+        for key, value in first_network.items():
+            self.assertEqual(self.env_values()[key], value)
+
     def test_local_mode_downloads_models_and_activates_the_local_profile(self):
         result = self.run_installer(
             *self.install_args("--mode", "local", "--profile", "cpu"),

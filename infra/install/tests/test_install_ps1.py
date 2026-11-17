@@ -111,6 +111,29 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertTrue((self.bin_dir / "newsroom.cmd").is_file())
         self.assertIn("Generated administrator password", result.stdout)
 
+    def test_panel_proxy_network_uses_a_free_subnet(self):
+        result = self.run_ps(
+            *self.ps_args(),
+            env_extra={"FAKE_DOCKER_TAKEN_SUBNETS": "172.28.240.0/24,172.29.240.0/24"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        values = self.env_values()
+        self.assertEqual(values["NEWSROOM_PANEL_SUBNET"], "172.30.240.0/24")
+        self.assertEqual(values["NEWSROOM_PANEL_IP"], "172.30.240.10")
+        self.assertEqual(values["TRUSTED_PROXY_CIDRS"], "172.30.240.10/32")
+
+    def test_panel_proxy_network_is_stable_across_reinstalls(self):
+        first = self.run_ps(*self.ps_args())
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        first_network = {
+            key: self.env_values()[key]
+            for key in ("NEWSROOM_PANEL_SUBNET", "NEWSROOM_PANEL_IP", "TRUSTED_PROXY_CIDRS")
+        }
+        second = self.run_ps(*self.ps_args())
+        self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+        for key, value in first_network.items():
+            self.assertEqual(self.env_values()[key], value)
+
     def test_local_mode_activates_the_local_profile(self):
         result = self.run_ps(*self.ps_args("-Mode", "local"))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

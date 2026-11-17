@@ -43,6 +43,17 @@ if args[:1] == ["run"] and "--gpus" in args:
     logged("GPU_PROBE")
     sys.exit(0)
 
+if args[:1] == ["network"]:
+    # Deterministic stand-in for the subnet discovery used to pick the panel
+    # proxy network. FAKE_DOCKER_TAKEN_SUBNETS lists ranges that are "in use".
+    taken = [value for value in os.environ.get("FAKE_DOCKER_TAKEN_SUBNETS", "").split(",") if value.strip()]
+    if len(args) >= 2 and args[1] == "ls" and "--format" in args:
+        for index in range(len(taken)):
+            print(f"taken-net-{index + 1}")
+    elif len(args) >= 2 and args[1] == "inspect" and taken:
+        print(" ".join(taken))
+    sys.exit(0)
+
 if not args or args[0] != "compose":
     sys.exit(0)
 

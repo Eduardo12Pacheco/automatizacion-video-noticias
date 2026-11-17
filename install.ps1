@@ -189,6 +189,7 @@ try {
             Stop-NrInstall "compose file not found: $($config.ComposeFile)"
         }
         Update-NrEnvFile
+        Update-NrPanelNetwork
         Set-NrEnvValue -Key 'NEWSROOM_PROFILE' -Value $config.Profile
         Set-NrEnvValue -Key 'NEWSROOM_MODE' -Value $Mode
         if ($Port) {

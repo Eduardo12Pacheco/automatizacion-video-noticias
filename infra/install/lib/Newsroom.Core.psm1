@@ -453,6 +453,93 @@ function Set-NrEnvValue {
     Write-NrLinesFile -Path $path -Lines $output
 }
 
+# --- Panel proxy network ---------------------------------------------------
+
+function Convert-NrIpv4ToInt {
+    param([string]$Address)
+    $parts = $Address.Split('.')
+    if ($parts.Count -ne 4) { return $null }
+    $value = [uint32]0
+    foreach ($part in $parts) {
+        $octet = 0
+        if (-not [int]::TryParse($part, [ref]$octet)) { return $null }
+        if ($octet -lt 0 -or $octet -gt 255) { return $null }
+        $value = [uint32]((([uint64]$value) -shl 8) -bor [uint64]$octet)
+    }
+    return $value
+}
+
+function Test-NrCidrOverlap {
+    param([string]$Left, [string]$Right)
+    if (-not $Left.Contains('/') -or -not $Right.Contains('/')) { return $false }
+    $leftParts = $Left.Split('/')
+    $rightParts = $Right.Split('/')
+    $leftPrefix = 0
+    $rightPrefix = 0
+    if (-not [int]::TryParse($leftParts[1], [ref]$leftPrefix)) { return $false }
+    if (-not [int]::TryParse($rightParts[1], [ref]$rightPrefix)) { return $false }
+    if ($leftPrefix -lt 0 -or $leftPrefix -gt 32 -or $rightPrefix -lt 0 -or $rightPrefix -gt 32) { return $false }
+    $leftInt = Convert-NrIpv4ToInt -Address $leftParts[0]
+    $rightInt = Convert-NrIpv4ToInt -Address $rightParts[0]
+    if ($null -eq $leftInt -or $null -eq $rightInt) { return $false }
+    $prefix = [Math]::Min($leftPrefix, $rightPrefix)
+    if ($prefix -eq 0) {
+        $mask = [uint32]0
+    } else {
+        $mask = [uint32]((0xFFFFFFFFL -shl (32 - $prefix)) -band 0xFFFFFFFFL)
+    }
+    return (($leftInt -band $mask) -eq ($rightInt -band $mask))
+}
+
+function Test-NrPanelSubnetInUse {
+    param([string]$Candidate)
+    $project = if ($env:COMPOSE_PROJECT_NAME) { $env:COMPOSE_PROJECT_NAME } else { 'newsroom' }
+    $exclude = "${project}_panelnet"
+    $names = @(& docker network ls --format '{{.Name}}' 2>$null)
+    foreach ($name in $names) {
+        $trimmed = ([string]$name).Trim()
+        if (-not $trimmed -or $trimmed -eq $exclude) { continue }
+        $subnets = @(& docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}' $trimmed 2>$null)
+        foreach ($line in $subnets) {
+            foreach ($subnet in ([string]$line -split '\s+')) {
+                if ($subnet -and (Test-NrCidrOverlap -Left $Candidate -Right $subnet)) { return $true }
+            }
+        }
+    }
+    return $false
+}
+
+function Update-NrPanelNetwork {
+    $currentSubnet = Get-NrEnvValue -Key 'NEWSROOM_PANEL_SUBNET'
+    $currentIp = Get-NrEnvValue -Key 'NEWSROOM_PANEL_IP'
+    $candidates = @(
+        '172.28.240.0/24', '172.29.240.0/24', '172.30.240.0/24', '172.31.240.0/24',
+        '172.27.240.0/24', '172.26.240.0/24', '172.25.240.0/24', '172.24.240.0/24',
+        '10.253.240.0/24', '10.252.240.0/24'
+    )
+    $subnet = ''
+    if ($currentSubnet -match '^[0-9.]+/24$' -and -not (Test-NrPanelSubnetInUse -Candidate $currentSubnet)) {
+        $subnet = $currentSubnet
+    }
+    if (-not $subnet) {
+        foreach ($candidate in $candidates) {
+            if (-not (Test-NrPanelSubnetInUse -Candidate $candidate)) { $subnet = $candidate; break }
+        }
+    }
+    if (-not $subnet) { Stop-NrInstall 'could not find a free /24 for the panel proxy network' }
+    $ip = ''
+    if ($currentIp -and (Test-NrCidrOverlap -Left "$currentIp/32" -Right $subnet)) {
+        $ip = $currentIp
+    } else {
+        $octets = $subnet.Split('/')[0].Split('.')
+        $ip = "$($octets[0]).$($octets[1]).$($octets[2]).$([int]$octets[3] + 10)"
+    }
+    Set-NrEnvValue -Key 'NEWSROOM_PANEL_SUBNET' -Value $subnet
+    Set-NrEnvValue -Key 'NEWSROOM_PANEL_IP' -Value $ip
+    Set-NrEnvValue -Key 'TRUSTED_PROXY_CIDRS' -Value "$ip/32"
+    Write-NrInfo "panel proxy network: $subnet (trusted proxy $ip)"
+}
+
 # --- Installation state ----------------------------------------------------
 
 function Update-NrPanelOrigins {

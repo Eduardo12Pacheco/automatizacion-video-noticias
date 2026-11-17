@@ -234,6 +234,7 @@ nr_step 2 7 "Preparing the environment file and run mode"
 if [ "$NR_DRY_RUN" = "0" ]; then
   nr_require_compose
   nr_env_ensure
+  nr_env_assign_panel_network
   nr_env_set NEWSROOM_PROFILE "$NR_PROFILE"
   nr_env_set NEWSROOM_MODE "$NR_RUN_MODE"
   if [ "$NR_RUN_MODE" = "local" ]; then

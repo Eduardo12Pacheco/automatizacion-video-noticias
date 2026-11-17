@@ -123,6 +123,113 @@ nr_env_set() {
   mv "$tmp" "$NR_ENV_FILE"
 }
 
+# --- Panel proxy network ---------------------------------------------------
+#
+# The API trusts X-Forwarded-For only from the panel's address on a dedicated
+# Docker network. A hard-coded subnet collides with whatever the host already
+# runs, so the installer picks a free /24, gives the panel a fixed address in
+# it and writes both values (plus the matching trusted CIDR) to .env.
+
+nr_ipv4_to_int() {
+  local ip="$1" a b c d
+  [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] || return 1
+  a=$((10#${BASH_REMATCH[1]}))
+  b=$((10#${BASH_REMATCH[2]}))
+  c=$((10#${BASH_REMATCH[3]}))
+  d=$((10#${BASH_REMATCH[4]}))
+  if [ "$a" -gt 255 ] || [ "$b" -gt 255 ] || [ "$c" -gt 255 ] || [ "$d" -gt 255 ]; then
+    return 1
+  fi
+  printf '%s' "$(( (a << 24) | (b << 16) | (c << 8) | d ))"
+}
+
+nr_cidr_overlaps() {
+  local left="$1" right="$2" laddr lprefix raddr rprefix lint rint prefix mask
+  [[ "$left" == */* && "$right" == */* ]] || return 1
+  laddr="${left%/*}"
+  lprefix="${left#*/}"
+  raddr="${right%/*}"
+  rprefix="${right#*/}"
+  [[ "$lprefix" =~ ^[0-9]+$ && "$rprefix" =~ ^[0-9]+$ ]] || return 1
+  lprefix=$((10#$lprefix))
+  rprefix=$((10#$rprefix))
+  if [ "$lprefix" -gt 32 ] || [ "$rprefix" -gt 32 ]; then
+    return 1
+  fi
+  lint="$(nr_ipv4_to_int "$laddr")" || return 1
+  rint="$(nr_ipv4_to_int "$raddr")" || return 1
+  prefix=$((lprefix < rprefix ? lprefix : rprefix))
+  if [ "$prefix" -eq 0 ]; then
+    mask=0
+  else
+    mask=$(( (0xffffffff << (32 - prefix)) & 0xffffffff ))
+  fi
+  [ $((lint & mask)) -eq $((rint & mask)) ]
+}
+
+# Returns success when any Docker network other than this project's panel
+# network already owns an overlapping range.
+nr_panel_subnet_in_use() {
+  local candidate="$1" name subnets subnet
+  local exclude="${COMPOSE_PROJECT_NAME:-newsroom}_panelnet"
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    [ "$name" = "$exclude" ] && continue
+    subnets="$(docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}} {{end}}' "$name" 2>/dev/null || true)"
+    for subnet in $subnets; do
+      if nr_cidr_overlaps "$candidate" "$subnet"; then
+        return 0
+      fi
+    done
+  done < <(docker network ls --format '{{.Name}}' 2>/dev/null || true)
+  return 1
+}
+
+nr_ip_in_cidr() {
+  local ip="$1" cidr="$2"
+  nr_cidr_overlaps "${ip}/32" "$cidr"
+}
+
+nr_subnet_host_ip() {
+  local cidr="$1" offset="${2:-10}" a b c d
+  cidr="${cidr%/*}"
+  IFS=. read -r a b c d <<<"$cidr"
+  printf '%s' "${a}.${b}.${c}.$((10#$d + offset))"
+}
+
+nr_env_assign_panel_network() {
+  local current_subnet current_ip subnet ip candidate
+  local -a candidates=(
+    172.28.240.0/24 172.29.240.0/24 172.30.240.0/24 172.31.240.0/24
+    172.27.240.0/24 172.26.240.0/24 172.25.240.0/24 172.24.240.0/24
+    10.253.240.0/24 10.252.240.0/24
+  )
+  current_subnet="$(nr_env_get NEWSROOM_PANEL_SUBNET)"
+  current_ip="$(nr_env_get NEWSROOM_PANEL_IP)"
+  subnet=""
+  if [[ "$current_subnet" =~ ^[0-9.]+/24$ ]] && ! nr_panel_subnet_in_use "$current_subnet"; then
+    subnet="$current_subnet"
+  fi
+  if [ -z "$subnet" ]; then
+    for candidate in "${candidates[@]}"; do
+      if ! nr_panel_subnet_in_use "$candidate"; then
+        subnet="$candidate"
+        break
+      fi
+    done
+  fi
+  [ -n "$subnet" ] || nr_die "could not find a free /24 for the panel proxy network"
+  if [ -n "$current_ip" ] && nr_ip_in_cidr "$current_ip" "$subnet"; then
+    ip="$current_ip"
+  else
+    ip="$(nr_subnet_host_ip "$subnet" 10)"
+  fi
+  nr_env_set NEWSROOM_PANEL_SUBNET "$subnet"
+  nr_env_set NEWSROOM_PANEL_IP "$ip"
+  nr_env_set TRUSTED_PROXY_CIDRS "$ip/32"
+  nr_info "panel proxy network: $subnet (trusted proxy $ip)"
+}
+
 # Keeps the browser origin allow-lists in sync when --port changes the
 # published panel port. Only the documented localhost defaults are rewritten.
 nr_env_apply_panel_port() {
