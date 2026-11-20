@@ -44,6 +44,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # tools/tests/test_compose_stack.py imports PyYAML; do not rely on what
+      # the runner image happens to ship in its system python3.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python dependencies for the tooling tests
+        run: python3 -m pip install --disable-pip-version-check "pyyaml>=6"
       - name: Core
         run: node --test packages/core/test/*.test.js
       - name: Data (in-memory contract; Postgres opt-in is separate)
@@ -75,6 +82,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      # The panel tests and __checks__ scripts resolve @newsroom/* workspace
+      # packages through node_modules.
+      - run: pnpm install --frozen-lockfile
+      - name: Install ffmpeg (ffprobe for the duration checks)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - uses: astral-sh/setup-uv@v6
       - name: Panel suite
         run: uv run --with pytest pytest apps/panel/tests -q
@@ -85,6 +106,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install ffmpeg (subtitles audio mux tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - uses: astral-sh/setup-uv@v6
       - name: ASR worker
         run: uv run --project services/asr-worker --with pytest --with httpx pytest services/asr-worker/tests -q
@@ -143,6 +168,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # e2e/happy-path.spec.js measures the produced media with ffprobe on the
+      # runner (not inside the containers).
+      - name: Install ffmpeg (ffprobe for the media assertions)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Start the keyless default stack
         env:
           NEWSROOM_ENV_FILE: e2e/.env.example

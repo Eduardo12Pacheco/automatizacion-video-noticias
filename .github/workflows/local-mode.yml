@@ -26,6 +26,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # e2e/local-mode.spec.js measures the produced media with ffprobe/ffmpeg
+      # on the runner (not inside the containers).
+      - name: Install ffmpeg (ffprobe for the media assertions)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Prepare the local-mode environment
