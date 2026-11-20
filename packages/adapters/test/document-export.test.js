@@ -18,7 +18,9 @@ const docxSkip = docxProbe.status === 0
 
 test('LocalDocumentExport creates a real docx and a markdown copy through python-docx', { skip: docxSkip }, async () => {
   const root = await mkdtemp(join(tmpdir(), 'newsroom-docs-'));
-  const adapter = new LocalDocumentExport({ root, timeoutMs: 30_000 });
+  // Run the adapter with the same interpreter the probe above checked, so a
+  // PYTHON_BIN that points at a venv with python-docx is honoured end to end.
+  const adapter = new LocalDocumentExport({ root, timeoutMs: 30_000, pythonBin: PYTHON_BIN });
 
   const created = await adapter.createDocument({
     draftId: 'draft-1',
