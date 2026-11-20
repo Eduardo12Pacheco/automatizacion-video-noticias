@@ -27,6 +27,18 @@ one bounded probe. Statuses mean:
 All variables are read from `.env` by Compose and by a native `node
 apps/api/src/gateway.js` run. Restart the API after changing one.
 
+## At a glance
+
+| Connector | Env switch | Default | What it does |
+|---|---|---|---|
+| Ollama / any OpenAI-compatible LLM | `LLM=ollama\|openai` | Local Ollama | Scripts, clustering, classification |
+| SMTP / Gmail | `NOTIFY=smtp` | Console | Notification e-mail (Gmail uses an app password) |
+| S3 / MinIO | `STORAGE=s3` | Filesystem | Blob storage for uploads and renders |
+| n8n | `WORKFLOW=n8n` | Disabled | Cron trigger (`POST /jobs/discover`) and job-completed webhook |
+
+All optional connectors are off by default; their credentials come from `.env`
+and are never returned by the API or committed to the repository.
+
 ## n8n (workflow trigger)
 
 Use n8n only as a cron/notification layer; the domain logic stays in

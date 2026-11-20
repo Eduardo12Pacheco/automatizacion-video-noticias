@@ -162,6 +162,11 @@ same `e2e/local-mode.spec.js` that runs on CPU passed with real GPU media:
 | Remotion render | 188.7 s (CPU) | 177.3 s (CPU) |
 | Whole spec | 6.1 min | 5.2 min |
 
+Both columns are the same `e2e/local-mode.spec.js` run on one machine (RTX 4060
+8 GB laptop GPU, 12 cores, 31 GB RAM): CPU is the reference and `--gpu` keeps
+the Remotion render on CPU. The numbers cover the whole spec from discovery to
+the final MP4, not a micro-benchmark.
+
 Peak whole-card usage was 6,646 MB of 8,188 MB (including the desktop), so the
 1.7B voice variant is the fitting choice for 8 GB. GPU mode is therefore about
 voice quality and LLM speed, not a faster end-to-end run; the render stays on
