@@ -136,7 +136,9 @@ class AnalyzeSessionService:
             }
             self.store.save_snapshot(session_id, snapshot)
 
-            self.store.update_job(job_id=job_id, status="succeeded", progress_pct=100)
+            # The job reaching a terminal state is the signal clients wait on,
+            # so it must be the last write: everything it implies (session
+            # status, idempotency record) is already visible by then.
             self.store.update_session(session_id=session_id, status="analyzed")
             self.store.remember_request(
                 session_id=session_id,
@@ -144,18 +146,19 @@ class AnalyzeSessionService:
                 request_id=request_id,
                 job_id=job_id,
             )
+            self.store.update_job(job_id=job_id, status="succeeded", progress_pct=100)
         except PipelineError as error:
-            self.store.update_job(job_id=job_id, status="failed", progress_pct=100)
             self.store.update_session(
                 session_id=session_id,
                 status="analyze_failed",
             )
+            self.store.update_job(job_id=job_id, status="failed", progress_pct=100)
         except Exception as error:  # noqa: BLE001
-            self.store.update_job(job_id=job_id, status="failed", progress_pct=100)
             self.store.update_session(
                 session_id=session_id,
                 status="analyze_failed",
             )
+            self.store.update_job(job_id=job_id, status="failed", progress_pct=100)
 
     # ---- Synchronous helper for tests / explicit "run to completion" calls ----
     def run_analysis_blocking(
@@ -216,7 +219,6 @@ class AnalyzeSessionService:
                 "target_language": target_language,
             }
             self.store.save_snapshot(session_id, snapshot)
-            self.store.update_job(job_id=str(job["id"]), status="succeeded", progress_pct=100)
             self.store.update_session(session_id=session_id, status="analyzed")
             self.store.remember_request(
                 session_id=session_id,
@@ -224,11 +226,12 @@ class AnalyzeSessionService:
                 request_id=request_id,
                 job_id=str(job["id"]),
             )
+            self.store.update_job(job_id=str(job["id"]), status="succeeded", progress_pct=100)
             return self.store.get_job(str(job["id"]))
         except Exception:
-            self.store.update_job(job_id=str(job["id"]), status="failed", progress_pct=100)
             self.store.update_session(
                 session_id=session_id,
                 status="analyze_failed",
             )
+            self.store.update_job(job_id=str(job["id"]), status="failed", progress_pct=100)
             raise
