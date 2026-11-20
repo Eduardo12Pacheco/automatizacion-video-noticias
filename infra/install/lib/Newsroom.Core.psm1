@@ -798,7 +798,16 @@ function Test-NrEnvironment {
     if ($env:OS -eq 'Windows_NT' -and (Test-NrDockerDaemon)) {
         $osType = ((& docker info --format '{{.OSType}}') -join '').Trim()
         if ($osType -and $osType -ne 'linux') {
-            Write-NrCheckFail "Docker is using $osType containers; switch Docker Desktop to Linux containers"
+            $engineMessage = "Docker is using $osType containers; switch Docker Desktop to Linux containers"
+            if ($script:NrConfig.AllowMissingDocker) {
+                # CI self-check mode (-AllowMissingDocker): a Docker engine that
+                # cannot run the Linux stack is as unusable as a missing one, so
+                # warn like the other Docker-dependent checks. Without the flag a
+                # real user is still told to switch and the check fails.
+                Write-NrWarn "$engineMessage (continuing because -AllowMissingDocker was given)"
+            } else {
+                Write-NrCheckFail $engineMessage
+            }
         } else {
             Write-NrOk 'Docker is using Linux containers (WSL2 backend)'
         }

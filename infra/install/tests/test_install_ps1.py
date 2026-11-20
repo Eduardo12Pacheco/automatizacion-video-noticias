@@ -108,6 +108,27 @@ class PowerShellInstallerTests(InstallerTestCase):
         self.assertIn("prerequisites OK", result.stdout)
         self.assertIn("skipping the Docker-dependent checks", result.stdout + result.stderr)
 
+    def test_check_fails_on_windows_containers_by_default(self):
+        # `$env:OS` is what the module reads to decide it runs on Windows; the
+        # fake docker answers `docker info --format {{.OSType}}` with "windows".
+        result = self.run_ps(
+            "-Check", "-ProjectDir", str(self.project),
+            env_extra={"OS": "Windows_NT", "FAKE_DOCKER_OSTYPE": "windows"},
+        )
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("[fail] Docker is using windows containers; switch Docker Desktop to Linux containers", result.stdout)
+
+    def test_check_warns_on_windows_containers_when_docker_is_optional(self):
+        # Hosted Windows CI runners only ship a Windows-containers engine.
+        result = self.run_ps(
+            "-Check", "-AllowMissingDocker", "-Yes", "-ProjectDir", str(self.project),
+            env_extra={"OS": "Windows_NT", "FAKE_DOCKER_OSTYPE": "windows"},
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("[warn] Docker is using windows containers", result.stdout)
+        self.assertNotIn("[fail]", result.stdout)
+        self.assertIn("prerequisites OK", result.stdout)
+
     def test_full_install_generates_secrets_and_runs_every_step(self):
         result = self.run_ps(*self.ps_args())
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
