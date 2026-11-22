@@ -6,7 +6,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
-README_ES = ROOT / "README.es.md"
+README_EN = ROOT / "README.en.md"
+HERO_ES = ROOT / "docs" / "assets" / "readme" / "hero.svg"
+HERO_EN = ROOT / "docs" / "assets" / "readme" / "hero.en.svg"
 ARCHITECTURE = ROOT / "docs" / "ARCHITECTURE.md"
 LICENSE = ROOT / "LICENSE"
 ASSETS = ROOT / "ASSETS.md"
@@ -20,6 +22,8 @@ PUBLIC_DOC_GLOBS = ("*.md",)
 INTERNAL_ID = re.compile(r"\b(?:T\d{1,2}|D\d{1,2}|S(?:5|9|10|11|12)|L\d{2})\b")
 ACCOUNT_PLACEHOLDERS = ("<your-account>", "<tu-cuenta>", "<your-username>", "YOUR_ACCOUNT")
 GITHUB_ACCOUNT = "Eduardo12Pacheco"
+REPO_NAME = "automatizacion-video-noticias"
+PREVIOUS_REPO_NAME = "newsroom-video-automation"
 
 
 def _public_markdown_files() -> list[Path]:
@@ -78,11 +82,13 @@ def _font_directories() -> set[Path]:
 
 
 class PortfolioDocsTests(unittest.TestCase):
-    def test_readme_is_a_portfolio_pitch_with_demo_diagram_and_local_first_table(self) -> None:
+    def test_spanish_readme_is_the_default_landing_page_with_hero_and_demo(self) -> None:
         source = _read(README)
-        self.assertTrue(source.startswith("# Newsroom Video Automation"))
+        self.assertIn("docs/assets/readme/hero.svg", source)
+        self.assertIn("Automatización de video para noticias", source)
+        self.assertIn('href="README.en.md"', source)
         for expected in [
-            "README.es.md",
+            "README.en.md",
             "docs/ARCHITECTURE.md",
             "docs/INSTALL.md",
             "docs/CONNECTORS.md",
@@ -93,10 +99,6 @@ class PortfolioDocsTests(unittest.TestCase):
             "docs/images/demo.gif",
             "docs/images/demo.mp4",
             "actions/workflows/ci.yml/badge.svg",
-            "local-first",
-            "Demo mode",
-            "local mode",
-            "Project story",
             "```mermaid",
             "Ollama",
             "trafilatura",
@@ -106,9 +108,57 @@ class PortfolioDocsTests(unittest.TestCase):
             "yt-dlp",
             "Mailpit",
             "Remotion",
-            "commercial",
+            "Modo demo / Demo mode",
+            "modo local",
+            "Historia del proyecto",
+            "asistencia de IA",
+            "Instalar con un comando",
+            "Licencia",
+        ]:
+            self.assertIn(expected, source, expected)
+        for honest_scope in ["portafolio", "no un sistema en producción"]:
+            self.assertIn(honest_scope, source, honest_scope)
+        for screenshot in [
+            "docs/images/screens/approval-es-desktop.png",
+            "docs/images/screens/approval-es-mobile.png",
+            "docs/images/screens/radar-en-desktop.png",
+            "docs/images/screens/radar-en-mobile.png",
+        ]:
+            self.assertIn(screenshot, source, screenshot)
+        self.assertNotIn("ui-after-login.png", source)
+        self.assertNotIn("ui-after-showcase.png", source)
+
+    def test_english_readme_mirrors_the_spanish_entry_points(self) -> None:
+        source = _read(README_EN)
+        self.assertIn("docs/assets/readme/hero.en.svg", source)
+        self.assertIn('href="README.md"', source)
+        for expected in [
+            "README.md",
+            "docs/ARCHITECTURE.md",
+            "docs/INSTALL.md",
+            "docs/CONNECTORS.md",
+            "CONTRIBUTING.md",
+            "SECURITY.md",
+            "LICENSE",
+            "ASSETS.md",
+            "docs/images/demo.gif",
+            "docs/images/demo.mp4",
+            "actions/workflows/ci.yml/badge.svg",
+            "```mermaid",
+            "Ollama",
+            "trafilatura",
+            "SearXNG",
+            "Postgres",
+            "Piper",
+            "yt-dlp",
+            "Mailpit",
+            "Remotion",
+            "Demo mode",
+            "local",
+            "Project story",
             "built with AI assistance",
             "one command",
+            "commercial",
         ]:
             self.assertIn(expected, source, expected)
         for honest_scope in ["portfolio", "not a live system"]:
@@ -123,36 +173,25 @@ class PortfolioDocsTests(unittest.TestCase):
         self.assertNotIn("ui-after-login.png", source)
         self.assertNotIn("ui-after-showcase.png", source)
 
-    def test_spanish_readme_mirrors_the_portfolio_entry_points(self) -> None:
-        source = _read(README_ES)
-        self.assertTrue(source.startswith("# Newsroom Video Automation"))
-        for expected in [
-            "README.md",
-            "docs/ARCHITECTURE.md",
-            "docs/INSTALL.md",
-            "docs/CONNECTORS.md",
-            "docs/images/demo.gif",
-            "docs/images/screens/approval-es-desktop.png",
-            "docs/images/screens/radar-en-mobile.png",
-            "Arquitectura",
-            "Modo demo",
-            "Modo local",
-            "Conectores",
-            "Historia del proyecto",
-            "Local",
-            "Licencia",
-        ]:
-            self.assertIn(expected, source, expected)
-        self.assertNotIn("ui-after-login.png", source)
-        self.assertNotIn("ui-after-showcase.png", source)
+    def test_hero_assets_are_pure_svg_with_alt_text_for_both_languages(self) -> None:
+        for path in (HERO_ES, HERO_EN):
+            self.assertTrue(path.is_file(), path)
+            source = _read(path)
+            self.assertIn("<svg", source, path)
+            self.assertIn('role="img"', source, path)
+            self.assertIn("<title", source, path)
+            for forbidden in ("<script", "foreignObject", "<style", "@import", "https://", 'href="http'):
+                self.assertNotIn(forbidden, source, f"{path.name} contains {forbidden}")
+        self.assertIn("Automatización de video para noticias", _read(HERO_ES))
+        self.assertIn("Video automation for newsrooms", _read(HERO_EN))
 
     def test_architecture_document_and_adrs_explain_the_decisions(self) -> None:
         architecture = _read(ARCHITECTURE)
         for expected in [
             "```mermaid",
             "hexagonal",
-            "ports",
-            "adapters",
+            "puertos",
+            "adaptadores",
             "packages/core",
             "packages/contracts",
             "apps/api",
@@ -161,10 +200,10 @@ class PortfolioDocsTests(unittest.TestCase):
             "services/tts-worker",
             "services/renderer",
             "services/channel-monitor",
-            "demo mode",
-            "local mode",
-            "connectors",
-            "privacy",
+            "modo demo",
+            "modo local",
+            "conectores",
+            "privacidad",
         ]:
             self.assertIn(expected, architecture.lower(), expected)
         self.assertTrue(ADR_DIR.is_dir(), ADR_DIR)
@@ -177,28 +216,28 @@ class PortfolioDocsTests(unittest.TestCase):
             "n8n",
             "vanilla",
             "demo",
-            "local mode",
-            "connector",
-            "privacy",
+            "modo local",
+            "conector",
+            "privacidad",
         ]:
             self.assertIn(decision, combined.lower(), decision)
         for adr in adrs:
             source = _read(adr)
-            self.assertIn("## Status", source, adr)
-            self.assertIn("Accepted", source, adr)
-            self.assertIn("## Context", source, adr)
-            self.assertIn("## Decision", source, adr)
-            self.assertIn("## Consequences", source, adr)
+            self.assertIn("## Estado", source, adr)
+            self.assertIn("Aceptad", source, adr)
+            self.assertIn("## Contexto", source, adr)
+            self.assertIn("## Decisión", source, adr)
+            self.assertIn("## Consecuencias", source, adr)
 
     def test_contributing_and_security_docs_are_actionable(self) -> None:
         contributing = _read(ROOT / "CONTRIBUTING.md")
         for expected in ["pnpm test:all", "install.sh", "install.ps1", "Conventional Commits"]:
             self.assertIn(expected, contributing, expected)
         self.assertIn("Co-Authored-By", contributing)
-        self.assertIn("AI-assistance note", contributing)
+        self.assertIn("asistencia de IA", contributing)
         self.assertNotIn("any AI attribution line", contributing)
         security = _read(ROOT / "SECURITY.md")
-        for expected in ["report", "127.0.0.1", "password", "admin", "MIT"]:
+        for expected in ["reportar", "127.0.0.1", "contraseña", "admin", "MIT"]:
             self.assertIn(expected.lower(), security.lower(), expected)
 
     def test_license_is_mit_for_eduardo_pacheco(self) -> None:
@@ -240,7 +279,7 @@ class PortfolioDocsTests(unittest.TestCase):
 
     def test_assets_manifest_describes_the_demo_recording_source(self) -> None:
         source = _read(ASSETS)
-        self.assertIn("demo mode", source.lower())
+        self.assertIn("modo demo", source.lower())
         self.assertIn("tools/record-demo.mjs", source)
 
     def test_public_docs_use_the_published_repository_url(self) -> None:
@@ -248,10 +287,15 @@ class PortfolioDocsTests(unittest.TestCase):
             source = _read(path)
             for placeholder in ACCOUNT_PLACEHOLDERS:
                 self.assertNotIn(placeholder, source, f"{path.relative_to(ROOT)} still has {placeholder}")
-        for path in (README, README_ES):
+            self.assertNotIn(
+                f"github.com/{GITHUB_ACCOUNT}/{PREVIOUS_REPO_NAME}",
+                source,
+                f"{path.relative_to(ROOT)} still links the previous repository name",
+            )
+        for path in (README, README_EN):
             source = _read(path)
-            self.assertIn(f"github.com/{GITHUB_ACCOUNT}/newsroom-video-automation", source)
-            self.assertIn(f"{GITHUB_ACCOUNT}/newsroom-video-automation/actions/workflows/ci.yml", source)
+            self.assertIn(f"github.com/{GITHUB_ACCOUNT}/{REPO_NAME}", source)
+            self.assertIn(f"{GITHUB_ACCOUNT}/{REPO_NAME}/actions/workflows/ci.yml", source)
 
     def test_public_docs_do_not_expose_internal_task_or_spec_ids(self) -> None:
         for path in _public_markdown_files():
@@ -292,7 +336,7 @@ class PortfolioDocsTests(unittest.TestCase):
         self.assertEqual(broken, [], "\n".join(broken))
 
     def test_readmes_show_current_dark_and_light_screenshots(self) -> None:
-        for path in (README, README_ES):
+        for path in (README, README_EN):
             source = _read(path)
             first = source.index("docs/images/screens/")
             second = source.index("docs/images/screens/", first + 1)
@@ -318,7 +362,7 @@ class PortfolioDocsTests(unittest.TestCase):
             self.assertTrue(target.is_file(), target)
 
     def test_readmes_document_the_measured_cpu_and_gpu_timings(self) -> None:
-        for path in (README, README_ES):
+        for path in (README, README_EN):
             source = _read(path)
             for value in ["5.2 min", "6.1 min", "22.3 s", "5.1 s", "90.1 s", "188.7 s"]:
                 self.assertIn(value, source, f"{path.name} is missing timing {value}")

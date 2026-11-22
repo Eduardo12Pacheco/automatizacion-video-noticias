@@ -1,21 +1,19 @@
-# End-to-end happy path
+# Camino feliz de extremo a extremo
 
-The Playwright test drives one complete fictional story through the keyless
-default stack:
+La prueba de Playwright recorre una historia ficticia completa a través del stack por defecto, sin claves:
 
-1. log in through the panel UI as the seeded editor;
-2. open a pending topic and approve it through the UI;
-3. wait for the API to draft the script, then process the draft;
-4. generate voice (the CPU demo worker returns a WAV);
-5. create, render and download a subtitled MP4;
-6. create, render and download the final low-res demo MP4.
+1. inicia sesión en la UI del panel como el editor sembrado;
+2. abre un tema pendiente y lo aprueba desde la UI;
+3. espera a que la API redacte el guion y luego procesa el borrador;
+4. genera la voz (el worker demo de CPU devuelve un WAV);
+5. crea, renderiza y descarga un MP4 con subtítulos;
+6. crea, renderiza y descarga el MP4 final de demo en baja resolución.
 
-The default Compose profile uses the deterministic `demo-worker` for the
-worker-facing contracts so this test needs no GPU, model download or API key.
-The same test also asserts the API and proxy boundaries (`/panel`, `/tts`,
-`/subtitles`, `/remotion`).
+El perfil de Compose por defecto usa el worker determinista `demo-worker` para los contratos que ven
+los workers, así que esta prueba no necesita GPU, descarga de modelos ni claves de API. La misma prueba
+también verifica los límites de la API y del proxy (`/panel`, `/tts`, `/subtitles`, `/remotion`).
 
-## Run locally
+## Ejecutar localmente
 
 ```bash
 export NEWSROOM_ENV_FILE=e2e/.env.example
@@ -23,49 +21,46 @@ export E2E_COMPOSE_ENV=e2e/.env.example
 docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mailpit demo-worker api panel
 docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 pnpm install --frozen-lockfile
-pnpm exec playwright install chromium   # or set PLAYWRIGHT_CHROMIUM_EXECUTABLE
+pnpm exec playwright install chromium   # o define PLAYWRIGHT_CHROMIUM_EXECUTABLE
 E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
 
-Never copy `e2e/.env.example` over an installed `.env`: that would replace the
-installer-generated secrets. The committed E2E file is passed with
-`--env-file` and loaded by the API through `NEWSROOM_ENV_FILE`. If you run the
-specs against an installed demo stack, leave both variables unset so they read
-`.env`, and still set `E2E_ALLOW_RESET=1` only on a disposable stack.
+Nunca copies `e2e/.env.example` sobre un `.env` instalado: reemplazaría los secretos generados por el
+instalador. El archivo E2E versionado se pasa con `--env-file` y lo carga la API mediante
+`NEWSROOM_ENV_FILE`. Si ejecutas las specs contra un stack demo instalado, deja ambas variables sin
+definir para que lean `.env`, y define `E2E_ALLOW_RESET=1` solo en un stack desechable.
 
-The spec reseeds the demo story before it starts (`seed --reset`), so it passes
-twice in a row against the same stack. The panel-flow spec additionally resets
-the E2E administrator password and therefore refuses to run without
-`E2E_ALLOW_RESET=1`. `E2E_EDITOR_PASSWORD` overrides the editor password; when
-unset the specs read `NEWSROOM_DEMO_PASSWORD` from the environment file.
-`docker compose down -v` is still the clean way to start from an empty database.
+La spec vuelve a sembrar la historia demo antes de empezar (`seed --reset`), así que pasa dos veces seguidas
+contra el mismo stack. La spec de flujos del panel además restablece la contraseña del administrador del E2E,
+por lo que se niega a ejecutarse sin `E2E_ALLOW_RESET=1`. `E2E_EDITOR_PASSWORD` sustituye la contraseña del
+editor; si no se define, las specs leen `NEWSROOM_DEMO_PASSWORD` del archivo de entorno.
+`docker compose down -v` sigue siendo la forma limpia de empezar con una base de datos vacía.
 
-All credentials in `e2e/.env.example` are fictional test values. Never reuse
-them in a real installation.
+Todas las credenciales de `e2e/.env.example` son valores de prueba ficticios. Nunca los reutilices en una
+instalación real.
 
-## Re-record the README demo
+## Volver a grabar la demo del README
 
-`tools/record-demo.mjs` records the same demo stack from the app viewport (no
-desktop or terminal) and writes `docs/images/demo.mp4` plus the under-1-MB GIF:
+`tools/record-demo.mjs` graba el mismo stack demo desde el viewport de la app (sin escritorio ni terminal) y
+escribe `docs/images/demo.mp4` más el GIF de menos de 1 MB:
 
 ```bash
 NEWSROOM_DEMO_PASSWORD=e2e-demo-password node tools/record-demo.mjs
 ```
 
-Use a fresh stack (`docker compose down -v` before `up`) so the seeded story is
-clean. The recorder fails instead of shipping a recording with a console error
-or a page exception.
+Usa un stack nuevo (`docker compose down -v` antes de `up`) para que la historia sembrada esté limpia. La
+grabadora falla en lugar de entregar una grabación con un error de consola o una excepción de página.
 
-## Local-mode happy path (real media)
+## Camino feliz en modo local (medios reales)
 
-`e2e/local-mode.spec.js` is the real local-mode acceptance run. It is opt-in because it
-downloads the local models and renders real media on CPU:
+`e2e/local-mode.spec.js` es la prueba de aceptación real del modo local. Es opt-in porque descarga los
+modelos locales y renderiza medios reales en CPU:
 
 ```bash
 cp e2e/.env.example e2e/.env.local
-# In e2e/.env.local set NEWSROOM_MODE=local, LLM=ollama,
-# ARTICLE_EXTRACTOR=trafilatura and TTS_WORKER_ENGINE=piper; the template
-# already points NEWS_DISCOVERY_FEED_URL at the offline e2e-fixtures service.
+# En e2e/.env.local define NEWSROOM_MODE=local, LLM=ollama,
+# ARTICLE_EXTRACTOR=trafilatura y TTS_WORKER_ENGINE=piper; la plantilla
+# ya apunta NEWS_DISCOVERY_FEED_URL al servicio e2e-fixtures sin conexión.
 export NEWSROOM_ENV_FILE=e2e/.env.local
 export E2E_COMPOSE_ENV=e2e/.env.local
 docker compose --env-file "$E2E_COMPOSE_ENV" --profile local run --rm model-init
@@ -78,42 +73,39 @@ docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 NEWSROOM_E2E_LOCAL=1 pnpm exec playwright test e2e/local-mode.spec.js
 ```
 
-The spec is self-contained: it starts the `e2e` fixture service (three invented
-articles with no pubDate, so they are always recent) and recreates the API with
-`NEWS_DISCOVERY_FEED_URL=http://e2e-fixtures:8000/discovery.xml` and one
-invented player. It triggers a real discovery refresh, proves the new clusters
-come from the fixture titles, approves one of them and waits for the real Ollama
-draft. That draft text — fetched from the API, not hardcoded — is the input for
-Piper voice, faster-whisper subtitles and the Remotion render.
+La spec es autocontenida: inicia el servicio de fixtures `e2e` (tres artículos inventados sin pubDate, así
+que siempre son recientes) y recrea la API con
+`NEWS_DISCOVERY_FEED_URL=http://e2e-fixtures:8000/discovery.xml` y un jugador inventado. Dispara una
+actualización real del descubrimiento, demuestra que los nuevos clústeres provienen de los títulos del
+fixture, aprueba uno de ellos y espera el borrador real de Ollama. Ese texto del borrador —obtenido de la
+API, no escrito en el código— es la entrada para la voz de Piper, los subtítulos de faster-whisper y el
+render de Remotion.
 
-Every media artifact is measured with `ffprobe`/`ffmpeg`: the WAV lasts at least
-3 s with mean volume above −35 dB, the cues (at least 3) cover at least 40 % of
-their distinct non-stopword words in the draft, the subtitles MP4 keeps the
-narration audio (mean volume above −35 dB), and the final Remotion MP4 lasts at
-least 5 s at 1280×720 with audio and video streams. The same spec runs nightly
-in `.github/workflows/local-mode.yml`.
+Cada artefacto de medios se mide con `ffprobe`/`ffmpeg`: el WAV dura al menos 3 s con volumen medio por encima
+de −35 dB; las cues (al menos 3) cubren al menos el 40 % de sus palabras distintas no vacías del borrador; el
+MP4 de subtítulos conserva el audio de la narración (volumen medio por encima de −35 dB); y el MP4 final de
+Remotion dura al menos 5 s a 1280×720 con flujos de audio y video. La misma spec corre cada noche en
+`.github/workflows/local-mode.yml`.
 
-The renderer fetches the synthesized voice and the still image from a
-throwaway `python:3.12-slim` static server that the test starts on the Compose
-network, mounted on the test work directory. It needs Docker access on the
-machine running the spec. The media server network is derived from
-`COMPOSE_PROJECT_NAME` (default `newsroom`); set `E2E_FIXTURE_NETWORK` only to
-override it explicitly.
+El renderer obtiene la voz sintetizada y la imagen fija desde un servidor estático `python:3.12-slim`
+desechable que la prueba inicia en la red de Compose, montado sobre el directorio de trabajo de la prueba.
+Necesita acceso a Docker en la máquina que ejecuta la spec. La red del servidor de medios se deriva de
+`COMPOSE_PROJECT_NAME` (por defecto `newsroom`); define `E2E_FIXTURE_NETWORK` solo si quieres sustituirla
+de forma explícita.
 
-## Visual QA
+## QA visual
 
-`e2e/visual-qa.spec.js` implements the visual-QA acceptance in showcase mode: every
-view × {es,en} × {1440×900, 390×844}, with zero console errors, zero failed
-requests, no layout overflow, no debug/fallback copy, no foreign-language
-catalog strings and no serious/critical axe-core violations. It also covers the
-login screen, the designed empty/error states and the loading skeletons, and
-writes the README screenshots to `docs/images/screens/`.
+`e2e/visual-qa.spec.js` implementa la aceptación de QA visual en modo showcase: cada vista × {es,en} ×
+{1440×900, 390×844}, sin errores de consola, sin peticiones fallidas, sin desbordes de diseño, sin texto de
+depuración ni de respaldo, sin cadenas del catálogo en otro idioma y sin violaciones graves o críticas de
+axe-core. También cubre la pantalla de inicio de sesión, los estados vacíos y de error diseñados, y los
+esqueletos de carga, y escribe las capturas del README en `docs/images/screens/`.
 
-It needs no Docker stack:
+No necesita el stack de Docker:
 
 ```bash
 node tools/run-visual-qa.mjs
 ```
 
-The runner starts the static panel server, runs Playwright and stops the
-server. CI runs the same command in the `visual-qa` job.
+El runner inicia el servidor estático del panel, ejecuta Playwright y detiene el servidor. CI ejecuta el
+mismo comando en el job `visual-qa`.

@@ -1,38 +1,39 @@
-# ADR 0004 — Vanilla UI instead of a React rewrite
+# ADR 0004 — UI vanilla en lugar de reescribir en React
 
-## Status
+## Estado
 
-Accepted.
+Aceptada.
 
-## Context
+## Contexto
 
-The panel is a large vanilla HTML/CSS/ES-module application with real features:
-approval inbox, script editor, audio, subtitles, video projects, settings and
-admin. Its problems were visual and structural — inconsistent typography,
-button hierarchy, colors, dialogs, mixed-language copy and accessibility — not a
-lack of a component framework. A React rewrite would cost several weeks and
-add a build step to a project whose value is the local pipeline.
+El panel es una aplicación grande de HTML/CSS/módulos ES nativos, con funciones reales: bandeja de
+aprobación, editor de guiones, audio, subtítulos, proyectos de video, ajustes y administración. Sus
+problemas eran visuales y estructurales —tipografía inconsistente, jerarquía de botones, colores,
+diálogos, copy mezclado entre idiomas y accesibilidad—, no la falta de un framework de
+componentes. Una reescritura en React costaría varias semanas y añadiría un paso de build a un
+proyecto cuyo valor es el pipeline local.
 
-## Decision
+## Decisión
 
-Keep the panel on vanilla HTML, CSS and ES modules, and improve it in place:
+Mantener el panel sobre HTML, CSS y módulos ES nativos, y mejorarlo en su lugar:
 
-- One `tokens.css` with typography, color, spacing and radius tokens.
-- Two font families only: Inter for UI, JetBrains Mono for timecodes and IDs.
-- Neutral buttons with explicit `.primary`, `.secondary`, `.ghost` and `.danger`
-  variants.
-- One dialog pattern, one i18n module (`es.json` / `en.json`), pipeline-ordered
-  navigation and three responsive breakpoints.
-- Admin-only views and presence for the local multi-user model.
+- Un único `tokens.css` con tokens de tipografía, color, espaciado y radio.
+- Solo dos familias tipográficas: Inter para la interfaz y JetBrains Mono para timecodes e ids.
+- Botones neutrales con variantes explícitas `.primary`, `.secondary`, `.ghost` y `.danger`.
+- Un único patrón de diálogo, un módulo i18n (`es.json` / `en.json`), navegación ordenada según el
+  pipeline y tres breakpoints responsivos.
+- Vistas solo para administradores y presencia para el modelo local multiusuario.
 
-The panel talks only to `apps/api`, configured from `/panel/bootstrap`.
+El panel habla únicamente con `apps/api`, configurado desde `/panel/bootstrap`.
 
-## Consequences
+## Consecuencias
 
-- There is no bundler, framework upgrade treadmill or hydration layer.
-- Feature code stays directly inspectable in the browser.
-- Parity and behavioural tests replace some frozen grep-only assertions.
-- The team must keep discipline around tokens and i18n; nothing enforces the
-  design system at compile time. The design-system contract test is the guardrail.
-- If the UI grows substantially, this decision should be revisited rather than
-  silently abandoned.
+- No hay bundler, ni ciclo de actualizaciones de framework, ni capa de hidratación.
+- El código de las funciones sigue siendo inspeccionable directamente en el navegador.
+- Las pruebas de paridad y de comportamiento reemplazan algunas aserciones frozen que solo usaban
+  grep.
+- El equipo debe mantener disciplina con los tokens y con i18n; nada hace cumplir el sistema de
+  diseño en tiempo de compilación. La prueba de contrato del sistema de diseño es la barrera de
+  protección.
+- Si la UI crece de forma sustancial, esta decisión debe revisarse en lugar de abandonarse en
+  silencio.

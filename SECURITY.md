@@ -1,101 +1,92 @@
-# Security policy
+# Política de seguridad
 
-## Reporting a vulnerability
+## Reportar una vulnerabilidad
 
-Please **do not open a public issue** for a security problem. Use the
-repository's private vulnerability reporting form (GitHub **Security** tab →
-**Report a vulnerability**) and include:
+Por favor, **no abras un issue público** por un problema de seguridad. Usa el formulario privado de
+reporte de vulnerabilidades del repositorio (pestaña **Security** de GitHub → **Report a vulnerability**)
+e incluye:
 
-- the affected version, file or route;
-- the steps to reproduce, ideally against a local demo stack;
-- the impact you think it has;
-- whether the issue is already public.
+- la versión, el archivo o la ruta afectada;
+- los pasos para reproducirla, idealmente contra un stack demo local;
+- el impacto que crees que tiene;
+- si el problema ya es público.
 
-You can expect an acknowledgement within a few days. This is a portfolio
-project maintained by one person; there is no paid support or SLA. Please give a
-reasonable window to ship a fix before publishing details.
+Puedes esperar un acuse de recibo en unos pocos días. Es un proyecto de portafolio mantenido por una
+sola persona; no hay soporte de pago ni SLA. Por favor, da una ventana razonable para publicar una
+corrección antes de divulgar los detalles.
 
-## Supported versions
+## Versiones soportadas
 
-Only the latest `feat/local-first-product` / published `main` revision is
-supported. There are no long-term branches or backports.
+Solo se soporta la última revisión de `feat/local-first-product` / de `main` publicada. No hay ramas de
+largo plazo ni backports.
 
-## Security defaults
+## Valores de seguridad por defecto
 
-The product is designed to run on a laptop, next to the owner, with no cloud
-dependency:
+El producto está diseñado para correr en un portátil, junto a su propietario, sin dependencia de la nube:
 
-- **Loopback by default.** Published ports bind to
-  `${NEWSROOM_BIND:-127.0.0.1}`. Opening the panel to a LAN is an explicit
-  choice, documented in [docs/INSTALL.md](docs/INSTALL.md).
-- **No published internal services.** Postgres, SearXNG, Mailpit, Ollama and
-  n8n are not published unless the `debug` profile is enabled on purpose.
-- **Generated secrets.** The installers create random secrets in `.env` (mode
-  `0600`); Compose uses `${VAR:?run ./install.sh first}` instead of weak
-  fallbacks. `.env` is never committed.
-- **Real auth.** Users live in the local database with bcrypt password hashes;
-  `admin`, `editor` and `viewer` roles are enforced server-side by one route
-  table and one role middleware. Sessions are HTTP-only, `SameSite=Lax`
-  cookies with a hashed server-side store and expiry.
-- **First admin is installer-created.** There is no hardcoded default password,
-  and the credentials are printed once in the installer summary.
-- **Mutations are protected.** Every mutating panel route requires a session,
-  the right role and a trusted Origin; audit, presence and error read models are
-  admin-only. The sole authenticated route that is not role-gated is
-  `POST /panel/presence/heartbeat`, which writes only ephemeral presence state.
-  Login throttling keys on user plus client IP, reads the client address from
-  the right-most untrusted forwarding hop, and trusts `X-Forwarded-For` only
-  from the panel container's own address. Live locks are never evicted by a
-  username flood, a per-IP bucket backs the per-user lock, and a password
-  reset revokes every existing session for that user.
-- **Internal workers are token-gated.** The approval editor, renderer and
-  demo worker reject API calls without the installer-generated `x-api-key`;
-  development runs bind to `127.0.0.1`. The gateway injects the token over the
-  Compose network.
-- **Anti-framing and a strict CSP.** The panel sends `X-Frame-Options: DENY`,
-  `frame-ancestors 'none'`, `script-src 'self'` (no inline scripts), nosniff,
-  a same-origin referrer policy and a minimal permissions policy. Inline style
-  attributes are allowed because the progress/timeline renderers set them.
-- **SSRF guard on discovered URLs.** Article extraction and preview fetches
-  reject loopback, private, link-local, CGNAT, multicast, reserved and IPv6
-  equivalents, single-label hosts (Compose service names) and redirects to
-  those destinations, after DNS resolution. Media downloads additionally
-  allow-list YouTube hosts.
-- **Non-root containers.** The API, panel (unprivileged nginx), approval
-  editor, renderer, demo worker and CPU/GPU workers run as non-root users.
-  The one-shot `model-init` image stays root because it writes into the model
-  volumes Docker creates as root; it exits before the stack starts.
-- **Checksum-verified models.** Model files are pinned to Hugging Face
-  revisions and verified against SHA-256 entries in
-  `infra/models/model-manifest.json`; a mismatch aborts the install.
-- **Uploaded blobs are inert by default.** Only audio, video and raster images
-  are served inline after magic-byte validation; every other type (including
-  HTML, SVG and XML) is served as an `application/octet-stream` attachment with
-  `Content-Security-Policy: sandbox; default-src 'none'` and `nosniff`.
-- **No secret endpoint.** `GET /panel/connectors` returns adapter status, never
-  credentials. SMTP probes open the greeting without sending mail.
-- **History privacy.** The public history is scrubbed of personal paths,
-  domains, keys and owner media; see
-  [ADR 0007](docs/adr/0007-history-privacy.md). `gitleaks` runs over all refs in
-  the final gate.
+- **Loopback por defecto.** Los puertos publicados se enlazan a `${NEWSROOM_BIND:-127.0.0.1}`. Abrir el
+  panel a una LAN es una decisión explícita, documentada en [docs/INSTALL.md](docs/INSTALL.md).
+- **Sin servicios internos publicados.** Postgres, SearXNG, Mailpit, Ollama y n8n no se publican salvo que
+  se active el perfil `debug` a propósito.
+- **Secretos generados.** Los instaladores crean secretos aleatorios en `.env` (modo `0600`); Compose usa
+  `${VAR:?run ./install.sh first}` en lugar de valores de respaldo débiles. `.env` nunca se versiona.
+- **Autenticación real.** Los usuarios viven en la base de datos local con hashes de contraseña bcrypt; los
+  roles `admin`, `editor` y `viewer` se aplican en el servidor mediante una única tabla de rutas y un único
+  middleware de roles. Las sesiones son cookies HTTP-only y `SameSite=Lax`, con un almacén del lado del
+  servidor que guarda hashes y tiene expiración.
+- **El primer administrador lo crea el instalador.** No hay contraseña por defecto codificada, y las
+  credenciales se imprimen una sola vez en el resumen del instalador.
+- **Las mutaciones están protegidas.** Cada ruta del panel que muta datos exige sesión, el rol correcto y un
+  Origin de confianza; los read models de auditoría, presencia y errores son solo para administradores. La
+  única ruta autenticada que no tiene control de rol es `POST /panel/presence/heartbeat`, que solo escribe
+  estado de presencia efímero. La limitación de intentos de login usa como clave el usuario más la IP del
+  cliente, lee la dirección del cliente del salto de reenvío no confiable más a la derecha, y solo confía en
+  `X-Forwarded-For` desde la dirección del propio contenedor del panel. Los bloqueos activos nunca se desalojan
+  por una inundación de nombres de usuario, un bucket por IP respalda el bloqueo por usuario, y un
+  restablecimiento de contraseña revoca todas las sesiones existentes de ese usuario.
+- **Los workers internos exigen token.** El editor de aprobación, el renderer y el demo worker rechazan las
+  llamadas de API sin el `x-api-key` generado por el instalador; las ejecuciones de desarrollo se enlazan a
+  `127.0.0.1`. El gateway inyecta el token a través de la red de Compose.
+- **Anti-framing y una CSP estricta.** El panel envía `X-Frame-Options: DENY`, `frame-ancestors 'none'`,
+  `script-src 'self'` (sin scripts en línea), nosniff, una política de referrer del mismo origen y una política
+  de permisos mínima. Los atributos de estilo en línea están permitidos porque los renderers de progreso y de
+  línea de tiempo los establecen.
+- **Guarda SSRF en las URLs descubiertas.** La extracción de artículos y las descargas de vista previa rechazan
+  loopback, direcciones privadas, link-local, CGNAT, multicast, reservadas y sus equivalentes IPv6, los hosts de
+  una sola etiqueta (nombres de servicio de Compose) y las redirecciones hacia esos destinos, tras la resolución
+  DNS. Las descargas de medios además solo permiten hosts de YouTube de una lista blanca.
+- **Contenedores sin root.** La API, el panel (nginx sin privilegios), el editor de aprobación, el renderer, el
+  demo worker y los workers de CPU/GPU se ejecutan como usuarios sin root. La imagen de un solo uso `model-init`
+  sigue como root porque escribe en los volúmenes de modelos que Docker crea como root; termina antes de que
+  arranque el stack.
+- **Modelos verificados por checksum.** Los archivos de modelo están fijados a revisiones de Hugging Face y se
+  verifican contra las entradas SHA-256 de `infra/models/model-manifest.json`; una discrepancia aborta la
+  instalación.
+- **Los blobs subidos son inofensivos por defecto.** Solo el audio, el video y las imágenes raster se sirven en
+  línea tras validar los bytes mágicos; cualquier otro tipo (incluidos HTML, SVG y XML) se sirve como adjunto
+  `application/octet-stream` con `Content-Security-Policy: sandbox; default-src 'none'` y `nosniff`.
+- **Sin endpoint de secretos.** `GET /panel/connectors` devuelve el estado de los adaptadores, nunca
+  credenciales. Las sondas SMTP abren el saludo sin enviar correo.
+- **Privacidad del historial.** Al historial público se le han eliminado rutas personales, dominios, claves y
+  medios del propietario; ver [ADR 0007](docs/adr/0007-history-privacy.md). `gitleaks` se ejecuta sobre todas
+  las refs en la compuerta final.
 
-## What is out of scope
+## Qué queda fuera del alcance
 
-- Attacks that require the operator to publish a debug/internal port to the
-  internet, or to run with a modified `.env` that removes the required
-  variables.
-- Vulnerabilities in a third-party image or model that is not part of this
-  repository; report those upstream.
-- Denial of service against a local single-user laptop, unless it also affects
-  the bundled server defaults.
-- The demo fixtures: they are fictional and intentionally deterministic.
+- Ataques que requieren que quien opera publique un puerto de depuración o interno a internet, o que ejecute
+  con un `.env` modificado que elimina las variables requeridas.
+- Vulnerabilidades de una imagen o un modelo de terceros que no forma parte de este repositorio; repórtalas
+  aguas arriba.
+- Denegación de servicio contra un portátil local de un solo usuario, salvo que también afecte a los valores
+  por defecto del servidor incluido.
+- Los fixtures de demo: son ficticios y deterministas a propósito.
 
-## If you find a leaked secret
+## Si encuentras un secreto filtrado
 
-Do not paste it into an issue. Report it privately as above. The owner rotates
-any affected credential; the repository history is rewritten only with explicit
-authorization and a fresh backup, following [ADR 0007](docs/adr/0007-history-privacy.md).
+No lo pegues en un issue. Repórtalo en privado como se indicó arriba. El propietario rota cualquier
+credencial afectada; el historial del repositorio solo se reescribe con autorización explícita y un respaldo
+nuevo, siguiendo [ADR 0007](docs/adr/0007-history-privacy.md).
 
-## License
+## Licencia
 
-This project is released under the MIT license; see [`LICENSE`](LICENSE).
+Este proyecto se publica bajo la licencia MIT; ver [`LICENSE`](LICENSE).

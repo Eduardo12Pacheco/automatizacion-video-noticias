@@ -1,165 +1,162 @@
-# Newsroom Video Automation
+<p align="center"><img src="docs/assets/readme/hero.svg" width="100%" alt="Automatización de video para noticias: de una fuente de noticias a un MP4 renderizado, en una sola máquina y sin claves de API"></p>
 
-**English** · [Español](README.es.md)
+<p align="center"><b>Español</b> · <a href="README.en.md">English</a></p>
 
-[![CI](https://github.com/Eduardo12Pacheco/newsroom-video-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/Eduardo12Pacheco/newsroom-video-automation/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Local-first](https://img.shields.io/badge/local--first-no%20API%20keys-2ea043.svg)](#local-first-by-default)
+[![CI](https://github.com/Eduardo12Pacheco/automatizacion-video-noticias/actions/workflows/ci.yml/badge.svg)](https://github.com/Eduardo12Pacheco/automatizacion-video-noticias/actions/workflows/ci.yml) [![Licencia](https://img.shields.io/github/license/Eduardo12Pacheco/automatizacion-video-noticias)](LICENSE)
 
-**A local-first newsroom pipeline that takes a story from discovery to a rendered video, with no API key and no cloud account.**
+Pipeline de noticias local-first que lleva una historia desde el descubrimiento hasta un video renderizado, sin claves de API ni cuentas en la nube.
 
-> This project was built with AI assistance: an autonomous coding agent implemented the rebuild from a reviewed feature document, with tests, local verification and human review at the decision points.
+![Recorrido grabado en modo demo](docs/images/demo.gif)
 
-[Quickstart](#run-it-in-one-command) · [Architecture](#architecture-at-a-glance) · [Run modes](#two-real-run-modes) · [Honest scope](#honest-scope) · [Docs](#documentation)
+*Ejecución real en modo demo sobre la historia ficticia sembrada. El [MP4 de 67 segundos](docs/images/demo.mp4) recorre descubrimiento, aprobación, voz, subtítulos y proyectos.*
 
-![Recorded demo walkthrough](docs/images/demo.gif)
+> Este proyecto se construyó con asistencia de IA: un agente de programación autónomo implementó la reconstrucción a partir de un documento de especificación revisado, con pruebas, verificación local y revisión humana en los puntos de decisión.
 
-*A real demo-mode run on the seeded fictional story. The [67-second MP4](docs/images/demo.mp4) covers discovery, approval, voice, subtitles and projects.*
+## Qué hace
 
-## What it does
+Una señal de noticias se convierte en un video corto publicable en cinco etapas:
 
-A news signal becomes a publishable short video in five stages:
-
-| Stage | What happens |
+| Etapa | Qué ocurre |
 |---|---|
-| **Prensa** (discovery) | Polls public RSS feeds, extracts article text locally and groups related stories into approval topics. |
-| **Guiones** (scripts) | An editor approves a topic; the core drafts a script, checks it against the source and stores a versioned draft. |
-| **Voz** (voice) | A local TTS engine narrates the script and keeps the audio beside it. |
-| **Subtítulos** (subtitles) | Transcribes or accepts audio, aligns captions and burns them onto video. |
-| **Proyectos** (video projects) | Composes brand package, overlays and captions into a final MP4 with Remotion. |
+| **Prensa** (descubrimiento) | Consulta feeds RSS públicos, extrae el texto de los artículos en local y agrupa historias relacionadas en temas de aprobación. |
+| **Guiones** | Un editor aprueba un tema; el core redacta un guion, lo valida contra la fuente y guarda un borrador versionado. |
+| **Voz** | Un motor TTS local narra el guion y deja el audio junto a él. |
+| **Subtítulos** | Transcribe o recibe audio, alinea los subtítulos y los quema sobre el video. |
+| **Proyectos** (video) | Compone marca, overlays y subtítulos en un MP4 final con Remotion. |
 
-Around the pipeline sits a real product shell: bilingual ES/EN UI, role-based multi-user login, sessions, presence, an admin area and a light/dark theme, all behind one authenticated HTTP API.
+Alrededor del pipeline hay un producto funcional: interfaz bilingüe ES/EN, login multiusuario con roles, sesiones, presencia, área de administración y tema claro/oscuro, todo detrás de una única API HTTP autenticada.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/screens/approval-es-desktop.png" alt="Script approval, Spanish UI, desktop"><br><sub><b>Guiones</b> · ES · desktop</sub></td>
-    <td width="50%"><img src="docs/images/screens/approval-en-desktop.png" alt="Script approval, English UI, desktop"><br><sub><b>Guiones</b> · EN · desktop</sub></td>
+    <td width="50%"><img src="docs/images/screens/approval-es-desktop.png" alt="Aprobación de guiones, interfaz en español, escritorio"><br><sub><b>Guiones</b> · ES · escritorio</sub></td>
+    <td width="50%"><img src="docs/images/screens/approval-en-desktop.png" alt="Aprobación de guiones, interfaz en inglés, escritorio"><br><sub><b>Guiones</b> · EN · escritorio</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/images/screens/radar-en-desktop.png" alt="News discovery, English UI, desktop"><br><sub><b>Prensa</b> · EN · desktop</sub></td>
-    <td><img src="docs/images/screens/radar-es-desktop-light.png" alt="News discovery, Spanish UI, light theme"><br><sub><b>Prensa</b> · ES · light theme</sub></td>
+    <td><img src="docs/images/screens/radar-en-desktop.png" alt="Descubrimiento de noticias, interfaz en inglés, escritorio"><br><sub><b>Prensa</b> · EN · escritorio</sub></td>
+    <td><img src="docs/images/screens/radar-es-desktop-light.png" alt="Descubrimiento de noticias, interfaz en español, tema claro"><br><sub><b>Prensa</b> · ES · tema claro</sub></td>
   </tr>
 </table>
 
 <p align="center">
-  <img src="docs/images/screens/approval-es-mobile.png" alt="Script approval, Spanish UI, mobile" width="190">
-  <img src="docs/images/screens/radar-en-mobile.png" alt="News discovery, English UI, mobile" width="190">
+  <img src="docs/images/screens/approval-es-mobile.png" alt="Aprobación de guiones, interfaz en español, móvil" width="190">
+  <img src="docs/images/screens/radar-en-mobile.png" alt="Descubrimiento de noticias, interfaz en inglés, móvil" width="190">
 </p>
 
-Every view, in Spanish and English, desktop and mobile: [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
+Todas las vistas, en español e inglés, en escritorio y móvil: [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md).
 
-## Highlights
+## Por qué es distinto
 
-- **Zero keys, zero cloud.** The default stack needs no API key and no cloud account; every external service is optional and off by default.
-- **Hexagonal core.** The domain rules that lived in n8n Code nodes are now tested use cases behind ports, so any adapter is swappable ([ADRs](docs/adr/)).
-- **Two real run modes.** `demo` is deterministic and instant; `local` runs real models and produces real media.
-- **Secure defaults.** Loopback-only ports, bcrypt hashes with HTTP-only sessions, one role gate plus a trusted-Origin check on every mutation, sandboxed blob serving ([SECURITY.md](SECURITY.md)).
-- **Tested like a product.** `pnpm test:all` runs the same suites as CI: 28 of 30 pass, 0 failures, 2 allow-listed skips (the two E2E suites run in their own CI jobs).
+- **Cero claves, cero nube.** El stack por defecto no necesita claves de API ni cuentas en la nube. Todo servicio externo es opcional y está desactivado por defecto.
+- **Núcleo hexagonal.** Las reglas de dominio que vivían en Code nodes de n8n son casos de uso probados detrás de puertos, así que cualquier adaptador puede reemplazarse ([ADR](docs/adr/)).
+- **Dos modos reales.** `demo` es determinista e instantáneo; `local` ejecuta modelos reales y produce medios reales.
+- **Seguridad por defecto.** Los puertos se enlazan a loopback, las contraseñas se guardan como hashes bcrypt, las sesiones son HTTP-only, cada mutación pasa por un control de rol y una verificación de Origin de confianza, y los blobs se sirven en sandbox ([SECURITY.md](SECURITY.md)).
+- **Las mismas verificaciones que CI.** `pnpm test:all` (o `newsroom test`) ejecuta las suites que corre CI.
 
-## Local-first by default
+## Local-first por defecto
 
-| Capability | Local default (no key) | Optional |
+| Capacidad | Default local (sin claves) | Opcional |
 |---|---|---|
-| Script writing | **Ollama** (`qwen2.5:3b-instruct`) | Any OpenAI-compatible endpoint |
-| Article extraction | **trafilatura** | — |
-| Image search | **SearXNG** + Wikimedia Commons | — |
-| Database | **Postgres** 16, tracked migrations | Any Postgres via `DATABASE_URL` |
-| Blobs | Local filesystem | S3-compatible (MinIO-tested) |
-| Speech | faster-whisper (ASR), **Piper** (CPU) or Qwen3-TTS (GPU), **yt-dlp** for downloads | — |
-| Notifications | Console, **Mailpit** | SMTP / Gmail |
-| Orchestration | In-process queue and scheduler | n8n profile |
+| Guiones | **Ollama** (`qwen2.5:3b-instruct`) | Cualquier endpoint compatible con OpenAI |
+| Extracción de artículos | **trafilatura** | — |
+| Búsqueda de imágenes | **SearXNG** + Wikimedia Commons | — |
+| Base de datos | **Postgres** 16, migraciones versionadas | Cualquier Postgres vía `DATABASE_URL` |
+| Blobs | Filesystem local | Compatible con S3 (probado con MinIO) |
+| Voz | faster-whisper (ASR), **Piper** (CPU) o Qwen3-TTS (GPU), **yt-dlp** para descargas | — |
+| Notificaciones | Consola, **Mailpit** | SMTP / Gmail |
+| Orquestación | Cola y scheduler en proceso | Perfil n8n |
 | Video | **Remotion** | — |
 
-Connector switches and the full port map: [docs/CONNECTORS.md](docs/CONNECTORS.md).
+Variables de cada conector y mapa completo de puertos: [docs/CONNECTORS.md](docs/CONNECTORS.md).
 
-## Architecture at a glance
+## Arquitectura de un vistazo
 
 ```mermaid
 flowchart LR
-    Panel["Panel<br/>vanilla ES modules"] -->|"same-origin"| API["API · apps/api<br/>auth · sessions · job queue"]
-    API --> Core["Core · packages/core<br/>use cases + ports"]
-    API --> DB[("Postgres 16<br/>tracked migrations")]
-    Core --> Local["Local adapters (default)<br/>Ollama · trafilatura · SearXNG<br/>filesystem · Mailpit"]
-    Core -.-> Optional["Optional connectors (off)<br/>OpenAI-compatible · S3 · SMTP · n8n"]
+    Panel["Panel<br/>módulos ES sin build"] -->|"mismo origen"| API["API · apps/api<br/>auth · sesiones · cola de jobs"]
+    API --> Core["Core · packages/core<br/>casos de uso + puertos"]
+    API --> DB[("Postgres 16<br/>migraciones versionadas")]
+    Core --> Local["Adaptadores locales (default)<br/>Ollama · trafilatura · SearXNG<br/>filesystem · Mailpit"]
+    Core -.-> Optional["Conectores opcionales (apagados)<br/>compatible con OpenAI · S3 · SMTP · n8n"]
     Core --> Workers["Workers<br/>asr · tts · subtitles · renderer"]
 ```
 
-Component boundaries, request flows and the full port/adapter map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Límites de componentes, flujos de peticiones y mapa completo de puertos y adaptadores: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Two real run modes
+## Dos modos reales
 
-The installer asks which mode to use and `newsroom mode demo|local` switches later. Demo mode is deterministic and instant; local mode runs the real local models and media. The demo path runs on every push; the local path has a nightly/manual CI job that asserts the real media. The panel always shows a **Modo demo / Demo mode** badge when the demo adapters are active, so a screenshot can never pass as a real AI run.
+El instalador pregunta qué modo usar, y `newsroom mode demo|local` permite cambiarlo después. El **modo demo** es determinista e instantáneo; el **modo local** ejecuta los modelos y medios locales reales. El camino demo corre en cada push; el camino local tiene un job de CI nocturno o manual que valida los medios reales. El panel muestra siempre el badge **Modo demo / Demo mode** cuando los adaptadores demo están activos, para que una captura nunca pase por una ejecución real de IA.
 
-| Mode | What runs | Best for |
+| Modo | Qué corre | Ideal para |
 |---|---|---|
-| `demo` (default) | Deterministic stub adapters, seeded fictional story, no downloads | A first look and the browser happy path |
-| `local` | Ollama, trafilatura, Piper, faster-whisper `small` int8 and a real Remotion 720p MP4 on CPU | A real offline run |
-| `local --gpu` | The same pipeline with Ollama, Whisper and Qwen3-TTS on an NVIDIA GPU (tested on an 8 GB RTX 4060) | Better voice and LLM, not less total time |
+| `demo` (default) | Adaptadores deterministas, historia ficticia sembrada, sin descargas | Primera mirada y el camino feliz del navegador |
+| `local` | Ollama, trafilatura, Piper, faster-whisper `small` int8 y un MP4 de 720p con Remotion en CPU | Una ejecución offline real |
+| `local --gpu` | El mismo pipeline con Ollama, Whisper y Qwen3-TTS en una GPU NVIDIA (probado en una RTX 4060 de 8 GB) | Mejor voz y LLM, no menos tiempo total |
 
-Measured with `e2e/local-mode.spec.js` on one machine, from discovery to the final MP4 ([details](docs/INSTALL.md#verified-gpu-run)):
+Medido con `e2e/local-mode.spec.js` en una sola máquina, del descubrimiento al MP4 final ([detalle](docs/INSTALL.md#ejecución-gpu-verificada)):
 
-| | Script draft | Voice | Subtitles | Render | Whole spec |
+| | Borrador | Voz | Subtítulos | Render | Spec completa |
 |---|---|---|---|---|---|
 | CPU | 22.3 s | 17.8 s (Piper) | 46.5 s | 177.3 s | 5.2 min |
 | GPU | 5.1 s | 90.1 s (Qwen3-TTS) | 44.9 s | 188.7 s (CPU) | 6.1 min |
 
-## Run it in one command
+## Instalar con un comando
 
 Linux:
 
 ```bash
-git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
-cd newsroom-video-automation
+git clone https://github.com/Eduardo12Pacheco/automatizacion-video-noticias.git
+cd automatizacion-video-noticias
 ./install.sh
 ```
 
-Windows 10/11 (PowerShell 5.1+ or 7):
+Windows 10/11 (PowerShell 5.1+ o 7):
 
 ```powershell
-git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
-cd newsroom-video-automation
+git clone https://github.com/Eduardo12Pacheco/automatizacion-video-noticias.git
+cd automatizacion-video-noticias
 .\install.ps1
 ```
 
-The installer checks Docker, disk, RAM and ports, asks for the run mode (`demo` by default) and whether to use an NVIDIA GPU, writes a `.env` with fresh random secrets, runs the migrations, creates the first administrator and starts the stack. It ends with the panel URL (**http://127.0.0.1:8080**) and the one-time administrator password. Re-running it repairs or upgrades the installation; unattended flags (`--yes --mode demo`, `--port 8090`) are in [docs/INSTALL.md](docs/INSTALL.md).
+El instalador verifica Docker, disco, RAM y puertos, pregunta el modo (`demo` por defecto) y si se usa una GPU NVIDIA, genera un `.env` con secretos aleatorios nuevos, ejecuta las migraciones, crea el primer administrador y levanta el stack. Termina con la URL del panel (**http://127.0.0.1:8080**) y la contraseña de un solo uso del administrador. Volver a ejecutarlo repara o actualiza la instalación; las opciones desatendidas (`--yes --mode demo`, `--port 8090`) están en [docs/INSTALL.md](docs/INSTALL.md).
 
 ```bash
-newsroom status      # what is running
-newsroom doctor      # Docker, GPU, models, ports, disk
-newsroom logs api    # follow one service
-newsroom mode local  # switch run mode and restart
-newsroom test        # run the same suites as CI
+newsroom status      # qué está corriendo
+newsroom doctor      # Docker, GPU, modelos, puertos, disco
+newsroom logs api    # seguir un servicio
+newsroom mode local  # cambiar de modo y reiniciar
+newsroom test        # ejecutar las mismas suites que CI
 newsroom down
 ```
 
-`docker compose up` alone fails by design until the installer has generated `.env`. The manual Compose flow, LAN access and the browser E2E run are in [docs/INSTALL.md](docs/INSTALL.md) and [e2e/README.md](e2e/README.md).
+`docker compose up` por sí solo falla a propósito hasta que el instalador genera `.env`. El flujo manual con Compose, el acceso desde la LAN y la ejecución del E2E de navegador están en [docs/INSTALL.md](docs/INSTALL.md) y [e2e/README.md](e2e/README.md).
 
-## Project story
+## Historia del proyecto
 
-The original version ran for about three months in a real newsroom, on n8n, Supabase and several paid API keys. It proved the workflow and taught the lesson that the interesting part was the editorial pipeline, not the cloud accounts. This repository is a ground-up rebuild with a local-first default; the private deployment is not running and is not linked from here. More in [docs/PROJECT.md](docs/PROJECT.md).
+La versión original funcionó unos tres meses en una redacción real, sobre n8n, Supabase y varias claves de API de pago. Validó el flujo y dejó la lección de que lo interesante era el pipeline editorial, no las cuentas en la nube. Este repositorio es una reconstrucción desde cero con un valor por defecto local-first; el despliegue privado no está en marcha y no se enlaza desde aquí. Más detalles en [docs/PROJECT.md](docs/PROJECT.md).
 
-## Honest scope
+## Alcance honesto
 
-- This repository is a **portfolio rebuild**, not a live system. It is designed to be installed and run locally; nothing is deployed to the internet.
-- Both run modes are real and tested. The recorded demo is `demo` mode, and the panel labels it as such.
-- Linux is tested on the CI `ubuntu-latest` runner and on the author's Arch/CachyOS machine. The Windows installer is covered by the `windows-latest` CI job and PowerShell 7 tests on Linux, but has not been run on a physical Windows 10/11 desktop.
-- GPU mode is verified on the author's RTX 4060 (8 GB) and is not faster end to end than CPU: Qwen synthesis is heavier and the Remotion render stays on CPU.
-- UI chrome, navigation and the admin area are translated ES/EN; generated editorial content intentionally keeps its source language.
+- Este repositorio es una **reconstrucción de portafolio**, no un sistema en producción. Está pensado para instalarse y ejecutarse localmente; nada se despliega en internet.
+- Todavía no hay releases publicados. El código está disponible desde la rama `main`.
+- Los dos modos son reales y están probados. La demo grabada es el modo `demo`, y el panel lo indica así.
+- Linux se prueba en el runner `ubuntu-latest` de CI y en la máquina Arch/CachyOS del autor. El instalador de Windows está cubierto por el job `windows-latest` de CI y por pruebas de PowerShell 7 en Linux, pero no se ha ejecutado en un escritorio físico con Windows 10/11.
+- El modo GPU está verificado en la RTX 4060 (8 GB) del autor y no es más rápido de punta a punta que CPU: la síntesis de Qwen pesa más y el render de Remotion sigue en CPU.
+- La interfaz, la navegación y el área de administración están traducidas a ES/EN; el contenido editorial generado conserva a propósito su idioma de origen.
 
-## Documentation
+## Documentación
 
-| Topic | Where |
+| Tema | Dónde |
 |---|---|
-| Component boundaries, request flows | [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/) |
-| Install, profiles, GPU, troubleshooting | [Install guide](docs/INSTALL.md) |
-| Optional integrations | [Connectors](docs/CONNECTORS.md) |
-| Persisted schema | [Data model](docs/data-model.md) |
-| Story, scope, tech stack, repository map | [Project background](docs/PROJECT.md) |
-| Every view, ES/EN, desktop and mobile | [Screenshots](docs/SCREENSHOTS.md) |
-| Tests and conventions | [Contributing](CONTRIBUTING.md) |
-| Threat model, reporting | [Security policy](SECURITY.md) |
-| Media origins, font licenses | [Asset manifest](ASSETS.md) |
+| Límites de componentes y flujos de peticiones | [Arquitectura](docs/ARCHITECTURE.md) · [ADR](docs/adr/) |
+| Instalación, perfiles, GPU, solución de problemas | [Guía de instalación](docs/INSTALL.md) |
+| Integraciones opcionales | [Conectores](docs/CONNECTORS.md) |
+| Esquema persistido | [Modelo de datos](docs/data-model.md) |
+| Historia, alcance, stack y mapa del repositorio | [Contexto del proyecto](docs/PROJECT.md) |
+| Todas las vistas, ES/EN, escritorio y móvil | [Capturas](docs/SCREENSHOTS.md) |
+| Pruebas y convenciones | [Contribuir](CONTRIBUTING.md) |
+| Modelo de amenazas y reporte de vulnerabilidades | [Política de seguridad](SECURITY.md) |
+| Origen de medios y licencias de fuentes | [Manifiesto de assets](ASSETS.md) |
 
-## License
+## Licencia
 
-[MIT](LICENSE) © Eduardo Pacheco. Brand media in this repository is fictional and generated by code; see [ASSETS.md](ASSETS.md) for origins and font licenses. The renderer uses [Remotion](https://www.remotion.dev/), which is free for individuals and small teams: check its license before any commercial use.
+[MIT](LICENSE) © Eduardo Pacheco. Los medios de marca de este repositorio son ficticios y se generan por código; consulta [ASSETS.md](ASSETS.md) para conocer sus orígenes y las licencias de las fuentes. El renderer usa [Remotion](https://www.remotion.dev/), gratuito para personas y equipos pequeños: revisa su licencia antes de cualquier uso comercial.

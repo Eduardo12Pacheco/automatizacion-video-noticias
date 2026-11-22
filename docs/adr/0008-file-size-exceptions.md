@@ -1,46 +1,43 @@
-# ADR 0008 — File-size exceptions above 600 lines
+# ADR 0008 — Excepciones de tamaño de archivo por encima de 600 líneas
 
-## Status
+## Estado
 
-Accepted (2026-11-12).
+Aceptada (2026-11-12).
 
-## Context
+## Contexto
 
-The verification round asked for production files above 600 lines to be split
-into cohesive modules, or kept at or below 800 lines with an explicit
-justification. Several modules are large but tightly scoped: splitting them
-further would create pass-through layers or force private runtime state into
-public objects.
+La ronda de verificación pidió que los archivos de producción de más de 600 líneas se dividieran en
+módulos cohesivos, o que se mantuvieran en 800 líneas o menos con una justificación explícita. Varios
+módulos son grandes pero tienen un alcance muy acotado: dividirlos aún más crearía capas de simple paso
+o forzaría a exponer estado de runtime privado en objetos públicos.
 
-## Decision
+## Decisión
 
-Files above 800 lines were split:
+Se dividieron los archivos de más de 800 líneas:
 
-- `packages/data/src/adapters/in-memory-repository.js` now delegates user,
-  session and video-project methods to `in-memory-users.js`,
-  `in-memory-video-projects.js` and `in-memory-shared.js`.
-- `services/channel-monitor/app/workers.py` moved retention cleanup into
-  `app/retention.py`.
-- `services/renderer/src/remotion/Composition.tsx` moved the newspaper scene to
-  `newspaper-scene.tsx` and the motion preset resolver to `motion-range.ts`.
+- `packages/data/src/adapters/in-memory-repository.js` ahora delega los métodos de usuarios, sesiones y
+  proyectos de video en `in-memory-users.js`, `in-memory-video-projects.js` e `in-memory-shared.js`.
+- `services/channel-monitor/app/workers.py` movió la limpieza por retención a `app/retention.py`.
+- `services/renderer/src/remotion/Composition.tsx` movió la escena del periódico a `newspaper-scene.tsx` y
+  el resolutor de presets de movimiento a `motion-range.ts`.
 
-The remaining production files between 600 and 800 lines stay unsplit:
+Los archivos de producción restantes entre 600 y 800 líneas no se dividen:
 
-| File | Lines | Why keeping it together is cohesive |
+| Archivo | Líneas | Por qué mantenerlo junto es cohesivo |
 |---|---|---|
-| `services/channel-monitor/app/workers.py` | 795 | Worker classes share the store/lifecycle contracts and helper predicates; splitting one class at a time created import cycles before retention was moved out. |
-| `services/approval-editor/server.js` | 786 | One HTTP request/response state machine over the same snapshot store; the routes and persistence helpers are only meaningful together. |
-| `services/channel-monitor/app/main.py` | 755 | FastAPI app factory and the route surface; splitting routes would scatter one dependency graph. |
-| `apps/panel/js/modules/features/video-projects/composition/composition-renderer.js` | 738 | One browser composition lifecycle: DOM, media sync, overlays and timeline callbacks must stay in lockstep. |
-| `services/channel-monitor/app/youtube_client.py` | 729 | Metadata and subtitle parsing from one upstream API, with shared error taxonomy. |
-| `packages/data/src/adapters/in-memory-repository.js` | 708 | Repository core (news, scripts, publish jobs) after the user/video mixins were extracted; the remaining methods share the same maps and transaction ordering. |
-| `services/subtitles/subtitles_service/api/routes/subtitles.py` | 700 | One route module over one session store; the handlers share request validation and artifact naming. |
-| `services/renderer/src/remotion/Composition.tsx` | 651 | The Remotion composition tree; splitting the scene graph would obscure the layering order. |
-| `services/renderer/scripts/lib/render/video-engine-render-adapter.js` | 615 | Renderer-local asset localization + render command; it is the renderer's single render pipeline. |
-| `apps/api/src/gateway-server.js` | 611 | The HTTP server composition and request lifecycle; the gateway modules it calls are already separate files. |
-| `apps/panel/js/modules/features/subtitles/controller/table-editor.js` | 607 | One editable table with shared focus/selection/clipboard state. |
+| `services/channel-monitor/app/workers.py` | 795 | Las clases de worker comparten los contratos de store y ciclo de vida, y los predicados auxiliares; dividir una clase cada vez creó ciclos de importación antes de mover la retención. |
+| `services/approval-editor/server.js` | 786 | Una sola máquina de estados de petición/respuesta HTTP sobre el mismo store de snapshots; las rutas y los helpers de persistencia solo tienen sentido juntos. |
+| `services/channel-monitor/app/main.py` | 755 | Fábrica de la app FastAPI y superficie de rutas; dividir las rutas dispersaría un mismo grafo de dependencias. |
+| `apps/panel/js/modules/features/video-projects/composition/composition-renderer.js` | 738 | Un solo ciclo de vida de composición en el navegador: DOM, sincronización de medios, overlays y callbacks de la línea de tiempo deben avanzar en paso. |
+| `services/channel-monitor/app/youtube_client.py` | 729 | Parseo de metadatos y subtítulos de una misma API upstream, con una taxonomía de errores compartida. |
+| `packages/data/src/adapters/in-memory-repository.js` | 708 | Núcleo del repositorio (noticias, guiones, jobs de publicación) tras extraer los mixins de usuarios y video; los métodos restantes comparten los mismos mapas y el orden de las transacciones. |
+| `services/subtitles/subtitles_service/api/routes/subtitles.py` | 700 | Un módulo de rutas sobre un solo store de sesiones; los handlers comparten la validación de peticiones y el nombrado de artefactos. |
+| `services/renderer/src/remotion/Composition.tsx` | 651 | El árbol de composición de Remotion; dividir el grafo de escenas oscurecería el orden de capas. |
+| `services/renderer/scripts/lib/render/video-engine-render-adapter.js` | 615 | Localización de assets local al renderer y comando de render; es el único pipeline de render del renderer. |
+| `apps/api/src/gateway-server.js` | 611 | Composición del servidor HTTP y ciclo de vida de las peticiones; los módulos del gateway que llama ya son archivos separados. |
+| `apps/panel/js/modules/features/subtitles/controller/table-editor.js` | 607 | Una sola tabla editable con estado compartido de foco, selección y portapapeles. |
 
-## Consequences
+## Consecuencias
 
-The 600-line target is documented rather than silently ignored. Any file that
-grows above 800 lines must be split before the next verification round.
+El objetivo de 600 líneas queda documentado en lugar de ignorarse en silencio. Cualquier archivo que
+crezca por encima de 800 líneas debe dividirse antes de la siguiente ronda de verificación.

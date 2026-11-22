@@ -1,41 +1,39 @@
-# ADR 0006 — Connectors are first-class ports
+# ADR 0006 — Los conectores son puertos de primera clase
 
-## Status
+## Estado
 
-Accepted.
+Aceptada.
 
-## Context
+## Contexto
 
-The original system coupled the product to specific vendors: n8n owned the
-workflows, Supabase owned the data, Firecrawl and Serper extracted and searched,
-and a cloud model wrote the scripts. Replacing one of them meant editing
-business rules. The rebuild already had ports for the core capabilities, but
-the integrations were only discoverable by reading `.env` and the composition
-root; an operator could not see what was active or whether it worked.
+El sistema original acoplaba el producto a proveedores concretos: n8n era dueño de los workflows,
+Supabase de los datos, Firecrawl y Serper extraían y buscaban, y un modelo en la nube redactaba los
+guiones. Reemplazar uno de ellos significaba editar reglas de negocio. La reconstrucción ya tenía
+puertos para las capacidades del core, pero las integraciones solo podían descubrirse leyendo `.env`
+y el composition root; quien operaba el sistema no podía ver qué estaba activo ni si funcionaba.
 
-## Decision
+## Decisión
 
-Treat every external integration as a first-class connector:
+Tratar cada integración externa como un conector de primera clase:
 
-- One adapter per port, selected by environment (`LLM`, `STORAGE`, `NOTIFY`,
-  `WORKFLOW`, `AUTH`, …), with a local default and an optional external
-  implementation.
-- One registry (`createConnectorRegistry`) that reports `local`, `configured`,
-  `disabled` or `error` for every port without returning credentials.
-- An admin-only **Conectores / Connectors** screen backed by
-  `GET /panel/connectors` and `POST /panel/connectors/:id/test`, plus
-  [docs/CONNECTORS.md](../../docs/CONNECTORS.md) with env examples.
-- Optional connectors are off by default. The local defaults need no key and
-  keep working when an optional adapter is disabled.
-- n8n stays a trigger/notification layer, never a second job executor.
+- Un adaptador por puerto, seleccionado por entorno (`LLM`, `STORAGE`, `NOTIFY`, `WORKFLOW`, `AUTH`,
+  …), con un default local y una implementación externa opcional.
+- Un único registro (`createConnectorRegistry`) que informa `local`, `configured`, `disabled` o
+  `error` para cada puerto, sin devolver credenciales.
+- Una pantalla **Conectores / Connectors** solo para administradores, respaldada por
+  `GET /panel/connectors` y `POST /panel/connectors/:id/test`, y la guía
+  [docs/CONNECTORS.md](../../docs/CONNECTORS.md) con ejemplos de variables de entorno.
+- Los conectores opcionales están desactivados por defecto. Los defaults locales no necesitan clave y
+  siguen funcionando cuando un adaptador opcional está desactivado.
+- n8n sigue siendo una capa de disparo y notificación, nunca un segundo ejecutor de jobs.
 
-## Consequences
+## Consecuencias
 
-- An operator can see and test the active integration set from the UI.
-- Adding a connector requires a port contract, a local/demo implementation, a
-  test and a registry entry; it cannot be a hidden branch in a use case.
-- The registry and its probes are part of the security surface: no secret may
-  cross the endpoint, and every probe is bounded.
-- The shipped connectors (Ollama/OpenAI-compatible, trafilatura, SearXNG,
-  yt-dlp, python-docx, console/SMTP, filesystem/S3, n8n) are documented in one
-  place instead of scattered through the code.
+- Quien opera el sistema puede ver y probar el conjunto de integraciones activo desde la UI.
+- Añadir un conector exige un contrato de puerto, una implementación local o demo, una prueba y una
+  entrada en el registro; no puede ser una rama oculta dentro de un caso de uso.
+- El registro y sus sondas forman parte de la superficie de seguridad: ningún secreto puede cruzar el
+  endpoint, y cada sonda está acotada.
+- Los conectores incluidos (Ollama/compatible con OpenAI, trafilatura, SearXNG, yt-dlp, python-docx,
+  consola/SMTP, filesystem/S3, n8n) están documentados en un solo lugar en lugar de dispersos por el
+  código.

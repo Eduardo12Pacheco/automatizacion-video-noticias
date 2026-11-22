@@ -1,52 +1,53 @@
-# Architecture
+# Arquitectura
 
-This document describes the runtime and code structure of Newsroom Video
-Automation. It is the map; the [ADRs](adr/) record why the main choices were
-made and the [data model](data-model.md) defines the persisted schema.
+Este documento describe la estructura en tiempo de ejecución y de código de
+Newsroom Video Automation. Es el mapa; los [ADR](adr/) registran por qué se tomaron
+las decisiones principales, y el [modelo de datos](data-model.md) define el esquema
+persistido.
 
-## Goals
+## Objetivos
 
-- **Local-first.** The default stack runs on one machine with no API keys and
-  no cloud accounts.
-- **One backend.** The browser talks only to `apps/api`, never directly to a
-  database or a third-party service.
-- **Ports and adapters.** Business rules do not know which LLM, database,
-  storage or TTS implementation is behind them.
-- **Boring, inspectable runtime.** Docker Compose, Postgres, plain ES modules
-  and a single Node API. No build step for the panel.
-- **Reproducible demo.** The keyless default profile can walk one fictional
-  story from discovery to a rendered video.
+- **Local-first.** El stack por defecto corre en una sola máquina, sin claves de API
+  ni cuentas en la nube.
+- **Un solo backend.** El navegador habla solo con `apps/api`, nunca directamente con
+  una base de datos ni con un servicio de terceros.
+- **Puertos y adaptadores.** Las reglas de negocio no saben qué implementación de LLM,
+  base de datos, almacenamiento o TTS hay detrás.
+- **Runtime simple e inspeccionable.** Docker Compose, Postgres, módulos ES nativos y
+  una única API en Node. El panel no tiene paso de build.
+- **Demo reproducible.** El perfil por defecto, sin claves, puede recorrer una historia
+  ficticia desde el descubrimiento hasta un video renderizado.
 
-## System context
+## Contexto del sistema
 
 ```mermaid
 flowchart TB
-    subgraph Host["Local machine / Docker Compose"]
-        Browser["Browser<br/>apps/panel"]
+    subgraph Host["Máquina local / Docker Compose"]
+        Browser["Navegador<br/>apps/panel"]
 
         subgraph API["apps/api"]
-            Auth["Auth and sessions"]
-            Routes["Panel / webhook / read-model routes"]
-            Queue["In-process job queue + scheduler"]
-            Composition["Composition root<br/>adapters from env"]
+            Auth["Auth y sesiones"]
+            Routes["Rutas de panel / webhook / read-model"]
+            Queue["Cola de jobs en proceso + scheduler"]
+            Composition["Composition root<br/>adaptadores desde el entorno"]
         end
 
         subgraph Domain["packages/core + packages/data"]
-            UseCases["Use cases"]
-            CorePorts["Core ports"]
+            UseCases["Casos de uso"]
+            CorePorts["Puertos del core"]
             DataPorts["RepositoryPort<br/>BlobStoragePort"]
         end
 
-        subgraph Local["Local adapters"]
+        subgraph Local["Adaptadores locales"]
             Ollama["Ollama"]
-            Trafilatura["trafilatura CLI"]
+            Trafilatura["CLI de trafilatura"]
             Searx["SearXNG + Wikimedia"]
-            FS["Filesystem blobs"]
+            FS["Blobs en filesystem"]
             YtDlp["yt-dlp"]
-            SMTP["Console / Mailpit SMTP"]
+            SMTP["Consola / SMTP de Mailpit"]
         end
 
-        subgraph Workers["Worker services"]
+        subgraph Workers["Servicios worker"]
             ASR["services/asr-worker"]
             TTS["services/tts-worker"]
             Renderer["services/renderer"]
@@ -54,9 +55,9 @@ flowchart TB
         end
 
         PG[("Postgres 16")]
-        Blobs[("Blob volume")]
+        Blobs[("Volumen de blobs")]
 
-        Browser -->|"same-origin HTTP"| API
+        Browser -->|"HTTP del mismo origen"| API
         API --> UseCases
         UseCases --> CorePorts
         API --> DataPorts
@@ -65,62 +66,63 @@ flowchart TB
         DataPorts --> FS
         FS --> Blobs
         API -->|"HTTP"| Workers
-        Monitor -->|"RSS"| Internet[("Public RSS feeds")]
+        Monitor -->|"RSS"| Internet[("Feeds RSS públicos")]
     end
 
-    External["Optional external adapters<br/>OpenAI-compatible LLM · S3 · SMTP<br/>n8n"] -.->|"off by default"| Composition
+    External["Adaptadores externos opcionales<br/>LLM compatible con OpenAI · S3 · SMTP<br/>n8n"] -.->|"apagados por defecto"| Composition
 ```
 
-The panel is served by nginx, which proxies `/panel`, `/webhook`, `/tts`,
-`/subtitles`, `/remotion`, `/radar`, `/monitor` and `/approval` to the API. The
-browser therefore has one origin, and the API remains the only trusted boundary
-for sessions and CSRF checks.
+El panel lo sirve nginx, que redirige `/panel`, `/webhook`, `/tts`, `/subtitles`,
+`/remotion`, `/radar`, `/monitor` y `/approval` a la API. Por eso el navegador tiene
+un único origen, y la API sigue siendo el único límite de confianza para sesiones y
+verificaciones CSRF.
 
-## Code boundaries
+## Límites de código
 
-| Path | Responsibility | Depends on |
+| Ruta | Responsabilidad | Depende de |
 |---|---|---|
-| `packages/contracts` | Shared contract helpers and schemas | Nothing local |
-| `packages/core` | Use cases, domain rules, job queue, scheduler, core ports | `packages/contracts` |
-| `packages/data` | `RepositoryPort`, `BlobStoragePort`, in-memory and Postgres adapters, migrations runner | `packages/contracts` |
-| `packages/adapters` | Local-first implementations for LLM, extraction, images, RSS, download, export, notifications, optional n8n | Core ports, Python helper |
-| `apps/api` | HTTP API, auth, sessions, presence, admin, read models, composition root | `packages/core`, `packages/data`, `packages/adapters` |
-| `apps/panel` | Editorial UI in vanilla ES modules | The HTTP API only |
-| `services/asr-worker` | faster-whisper HTTP service, GPU slot, CUDA→CPU fallback | Shared worker package |
-| `services/tts-worker` | Qwen TTS (GPU) and Piper (CPU) engine selection | Shared worker package |
-| `services/renderer` | Remotion composition and render-only HTTP service; the approval editor calls it through the renderer port | Contracts, generated brand assets |
-| `services/subtitles` | Caption alignment and burn-in renderer | ASR worker via HTTP |
-| `services/channel-monitor` | Public RSS channel polling and catch-up | Postgres/SQLite runtime state |
-| `services/demo-worker` | Deterministic keyless worker for the demo profile | None external |
-| `services/approval-editor` | Approval editor HTTP service started by Compose on port 3042; calls the renderer over HTTP | `packages/contracts` |
+| `packages/contracts` | Helpers y esquemas de contratos compartidos | Nada local |
+| `packages/core` | Casos de uso, reglas de dominio, cola de jobs, scheduler y puertos del core | `packages/contracts` |
+| `packages/data` | `RepositoryPort`, `BlobStoragePort`, adaptadores en memoria y Postgres, runner de migraciones | `packages/contracts` |
+| `packages/adapters` | Implementaciones locales-first de LLM, extracción, imágenes, RSS, descarga, exportación, notificaciones y n8n opcional | Puertos del core, helper de Python |
+| `apps/api` | API HTTP, auth, sesiones, presencia, administración, read models y composition root | `packages/core`, `packages/data`, `packages/adapters` |
+| `apps/panel` | UI editorial en módulos ES nativos | Solo la API HTTP |
+| `services/asr-worker` | Servicio HTTP de faster-whisper, slot de GPU, respaldo de CUDA a CPU | Paquete compartido de workers |
+| `services/tts-worker` | Selección de motor: Qwen TTS (GPU) y Piper (CPU) | Paquete compartido de workers |
+| `services/renderer` | Composición de Remotion y servicio HTTP solo de render; el editor de aprobación lo llama a través del puerto del renderer | Contratos, assets de marca generados |
+| `services/subtitles` | Alineación de subtítulos y renderizado con quemado | ASR worker por HTTP |
+| `services/channel-monitor` | Sondeo de canales RSS públicos y recuperación de pendientes | Estado de runtime en Postgres/SQLite |
+| `services/demo-worker` | Worker determinista sin claves para el perfil demo | Ninguna externa |
+| `services/approval-editor` | Servicio HTTP del editor de aprobación, iniciado por Compose en el puerto 3042; llama al renderer por HTTP | `packages/contracts` |
 
-Dependencies point inward: `apps/api` depends on `packages/core`; the core never
-imports an adapter, a database client or a browser module.
+Las dependencias apuntan hacia adentro: `apps/api` depende de `packages/core`; el core
+nunca importa un adaptador, un cliente de base de datos ni un módulo del navegador.
 
-## Hexagonal core
+## Núcleo hexagonal
 
-The domain is a set of use cases that receive their collaborators as ports.
-Tests inject in-file mocks; the composition root injects production adapters.
+El dominio es un conjunto de casos de uso que reciben sus colaboradores como puertos.
+Las pruebas inyectan mocks definidos en el propio archivo; el composition root inyecta
+los adaptadores de producción.
 
 ```mermaid
 flowchart LR
-    subgraph Driving["Driving adapter"]
-        HTTP["apps/api routes"]
+    subgraph Driving["Adaptador de entrada"]
+        HTTP["Rutas de apps/api"]
     end
 
     subgraph Core["packages/core"]
-        UC["Use cases"]
-        P["ports"]
+        UC["Casos de uso"]
+        P["Puertos"]
     end
 
-    subgraph Driven["Driven adapters"]
+    subgraph Driven["Adaptadores de salida"]
         Ollama["OllamaLLMAdapter"]
         Extract["TrafilaturaArticleExtractor"]
         Search["SearxngWikimediaImageSearch"]
         Export["LocalDocumentExport"]
-        Mail["Console/SMTP notification"]
-        Repo["Postgres or in-memory repository"]
-        Blob["Filesystem blob store"]
+        Mail["Notificación por consola/SMTP"]
+        Repo["Repositorio Postgres o en memoria"]
+        Blob["Almacén de blobs en filesystem"]
     end
 
     HTTP --> UC
@@ -134,201 +136,205 @@ flowchart LR
     P --> Blob
 ```
 
-### Ports
+### Puertos
 
-| Port | Package | Local default |
+| Puerto | Paquete | Default local |
 |---|---|---|
-| `RepositoryPort` | `packages/data` | Postgres (in-memory for tests/demo) |
-| `BlobStoragePort` | `packages/data` | Filesystem under `BLOB_ROOT` |
-| `LLMPort` | `packages/core` | Ollama native API |
-| `NewsSourcePort` | `packages/core` | Public RSS feeds |
-| `ArticleExtractorPort` | `packages/core` | trafilatura Python CLI |
-| `ImageSearchPort` | `packages/core` | SearXNG JSON, then Wikimedia Commons |
-| `ChannelFeedPort` | `packages/core` | YouTube public channel RSS |
-| `MediaDownloadPort` | `packages/core` | Local `yt-dlp` |
-| `DocumentExportPort` | `packages/core` | python-docx `.docx` + Markdown |
-| `NotificationPort` | `packages/core` | Console, or SMTP/Mailpit |
-| `WorkflowTriggerPort` | `packages/core` | Disabled; optional n8n webhook |
-| `TTSPort` | `packages/core` | TTS worker HTTP (`TTS=worker`) or demo |
-| `ASRPort` | `packages/core` | ASR worker HTTP (`ASR=worker`) or demo |
-| `TranslationPort` | `packages/core` | Subtitles `/api/subtitles/translate` or demo |
-| `VideoRendererPort` | `packages/core` | Renderer project HTTP (`RENDERER=worker`) or demo |
-| `AuthPort` | `packages/core` | Repository auth (`AUTH=local`), HTTP split deployment or demo |
+| `RepositoryPort` | `packages/data` | Postgres (en memoria para pruebas y demo) |
+| `BlobStoragePort` | `packages/data` | Filesystem bajo `BLOB_ROOT` |
+| `LLMPort` | `packages/core` | API nativa de Ollama |
+| `NewsSourcePort` | `packages/core` | Feeds RSS públicos |
+| `ArticleExtractorPort` | `packages/core` | CLI de Python de trafilatura |
+| `ImageSearchPort` | `packages/core` | JSON de SearXNG y luego Wikimedia Commons |
+| `ChannelFeedPort` | `packages/core` | RSS público de canales de YouTube |
+| `MediaDownloadPort` | `packages/core` | `yt-dlp` local |
+| `DocumentExportPort` | `packages/core` | `.docx` con python-docx + Markdown |
+| `NotificationPort` | `packages/core` | Consola, o SMTP/Mailpit |
+| `WorkflowTriggerPort` | `packages/core` | Desactivado; webhook de n8n opcional |
+| `TTSPort` | `packages/core` | Worker HTTP de TTS (`TTS=worker`) o demo |
+| `ASRPort` | `packages/core` | Worker HTTP de ASR (`ASR=worker`) o demo |
+| `TranslationPort` | `packages/core` | `/api/subtitles/translate` de subtítulos o demo |
+| `VideoRendererPort` | `packages/core` | Proyecto de renderer por HTTP (`RENDERER=worker`) o demo |
+| `AuthPort` | `packages/core` | Repositorio de auth (`AUTH=local`), despliegue HTTP dividido o demo |
 
-The worker ports are HTTP clients for `services/tts-worker`,
-`services/asr-worker`, `services/subtitles` and `services/renderer`. The demo
-adapters implement the same contract so the keyless showcase path never opens a
-socket. Every worker adapter is selectable with `TTS`, `ASR`, `TRANSLATION`,
-`RENDERER` and `AUTH` (`worker`/`local`, `demo`, `none`). The API's `/tts`,
-`/subtitles` and `/remotion` prefixes stay transparent transport proxies for
-browser-driven worker screens; any domain call goes through the ports above.
+Los puertos de worker son clientes HTTP de `services/tts-worker`, `services/asr-worker`,
+`services/subtitles` y `services/renderer`. Los adaptadores demo implementan el mismo
+contrato, de modo que la ruta demo sin claves nunca abre un socket. Cada adaptador de
+worker se selecciona con `TTS`, `ASR`, `TRANSLATION`, `RENDERER` y `AUTH`
+(`worker`/`local`, `demo`, `none`). Los prefijos `/tts`, `/subtitles` y `/remotion` de
+la API siguen siendo proxies de transporte transparentes para las pantallas de worker
+que usa el navegador; cualquier llamada de dominio pasa por los puertos anteriores.
 
-Every port has an explicit disabled state (`LLM=none`, `IMAGE_SEARCH=none`,
-`NOTIFY=none`, `WORKFLOW=disabled`, `*_ADAPTER=none`). A missing adapter returns
-a typed `adapter_unavailable` error instead of crashing the read/save surfaces.
+Cada puerto tiene un estado deshabilitado explícito (`LLM=none`, `IMAGE_SEARCH=none`,
+`NOTIFY=none`, `WORKFLOW=disabled`, `*_ADAPTER=none`). Un adaptador ausente devuelve un
+error tipado `adapter_unavailable` en lugar de romper las superficies de lectura y
+guardado.
 
-## Request flow
+## Flujo de peticiones
 
-### Discovery and approval
+### Descubrimiento y aprobación
 
-1. `apps/api` starts a discovery run (scheduled or manual).
-2. `DiscoverNews` asks `NewsSourcePort` for feed rows, filters recent/unique
-   items, extracts article text and groups related stories into clusters.
-3. Clusters and staged rows are persisted through `RepositoryPort`.
-4. The panel reads `/panel/read-models/...`; approving a topic calls
+1. `apps/api` inicia una ejecución de descubrimiento (programada o manual).
+2. `DiscoverNews` pide a `NewsSourcePort` las filas de los feeds, filtra los elementos
+   recientes y únicos, extrae el texto de los artículos y agrupa las historias
+   relacionadas en clústeres.
+3. Los clústeres y las filas en staging se persisten mediante `RepositoryPort`.
+4. El panel lee `/panel/read-models/...`; aprobar un tema llama a
    `/webhook/approval/decision`.
-5. `DecideApproval` records the decision and enqueues a `draft-script` job.
-6. The in-process queue claims the job, drafts the script with `LLMPort`,
-   validates it against the source and stores a versioned draft.
+5. `DecideApproval` registra la decisión y encola un job `draft-script`.
+6. La cola en proceso toma el job, redacta el guion con `LLMPort`, lo valida contra la
+   fuente y guarda un borrador versionado.
 
-### Publish and video
+### Publicación y video
 
-1. Publishing a draft enqueues `publish-script`.
-2. `PublishScript` runs pronunciation prep, document export, image search and
-   creates the video-project projection.
-3. The panel renders audio through the TTS route, subtitles through the
-   subtitles service and the final video through Remotion.
-4. Blobs are written through the API and served from `/panel/blobs/*`; the
-   browser never receives a filesystem path.
+1. Publicar un borrador encola `publish-script`.
+2. `PublishScript` prepara la pronunciación, exporta el documento, busca imágenes y
+   crea la proyección del proyecto de video.
+3. El panel renderiza el audio por la ruta de TTS, los subtítulos por el servicio de
+   subtítulos y el video final por Remotion.
+4. Los blobs se escriben a través de la API y se sirven desde `/panel/blobs/*`; el
+   navegador nunca recibe una ruta del filesystem.
 
-### Jobs and GPU
+### Jobs y GPU
 
-The core `JobQueue` is serial by default and the scheduler runs maintenance
-tasks such as expired-session cleanup. GPU worker processes additionally take a
-cross-process file lock (`NEWSROOM_GPU_LOCK_PATH`), so Whisper and TTS never
-load together on an 8 GB card. Models are loaded on demand by their workers.
+La `JobQueue` del core es serial por defecto, y el scheduler ejecuta tareas de
+mantenimiento como la limpieza de sesiones vencidas. Los procesos worker con GPU
+además toman un lock de archivo entre procesos (`NEWSROOM_GPU_LOCK_PATH`), de modo que
+Whisper y TTS nunca se cargan juntos en una tarjeta de 8 GB. Los modelos los carga
+cada worker bajo demanda.
 
-The `gpu` profile is a real overlay, not a label: the installers and
-`newsroom up` append `infra/compose/compose.gpu.yaml`, which reserves the device
-for Ollama, ASR and TTS, switches the ASR worker to CUDA/float16, builds the TTS
-worker with the Qwen extra and points it at the local Qwen3-TTS 1.7B checkpoint.
-Ollama unloads its model immediately after a request on GPU
-(`OLLAMA_GPU_KEEP_ALIVE=0s`) because a 3B LLM and the 1.7B voice model do not fit
-together. Qwen clones the committed synthetic Piper reference in
-`services/tts-worker/refs/`; the CPU Piper mode ignores it.
+El perfil `gpu` es un overlay real, no una etiqueta: los instaladores y `newsroom up`
+añaden `infra/compose/compose.gpu.yaml`, que reserva el dispositivo para Ollama, ASR y
+TTS, cambia el worker de ASR a CUDA/float16, construye el worker de TTS con el extra
+de Qwen y lo apunta al checkpoint local de Qwen3-TTS 1.7B. Ollama descarga su modelo
+inmediatamente después de cada petición en GPU (`OLLAMA_GPU_KEEP_ALIVE=0s`), porque un
+LLM de 3B y el modelo de voz de 1.7B no caben juntos. Qwen clona la referencia sintética
+de Piper que está versionada en `services/tts-worker/refs/`; el modo Piper en CPU la
+ignora.
 
-## Persistence
+## Persistencia
 
-- Schema: `infra/db/migrations/*.sql`, applied by `packages/data/scripts/migrate.js`.
-- Repository method names mirror the original Supabase RPCs; the RPCs are code
-  methods rather than stored procedures, keeping SQL simple.
-- Staged discovery payloads stay in JSONB staging tables so the n8n wire shapes
-  remain recoverable.
-- The in-memory adapter implements the same contract as Postgres and is used by
-  tests and the keyless demo profile.
+- Esquema: `infra/db/migrations/*.sql`, aplicado por `packages/data/scripts/migrate.js`.
+- Los nombres de los métodos del repositorio reflejan los RPC originales de Supabase; los
+  RPC son métodos de código y no procedimientos almacenados, para mantener el SQL simple.
+- Los payloads de descubrimiento en staging se guardan en tablas JSONB, de modo que las
+  formas de datos de n8n sigan siendo recuperables.
+- El adaptador en memoria implementa el mismo contrato que Postgres y lo usan las pruebas
+  y el perfil demo sin claves.
 
-See [data-model.md](data-model.md) for tables, keys and the RPC mapping.
+Consulta [data-model.md](data-model.md) para tablas, claves y el mapeo de RPC.
 
-## Security
+## Seguridad
 
-- Local users with bcrypt password hashes, `admin` / `editor` / `viewer` roles
-  enforced server-side.
-- HTTP-only, `SameSite=Lax` session cookies with a hashed server-side session
-  store and expiry.
-- Login rate limiting and CSRF/origin checks on mutations.
-- The panel is served same-origin through nginx; the API is not a CORS-open
-  proxy.
-- Secrets come from `.env` or the process environment. The installers generate
-  random local secrets and never commit them.
-- The default bind address is loopback; opening the panel to a LAN is an
-  explicit, documented choice.
+- Usuarios locales con hashes de contraseña bcrypt y roles `admin` / `editor` /
+  `viewer`, aplicados en el servidor.
+- Cookies de sesión HTTP-only y `SameSite=Lax`, con un almacén de sesiones del lado del
+  servidor que guarda hashes y tiene expiración.
+- Limitación de intentos de login y verificaciones CSRF/origin en las mutaciones.
+- El panel se sirve con el mismo origen a través de nginx; la API no es un proxy abierto a
+  CORS.
+- Los secretos vienen de `.env` o del entorno del proceso. Los instaladores generan
+  secretos locales aleatorios y nunca los versionan.
+- La dirección de escucha por defecto es loopback; abrir el panel a una LAN es una
+  decisión explícita y documentada.
 
-## Runtime profiles and run modes
+## Perfiles de ejecución y modos
 
-`NEWSROOM_MODE` selects the adapter set, and the gateway derives the media
-proxy targets from it. **Demo mode** (`demo`) routes TTS/subtitles/render to
-`demo-worker` and forces the deterministic LLM, extraction, translation and
-renderer adapters. **Local mode** (`local`) routes the same prefixes to the real
-workers and uses the local model adapters. The panel reads `run_mode` from
-`/panel/bootstrap` and labels a demo run in the header.
+`NEWSROOM_MODE` selecciona el conjunto de adaptadores, y el gateway deriva de él los
+destinos del proxy de medios. El **modo demo** (`demo`) envía TTS, subtítulos y render a
+`demo-worker` y fuerza los adaptadores deterministas de LLM, extracción, traducción y
+renderer. El **modo local** (`local`) envía los mismos prefijos a los workers reales y usa
+los adaptadores de modelos locales. El panel lee `run_mode` de `/panel/bootstrap` y
+marca en el encabezado una ejecución demo.
 
-| Mode | Services | Use |
+| Modo | Servicios | Uso |
 |---|---|---|
-| `demo` (default) | `api`, `panel`, `demo-worker`, `postgres`, `searxng`, `mailpit`, `seed` | Click-through and evaluation with no models or keys |
-| `local` | `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` (CPU) | Real local AI and real media |
-| `local` + `gpu` overlay | the local workers with GPU access | Real local AI on an NVIDIA card |
-| `n8n` | `n8n` | Optional trigger/notification connector |
-| `tools` | `migrate`, `model-init` | One-shot migrations and model download |
-| `debug` | debug port overrides for Postgres, SearXNG, Mailpit, Ollama and n8n | Local inspection only |
+| `demo` (default) | `api`, `panel`, `demo-worker`, `postgres`, `searxng`, `mailpit`, `seed` | Recorrido y evaluación sin modelos ni claves |
+| `local` | `ollama`, `asr-worker`, `tts-worker`, `subtitles`, `renderer`, `channel-monitor` (CPU) | IA local real y medios reales |
+| `local` + overlay `gpu` | los workers locales con acceso a GPU | IA local real en una tarjeta NVIDIA |
+| `n8n` | `n8n` | Conector opcional de disparo y notificación |
+| `tools` | `migrate`, `model-init` | Migraciones y descarga de modelos de una sola ejecución |
+| `debug` | sobrescrituras de puertos de depuración para Postgres, SearXNG, Mailpit, Ollama y n8n | Solo inspección local |
 
-The installers select the GPU overlay automatically when an NVIDIA GPU and the
-container toolkit are available, and otherwise stay on CPU. Model downloads
-happen only in the explicit installer/`newsroom models pull` step; no container
-`command:` pulls a model at start-up. See [docs/INSTALL.md](INSTALL.md) for the
-operational contract.
+Los instaladores seleccionan el overlay de GPU automáticamente cuando hay una GPU NVIDIA
+y el container toolkit disponibles; en otro caso se quedan en CPU. Las descargas de
+modelos ocurren solo en el paso explícito del instalador o de `newsroom models pull`; ningún
+`command:` de contenedor descarga un modelo al iniciar. El contrato operativo está en
+[docs/INSTALL.md](INSTALL.md).
 
-## Connectors
+## Conectores
 
-Every external capability is a port with a local default and an optional
-adapter selected from `.env`:
+Cada capacidad externa es un puerto con un default local y un adaptador opcional que se
+selecciona desde `.env`:
 
-| Connector | Port | Selection | Default |
+| Conector | Puerto | Selección | Default |
 |---|---|---|---|
-| Ollama / OpenAI-compatible endpoint | `LLMPort` | `LLM=ollama\|openai` | Ollama |
+| Ollama / endpoint compatible con OpenAI | `LLMPort` | `LLM=ollama\|openai` | Ollama |
 | trafilatura | `ArticleExtractorPort` | `ARTICLE_EXTRACTOR=trafilatura` | trafilatura |
 | SearXNG + Wikimedia | `ImageSearchPort` | `IMAGE_SEARCH=searxng` | SearXNG |
-| yt-dlp | `MediaDownloadPort` | `MEDIA_DOWNLOAD=worker` | ASR worker |
-| python-docx + Markdown | `DocumentExportPort` | `DOCUMENT_EXPORT=local` | local CLI |
-| Console / SMTP | `NotificationPort` | `NOTIFY=console\|smtp` | console |
+| yt-dlp | `MediaDownloadPort` | `MEDIA_DOWNLOAD=worker` | Worker de ASR |
+| python-docx + Markdown | `DocumentExportPort` | `DOCUMENT_EXPORT=local` | CLI local |
+| Consola / SMTP | `NotificationPort` | `NOTIFY=console\|smtp` | consola |
 | Filesystem / S3 | `BlobStoragePort` | `STORAGE=fs\|s3` | filesystem |
-| n8n | `WorkflowTriggerPort` | `WORKFLOW=disabled\|n8n` | disabled |
-| Local repository / HTTP split | `AuthPort` | `AUTH=local\|http` | local repository |
+| n8n | `WorkflowTriggerPort` | `WORKFLOW=disabled\|n8n` | desactivado |
+| Repositorio local / split HTTP | `AuthPort` | `AUTH=local\|http` | repositorio local |
 
-`GET /panel/connectors` returns the catalogue with `local`, `configured`,
-`disabled` or `error` status and never returns credentials.
-`POST /panel/connectors/:id/test` runs one bounded probe. The full environment
-contract and examples are in [CONNECTORS.md](CONNECTORS.md).
+`GET /panel/connectors` devuelve el catálogo con estado `local`, `configured`,
+`disabled` o `error`, y nunca devuelve credenciales. `POST /panel/connectors/:id/test`
+ejecuta una sonda acotada. El contrato completo de variables de entorno y los ejemplos
+están en [CONNECTORS.md](CONNECTORS.md).
 
+## Privacidad e historial
 
-## Privacy and history
+El repositorio público conserva el historial real de commits de los repositorios
+originales, así que la privacidad es una propiedad de cada commit alcanzable, no solo del
+árbol actual:
 
-The public repository carries the real commit history of the original
-repositories, so privacy is a property of every reachable commit, not just the
-current tree:
+- Los prefijos de perfil personal de Windows, el dominio personal y los hosts de preview
+  se reemplazaron por `<WORKSPACE>` / `example.local` en cada ref (reescritura de historial
+  autorizada; ver [ADR 0007](adr/0007-history-privacy.md)).
+- Las claves de API, los JWT, las exportaciones de credenciales, las cookies, los archivos
+  `.env`, los registros de auditoría de producción, los medios de marca del propietario y
+  las superposiciones sin licencia no están en el historial.
+- Las identidades de autor y committer de los commits usan direcciones noreply públicas;
+  las fechas y los nombres de autor de los repositorios de origen se conservan.
+- `gitleaks` se ejecuta sobre todas las refs, el blob más grande pesa menos de 5 MB, y una
+  prueba de deny-list de contenido protege el árbol actual frente a personas, clubes y
+  torneos reales. La compuerta final se vuelve a ejecutar desde un clon nuevo antes de
+  publicar.
+- Las capturas y los videos no pueden contener datos personales: se graban desde el
+  viewport de la app con un `HOME` temporal, nunca desde un escritorio o un prompt de
+  terminal.
 
-- Personal Windows profile prefixes, the personal domain and preview hosts were
-  replaced with `<WORKSPACE>` / `example.local` in every ref (authorized history
-  scrub; see [ADR 0007](adr/0007-history-privacy.md)).
-- API keys, JWTs, credential exports, cookies, `.env` files, production audit
-  logs, owner brand media and unlicensed overlays are absent from the history.
-- Commit author/committer identities use public noreply addresses; dates and
-  author names from the source repositories are preserved.
-- `gitleaks` runs over all refs, the largest blob stays under 5 MB and a
-  content deny-list test guards the current tree against real people, clubs and
-  tournaments. The final gate is re-run from a fresh clone before publication.
-- No personal data is allowed in screenshots or videos: they are captured from
-  the app viewport with a scratch `HOME`, never from a desktop or terminal
-  prompt.
+## Estrategia de pruebas
 
-## Testing strategy
+- **Pruebas de contrato** para `RepositoryPort`: la misma suite corre contra los
+  adaptadores en memoria y Postgres; los puertos de worker tienen una suite de contrato
+  para sus adaptadores HTTP y demo.
+- **Pruebas de casos de uso** en `packages/core` inyectan puertos mock y verifican el
+  comportamiento del dominio sin I/O.
+- **Pruebas HTTP** en `apps/api` ejercitan auth, sesiones, roles, rutas y el composition
+  root con el adaptador en memoria.
+- **Pruebas de servicio** por cada worker de Python y Node, con pruebas en vivo opt-in
+  detrás de flags de entorno.
+- **Pruebas estructurales** en `tools/tests` vigilan el stack de Compose, los assets de
+  marca generados, la higiene del repositorio, la política de contenido y la documentación
+  de portafolio.
+- **QA visual**: `e2e/visual-qa.spec.js` revisa cada vista en ES/EN, en tamaños de
+  escritorio y móvil, buscando desbordes, errores de consola, peticiones fallidas, texto de
+  depuración, cadenas en otro idioma y violaciones graves de axe-core.
+- **End-to-end**: `e2e/happy-path.spec.js` inicia sesión, aprueba un tema, publica un
+  guion y renderiza audio, subtítulos y un MP4 final contra el stack demo sin claves.
+  `e2e/local-mode.spec.js` ejecuta los modelos locales reales y verifica los medios con
+  `ffprobe`.
 
-- **Contract tests** for `RepositoryPort` run the same suite against in-memory
-  and Postgres adapters; the worker ports have one contract suite for their HTTP
-  and demo adapters.
-- **Use-case tests** in `packages/core` inject mock ports and assert domain
-  behaviour without I/O.
-- **HTTP tests** in `apps/api` exercise auth, sessions, roles, routes and the
-  composition root with the in-memory adapter.
-- **Service tests** per Python/Node worker, with opt-in live tests behind
-  environment flags.
-- **Structural tests** in `tools/tests` guard the Compose stack, the generated
-  brand assets, repository hygiene, the content policy and the portfolio
-  documentation.
-- **Visual QA** `e2e/visual-qa.spec.js` checks every view in ES/EN at desktop and
-  mobile sizes for overflow, console errors, failed requests, debug copy,
-  foreign-language strings and serious axe-core violations.
-- **End-to-end** `e2e/happy-path.spec.js` logs in, approves a topic, publishes a
-  script, renders audio, subtitles and a final MP4 against the keyless demo
-  stack. `e2e/local-mode.spec.js` runs the real local models and asserts the
-  media with `ffprobe`.
+## Decisiones
 
-## Decisions
-
-- [ADR 0001 — Hexagonal core](adr/0001-hexagonal-core.md)
-- [ADR 0002 — Local-first defaults](adr/0002-local-first-defaults.md)
-- [ADR 0003 — Optional n8n](adr/0003-optional-n8n.md)
-- [ADR 0004 — Vanilla UI](adr/0004-vanilla-ui.md)
-- [ADR 0005 — Two real run modes](adr/0005-two-run-modes.md)
-- [ADR 0006 — Connectors as first-class ports](adr/0006-connectors.md)
-- [ADR 0007 — History privacy policy](adr/0007-history-privacy.md)
-- [ADR 0008 — File-size exceptions above 600 lines](adr/0008-file-size-exceptions.md)
+- [ADR 0001 — Núcleo hexagonal](adr/0001-hexagonal-core.md)
+- [ADR 0002 — Valores por defecto local-first](adr/0002-local-first-defaults.md)
+- [ADR 0003 — n8n opcional](adr/0003-optional-n8n.md)
+- [ADR 0004 — UI vanilla](adr/0004-vanilla-ui.md)
+- [ADR 0005 — Dos modos reales de ejecución](adr/0005-two-run-modes.md)
+- [ADR 0006 — Conectores como puertos de primera clase](adr/0006-connectors.md)
+- [ADR 0007 — Política de privacidad del historial](adr/0007-history-privacy.md)
+- [ADR 0008 — Excepciones de tamaño de archivo por encima de 600 líneas](adr/0008-file-size-exceptions.md)

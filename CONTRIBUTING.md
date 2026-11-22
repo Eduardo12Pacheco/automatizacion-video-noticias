@@ -1,32 +1,30 @@
-# Contributing
+# Contribuir
 
-Thanks for taking a look. This is a portfolio project, but it is built and
-tested like a real product: small reviewable commits, deterministic tests and
-honest documentation.
+Gracias por echar un vistazo. Es un proyecto de portafolio, pero se construye y se prueba como un
+producto real: commits pequeños y revisables, pruebas deterministas y documentación honesta.
 
-## Before you start
+## Antes de empezar
 
-- Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and the ADRs under
-  [`docs/adr/`](docs/adr/) so a change lands in the right package.
-- Read [`docs/CONNECTORS.md`](docs/CONNECTORS.md) before adding an integration.
-  New external capabilities go behind a port, with a local or demo adapter and
-  a contract test.
-- Never commit secrets, `.env` files, personal paths, owner brand media or
-  third-party media without a documented license.
+- Lee [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) y los ADR de
+  [`docs/adr/`](docs/adr/) para que un cambio caiga en el paquete correcto.
+- Lee [`docs/CONNECTORS.md`](docs/CONNECTORS.md) antes de añadir una integración. Las nuevas
+  capacidades externas van detrás de un puerto, con un adaptador local o demo y una prueba de
+  contrato.
+- Nunca subas secretos, archivos `.env`, rutas personales, medios de marca del propietario ni medios
+  de terceros sin una licencia documentada.
 
-## Local setup
+## Configuración local
 
-The full product runs through Docker Compose. For the test suites you only need
-Node.js 22, pnpm and `uv` (Python is managed by `uv`) plus Docker for the demo
-E2E:
+El producto completo corre con Docker Compose. Para las suites de pruebas solo necesitas Node.js 22,
+pnpm y `uv` (Python lo gestiona `uv`), además de Docker para el E2E de demo:
 
 ```bash
-git clone https://github.com/Eduardo12Pacheco/newsroom-video-automation.git
-cd newsroom-video-automation
+git clone https://github.com/Eduardo12Pacheco/automatizacion-video-noticias.git
+cd automatizacion-video-noticias
 pnpm install --frozen-lockfile
 ```
 
-Install the installer/CLI on your machine, or use the demo stack directly:
+Instala el instalador/CLI en tu máquina, o usa directamente el stack demo:
 
 ```bash
 export NEWSROOM_ENV_FILE=e2e/.env.example
@@ -35,49 +33,45 @@ docker compose --env-file "$E2E_COMPOSE_ENV" up -d --build postgres searxng mail
 docker compose --env-file "$E2E_COMPOSE_ENV" run --rm seed
 ```
 
-Do not copy `e2e/.env.example` over an installed `.env`: it replaces the
-installer-generated secrets. Pass it with `--env-file` and the API picks it up
-through `NEWSROOM_ENV_FILE`.
+No copies `e2e/.env.example` sobre un `.env` instalado: reemplazaría los secretos generados por el
+instalador. Pásalo con `--env-file`, y la API lo toma mediante `NEWSROOM_ENV_FILE`.
 
-The panel is at <http://127.0.0.1:8080>. The installer path
-(`./install.sh` / `.\install.ps1`) is documented in
-[`docs/INSTALL.md`](docs/INSTALL.md).
+El panel está en <http://127.0.0.1:8080>. La ruta del instalador (`./install.sh` / `.\install.ps1`)
+está documentada en [`docs/INSTALL.md`](docs/INSTALL.md).
 
-## Tests
+## Pruebas
 
-One command runs exactly what CI runs, with a summary table:
+Un solo comando ejecuta exactamente lo que ejecuta CI, con una tabla de resumen:
 
 ```bash
 pnpm test:all
 ```
 
-It covers every Node package, the panel pytest suite and its 42 `__checks__`
-scripts, every Python service, the tools tests, the installer tests and the
-Compose config. The demo Playwright happy path needs the running stack:
+Cubre cada paquete de Node, la suite pytest del panel y sus scripts `__checks__`, cada servicio en
+Python, las pruebas de `tools`, las pruebas del instalador y la configuración de Compose. El happy path
+de Playwright en demo necesita el stack en ejecución:
 
 ```bash
 E2E_ALLOW_RESET=1 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
 
-`E2E_ALLOW_RESET=1` is required by the destructive panel-flow reset and must
-only be used against a disposable demo stack created for the E2E suite. Install
-the pinned browser once with `pnpm exec playwright install chromium`; the specs
-read `E2E_EDITOR_PASSWORD` when set and otherwise derive the seeded editor
-password from `NEWSROOM_DEMO_PASSWORD` in the environment file.
+`E2E_ALLOW_RESET=1` es obligatorio para el reinicio destructivo de los flujos del panel, y solo debe
+usarse contra un stack demo desechable creado para la suite E2E. Instala el navegador fijado una vez con
+`pnpm exec playwright install chromium`; las specs leen `E2E_EDITOR_PASSWORD` si está definida y, si no,
+derivan la contraseña del editor sembrado desde `NEWSROOM_DEMO_PASSWORD` en el archivo de entorno.
 
-The adapters suite shells out to `python-docx` through the system Python. If it
-is missing locally the document-export test skips with the allow-listed
-`missing-python-docx` reason; install it to run the real export check
-(`python3 -m venv .venv-adapters && .venv-adapters/bin/pip install "python-docx>=1.1"`
-and set `PYTHON_BIN`). CI installs it in the adapters job.
+La suite de adaptadores invoca `python-docx` a través del Python del sistema. Si falta localmente, la
+prueba de exportación de documentos se omite con el motivo permitido `missing-python-docx`; instálalo
+para ejecutar la verificación real de exportación (`python3 -m venv .venv-adapters && .venv-adapters/bin/pip install "python-docx>=1.1"`
+y define `PYTHON_BIN`). CI lo instala en el job de adaptadores.
 
-The visual-QA suite needs no Docker:
+La suite de QA visual no necesita Docker:
 
 ```bash
 node tools/run-visual-qa.mjs
 ```
 
-Focused commands:
+Comandos focalizados:
 
 ```bash
 pnpm test:panel
@@ -87,63 +81,58 @@ uv run --project services/asr-worker --with pytest --with httpx pytest services/
 bash infra/install/tests/run.sh
 ```
 
-Every suite must stay green. Do not weaken a test to make it pass: either fix
-the code, or update the test when it asserts obsolete behaviour and explain why
-in the commit message. Skips are only acceptable for an optional runtime (for
-example, no GPU) and must print the reason. Nested skips (individual tests that
-skip inside a suite that otherwise runs) are reported separately by
-`node tools/run-all-tests.mjs`; only the reasons declared in that runner are
-allowed, and any other nested skip fails the run.
+Cada suite debe mantenerse en verde. No debilites una prueba para que pase: o corriges el código, o
+actualizas la prueba cuando afirma un comportamiento obsoleto, y lo explicas en el mensaje del commit.
+Los skips solo son aceptables para un runtime opcional (por ejemplo, sin GPU) y deben imprimir el motivo.
+Los skips anidados (pruebas individuales que se omiten dentro de una suite que por lo demás corre) los
+informa por separado `node tools/run-all-tests.mjs`; solo se permiten los motivos declarados en ese
+runner, y cualquier otro skip anidado hace fallar la ejecución.
 
-### What the Windows CI job proves
+### Qué demuestra el job de Windows en CI
 
-The `windows-installers` job runs on `windows-latest` with Docker Linux
-containers unavailable, so it calls `./install.ps1 -Check -AllowMissingDocker`
-and a dry run instead of installing the stack. It proves that the PowerShell
-installer and CLI parse and load on Windows PowerShell, that the prerequisite
-check reports missing Docker as a warning instead of failing, that the generated
-`.env` and CLI paths work, and that the installer and parity PowerShell tests
-(including `test_install_ps1.py` and `test_parity.py`) pass under a native
-Windows `python`. It does **not** prove that Docker Desktop/WSL2 starts the
-stack, that the Windows GPU path is exercised, or that the browser E2E runs on
-Windows; those remain covered by the Linux jobs and by the installer's own
-behaviour tests, not by a physical Windows host in this repository's CI.
+El job `windows-installers` corre en `windows-latest` sin contenedores Linux de Docker disponibles, así
+que ejecuta `./install.ps1 -Check -AllowMissingDocker` y una ejecución en seco en lugar de instalar el
+stack. Demuestra que el instalador y la CLI de PowerShell se parsean y cargan en Windows PowerShell, que
+la verificación de prerrequisitos informa Docker ausente como advertencia en lugar de fallar, que el
+`.env` generado y las rutas de la CLI funcionan, y que las pruebas de PowerShell del instalador y de
+paridad (incluidos `test_install_ps1.py` y `test_parity.py`) pasan con el `python` nativo de Windows. **No**
+demuestra que Docker Desktop/WSL2 levante el stack, que la ruta GPU de Windows se ejercite ni que el E2E
+de navegador corra en Windows; eso sigue cubierto por los jobs de Linux y por las pruebas de
+comportamiento del propio instalador, no por un host Windows físico en la CI de este repositorio.
 
-## Code conventions
+## Convenciones de código
 
-- Keep the architecture hexagonal: business rules in `packages/core`, adapters
-  in `packages/adapters`, one composition root in `apps/api`. The core never
-  imports an adapter, a database client or browser code.
-- The panel is vanilla HTML/CSS/ES modules with no bundler. Use the tokens in
-  `apps/panel/styles/tokens.css`; do not add raw colours, font sizes outside
-  `--fs-*`, or a second UI font.
-- Every user-facing string goes through the ES/EN i18n module. Generated
-  editorial content is data and stays in its source language.
-- Prefer small, cohesive files (target ≤ 600 lines) and delete dead code rather
-  than keeping a compatibility shim.
-- Keep new dependencies justified; the default install must stay keyless and
-  local-first.
+- Mantén la arquitectura hexagonal: las reglas de negocio en `packages/core`, los adaptadores en
+  `packages/adapters` y un único composition root en `apps/api`. El core nunca importa un adaptador, un
+  cliente de base de datos ni código del navegador.
+- El panel es HTML/CSS/módulos ES nativos sin bundler. Usa los tokens de
+  `apps/panel/styles/tokens.css`; no añadas colores crudos, tamaños de fuente fuera de `--fs-*` ni una
+  segunda fuente de interfaz.
+- Cada cadena visible para el usuario pasa por el módulo i18n ES/EN. El contenido editorial generado es
+  dato y conserva su idioma de origen.
+- Prefiere archivos pequeños y cohesivos (objetivo ≤ 600 líneas) y elimina el código muerto en lugar de
+  conservar un shim de compatibilidad.
+- Justifica cada dependencia nueva; la instalación por defecto debe seguir sin claves y ser local-first.
 
 ## Commits
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
+Usa [Conventional Commits](https://www.conventionalcommits.org/):
 `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `build:`, `ci:`.
-Keep each commit a coherent work unit and include the tests that prove it.
-Commit messages must not carry co-author or tool-attribution trailers such as
-`Co-Authored-By` or `Generated-by`; the author line belongs to the person who
-commits. The AI-assistance note in the README describes how the project was
-built, not a commit convention.
+Cada commit debe ser una unidad de trabajo coherente e incluir las pruebas que la demuestran.
+Los mensajes de commit no deben llevar tráileres de coautoría ni de atribución de herramientas, como
+`Co-Authored-By` o `Generated-by`; la línea de autor corresponde a la persona que hace el commit. La nota
+de asistencia de IA del README describe cómo se construyó el proyecto, no es una convención de commits.
 
 ## Pull requests
 
-- Run `pnpm test:all` before opening the PR and paste the summary.
-- Describe the behaviour change, the tests that cover it and any remaining gap.
-- Do not push to `main` directly if the project owner has not asked for it, and
-  never force-push or rewrite history. History rewrites require explicit owner
-  authorization and the backup/gate procedure in
+- Ejecuta `pnpm test:all` antes de abrir el PR y pega el resumen.
+- Describe el cambio de comportamiento, las pruebas que lo cubren y cualquier brecha restante.
+- No hagas push directo a `main` si el propietario del proyecto no lo pidió, y nunca hagas force-push ni
+  reescribas el historial. Las reescrituras del historial requieren autorización explícita del propietario
+  y el procedimiento de respaldo y compuerta de
   [ADR 0007](docs/adr/0007-history-privacy.md).
 
-## License
+## Licencia
 
-By contributing you agree that your contribution is released under the MIT
-license in [`LICENSE`](LICENSE).
+Al contribuir aceptas que tu aporte se publique bajo la licencia MIT de
+[`LICENSE`](LICENSE).

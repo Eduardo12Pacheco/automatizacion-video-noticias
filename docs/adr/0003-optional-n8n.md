@@ -1,34 +1,34 @@
-# ADR 0003 — n8n is optional, not the backend
+# ADR 0003 — n8n es opcional, no el backend
 
-## Status
+## Estado
 
-Accepted.
+Aceptada.
 
-## Context
+## Contexto
 
-In the original system n8n was the domain backend: 16 workflows, most of them
-webhook CRUD over Supabase RPCs, with business rules living in Code nodes. That
-made the system hard to test, tied the product to one orchestration tool and
-left a large amount of logic outside version-controlled tests. n8n also
-requires its own credentials and encryption key.
+En el sistema original, n8n era el backend de dominio: 16 workflows, la mayoría CRUD por webhook
+sobre RPC de Supabase, con las reglas de negocio en Code nodes. Eso hacía el sistema difícil de
+probar, ataba el producto a una sola herramienta de orquestación y dejaba una gran cantidad de
+lógica fuera de las pruebas versionadas. Además, n8n exige sus propias credenciales y clave de
+cifrado.
 
-## Decision
+## Decisión
 
-Port the workflow logic into `packages/core` use cases and keep n8n only as an
-optional `WorkflowTriggerPort` adapter:
+Trasladar la lógica de los workflows a casos de uso de `packages/core` y mantener n8n solo como
+adaptador opcional de `WorkflowTriggerPort`:
 
-- The in-process job queue and scheduler own orchestration in the default stack.
-- The `n8n` Compose profile and the slim example workflows stay available for
-  users who want to trigger the API from n8n.
-- The historical export remains under `examples/legacy-n8n/` as a read-only reference
-  fixture, with placeholders instead of secrets.
+- La cola de jobs en proceso y el scheduler son dueños de la orquestación en el stack por defecto.
+- El perfil de Compose `n8n` y los workflows de ejemplo simplificados siguen disponibles para
+  quienes quieran disparar la API desde n8n.
+- La exportación histórica se conserva en `examples/legacy-n8n/` como accesorio de referencia de
+  solo lectura, con placeholders en lugar de secretos.
 
-## Consequences
+## Consecuencias
 
-- The product works with one `docker compose up` and no n8n container.
-- Workflow behaviour is now covered by ordinary use-case and HTTP tests.
-- Existing n8n users can keep their tool as a thin trigger layer, but they are
-  no longer required to understand a 38-node Code-node workflow to change a
-  business rule.
-- The reference export is not a restorable production backup; credentials and
-  the live n8n volume are intentionally absent.
+- El producto funciona con un único `docker compose up` y sin contenedor de n8n.
+- El comportamiento de los workflows ahora está cubierto por pruebas ordinarias de casos de uso y
+  de HTTP.
+- Quien ya usa n8n puede mantener su herramienta como una capa delgada de disparo, pero ya no
+  necesita entender un workflow de 38 nodos de Code para cambiar una regla de negocio.
+- La exportación de referencia no es un respaldo de producción restaurable; las credenciales y el
+  volumen activo de n8n están intencionalmente ausentes.

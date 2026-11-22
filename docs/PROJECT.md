@@ -1,118 +1,119 @@
-# Project background and scope
+# Contexto y alcance del proyecto
 
-The background that does not fit in the [README](../README.md): where the
-project came from, what is and is not verified, the technology choices and a map
-of the repository.
+El contexto que no cabe en el [README](../README.md): de dónde viene el proyecto,
+qué está verificado y qué no, las decisiones tecnológicas y un mapa del
+repositorio.
 
-## Project story
+## Historia del proyecto
 
-The original version of this product ran for about three months in a real
-newsroom, with n8n as the backend, Supabase as the datastore and several paid
-API keys for extraction, search and language models. It proved the workflow and
-taught the expensive lesson: the interesting part was the editorial pipeline,
-not the cloud accounts.
+La versión original de este producto funcionó unos tres meses en una redacción
+periodística real, con n8n como backend, Supabase como almacén de datos y varias
+claves de API de pago para extracción, búsqueda y modelos de lenguaje. Validó el
+flujo y dejó una lección costosa: lo interesante era el pipeline editorial, no las
+cuentas en la nube.
 
-This repository is a ground-up rebuild of that system. The domain rules moved
-from n8n Code nodes into tested use cases, the browser stopped talking to
-Supabase, duplicate Whisper/RSS/download code was collapsed, the UI was rebuilt
-around a design system, and every external capability became an optional
-adapter behind a local-first default. The private deployment is not running and
-is not linked from here.
+Este repositorio es una reconstrucción desde cero de ese sistema. Las reglas de
+dominio pasaron de los Code nodes de n8n a casos de uso probados; el navegador
+dejó de hablar directamente con Supabase; el código duplicado de Whisper, RSS y
+descargas se unificó; la interfaz se reconstruyó sobre un sistema de diseño; y cada
+capacidad externa se convirtió en un adaptador opcional detrás de un valor por
+defecto local-first. El despliegue privado no está en marcha y no se enlaza desde
+aquí.
 
-The rebuild was implemented by an autonomous coding agent from a reviewed
-feature document, with tests, local verification and human review at the
-decision points.
+La reconstrucción la implementó un agente de programación autónomo a partir de un
+documento de especificación revisado, con pruebas, verificación local y revisión
+humana en los puntos de decisión.
 
-## Honest scope
+## Alcance honesto
 
-- This repository is a **portfolio rebuild**, not a live system. It is designed
-  to be installed and run locally; nothing is deployed to the internet.
-- Both run modes are real and tested: `demo` is deterministic and needs no
-  models; `local` runs the actual local models and produces real media on CPU.
-  The recorded demo is the demo mode, and the panel labels it as such.
-- Linux is tested on the CI `ubuntu-latest` runner and on the owner's
-  Arch/CachyOS machine. The Windows installer is covered by the
-  `windows-latest` CI job (parser, prerequisite check and dry-run) and by
-  PowerShell 7 behaviour tests on Linux; it has not been exercised on a
-  physical Windows 10/11 desktop.
-- GPU mode is verified on the owner's machine (RTX 4060 8 GB, driver 620.70,
-  `nvidia-container-toolkit`): `docker run --rm --gpus all
-  nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` works, and the local-mode E2E
-  passed with real CUDA Ollama, faster-whisper and Qwen3-TTS media. Peak GPU
-  memory during that run was 6,646 MB of 8,188 MB; the 1.7B voice variant fits
-  because the LLM unloads immediately and GPU jobs are serialized. GPU mode is
-  not faster end to end than CPU (Qwen synthesis is heavier and the Remotion
-  render stays on CPU): the measured run took 6.1 min versus 5.2 min on CPU,
-  while the LLM draft dropped from 22.3 s to 5.1 s. See
-  [Verified GPU run](INSTALL.md#verified-gpu-run).
-- The UI chrome, navigation, admin area and every screen in the visual-QA suite
-  are translated in ES/EN. Generated editorial content (news titles, scripts,
-  player names) intentionally stays in its source language.
+- Este repositorio es una **reconstrucción de portafolio**, no un sistema en
+  producción. Está diseñado para instalarse y ejecutarse localmente; nada se
+  despliega en internet.
+- Los dos modos de ejecución son reales y están probados: `demo` es determinista y
+  no necesita modelos; `local` ejecuta los modelos locales reales y produce medios
+  reales en CPU. La demo grabada corresponde al modo demo, y el panel lo indica así.
+- Linux se prueba en el runner `ubuntu-latest` de CI y en la máquina Arch/CachyOS
+  del autor. El instalador de Windows está cubierto por el job `windows-latest` de
+  CI (parser, verificación de prerrequisitos y dry-run) y por pruebas de
+  comportamiento de PowerShell 7 en Linux; no se ha ejecutado en un escritorio
+  físico con Windows 10/11.
+- El modo GPU está verificado en la máquina del autor (RTX 4060 de 8 GB, driver
+  620.70, `nvidia-container-toolkit`): `docker run --rm --gpus all
+  nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` funciona, y el E2E de modo local
+  pasó con medios reales de Ollama con CUDA, faster-whisper y Qwen3-TTS. El pico de
+  memoria GPU de esa ejecución fue de 6646 MB de 8188 MB; la variante de voz de 1.7B
+  cabe porque el LLM se descarga de inmediato y los trabajos GPU se serializan. El
+  modo GPU no es más rápido de punta a punta que CPU (la síntesis de Qwen es más
+  pesada y el render de Remotion sigue en CPU): la ejecución medida tardó 6.1 min
+  frente a 5.2 min en CPU, mientras que el borrador del LLM bajó de 22.3 s a 5.1 s.
+  Ver [Ejecución GPU verificada](INSTALL.md#ejecución-gpu-verificada).
+- La interfaz, la navegación, el área de administración y cada pantalla de la suite
+  de QA visual están traducidas a ES/EN. El contenido editorial generado (titulares,
+  guiones, nombres de jugadores) conserva a propósito su idioma de origen.
 
-## Tech stack
+## Stack tecnológico
 
-| Layer | Choice | Why |
+| Capa | Elección | Por qué |
 |---|---|---|
-| UI | Vanilla HTML, CSS and ES modules | No build step, easy to inspect in the browser |
-| API | Node.js in `apps/api` | One backend owns auth, sessions, read models and the job queue |
-| Domain | `packages/core` use cases + `packages/contracts` | The original n8n rules are ordinary, tested code |
-| Data | Postgres 16 + tracked SQL migrations | Same engine as Supabase, self-hosted and disposable in tests |
-| Local AI | Ollama, trafilatura, faster-whisper, Piper/Qwen | Runs on one machine, with CPU fallbacks |
-| Video | Remotion | Programmatic, role-based brand compositions |
-| Packaging | Docker Compose + `install.sh` / `install.ps1` + `newsroom` CLI | One install path for Linux and Windows |
+| UI | HTML, CSS y módulos ES nativos | Sin paso de build; fácil de inspeccionar en el navegador |
+| API | Node.js en `apps/api` | Un solo backend es dueño de auth, sesiones, read models y la cola de jobs |
+| Dominio | Casos de uso en `packages/core` + `packages/contracts` | Las reglas originales de n8n son código ordinario y probado |
+| Datos | Postgres 16 + migraciones SQL versionadas | El mismo motor que Supabase, autohospedado y descartable en pruebas |
+| IA local | Ollama, trafilatura, faster-whisper, Piper/Qwen | Corre en una sola máquina, con respaldo en CPU |
+| Video | Remotion | Composiciones de marca programáticas y basadas en roles |
+| Empaquetado | Docker Compose + `install.sh` / `install.ps1` + CLI `newsroom` | Una sola ruta de instalación para Linux y Windows |
 
-The reasoning behind the main choices is recorded in the [ADRs](adr/).
+Las razones de las decisiones principales están registradas en los [ADR](adr/).
 
-## Repository map
+## Mapa del repositorio
 
 ```text
 apps/
-  api/                 HTTP API, auth, sessions, job queue, composition root
-  panel/               Vanilla ES-module editorial UI
+  api/                 API HTTP, auth, sesiones, cola de jobs, composition root
+  panel/               UI editorial en módulos ES nativos
 packages/
-  contracts/           Shared contract helpers and editor schemas
-  core/                Use cases and ports (the domain)
-  data/                Repository + blob ports, Postgres/in-memory/S3 adapters
-  adapters/            Local-first adapters and the optional connectors
+  contracts/           Helpers de contratos compartidos y esquemas del editor
+  core/                Casos de uso y puertos (el dominio)
+  data/                Puertos de repositorio y blobs; adaptadores Postgres, en memoria y S3
+  adapters/            Adaptadores locales-first y conectores opcionales
 services/
-  asr-worker/          faster-whisper GPU/CPU service, yt-dlp download
-  tts-worker/          Piper CPU + Qwen GPU TTS
-  renderer/            Remotion final renderer
-  subtitles/           Caption alignment and burn-in
-  channel-monitor/     Public RSS channel monitoring
-  demo-worker/         Deterministic keyless worker for the demo profile
+  asr-worker/          Servicio faster-whisper (GPU/CPU) y descarga con yt-dlp
+  tts-worker/          TTS de Piper en CPU y Qwen en GPU
+  renderer/            Renderer final con Remotion
+  subtitles/           Alineación y quemado de subtítulos
+  channel-monitor/     Monitoreo de canales RSS públicos
+  demo-worker/         Worker determinista sin claves para el perfil demo
 infra/
-  db/migrations/       Tracked SQL schema
-  n8n/                 Optional n8n profile and two slim workflows
-  install/             Shared installer library and tests
-  windows/             Optional Windows service helpers
-docs/                  Architecture, ADRs, install, connectors, data model
-examples/              Fictional brand assets and the legacy n8n reference
-tools/                 Asset generator, demo recorder and structural tests
+  db/migrations/       Esquema SQL versionado
+  n8n/                 Perfil opcional de n8n y dos workflows simplificados
+  install/             Biblioteca compartida del instalador y sus pruebas
+  windows/             Helpers opcionales de servicios de Windows
+docs/                  Arquitectura, ADR, instalación, conectores y modelo de datos
+examples/              Assets de marca ficticios y la referencia de n8n heredada
+tools/                 Generador de assets, grabador de demo y pruebas estructurales
 ```
 
-[docs/ARCHITECTURE.md](ARCHITECTURE.md#code-boundaries) describes what each
-path is responsible for and what it may depend on.
+[docs/ARCHITECTURE.md](ARCHITECTURE.md#límites-de-código) describe la
+responsabilidad de cada ruta y de qué puede depender.
 
-## Testing snapshot
+## Resumen de pruebas
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm test:all
 ```
 
-`pnpm test:all` runs the same suites CI runs and prints a summary table. It
-covers every Node package, the panel pytest suite and its 42 `__checks__`
-scripts, each Python service, the tools tests, installer tests and the Compose
-config: **28 of 30 suites pass, 0 failures, 2 allow-listed skips** on the
-revision this was written against. The two skips are the demo E2E and the
-local-mode E2E, which need a running stack; CI runs both in their own jobs, and
-`e2e/local-mode.spec.js` downloads the real models and asserts the rendered
-audio, subtitles and MP4 with `ffprobe`. The visual-QA suite runs without Docker
-against the showcase. Every suite is blocking in CI; there are no
-`continue-on-error` baselines.
+`pnpm test:all` ejecuta las mismas suites que CI e imprime una tabla de resumen. Cubre
+cada paquete de Node, la suite pytest del panel y sus scripts `__checks__`, cada
+servicio en Python, las pruebas de `tools`, las pruebas del instalador y la
+configuración de Compose. Las dos omisiones permitidas son el E2E de demo y
+el E2E de modo local, que necesitan un stack en ejecución; CI las corre en sus propios
+jobs, y `e2e/local-mode.spec.js` descarga los modelos reales y verifica con `ffprobe`
+el audio, los subtítulos y el MP4 renderizados. La suite de QA visual corre sin Docker
+contra el showcase. Todas las suites son bloqueantes en CI; no hay líneas base con
+`continue-on-error`.
 
-Focused examples:
+Ejemplos de ejecución focalizada:
 
 ```bash
 pnpm test:panel
@@ -122,14 +123,15 @@ uv run --project services/asr-worker --with pytest --with httpx pytest services/
 pnpm exec playwright test e2e/happy-path.spec.js e2e/panel-flows.spec.js
 ```
 
-The full test matrix and conventions are in [CONTRIBUTING.md](../CONTRIBUTING.md);
-the browser E2E setup is in [e2e/README.md](../e2e/README.md).
+La matriz completa de pruebas y las convenciones están en [CONTRIBUTING.md](../CONTRIBUTING.md);
+la configuración del E2E de navegador está en [e2e/README.md](../e2e/README.md).
 
-## Security at a glance
+## Seguridad de un vistazo
 
-Published ports bind to `127.0.0.1` by default, users live in Postgres with
-bcrypt hashes and HTTP-only sessions, and every mutating route passes one role
-gate with a trusted-Origin check. Uploaded blobs are served with a sandbox CSP
-and `nosniff`; only audio, video and raster images may render inline, while
-HTML, SVG and XML are forced to `application/octet-stream` downloads. The full
-list and the threat model are in [SECURITY.md](../SECURITY.md).
+Los puertos publicados se enlazan a `127.0.0.1` por defecto; los usuarios viven en
+Postgres con hashes bcrypt y sesiones HTTP-only, y cada ruta que muta datos pasa por
+un único control de rol con verificación de Origin de confianza. Los blobs subidos se
+sirven con una CSP de sandbox y `nosniff`; solo el audio, el video y las imágenes
+raster pueden mostrarse en línea, mientras que HTML, SVG y XML se fuerzan como
+descargas `application/octet-stream`. La lista completa y el modelo de amenazas están
+en [SECURITY.md](../SECURITY.md).

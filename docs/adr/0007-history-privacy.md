@@ -1,47 +1,45 @@
-# ADR 0007 — History privacy policy
+# ADR 0007 — Política de privacidad del historial
 
-## Status
+## Estado
 
-Accepted.
+Aceptada.
 
-## Context
+## Contexto
 
-The repository preserves the real commit history of the original private
-projects. That is valuable for a portfolio — reviewers can see how the work
-evolved — but it also means a secret or a personal path in any old blob is just
-as reachable as one in the current tree. An earlier import scrubbed most
-credentials and media but missed the owner's Windows profile prefix, and the
-final gate caught it.
+El repositorio conserva el historial real de commits de los proyectos privados originales. Eso tiene
+valor para un portafolio —quien lo revisa puede ver cómo evolucionó el trabajo—, pero también significa
+que un secreto o una ruta personal en un blob antiguo es tan accesible como uno en el árbol actual. Una
+importación anterior limpió la mayoría de credenciales y medios, pero dejó pasar el prefijo de perfil de
+Windows del propietario, y la compuerta final lo detectó.
 
-## Decision
+## Decisión
 
-Privacy is enforced over **every reachable commit**, not only `HEAD`:
+La privacidad se aplica sobre **cada commit alcanzable**, no solo sobre `HEAD`:
 
-- Replace personal Windows profile path prefixes with `<WORKSPACE>` and the
-  personal domain / preview hosts with `example.local`, in file contents and in
-  commit messages, across all branches and preserved history refs.
-- Keep original author names and dates; map owner emails to the public GitHub
-  noreply address so contributions still count. Never rewrite unrelated
-  authorship.
-- Remove secrets, credential exports, cookies, `.env` files, production audit
-  logs, owner brand media, ripped overlays and blobs over 5 MB from the whole
-  history.
-- Gate publication on `gitleaks` over all refs, the largest-blob check, an
-  identity check, a content deny-list test and a path/domain scan. Re-run the
-  gate from a fresh clone before pushing.
-- Back up the pre-scrub repository before any authorized rewrite and never
-  modify the backup.
-- Keep screenshots and video free of personal data: capture only the app
-  viewport from a scratch `HOME`, never a desktop or terminal prompt.
+- Reemplazar los prefijos de ruta del perfil personal de Windows por `<WORKSPACE>` y el dominio personal
+  y los hosts de preview por `example.local`, tanto en el contenido de los archivos como en los mensajes
+  de commit, en todas las ramas y refs de historial conservadas.
+- Conservar los nombres y las fechas de autor originales; asignar los correos del propietario a la
+  dirección noreply pública de GitHub para que las contribuciones sigan contando. Nunca reescribir una
+  autoría no relacionada.
+- Eliminar de todo el historial los secretos, las exportaciones de credenciales, las cookies, los archivos
+  `.env`, los registros de auditoría de producción, los medios de marca del propietario, las superposiciones
+  extraídas y los blobs de más de 5 MB.
+- Condicionar la publicación a `gitleaks` sobre todas las refs, la comprobación del blob más grande, una
+  comprobación de identidades, una prueba de deny-list de contenido y un escaneo de rutas y dominios.
+  Vuelve a ejecutar la compuerta desde un clon nuevo antes de hacer push.
+- Respaldar el repositorio previo a la limpieza antes de cualquier reescritura autorizada, y nunca modificar
+  el respaldo.
+- Mantener las capturas y los videos libres de datos personales: capturar solo el viewport de la app desde
+  un `HOME` temporal, nunca un escritorio ni un prompt de terminal.
 
-## Consequences
+## Consecuencias
 
-- History rewrites are exceptional, authorized operations, not routine fixes.
-  A missed pattern requires a new authorization, a new backup and a new gate
-  run.
-- Commit hashes change during a rewrite; the task log records the mapping of
-  old to new hashes for any references.
-- The public history remains useful as a portfolio artifact without leaking the
-  private deployment, its accounts or its owner's machine layout.
-- The policy is repeatable: the same scanners run in the final gate and can be
-  re-run by anyone who clones the repository.
+- Las reescrituras del historial son operaciones excepcionales y autorizadas, no correcciones rutinarias.
+  Un patrón omitido exige una nueva autorización, un nuevo respaldo y una nueva ejecución de la compuerta.
+- Los hashes de commit cambian durante una reescritura; el registro de la tarea guarda la correspondencia
+  entre hashes antiguos y nuevos para cualquier referencia.
+- El historial público sigue siendo útil como artefacto de portafolio sin filtrar el despliegue privado, sus
+  cuentas ni la estructura de la máquina del propietario.
+- La política es repetible: los mismos escáneres corren en la compuerta final y cualquiera que clone el
+  repositorio puede volver a ejecutarlos.

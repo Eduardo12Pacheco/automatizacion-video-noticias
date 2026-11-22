@@ -1,43 +1,41 @@
-# ADR 0002 — Local-first defaults
+# ADR 0002 — Valores por defecto local-first
 
-## Status
+## Estado
 
-Accepted.
+Aceptada.
 
-## Context
+## Contexto
 
-The private deployment used Firecrawl, Serper, Gemini/OpenRouter, Supabase and
-Google Drive. The owner asked for a version that runs as locally as reasonably
-possible, with external services only as optional adapters where no acceptable
-local option exists. The target machine has an 8 GB RTX 4060, Docker and no
-requirement to keep the old cloud accounts.
+El despliegue privado usaba Firecrawl, Serper, Gemini/OpenRouter, Supabase y Google Drive. El
+propietario pidió una versión que funcione de forma lo más local posible, con servicios externos
+solo como adaptadores opcionales allí donde no existe una alternativa local aceptable. La máquina
+objetivo tiene una RTX 4060 de 8 GB, Docker, y no hay requisito de mantener las cuentas en la nube
+anteriores.
 
-## Decision
+## Decisión
 
-Make the default configuration require **zero API keys and zero cloud
-accounts**:
+Hacer que la configuración por defecto requiera **cero claves de API y cero cuentas en la nube**:
 
-- Ollama is the default LLM, with any OpenAI-compatible endpoint as an optional
-  adapter.
-- trafilatura extracts article text locally.
-- SearXNG plus Wikimedia Commons provides keyless image search.
-- Postgres runs in a container with tracked SQL migrations.
-- Blobs live on the local filesystem and are served by the API.
-- faster-whisper, Qwen TTS and Piper provide local speech services.
-- yt-dlp is the only media download path.
-- Console/Mailpit provides notifications; SMTP is the optional real-inbox
-  adapter.
-- n8n is optional and off by default.
+- Ollama es el LLM por defecto; cualquier endpoint compatible con OpenAI es un adaptador opcional.
+- trafilatura extrae el texto de los artículos en local.
+- SearXNG más Wikimedia Commons proporciona búsqueda de imágenes sin claves.
+- Postgres corre en un contenedor con migraciones SQL versionadas.
+- Los blobs viven en el filesystem local y los sirve la API.
+- faster-whisper, Qwen TTS y Piper proporcionan los servicios de voz locales.
+- yt-dlp es la única vía de descarga de medios.
+- Consola/Mailpit proporciona las notificaciones; SMTP es el adaptador opcional para una bandeja
+  real.
+- n8n es opcional y está desactivado por defecto.
 
-A capability that is disabled or unavailable returns a typed
-`adapter_unavailable` error while read/save surfaces keep working.
+Una capacidad desactivada o no disponible devuelve un error tipado `adapter_unavailable`, mientras
+las superficies de lectura y guardado siguen funcionando.
 
-## Consequences
+## Consecuencias
 
-- `docker compose up` and the installers need no accounts, keys or paid tier.
-- Local quality and speed depend on the machine; a 7B model is slower than a
-  hosted model, and CPU Piper is less expressive than GPU Qwen.
-- The installers must download several models, so first install takes longer
-  than a typical web app.
-- External services remain possible through environment configuration, which
-  keeps the architecture honest for users who prefer them.
+- `docker compose up` y los instaladores no necesitan cuentas, claves ni un plan de pago.
+- La calidad y la velocidad locales dependen de la máquina; un modelo de 7B es más lento que un
+  modelo alojado, y Piper en CPU es menos expresivo que Qwen en GPU.
+- Los instaladores deben descargar varios modelos, así que la primera instalación tarda más que
+  en una aplicación web típica.
+- Los servicios externos siguen siendo posibles mediante la configuración de entorno, lo que
+  mantiene honesta la arquitectura para quien los prefiera.
