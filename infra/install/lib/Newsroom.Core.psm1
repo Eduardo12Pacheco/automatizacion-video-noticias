@@ -202,22 +202,35 @@ function Read-NrSecret {
 
 # --- Docker Compose --------------------------------------------------------
 
+# Probes docker and reports only its exit code. Windows PowerShell 5.1 turns a
+# native command's stderr into a terminating error while the installer runs with
+# $ErrorActionPreference = 'Stop', so a stopped daemon ("failed to connect to the
+# docker API") would abort the whole prerequisite check instead of failing it.
+function Invoke-NrDockerProbe {
+    param([Parameter(Mandatory = $true)][string[]]$Arguments)
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & docker @Arguments *> $null
+        return ($LASTEXITCODE -eq 0)
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+}
+
 function Test-NrDockerCli {
     if (-not (Test-NrCommand 'docker')) { return $false }
-    & docker --version *> $null
-    return ($LASTEXITCODE -eq 0)
+    return (Invoke-NrDockerProbe -Arguments @('--version'))
 }
 
 function Test-NrDockerDaemon {
     if (-not (Test-NrDockerCli)) { return $false }
-    & docker info *> $null
-    return ($LASTEXITCODE -eq 0)
+    return (Invoke-NrDockerProbe -Arguments @('info'))
 }
 
 function Test-NrComposeCli {
     if (-not (Test-NrDockerCli)) { return $false }
-    & docker compose version *> $null
-    return ($LASTEXITCODE -eq 0)
+    return (Invoke-NrDockerProbe -Arguments @('compose', 'version'))
 }
 
 function Format-NrCommand {
